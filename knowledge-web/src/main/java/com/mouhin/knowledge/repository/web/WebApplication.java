@@ -14,9 +14,9 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @ComponentScan(basePackages = "com.mouhin.knowledge.repository")
 @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-public class KnowledgeRepositoryApplication {
+public class WebApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(KnowledgeRepositoryApplication.class, args);
+        SpringApplication.run(WebApplication.class, args);
     }
 }

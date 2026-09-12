@@ -2,8 +2,8 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
+import com.mouhin.knowledge.repository.web.dto.DocumentUploadRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -15,6 +15,9 @@ import java.util.Map;
 
 /**
  * 文档上传控制器
+ * <p>
+ * 仅负责文件上传与文本提取，分块与向量化由管理端确认后执行。
+ * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-02
@@ -32,7 +35,10 @@ public class DocumentUploadController {
     }
 
     /**
-     * 上传并处理文档（支持 PDF/Word/Excel/PPT/TXT/CSV/HTML 格式）
+     * 上传文档（仅提取文本，不分块、不向量化）
+     * <p>
+     * 上传成功后文档状态为 UPLOADED，用户可在管理端预览解析效果并确认入库。
+     * </p>
      *
      * @param file         文档文件（支持 PDF/Word/Excel/PPT/TXT/CSV/HTML）
      * @param ownerId      所有者用户 ID
@@ -40,8 +46,6 @@ public class DocumentUploadController {
      * @param visibility   可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE）
      * @param allowedRoles 允许访问的角色（逗号分隔）
      * @param tags         标签（逗号分隔）
-     * @param chunkSize    分块大小（token 数，默认 500）
-     * @param overlap      分块重叠（token 数，默认 50）
      */
     @PostMapping(value = "/upload", consumes = {
             MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -58,13 +62,11 @@ public class DocumentUploadController {
     })
     public ResponseEntity<Map<String, Object>> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("ownerId") String ownerId,
-            @RequestParam("departmentId") String departmentId,
-            @RequestParam(value = "visibility", defaultValue = "INTERNAL") String visibility,
-            @RequestParam(value = "allowedRoles", required = false) String allowedRoles,
-            @RequestParam(value = "tags", required = false) String tags,
-            @RequestParam(value = "chunkSize", defaultValue = "500") Integer chunkSize,
-            @RequestParam(value = "overlap", defaultValue = "50") Integer overlap) {
+            DocumentUploadRequest request) {
+
+        String ownerId = request.getOwnerId();
+        String departmentId = request.getDepartmentId();
+        String visibility = request.getVisibility() != null ? request.getVisibility() : "INTERNAL";
 
         logger.info("Uploading document: {}, owner={}, dept={}", file.getOriginalFilename(), ownerId, departmentId);
 
@@ -86,18 +88,14 @@ public class DocumentUploadController {
             ));
         }
 
-        ChunkingConfig config = new ChunkingConfig(chunkSize, overlap, true, true);
-
-        Document document = ingestionService.uploadAndProcess(
-                file, ownerId, departmentId, vis, allowedRoles, tags, config);
+        Document document = ingestionService.uploadOnly(
+                file, ownerId, departmentId, vis, request.getAllowedRoles(), request.getTags());
 
         return ResponseEntity.ok(Map.of(
                 "documentKey", document.getDocumentKey(),
                 "fileName", document.getFileName(),
                 "status", document.getStatus().name(),
-                "message", document.getStatus() == com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum.INDEXED
-                        ? "Document processed and indexed successfully"
-                        : "Document uploaded, processing status: " + document.getStatus()
+                "message", "Document uploaded. Please preview and confirm indexing."
         ));
     }
 

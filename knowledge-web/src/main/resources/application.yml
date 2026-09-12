@@ -9,21 +9,20 @@ spring:
 
   # ==================== 数据源配置 ====================
   datasource:
-    # H2 (开发环境)
-    url: jdbc:h2:file:./data/knowledge-repository;AUTO_SERVER=TRUE;MODE=MySQL;DATABASE_TO_LOWER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-    # MySQL (生产环境，取消注释)
-    # url: jdbc:mysql://localhost:3306/knowledge_repository?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    # driver-class-name: com.mysql.cj.jdbc.Driver
-    # username: root
-    # password: your_password
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/knowledge_repository?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
+    # H2 (备用，取消注释切换回 H2)
+    # url: jdbc:h2:file:./data/knowledge-repository;AUTO_SERVER=TRUE;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    # driver-class-name: org.h2.Driver
+    # username: sa
+    # password:
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  # h2:
+  #   console:
+  #     enabled: true
+  #     path: /h2-console
 
   # ==================== Flyway ====================
   flyway:
@@ -36,6 +35,14 @@ spring:
     multipart:
       max-file-size: 200MB
       max-request-size: 210MB
+
+  # ==================== 静态资源缓存控制（开发阶段禁用缓存）====================
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+          must-revalidate: true
 
   # ==================== Security (开发阶段) ====================
   security:
@@ -59,16 +66,16 @@ mybatis-plus:
 knowledge:
   # ---------- Milvus 向量数据库 ----------
   milvus:
-    host: localhost
-    port: 19530
+    host: ${MILVUS_HOST:localhost}
+    port: ${MILVUS_PORT:19530}
     collection-name: knowledge_chunks
-    dimension: 1536
+    dimension: 1024
     database-name: default
 
   # ---------- Embedding 模型配置 ----------
   # provider: dashscope | ollama
   embedding:
-    provider: dashscope
+    provider: ollama
 
     # DashScope (阿里云通义)
     dashscope:
@@ -77,9 +84,13 @@ knowledge:
 
     # Ollama (本地模型，OpenAI 兼容接口)
     ollama:
-      base-url: http://localhost:11434/v1
-      model-name: bge-m3
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
+      model-name: ${OLLAMA_MODEL:bge-m3}
       api-key: ollama
+
+  # ---------- 文件存储 ----------
+  storage:
+    path: ${STORAGE_PATH:./data/documents}
 
 # ==================== 日志 ====================
 logging:

@@ -1,9 +1,13 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService;
+import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService.PreviewResult;
 import com.mouhin.knowledge.repository.application.service.DocumentManagementApplicationService;
 import com.mouhin.knowledge.repository.application.service.DocumentManagementApplicationService.KnowledgeStats;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
+import com.mouhin.knowledge.repository.web.dto.ChunkingRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +29,12 @@ public class DocumentAdminController {
     private static final Logger logger = LoggerFactory.getLogger(DocumentAdminController.class);
 
     private final DocumentManagementApplicationService managementService;
+    private final DocumentIngestionApplicationService ingestionService;
 
-    public DocumentAdminController(DocumentManagementApplicationService managementService) {
+    public DocumentAdminController(DocumentManagementApplicationService managementService,
+                                   DocumentIngestionApplicationService ingestionService) {
         this.managementService = managementService;
+        this.ingestionService = ingestionService;
     }
 
     /**
@@ -60,6 +67,15 @@ public class DocumentAdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         List<Document> docs = managementService.listByDepartment(departmentId, page, size);
+        return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
+    }
+
+    /**
+     * 查询全部文档列表
+     */
+    @GetMapping("/list")
+    public ResponseEntity<List<Map<String, Object>>> listAll() {
+        List<Document> docs = managementService.listAll();
         return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
     }
 
@@ -102,12 +118,104 @@ public class DocumentAdminController {
     }
 
     /**
+     * 重新入库文档（清理旧向量/分块，重新提取、分块、向量化）
+     */
+    @PostMapping("/{documentKey}/reindex")
+    public ResponseEntity<Map<String, Object>> reindex(@PathVariable String documentKey) {
+        Document document = ingestionService.reindex(documentKey);
+        return ResponseEntity.ok(Map.of(
+                "documentKey", document.getDocumentKey(),
+                "fileName", document.getFileName(),
+                "status", document.getStatus().name(),
+                "message", "Document reindexed: " + documentKey
+        ));
+    }
+
+    /**
+     * 解析预览（基于已上传文档，不入库）
+     */
+    @GetMapping("/{documentKey}/preview")
+    public ResponseEntity<PreviewResult> preview(
+            @PathVariable String documentKey,
+            ChunkingRequest chunkingRequest) {
+
+        ChunkingStrategyEnum strategyEnum = resolveStrategy(chunkingRequest.getStrategy());
+
+        logger.info("Preview document {}: chunkSize={}, strategy={}", documentKey,
+                chunkingRequest.getChunkSize(), strategyEnum);
+        PreviewResult result = ingestionService.previewFromDocument(
+                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(), strategyEnum);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 确认入库（分块 → 向量化 → 存储）
+     */
+    @PostMapping("/{documentKey}/index")
+    public ResponseEntity<Map<String, Object>> indexDocument(
+            @PathVariable String documentKey,
+            ChunkingRequest chunkingRequest) {
+
+        ChunkingStrategyEnum strategyEnum = resolveStrategy(chunkingRequest.getStrategy());
+
+        logger.info("Indexing document {}: chunkSize={}, strategy={}", documentKey,
+                chunkingRequest.getChunkSize(), strategyEnum);
+        Document document = ingestionService.indexDocument(
+                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(), strategyEnum);
+
+        return ResponseEntity.ok(Map.of(
+                "documentKey", document.getDocumentKey(),
+                "fileName", document.getFileName(),
+                "status", document.getStatus().name(),
+                "message", document.getStatus() == DocumentStatusEnum.INDEXED
+                        ? "Document indexed successfully"
+                        : "Indexing status: " + document.getStatus()
+        ));
+    }
+
+    /**
+     * 使用自定义分块入库（支持手动调整分块顺序）
+     */
+    @PostMapping("/{documentKey}/index-custom")
+    public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
+            @PathVariable String documentKey,
+            @RequestBody List<DocumentIngestionApplicationService.CustomChunkInput> customChunks) {
+
+        logger.info("Indexing document {} with {} custom chunks", documentKey,
+                customChunks != null ? customChunks.size() : 0);
+        Document document = ingestionService.indexWithCustomChunks(documentKey, customChunks);
+
+        return ResponseEntity.ok(Map.of(
+                "documentKey", document.getDocumentKey(),
+                "fileName", document.getFileName(),
+                "status", document.getStatus().name(),
+                "message", document.getStatus() == DocumentStatusEnum.INDEXED
+                        ? "Document indexed with custom chunks successfully"
+                        : "Indexing status: " + document.getStatus()
+        ));
+    }
+
+    /**
      * 删除文档
      */
     @DeleteMapping("/{documentKey}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String documentKey) {
         managementService.delete(documentKey);
         return ResponseEntity.ok(Map.of("message", "Document deleted: " + documentKey));
+    }
+
+    /**
+     * 解析分块策略枚举，无效值回退为 FIXED_SIZE
+     */
+    private ChunkingStrategyEnum resolveStrategy(String strategy) {
+        if (strategy == null || strategy.isBlank()) {
+            return ChunkingStrategyEnum.FIXED_SIZE;
+        }
+        try {
+            return ChunkingStrategyEnum.valueOf(strategy.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ChunkingStrategyEnum.FIXED_SIZE;
+        }
     }
 
     private Map<String, Object> buildDocumentResponse(Document doc) {

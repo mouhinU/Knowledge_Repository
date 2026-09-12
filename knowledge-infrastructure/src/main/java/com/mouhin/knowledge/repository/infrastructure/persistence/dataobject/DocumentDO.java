@@ -74,6 +74,9 @@ public class DocumentDO {
     @TableField("respect_page")
     private Boolean respectPage;
 
+    @TableField("chunking_strategy")
+    private String chunkingStrategy;
+
     @TableField("error_message")
     private String errorMessage;
 

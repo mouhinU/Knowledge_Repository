@@ -39,7 +39,13 @@ public class KnowledgeQueryController {
         String query = (String) body.get("query");
         String userId = (String) body.get("userId");
         String departmentId = (String) body.get("departmentId");
-        String roles = (String) body.get("roles");
+        Object rolesObj = body.get("roles");
+        String roles;
+        if (rolesObj instanceof List<?> list) {
+            roles = String.join(",", list.stream().map(Object::toString).toList());
+        } else {
+            roles = (String) rolesObj;
+        }
         Boolean admin = body.get("admin") != null && (Boolean) body.get("admin");
         Integer maxResults = body.get("maxResults") != null ? ((Number) body.get("maxResults")).intValue() : null;
         Double minScore = body.get("minScore") != null ? ((Number) body.get("minScore")).doubleValue() : null;

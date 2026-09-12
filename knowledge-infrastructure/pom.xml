@@ -56,6 +56,10 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+        </dependency>
 
         <!-- Apache POI (Word/Excel/PPT page-level extraction) -->
         <dependency>

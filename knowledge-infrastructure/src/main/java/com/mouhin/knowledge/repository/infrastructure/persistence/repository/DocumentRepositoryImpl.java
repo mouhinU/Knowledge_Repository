@@ -78,6 +78,15 @@ public class DocumentRepositoryImpl implements DocumentRepository {
     }
 
     @Override
+    public List<Document> listAll() {
+        LambdaQueryWrapper<DocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(DocumentDO::getCreateTime);
+        return documentMapper.selectList(wrapper).stream()
+                .map(DocumentConverter::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Document> listByOwnerId(String ownerId, int page, int size) {
         LambdaQueryWrapper<DocumentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentDO::getOwnerId, ownerId);

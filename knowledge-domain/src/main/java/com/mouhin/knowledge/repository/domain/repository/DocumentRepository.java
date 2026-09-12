@@ -45,6 +45,11 @@ public interface DocumentRepository {
     List<Document> listByStatus(DocumentStatusEnum status);
 
     /**
+     * 查询全部文档列表
+     */
+    List<Document> listAll();
+
+    /**
      * 根据所有者查找文档列表
      */
     List<Document> listByOwnerId(String ownerId, int page, int size);

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentDO;
@@ -45,9 +46,13 @@ public final class DocumentConverter {
         domain.setUpdatedTime(doObj.getUpdateTime());
 
         if (doObj.getChunkMaxSize() != null) {
+            ChunkingStrategyEnum strategy = doObj.getChunkingStrategy() != null
+                    ? ChunkingStrategyEnum.valueOf(doObj.getChunkingStrategy())
+                    : ChunkingStrategyEnum.FIXED_SIZE;
             domain.setChunkingConfig(new ChunkingConfig(
                     doObj.getChunkMaxSize(),
                     doObj.getChunkOverlap() != null ? doObj.getChunkOverlap() : 50,
+                    strategy,
                     doObj.getRespectParagraph() != null ? doObj.getRespectParagraph() : true,
                     doObj.getRespectPage() != null ? doObj.getRespectPage() : true
             ));
@@ -89,6 +94,8 @@ public final class DocumentConverter {
             doObj.setChunkOverlap(config.getOverlapSize());
             doObj.setRespectParagraph(config.isRespectParagraphBoundary());
             doObj.setRespectPage(config.isRespectPageBoundary());
+            doObj.setChunkingStrategy(config.getStrategy() != null
+                    ? config.getStrategy().name() : "FIXED_SIZE");
         }
 
         return doObj;

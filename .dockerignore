@@ -1,0 +1,39 @@
+# Build output
+target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.desktop
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Data (uploaded documents)
+data/
+
+# Logs
+*.log
+
+# Maven wrapper (not tracked in git)
+mvnw
+mvnw.cmd
+.mvn/
+
+# Docs
+*.md

@@ -73,6 +73,13 @@ public class DocumentManagementApplicationService {
     }
 
     /**
+     * 查询全部文档
+     */
+    public List<Document> listAll() {
+        return documentRepository.listAll();
+    }
+
+    /**
      * 获取知识库统计信息
      */
     public record KnowledgeStats(

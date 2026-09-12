@@ -89,7 +89,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.mouhin.knowledge.repository.web.KnowledgeRepositoryApplication</mainClass>
+                    <mainClass>com.mouhin.knowledge.repository.web.WebApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

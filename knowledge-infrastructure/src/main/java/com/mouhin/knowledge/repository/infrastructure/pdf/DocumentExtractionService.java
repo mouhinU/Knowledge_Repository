@@ -1,8 +1,5 @@
 package com.mouhin.knowledge.repository.infrastructure.pdf;
 
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -76,8 +73,18 @@ public class DocumentExtractionService {
             int totalPages,
             boolean likelyScanned,
             String checksum,
-            String detectedFormat
+            String detectedFormat,
+            List<String> warnings,
+            boolean encrypted,
+            String title,
+            String author
     ) {
+        // 向后兼容的简化构造器
+        public ExtractionResult(List<String> pageTexts, int totalPages, boolean likelyScanned,
+                                String checksum, String detectedFormat) {
+            this(pageTexts, totalPages, likelyScanned, checksum, detectedFormat,
+                    List.of(), false, null, null);
+        }
     }
 
     // ==================== 公开 API ====================
@@ -128,6 +135,7 @@ public class DocumentExtractionService {
                  "application/vnd.ms-excel" -> extractExcel(filePath);
             case "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                  "application/vnd.ms-powerpoint" -> extractPowerPoint(filePath);
+            case "text/plain", "text/csv", "text/html", "text/markdown" -> extractPlainText(filePath, mimeType);
             default -> extractGeneric(filePath, mimeType);
         };
     }
@@ -144,35 +152,33 @@ public class DocumentExtractionService {
     // ==================== PDF 提取 ====================
 
     private ExtractionResult extractPdf(Path filePath) throws IOException {
-        try (PDDocument document = Loader.loadPDF(filePath.toFile())) {
-            int totalPages = document.getNumberOfPages();
-            List<String> pageTexts = new ArrayList<>(totalPages);
-            int scannedPages = 0;
+        EnhancedPdfTextExtractor extractor = new EnhancedPdfTextExtractor();
+        EnhancedPdfTextExtractor.PdfExtractionResult result = extractor.extract(filePath);
 
-            for (int page = 1; page <= totalPages; page++) {
-                PDFTextStripper stripper = new PDFTextStripper();
-                stripper.setStartPage(page);
-                stripper.setEndPage(page);
-                String text = stripper.getText(document);
+        // 使用过滤后的文本（已去除页眉页脚）
+        List<String> pageTexts = result.pages().stream()
+                .map(EnhancedPdfTextExtractor.PageContent::filteredText)
+                .toList();
 
-                if (text == null || text.trim().length() < SCAN_PAGE_CHAR_THRESHOLD) {
-                    scannedPages++;
-                    pageTexts.add(text != null ? text.trim() : "");
-                } else {
-                    pageTexts.add(text.trim());
-                }
-            }
-
-            boolean likelyScanned = totalPages > 0
-                    && (double) scannedPages / totalPages > SCAN_DOCUMENT_RATIO;
-
-            if (likelyScanned) {
-                logger.warn("PDF appears to be scanned ({}/{} pages). OCR recommended.", scannedPages, totalPages);
-            }
-
-            logger.info("PDF extracted: {} pages, {} scanned", totalPages, scannedPages);
-            return new ExtractionResult(pageTexts, totalPages, likelyScanned, calculateChecksum(filePath), "pdf");
+        // 记录警告
+        for (String warning : result.warnings()) {
+            logger.warn("PDF extraction warning: {}", warning);
         }
+
+        logger.info("PDF extracted (enhanced): {} pages, encrypted={}, ocrRecommended={}, warnings={}",
+                result.getTotalPages(), result.encrypted(), result.ocrRecommended(), result.warnings().size());
+
+        return new ExtractionResult(
+                pageTexts,
+                result.getTotalPages(),
+                result.ocrRecommended(),
+                calculateChecksum(filePath),
+                "pdf",
+                result.warnings(),
+                result.encrypted(),
+                result.metadata().title(),
+                result.metadata().author()
+        );
     }
 
     // ==================== Word 提取 ====================
@@ -297,6 +303,30 @@ public class DocumentExtractionService {
             logger.info("PowerPoint extracted: {} slides", slides.size());
             return new ExtractionResult(slideTexts, slides.size(), false, calculateChecksum(filePath), "pptx");
         }
+    }
+
+    // ==================== 纯文本格式提取 ====================
+
+    private ExtractionResult extractPlainText(Path filePath, String mimeType) throws IOException {
+        String fullText = Files.readString(filePath).trim();
+
+        List<String> sections = new ArrayList<>();
+        if (!fullText.isEmpty()) {
+            String[] paragraphs = fullText.split("\\n\\s*\\n");
+            for (String para : paragraphs) {
+                String trimmed = para.trim();
+                if (!trimmed.isEmpty()) {
+                    sections.add(trimmed);
+                }
+            }
+        }
+
+        if (sections.isEmpty()) {
+            sections.add(fullText.isEmpty() ? "" : fullText);
+        }
+
+        logger.info("Plain text extraction ({}): {} sections, {} chars", mimeType, sections.size(), fullText.length());
+        return new ExtractionResult(sections, sections.size(), false, calculateChecksum(filePath), "text");
     }
 
     // ==================== 通用格式提取（Tika） ====================

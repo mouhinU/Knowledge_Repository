@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS sys_department (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_dept_key ON sys_department(department_key);
+CREATE INDEX idx_dept_key ON sys_department(department_key);
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS sys_user (
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_key ON sys_user(user_key);
-CREATE INDEX IF NOT EXISTS idx_user_username ON sys_user(username);
+CREATE INDEX idx_user_key ON sys_user(user_key);
+CREATE INDEX idx_user_username ON sys_user(username);
 
 -- 角色表
 CREATE TABLE IF NOT EXISTS sys_role (
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS sys_role (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_role_key ON sys_role(role_key);
+CREATE INDEX idx_role_key ON sys_role(role_key);
 
 -- 用户-角色关联表
 CREATE TABLE IF NOT EXISTS sys_user_role (
@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     CONSTRAINT uk_user_role UNIQUE (user_id, role_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ur_user ON sys_user_role(user_id);
-CREATE INDEX IF NOT EXISTS idx_ur_role ON sys_user_role(role_id);
+CREATE INDEX idx_ur_user ON sys_user_role(user_id);
+CREATE INDEX idx_ur_role ON sys_user_role(role_id);
 
 -- 文档表
 CREATE TABLE IF NOT EXISTS kb_document (
@@ -76,12 +76,12 @@ CREATE TABLE IF NOT EXISTS kb_document (
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_doc_key ON kb_document(document_key);
-CREATE INDEX IF NOT EXISTS idx_doc_checksum ON kb_document(file_checksum);
-CREATE INDEX IF NOT EXISTS idx_doc_owner ON kb_document(owner_id);
-CREATE INDEX IF NOT EXISTS idx_doc_dept ON kb_document(department_id);
-CREATE INDEX IF NOT EXISTS idx_doc_status ON kb_document(status);
-CREATE INDEX IF NOT EXISTS idx_doc_visibility ON kb_document(visibility);
+CREATE INDEX idx_doc_key ON kb_document(document_key);
+CREATE INDEX idx_doc_checksum ON kb_document(file_checksum);
+CREATE INDEX idx_doc_owner ON kb_document(owner_id);
+CREATE INDEX idx_doc_dept ON kb_document(department_id);
+CREATE INDEX idx_doc_status ON kb_document(status);
+CREATE INDEX idx_doc_visibility ON kb_document(visibility);
 
 -- 文档分块表
 CREATE TABLE IF NOT EXISTS kb_document_chunk (
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS kb_document_chunk (
     chunk_index INT NOT NULL,
     start_page INT,
     end_page INT,
-    content CLOB,
+    content TEXT,
     token_count INT,
     vector_id VARCHAR(128),
     department_id VARCHAR(64),
@@ -102,10 +102,10 @@ CREATE TABLE IF NOT EXISTS kb_document_chunk (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_chunk_key ON kb_document_chunk(chunk_key);
-CREATE INDEX IF NOT EXISTS idx_chunk_doc ON kb_document_chunk(document_id);
-CREATE INDEX IF NOT EXISTS idx_chunk_doc_key ON kb_document_chunk(document_key);
-CREATE INDEX IF NOT EXISTS idx_chunk_dept ON kb_document_chunk(department_id);
+CREATE INDEX idx_chunk_key ON kb_document_chunk(chunk_key);
+CREATE INDEX idx_chunk_doc ON kb_document_chunk(document_id);
+CREATE INDEX idx_chunk_doc_key ON kb_document_chunk(document_key);
+CREATE INDEX idx_chunk_dept ON kb_document_chunk(department_id);
 
 -- ============================================================
 -- 初始数据

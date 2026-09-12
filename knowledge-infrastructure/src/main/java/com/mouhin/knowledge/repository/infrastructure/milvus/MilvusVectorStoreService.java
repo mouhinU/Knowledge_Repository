@@ -56,6 +56,9 @@ public class MilvusVectorStoreService {
         for (DocumentChunk chunk : chunks) {
             Metadata metadata = new Metadata()
                     .put("document_key", chunk.getDocumentKey())
+                    .put("document_name", chunk.getDocumentName() != null ? chunk.getDocumentName() : "")
+                    .put("file_type", chunk.getFileType() != null ? chunk.getFileType() : "")
+                    .put("tags", chunk.getTags() != null ? chunk.getTags() : "")
                     .put("chunk_index", String.valueOf(chunk.getChunkIndex()))
                     .put("start_page", String.valueOf(chunk.getStartPage()))
                     .put("end_page", String.valueOf(chunk.getEndPage()))
@@ -109,7 +112,7 @@ public class MilvusVectorStoreService {
             searchResults.add(new SearchResult(
                     segment.text(),
                     metadata.getString("document_key"),
-                    "",  // documentName will be filled by application service
+                    metadata.getString("document_name"),
                     parseIntOrNull(metadata.getString("start_page")),
                     parseIntOrNull(metadata.getString("chunk_index")),
                     match.score()

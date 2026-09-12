@@ -52,6 +52,15 @@ public class DocumentChunk {
     /** 文档所有者 ID（冗余） */
     private String ownerId;
 
+    /** 文档名称（冗余，用于 Milvus 元数据展示） */
+    private String documentName;
+
+    /** 文件类型（冗余，用于 Milvus 元数据过滤） */
+    private String fileType;
+
+    /** 标签（冗余，用于 Milvus 元数据过滤） */
+    private String tags;
+
     private LocalDateTime createdTime;
 
     // ==================== 业务方法 ====================
@@ -187,6 +196,30 @@ public class DocumentChunk {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getDocumentName() {
+        return documentName;
+    }
+
+    public void setDocumentName(String documentName) {
+        this.documentName = documentName;
+    }
+
+    public String getFileType() {
+        return fileType;
+    }
+
+    public void setFileType(String fileType) {
+        this.fileType = fileType;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
     }
 
     public LocalDateTime getCreatedTime() {

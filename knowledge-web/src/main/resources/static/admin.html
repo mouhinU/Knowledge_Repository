@@ -110,6 +110,100 @@
 
         /* Loading */
         .loading { text-align: center; padding: 40px; color: var(--text-light); }
+
+        /* Preview: info bar */
+        .preview-info-bar { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:20px; }
+        .info-item { background:var(--bg); border-radius:6px; padding:12px 14px; }
+        .info-label { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+        .info-value { font-size:14px; font-weight:600; color:var(--text); word-break:break-all; }
+        .info-value.mono { font-family:'SF Mono',Consolas,monospace; font-size:12px; font-weight:400; color:var(--text-light); }
+
+        /* Preview: tabs */
+        .preview-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:16px; }
+        .preview-tab { padding:10px 20px; font-size:13px; font-weight:500; color:var(--text-light); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; user-select:none; }
+        .preview-tab:hover { color:var(--text); }
+        .preview-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+        .preview-tab .tab-count { display:inline-block; background:var(--bg); color:var(--text-light); font-size:11px; padding:1px 7px; border-radius:10px; margin-left:6px; }
+        .preview-tab.active .tab-count { background:#eff6ff; color:var(--primary); }
+        .preview-tab-body { display:none; }
+        .preview-tab-body.active { display:block; }
+
+        /* Preview: collapsible items */
+        .pv-item { border:1px solid var(--border); border-radius:8px; margin-bottom:8px; overflow:hidden; transition:box-shadow .2s; }
+        .pv-item:hover { box-shadow:0 1px 4px rgba(0,0,0,.06); }
+        .pv-item-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; user-select:none; background:#fafbfc; transition:background .15s; }
+        .pv-item-header:hover { background:#f0f2f5; }
+        .pv-item-header .pv-idx { font-weight:600; font-size:13px; color:var(--text); min-width:70px; }
+        .pv-item-header .pv-meta { display:flex; gap:14px; align-items:center; font-size:12px; color:var(--text-light); }
+        .pv-item-header .pv-toggle { font-size:11px; color:var(--text-light); transition:transform .2s; margin-left:8px; }
+        .pv-item.open .pv-toggle { transform:rotate(90deg); }
+        .pv-item-body { display:none; padding:0 14px 12px; }
+        .pv-item.open .pv-item-body { display:block; }
+        .pv-item-body pre { font-size:12px; line-height:1.6; color:var(--text); background:var(--bg); padding:10px 12px; border-radius:6px; max-height:200px; overflow:auto; white-space:pre-wrap; margin:0; border:1px solid var(--border); }
+
+        /* Preview: token bar */
+        .token-bar-wrap { display:flex; align-items:center; gap:8px; }
+        .token-bar { width:80px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; }
+        .token-bar-fill { height:100%; border-radius:3px; transition:width .3s; }
+        .token-bar-fill.low { background:var(--success); }
+        .token-bar-fill.mid { background:var(--warning); }
+        .token-bar-fill.high { background:var(--danger); }
+
+        /* Preview: batch actions */
+        .pv-toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+        .pv-toolbar .btn-xs { padding:3px 10px; font-size:11px; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:#fff; color:var(--text-light); transition:all .15s; }
+        .pv-toolbar .btn-xs:hover { background:var(--bg); color:var(--text); }
+
+        /* Preview: scan warning */
+        .pv-warn { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 14px; font-size:13px; color:#92400e; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+        /* Preview modal: wide layout */
+        .modal-wide { width:900px; max-width:95vw; }
+        .pv-config-row { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:16px; padding:12px 16px; background:var(--bg); border-radius:8px; }
+        .pv-config-row .pv-field { display:flex; flex-direction:column; gap:4px; }
+        .pv-config-row .pv-field label { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:.3px; }
+        .pv-config-row .pv-field select, .pv-config-row .pv-field input { padding:6px 10px; border:1px solid var(--border); border-radius:5px; font-size:13px; outline:none; }
+        .pv-config-row .pv-field select { width:130px; }
+        .pv-config-row .pv-field input { width:90px; }
+        .pv-actions { display:flex; gap:8px; margin-left:auto; align-items:end; }
+        .btn-success { background:var(--success); color:#fff; }
+        .btn-success:hover { background:#16a34a; }
+        /* Chunk move buttons */
+        .chunk-move-btns { display:flex; gap:4px; margin-left:8px; }
+        .chunk-move-btn { 
+            width:24px; height:24px; padding:0; border:1px solid var(--border); 
+            border-radius:4px; background:#fff; cursor:pointer; 
+            font-size:10px; line-height:1; display:flex; align-items:center; justify-content:center;
+            transition: all 0.15s;
+        }
+        .chunk-move-btn:hover:not(:disabled) { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .chunk-move-btn:disabled { opacity:0.3; cursor:not-allowed; }
+        /* Chunk editing toolbar */
+        .chunk-toolbar { 
+            display:flex; gap:6px; padding:8px 12px; background:#f8fafc; 
+            border-bottom:1px solid var(--border); flex-wrap:wrap;
+        }
+        .chunk-action-btn {
+            padding:4px 10px; border:1px solid var(--border); border-radius:4px;
+            background:#fff; cursor:pointer; font-size:12px; color:var(--text);
+            transition: all 0.15s; white-space:nowrap;
+        }
+        .chunk-action-btn:hover:not(:disabled) { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .chunk-action-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .chunk-action-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .chunk-action-btn.primary:hover { background:#2563eb; }
+        /* Chunk editor */
+        .chunk-editor {
+            width:100%; min-height:200px; padding:12px; border:1px solid var(--border);
+            border-radius:4px; font-family:'SF Mono',Monaco,monospace; font-size:12px;
+            line-height:1.6; resize:vertical; background:#fafbfc;
+        }
+        .chunk-editor:focus { outline:none; border-color:var(--primary); background:#fff; }
+        .chunk-edit-actions { display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
+        .chunk-content-display pre { 
+            white-space:pre-wrap; word-wrap:break-word; 
+            max-height:300px; overflow-y:auto;
+        }
     </style>
 </head>
 <body>
@@ -198,7 +292,7 @@
                         <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
                     </div>
                     <div style="display:flex;gap:8px;margin-top:8px">
-                        <button class="btn btn-primary" onclick="uploadFile()">上传并处理</button>
+                        <button class="btn btn-primary" onclick="uploadFile()">上传</button>
                         <button class="btn btn-outline" onclick="cancelUpload()">取消</button>
                     </div>
                     <div id="upload-progress" style="margin-top:12px;display:none">
@@ -214,6 +308,7 @@
                 <div style="margin-bottom:12px;display:flex;gap:8px">
                     <select class="form-select" style="width:160px" id="doc-filter-status" onchange="loadDocuments()">
                         <option value="">全部状态</option>
+                        <option value="UPLOADED">待入库</option>
                         <option value="INDEXED">已索引</option>
                         <option value="PROCESSING">处理中</option>
                         <option value="FAILED">失败</option>
@@ -309,6 +404,61 @@
         </div>
     </div>
 
+    <!-- Preview/Index Modal -->
+    <div class="modal-overlay" id="preview-modal-overlay" onclick="if(event.target===this)closePreviewModal()">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <h3 id="pv-modal-title">解析预览</h3>
+                <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="pv-config-row">
+                <div class="pv-field">
+                    <label>切分策略</label>
+                    <select id="pv-strategy">
+                        <option value="FIXED_SIZE">固定大小</option>
+                        <option value="RECURSIVE">递归切分</option>
+                        <option value="SENTENCE">按句子</option>
+                        <option value="PAGE">按页面</option>
+                        <option value="PARAGRAPH">按段落</option>
+                    </select>
+                </div>
+                <div class="pv-field">
+                    <label>分块大小</label>
+                    <input type="number" id="pv-chunk-size" value="500">
+                </div>
+                <div class="pv-field">
+                    <label>重叠大小</label>
+                    <input type="number" id="pv-overlap" value="50">
+                </div>
+                <div class="pv-actions">
+                    <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
+                    <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">确认入库</button>
+                </div>
+            </div>
+            <div id="pv-modal-warn"></div>
+            <div id="pv-modal-summary" class="preview-info-bar"></div>
+            <div class="preview-tabs">
+                <div class="preview-tab active" onclick="switchModalTab('pages',this)">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
+                <div class="preview-tab" onclick="switchModalTab('chunks',this)">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
+            </div>
+            <div id="pv-m-body-pages" class="preview-tab-body active">
+                <div class="pv-toolbar">
+                    <button class="btn-xs" onclick="pvToggleAllModal('pages',true)">全部展开</button>
+                    <button class="btn-xs" onclick="pvToggleAllModal('pages',false)">全部折叠</button>
+                </div>
+                <div id="pv-modal-pages"></div>
+            </div>
+            <div id="pv-m-body-chunks" class="preview-tab-body">
+                <div class="pv-toolbar">
+                    <button class="btn-xs" onclick="pvToggleAllModal('chunks',true)">全部展开</button>
+                    <button class="btn-xs" onclick="pvToggleAllModal('chunks',false)">全部折叠</button>
+                    <span style="font-size:11px;color:var(--text-light);margin-left:auto" id="pv-m-chunk-stats"></span>
+                </div>
+                <div id="pv-modal-chunks"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
     const API = '';
     let selectedFile = null;
@@ -388,7 +538,7 @@
             document.getElementById('progress-bar').style.width = '100%';
             const data = await res.json();
             if (res.ok) {
-                document.getElementById('progress-text').textContent = '处理完成: ' + data.message;
+                document.getElementById('progress-text').textContent = '上传成功，请在文档列表中点击「解析预览」确认入库';
                 toast('文档上传成功', 'success');
                 cancelUpload();
                 loadDocuments();
@@ -412,23 +562,46 @@
 
     async function loadDocuments() {
         const statusFilter = document.getElementById('doc-filter-status').value;
-        const url = statusFilter ? `/api/admin/document/status/${statusFilter}` : '/api/admin/document/status/INDEXED';
+        const url = statusFilter ? `/api/admin/document/status/${statusFilter}` : '/api/admin/document/list';
         try {
             const res = await fetch(API + url);
             const docs = await res.json();
             const tbody = document.getElementById('doc-list');
             if (!docs.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light)">暂无文档</td></tr>'; return; }
-            tbody.innerHTML = docs.map(d => `<tr>
-                <td>${esc(d.fileName)}</td>
-                <td><span class="badge badge-${statusBadge(d.status)}">${d.status}</span></td>
-                <td>${d.totalPages || '-'}</td>
-                <td><span class="badge badge-info">${d.visibility || '-'}</span></td>
-                <td>
-                    <button class="btn btn-outline btn-sm" onclick="archiveDoc('${d.documentKey}')">归档</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteDoc('${d.documentKey}')">删除</button>
-                </td>
-            </tr>`).join('');
+            tbody.innerHTML = docs.map(d => {
+                let actions = '';
+                if (d.status === 'UPLOADED') {
+                    actions = `<button class="btn btn-primary btn-sm" onclick="openPreviewModal('${d.documentKey}','${esc(d.fileName)}')">解析预览</button>`;
+                } else if (d.status === 'FAILED') {
+                    actions = `<button class="btn btn-outline btn-sm" onclick="reindexDoc('${d.documentKey}')">重新入库</button>`;
+                } else {
+                    actions = `<button class="btn btn-outline btn-sm" onclick="reindexDoc('${d.documentKey}')">重新入库</button>`;
+                }
+                actions += ` <button class="btn btn-outline btn-sm" onclick="archiveDoc('${d.documentKey}')">归档</button>`;
+                actions += ` <button class="btn btn-danger btn-sm" onclick="deleteDoc('${d.documentKey}')">删除</button>`;
+                return `<tr>
+                    <td>${esc(d.fileName)}</td>
+                    <td><span class="badge badge-${statusBadge(d.status)}">${d.status === 'UPLOADED' ? '待入库' : d.status}</span></td>
+                    <td>${d.totalPages > 0 ? d.totalPages : '-'}</td>
+                    <td><span class="badge badge-info">${d.visibility || '-'}</span></td>
+                    <td>${actions}</td>
+                </tr>`;
+            }).join('');
         } catch (e) { console.error(e); }
+    }
+
+    async function reindexDoc(key) {
+        if (!confirm('确认重新入库此文档？将清理旧数据并重新处理。')) return;
+        try {
+            const res = await fetch(API + `/api/admin/document/${key}/reindex`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'INDEXED') {
+                toast('重新入库成功', 'success');
+            } else {
+                toast('重新入库完成，状态: ' + data.status, 'warning');
+            }
+        } catch (e) { toast('重新入库失败: ' + e.message, 'error'); }
+        loadDocuments();
     }
 
     async function archiveDoc(key) {
@@ -444,6 +617,398 @@
         toast('文档已删除', 'success');
         loadDocuments();
     }
+
+    // ==================== Preview Modal ====================
+
+    let _pvDocKey = null;
+    let _pvMaxTokens = 500;
+    let _pvChunks = []; // 当前分块列表（支持重新排序）
+    let _pvChunksModified = false; // 分块是否被手动调整过
+
+    function openPreviewModal(docKey, fileName) {
+        _pvDocKey = docKey;
+        document.getElementById('pv-modal-title').textContent = '解析预览 — ' + fileName;
+        document.getElementById('pv-modal-warn').innerHTML = '';
+        document.getElementById('pv-modal-summary').innerHTML = '';
+        document.getElementById('pv-modal-pages').innerHTML = '';
+        document.getElementById('pv-modal-chunks').innerHTML = '';
+        document.getElementById('pv-m-tab-pages').textContent = '0';
+        document.getElementById('pv-m-tab-chunks').textContent = '0';
+        document.getElementById('pv-m-chunk-stats').textContent = '';
+        document.getElementById('pv-confirm-btn').style.display = 'none';
+        document.getElementById('preview-modal-overlay').classList.add('active');
+    }
+
+    function closePreviewModal() {
+        document.getElementById('preview-modal-overlay').classList.remove('active');
+        _pvDocKey = null;
+        _pvChunks = [];
+        _pvChunksModified = false;
+    }
+
+    function switchModalTab(name, tabEl) {
+        document.querySelectorAll('#preview-modal-overlay .preview-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#preview-modal-overlay .preview-tab-body').forEach(b => b.classList.remove('active'));
+        tabEl.classList.add('active');
+        document.getElementById('pv-m-body-' + name).classList.add('active');
+    }
+
+    function pvToggleAllModal(group, expand) {
+        const container = group === 'pages' ? 'pv-modal-pages' : 'pv-modal-chunks';
+        document.querySelectorAll('#' + container + ' .pv-item').forEach(el => {
+            el.classList.toggle('open', expand);
+        });
+    }
+
+    async function doModalPreview() {
+        if (!_pvDocKey) return;
+        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
+        _pvMaxTokens = chunkSize;
+
+        document.getElementById('pv-modal-summary').innerHTML = '<div class="loading" style="padding:20px;grid-column:1/-1">正在解析...</div>';
+        document.getElementById('pv-modal-pages').innerHTML = '';
+        document.getElementById('pv-modal-chunks').innerHTML = '';
+
+        try {
+            const url = `/api/admin/document/${_pvDocKey}/preview?chunkSize=${chunkSize}&overlap=${overlap}&strategy=${strategy}`;
+            const res = await fetch(API + url);
+            if (!res.ok) { const err = await res.json(); throw new Error(err.errorMessage || '解析失败'); }
+            const data = await res.json();
+            renderModalPreview(data);
+            document.getElementById('pv-confirm-btn').style.display = 'inline-flex';
+        } catch (e) {
+            document.getElementById('pv-modal-summary').innerHTML = '';
+            document.getElementById('pv-modal-warn').innerHTML = `<div class="pv-warn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">解析失败: ${esc(e.message)}</div>`;
+            toast('解析失败: ' + e.message, 'error');
+        }
+    }
+
+    function renderModalPreview(data) {
+        // 存储分块数据用于后续排序
+        _pvChunks = data.chunks.map(c => ({
+            chunkIndex: c.chunkIndex,
+            startPage: c.startPage,
+            endPage: c.endPage,
+            tokenCount: c.tokenCount,
+            charCount: c.charCount,
+            preview: c.preview,
+            content: c.content
+        }));
+        _pvChunksModified = false;
+
+        document.getElementById('pv-modal-warn').innerHTML = data.likelyScanned
+            ? '<div class="pv-warn">&#9888; 疑似扫描件 PDF，文本提取可能不完整</div>' : '';
+
+        document.getElementById('pv-modal-summary').innerHTML = `
+            <div class="info-item"><div class="info-label">文件名</div><div class="info-value">${esc(data.fileName)}</div></div>
+            <div class="info-item"><div class="info-label">格式</div><div class="info-value">${esc(data.format)}</div></div>
+            <div class="info-item"><div class="info-label">页数</div><div class="info-value">${data.totalPages}</div></div>
+            <div class="info-item"><div class="info-label">提取段落</div><div class="info-value">${data.extractedSections}</div></div>
+            <div class="info-item"><div class="info-label">分块数</div><div class="info-value">${data.totalChunks}</div></div>
+            <div class="info-item"><div class="info-label">MD5</div><div class="info-value mono">${esc(data.checksum)}</div></div>
+        `;
+
+        document.getElementById('pv-m-tab-pages').textContent = data.pages.length;
+        document.getElementById('pv-m-tab-chunks').textContent = data.chunks.length;
+
+        document.getElementById('pv-modal-pages').innerHTML = data.pages.map(p => `
+            <div class="pv-item" onclick="this.classList.toggle('open')">
+                <div class="pv-item-header">
+                    <span class="pv-idx">第 ${p.pageNumber} 页</span>
+                    <div class="pv-meta"><span>${p.charCount.toLocaleString()} 字符</span><span class="pv-toggle">&#9654;</span></div>
+                </div>
+                <div class="pv-item-body"><pre>${escHtml(p.preview || '(空)')}</pre></div>
+            </div>
+        `).join('');
+
+        renderChunksList();
+        switchModalTab('pages', document.querySelector('#preview-modal-overlay .preview-tab'));
+    }
+
+    // 渲染分块列表（支持重新排序和内容编辑）
+    function renderChunksList() {
+        const totalTokens = _pvChunks.reduce((s, c) => s + c.tokenCount, 0);
+        const avgTokens = _pvChunks.length ? Math.round(totalTokens / _pvChunks.length) : 0;
+        document.getElementById('pv-m-chunk-stats').textContent = 
+            `共 ${totalTokens.toLocaleString()} tokens / 平均 ${avgTokens} tokens/块` + 
+            (_pvChunksModified ? ' <span style="color:#f59e0b">(已手动调整)</span>' : '');
+
+        document.getElementById('pv-m-tab-chunks').textContent = _pvChunks.length;
+
+        document.getElementById('pv-modal-chunks').innerHTML = _pvChunks.map((c, idx) => {
+            const pct = Math.min(100, Math.round(c.tokenCount / _pvMaxTokens * 100));
+            const barClass = pct < 60 ? 'low' : pct < 90 ? 'mid' : 'high';
+            const isFirst = idx === 0;
+            const isLast = idx === _pvChunks.length - 1;
+            const content = c.content || c.preview || '';
+            // 统计段落数
+            const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim());
+            const paraCount = paragraphs.length;
+            
+            return `
+            <div class="pv-item chunk-item" data-chunk-idx="${idx}">
+                <div class="pv-item-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="pv-idx">#${idx}</span>
+                    <div class="pv-meta">
+                        <span>页 ${c.startPage}${c.endPage !== c.startPage ? '-' + c.endPage : ''}</span>
+                        <div class="token-bar-wrap"><div class="token-bar"><div class="token-bar-fill ${barClass}" style="width:${pct}%"></div></div><span>${c.tokenCount} tok</span></div>
+                        <span>${c.charCount.toLocaleString()} 字符</span>
+                        <span style="color:#6b7280">${paraCount} 段</span>
+                        <span class="pv-toggle">&#9654;</span>
+                    </div>
+                </div>
+                <div class="pv-item-body">
+                    <div class="chunk-toolbar">
+                        <button class="chunk-action-btn" title="将末尾段落移到上一分块" ${isFirst ? 'disabled' : ''} onclick="moveLastParagraphUp(${idx})">
+                            ↑ 末段上移
+                        </button>
+                        <button class="chunk-action-btn" title="将首段移到下一分块" ${isLast ? 'disabled' : ''} onclick="moveFirstParagraphDown(${idx})">
+                            ↓ 首段下移
+                        </button>
+                        <button class="chunk-action-btn" title="与下一分块合并" ${isLast ? 'disabled' : ''} onclick="mergeWithNext(${idx})">
+                            ⊕ 合并下一块
+                        </button>
+                        <button class="chunk-action-btn" title="编辑内容" onclick="toggleChunkEdit(${idx})">
+                            ✎ 编辑
+                        </button>
+                    </div>
+                    <div class="chunk-content-display" id="chunk-display-${idx}">
+                        <pre>${escHtml(content)}</pre>
+                    </div>
+                    <div class="chunk-content-edit" id="chunk-edit-${idx}" style="display:none">
+                        <textarea class="chunk-editor" id="chunk-editor-${idx}" 
+                            onchange="updateChunkContent(${idx}, this.value)"
+                            onfocus="this.select()">${escHtml(content)}</textarea>
+                        <div class="chunk-edit-actions">
+                            <button class="chunk-action-btn primary" onclick="saveChunkEdit(${idx})">保存</button>
+                            <button class="chunk-action-btn" onclick="cancelChunkEdit(${idx})">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // 将末尾段落移到上一分块
+    function moveLastParagraphUp(idx) {
+        if (idx <= 0) return;
+        const content = _pvChunks[idx].content || '';
+        const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim());
+        if (paragraphs.length <= 1) {
+            toast('该分块只有一个段落，无法移动', 'warning');
+            return;
+        }
+        
+        // 取出最后一个段落
+        const lastPara = paragraphs.pop();
+        const remaining = paragraphs.join('\n\n');
+        
+        // 添加到上一分块末尾
+        const prevContent = _pvChunks[idx - 1].content || '';
+        _pvChunks[idx - 1].content = prevContent + '\n\n' + lastPara;
+        _pvChunks[idx - 1].charCount = _pvChunks[idx - 1].content.length;
+        _pvChunks[idx - 1].tokenCount = estimateTokens(_pvChunks[idx - 1].content);
+        
+        // 更新当前分块
+        _pvChunks[idx].content = remaining;
+        _pvChunks[idx].charCount = remaining.length;
+        _pvChunks[idx].tokenCount = estimateTokens(remaining);
+        
+        _pvChunksModified = true;
+        renderChunksList();
+        toast('已将末段移到上一分块', 'success');
+    }
+
+    // 将首段移到下一分块
+    function moveFirstParagraphDown(idx) {
+        if (idx >= _pvChunks.length - 1) return;
+        const content = _pvChunks[idx].content || '';
+        const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim());
+        if (paragraphs.length <= 1) {
+            toast('该分块只有一个段落，无法移动', 'warning');
+            return;
+        }
+        
+        // 取出第一个段落
+        const firstPara = paragraphs.shift();
+        const remaining = paragraphs.join('\n\n');
+        
+        // 添加到下一分块开头
+        const nextContent = _pvChunks[idx + 1].content || '';
+        _pvChunks[idx + 1].content = firstPara + '\n\n' + nextContent;
+        _pvChunks[idx + 1].charCount = _pvChunks[idx + 1].content.length;
+        _pvChunks[idx + 1].tokenCount = estimateTokens(_pvChunks[idx + 1].content);
+        
+        // 更新当前分块
+        _pvChunks[idx].content = remaining;
+        _pvChunks[idx].charCount = remaining.length;
+        _pvChunks[idx].tokenCount = estimateTokens(remaining);
+        
+        _pvChunksModified = true;
+        renderChunksList();
+        toast('已将首段移到下一分块', 'success');
+    }
+
+    // 与下一分块合并
+    function mergeWithNext(idx) {
+        if (idx >= _pvChunks.length - 1) return;
+        if (!confirm(`确认将分块 #${idx} 和 #${idx + 1} 合并？`)) return;
+        
+        const currentContent = _pvChunks[idx].content || '';
+        const nextContent = _pvChunks[idx + 1].content || '';
+        
+        // 合并内容
+        _pvChunks[idx].content = currentContent + '\n\n' + nextContent;
+        _pvChunks[idx].charCount = _pvChunks[idx].content.length;
+        _pvChunks[idx].tokenCount = estimateTokens(_pvChunks[idx].content);
+        _pvChunks[idx].endPage = Math.max(_pvChunks[idx].endPage, _pvChunks[idx + 1].endPage);
+        
+        // 删除下一分块
+        _pvChunks.splice(idx + 1, 1);
+        
+        // 重新编号
+        _pvChunks.forEach((c, i) => c.chunkIndex = i);
+        
+        _pvChunksModified = true;
+        renderChunksList();
+        toast('分块已合并', 'success');
+    }
+
+    // 切换编辑模式
+    function toggleChunkEdit(idx) {
+        const display = document.getElementById(`chunk-display-${idx}`);
+        const edit = document.getElementById(`chunk-edit-${idx}`);
+        if (display.style.display === 'none') {
+            display.style.display = 'block';
+            edit.style.display = 'none';
+        } else {
+            display.style.display = 'none';
+            edit.style.display = 'block';
+            document.getElementById(`chunk-editor-${idx}`).focus();
+        }
+    }
+
+    // 保存编辑
+    function saveChunkEdit(idx) {
+        const editor = document.getElementById(`chunk-editor-${idx}`);
+        const newContent = editor.value;
+        updateChunkContent(idx, newContent);
+        
+        document.getElementById(`chunk-display-${idx}`).style.display = 'block';
+        document.getElementById(`chunk-edit-${idx}`).style.display = 'none';
+        
+        _pvChunksModified = true;
+        renderChunksList();
+        toast('分块内容已更新', 'success');
+    }
+
+    // 取消编辑
+    function cancelChunkEdit(idx) {
+        const editor = document.getElementById(`chunk-editor-${idx}`);
+        editor.value = _pvChunks[idx].content || '';
+        
+        document.getElementById(`chunk-display-${idx}`).style.display = 'block';
+        document.getElementById(`chunk-edit-${idx}`).style.display = 'none';
+    }
+
+    // 更新分块内容
+    function updateChunkContent(idx, newContent) {
+        _pvChunks[idx].content = newContent;
+        _pvChunks[idx].charCount = newContent.length;
+        _pvChunks[idx].tokenCount = estimateTokens(newContent);
+        _pvChunksModified = true;
+    }
+
+    // 估算 token 数
+    function estimateTokens(text) {
+        if (!text) return 0;
+        let chineseChars = 0;
+        let otherChars = 0;
+        for (let c of text) {
+            if (/[\u4e00-\u9fa5]/.test(c)) {
+                chineseChars++;
+            } else {
+                otherChars++;
+            }
+        }
+        return Math.ceil(chineseChars / 1.5) + Math.ceil(otherChars / 4);
+    }
+
+    // 上移分块（保留原有功能）
+    function moveChunkUp(idx) {
+        if (idx <= 0) return;
+        [_pvChunks[idx - 1], _pvChunks[idx]] = [_pvChunks[idx], _pvChunks[idx - 1]];
+        _pvChunksModified = true;
+        renderChunksList();
+    }
+
+    // 下移分块（保留原有功能）
+    function moveChunkDown(idx) {
+        if (idx >= _pvChunks.length - 1) return;
+        [_pvChunks[idx], _pvChunks[idx + 1]] = [_pvChunks[idx + 1], _pvChunks[idx]];
+        _pvChunksModified = true;
+        renderChunksList();
+    }
+
+    async function confirmIndex() {
+        if (!_pvDocKey) return;
+        
+        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
+
+        let confirmMsg = '确认将此文档按当前配置分块并向量化入库？';
+        if (_pvChunksModified) {
+            confirmMsg = `确认使用手动调整后的 ${_pvChunks.length} 个分块入库？`;
+        }
+        if (!confirm(confirmMsg)) return;
+
+        document.getElementById('pv-confirm-btn').disabled = true;
+        document.getElementById('pv-confirm-btn').textContent = '入库中...';
+
+        try {
+            let url, options;
+            
+            if (_pvChunksModified && _pvChunks.length > 0) {
+                // 使用自定义分块入库
+                url = `/api/admin/document/${_pvDocKey}/index-custom`;
+                const customChunks = _pvChunks.map((c, idx) => ({
+                    chunkIndex: idx,
+                    startPage: c.startPage,
+                    endPage: c.endPage,
+                    content: c.content
+                }));
+                options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(customChunks)
+                };
+            } else {
+                // 使用默认分块入库
+                url = `/api/admin/document/${_pvDocKey}/index?chunkSize=${chunkSize}&overlap=${overlap}&strategy=${strategy}`;
+                options = { method: 'POST' };
+            }
+            
+            const res = await fetch(API + url, options);
+            const data = await res.json();
+            if (res.ok && data.status === 'INDEXED') {
+                toast('文档已成功入库', 'success');
+                closePreviewModal();
+                loadDocuments();
+            } else {
+                toast('入库状态: ' + (data.status || data.errorMessage || '未知'), 'error');
+            }
+        } catch (e) {
+            toast('入库失败: ' + e.message, 'error');
+        } finally {
+            document.getElementById('pv-confirm-btn').disabled = false;
+            document.getElementById('pv-confirm-btn').textContent = '确认入库';
+        }
+    }
+
+    function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
     // ==================== Search ====================
     async function doSearch() {
