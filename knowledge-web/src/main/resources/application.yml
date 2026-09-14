@@ -12,7 +12,7 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/knowledge_repository?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:123456}
+    password: ${MYSQL_PASSWORD}
     # H2 (备用，取消注释切换回 H2)
     # url: jdbc:h2:file:./data/knowledge-repository;AUTO_SERVER=TRUE;MODE=MySQL;DATABASE_TO_LOWER=TRUE
     # driver-class-name: org.h2.Driver
@@ -44,11 +44,11 @@ spring:
           no-cache: true
           must-revalidate: true
 
-  # ==================== Security (开发阶段) ====================
+  # ==================== Security ====================
   security:
     user:
-      name: admin
-      password: admin
+      name: ${SPRING_SECURITY_USER:admin}
+      password: ${SPRING_SECURITY_PASSWORD:admin}
 
 # ==================== MyBatis-Plus ====================
 mybatis-plus:

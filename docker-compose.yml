@@ -25,7 +25,7 @@ services:
       MYSQL_HOST: host.docker.internal
       MYSQL_PORT: 3307
       MYSQL_USERNAME: root
-      MYSQL_PASSWORD: "123456"
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       # Milvus（共用服务，宿主机端口 19530）
       MILVUS_HOST: host.docker.internal
       MILVUS_PORT: 19530
@@ -34,10 +34,13 @@ services:
       OLLAMA_MODEL: bge-m3
       # LLM 对话模型（DeepSeek 云端）
       LLM_PROVIDER: deepseek
-      DEEPSEEK_API_KEY: sk-0fa0f833080143eabb3dc6c53b81e60c
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_CHAT_MODEL: deepseek-chat
       LLM_TEMPERATURE: "0.7"
       LLM_MAX_TOKENS: "4096"
+      # Spring Security 管理员凭据
+      SPRING_SECURITY_USER: ${SPRING_SECURITY_USER}
+      SPRING_SECURITY_PASSWORD: ${SPRING_SECURITY_PASSWORD}
       # 文件存储（宿主机 bind mount）
       STORAGE_PATH: /app/data/documents
       # JVM
