@@ -26,14 +26,23 @@ public final class SearchResult {
     /** 相似度得分（0~1，1 为最相似） */
     private final double score;
 
+    /** 文档分类 */
+    private final String category;
+
     public SearchResult(String text, String documentId, String documentName,
                         Integer pageNumber, Integer chunkIndex, double score) {
+        this(text, documentId, documentName, pageNumber, chunkIndex, score, null);
+    }
+
+    public SearchResult(String text, String documentId, String documentName,
+                        Integer pageNumber, Integer chunkIndex, double score, String category) {
         this.text = text;
         this.documentId = documentId;
         this.documentName = documentName;
         this.pageNumber = pageNumber;
         this.chunkIndex = chunkIndex;
         this.score = score;
+        this.category = category;
     }
 
     public String getText() {
@@ -58,5 +67,9 @@ public final class SearchResult {
 
     public double getScore() {
         return score;
+    }
+
+    public String getCategory() {
+        return category;
     }
 }

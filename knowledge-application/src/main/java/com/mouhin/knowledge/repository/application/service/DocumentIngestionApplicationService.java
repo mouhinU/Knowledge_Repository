@@ -11,6 +11,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.repository.DocumentChunkRepository;
 import com.mouhin.knowledge.repository.domain.repository.DocumentRepository;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
+import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import com.mouhin.knowledge.repository.infrastructure.milvus.MilvusVectorStoreService;
 import com.mouhin.knowledge.repository.infrastructure.pdf.DocumentExtractionService;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -140,7 +142,7 @@ public class DocumentIngestionApplicationService {
             // 5. 创建文档记录
             String documentKey = UUID.randomUUID().toString();
             Document document = buildDocument(documentKey, file, permanentFile.toString(),
-                    ownerId, departmentId, visibility, allowedRoles, tags, chunkingConfig);
+                    ownerId, departmentId, visibility, allowedRoles, tags, null, chunkingConfig);
             document.validateForCreate();
             documentRepository.save(document);
 
@@ -178,7 +180,8 @@ public class DocumentIngestionApplicationService {
                                String departmentId,
                                DocumentVisibilityEnum visibility,
                                String allowedRoles,
-                               String tags) {
+                               String tags,
+                               String category) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
@@ -217,7 +220,8 @@ public class DocumentIngestionApplicationService {
             // 创建文档记录（默认分块配置，后续 indexDocument 时可用用户选择的配置覆盖）
             String documentKey = UUID.randomUUID().toString();
             Document document = buildDocument(documentKey, file, permanentFile.toString(),
-                    ownerId, departmentId, visibility, allowedRoles, tags, ChunkingConfig.defaultConfig());
+                    ownerId, departmentId, visibility, allowedRoles, tags, category,
+                    ChunkingConfig.defaultConfig());
             document.validateForCreate();
             documentRepository.save(document);
 
@@ -236,6 +240,87 @@ public class DocumentIngestionApplicationService {
 
         } finally {
             deleteTempFile(tempFile);
+        }
+    }
+
+    /**
+     * 从已组装的文件创建文档（用于分片上传完成后的处理）
+     *
+     * @param assembledFile 已组装完成的文件路径
+     * @param fileName      原始文件名
+     * @param ownerId       所有者用户 ID
+     * @param departmentId  所属部门 ID
+     * @param visibility    可见性
+     * @param allowedRoles  允许访问的角色
+     * @param tags          标签
+     * @return 创建的文档
+     */
+    public Document uploadFromFile(Path assembledFile, String fileName, String ownerId,
+                                   String departmentId, DocumentVisibilityEnum visibility,
+                                   String allowedRoles, String tags, String category) {
+        // 提取文本内容
+        DocumentExtractionService.ExtractionResult result;
+        try {
+            long fileSize = Files.size(assembledFile);
+            result = documentExtractionService.extractText(assembledFile, fileSize, fileName);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to extract text from assembled file", e);
+        }
+
+        // 去重检查
+        documentRepository.findByFileChecksum(result.checksum()).ifPresent(existing -> {
+            throw new IllegalArgumentException(
+                    "Duplicate file detected. Existing document: " + existing.getDocumentKey());
+        });
+
+        // 构建 Document 领域对象
+        String documentKey = UUID.randomUUID().toString();
+        Document document = new Document();
+        document.setDocumentKey(documentKey);
+        document.setFileName(fileName);
+        document.setFileType(detectFileType(assembledFile));
+        document.setFileSize(result.pageTexts().stream().mapToLong(String::length).sum());
+        document.setStoragePath(assembledFile.toString());
+        document.setStatus(DocumentStatusEnum.UPLOADED);
+        document.setVisibility(visibility != null ? visibility : DocumentVisibilityEnum.INTERNAL);
+        document.setOwnerId(ownerId);
+        document.setDepartmentId(departmentId);
+        document.setAllowedRoles(allowedRoles);
+        document.setTags(tags);
+        document.setCategory(category);
+        document.setChunkingConfig(ChunkingConfig.defaultConfig());
+        document.setTotalPages(result.totalPages());
+        document.setFileChecksum(result.checksum());
+        document.validateForCreate();
+
+        documentRepository.save(document);
+
+        eventPublisher.publishEvent(new DocumentCreatedEvent(
+                documentKey, fileName, ownerId, departmentId, LocalDateTime.now()));
+
+        // 缓存提取结果
+        extractionCache.put(documentKey, result);
+
+        logger.info("Document uploaded from assembled file (pending index): {} -> {}", documentKey, fileName);
+        return document;
+    }
+
+    private String detectFileType(Path file) {
+        try {
+            String name = file.getFileName().toString();
+            if (name.endsWith(".pdf")) return "application/pdf";
+            if (name.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            if (name.endsWith(".doc")) return "application/msword";
+            if (name.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            if (name.endsWith(".xls")) return "application/vnd.ms-excel";
+            if (name.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            if (name.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
+            if (name.endsWith(".txt")) return "text/plain";
+            if (name.endsWith(".csv")) return "text/csv";
+            if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
+            return "application/octet-stream";
+        } catch (Exception e) {
+            return "application/octet-stream";
         }
     }
 
@@ -335,6 +420,139 @@ public class DocumentIngestionApplicationService {
         extractionCache.remove(documentKey);
 
         return document;
+    }
+
+    /**
+     * 异步索引文档（带进度回调）
+     *
+     * @param documentKey 文档唯一标识
+     * @param chunkSize   分块大小
+     * @param overlap     分块重叠
+     * @param strategy    切分策略
+     * @param callback    进度回调
+     */
+    public void indexDocumentAsync(String documentKey, int chunkSize, int overlap,
+                                   ChunkingStrategyEnum strategy, IndexProgressCallback callback) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                Document document = documentRepository.findByDocumentKey(documentKey)
+                        .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
+
+                if (document.getStatus() == DocumentStatusEnum.INDEXED) {
+                    throw new IllegalStateException("Document is already indexed");
+                }
+
+                ChunkingConfig config = new ChunkingConfig(chunkSize, overlap,
+                        strategy != null ? strategy : ChunkingStrategyEnum.FIXED_SIZE, true, true);
+                document.setChunkingConfig(config);
+
+                DocumentExtractionService.ExtractionResult extraction = getOrReextract(document);
+                processDocument(document, extraction, callback);
+
+                extractionCache.remove(documentKey);
+            } catch (Exception e) {
+                logger.error("Async indexing failed for document {}: {}", documentKey, e.getMessage(), e);
+                if (callback != null) {
+                    callback.onError(e.getMessage());
+                }
+            }
+        });
+    }
+
+    /**
+     * 异步自定义分块索引（带进度回调）
+     *
+     * @param documentKey  文档唯一标识
+     * @param customChunks 用户调整后的分块列表
+     * @param callback     进度回调
+     */
+    public void indexWithCustomChunksAsync(String documentKey, List<CustomChunkInput> customChunks,
+                                           IndexProgressCallback callback) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (customChunks == null || customChunks.isEmpty()) {
+                    throw new IllegalArgumentException("Custom chunks must not be empty");
+                }
+
+                Document document = documentRepository.findByDocumentKey(documentKey)
+                        .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
+
+                if (document.getStatus() == DocumentStatusEnum.INDEXED) {
+                    throw new IllegalStateException("Document is already indexed");
+                }
+
+                document.markProcessing();
+                documentRepository.update(document);
+
+                // 将自定义分块转为 DocumentChunk 实体
+                List<DocumentChunk> chunks = new ArrayList<>(customChunks.size());
+                int index = 0;
+                for (CustomChunkInput input : customChunks) {
+                    if (input.content() == null || input.content().isBlank()) {
+                        continue;
+                    }
+                    DocumentChunk chunk = new DocumentChunk();
+                    chunk.setChunkKey(UUID.randomUUID().toString());
+                    chunk.setDocumentId(document.getId());
+                    chunk.setDocumentKey(document.getDocumentKey());
+                    chunk.setChunkIndex(index++);
+                    chunk.setStartPage(input.startPage());
+                    chunk.setEndPage(input.endPage());
+                    chunk.setContent(input.content());
+                    chunk.setTokenCount(chunk.estimateTokenCount(input.content()));
+                    chunk.setDepartmentId(document.getDepartmentId());
+                    chunk.setVisibility(document.getVisibility() != null
+                            ? document.getVisibility().name()
+                            : DocumentVisibilityEnum.INTERNAL.name());
+                    chunk.setAllowedRoles(document.getAllowedRoles());
+                    chunk.setOwnerId(document.getOwnerId());
+                    chunk.setDocumentName(document.getFileName());
+                    chunk.setFileType(document.getFileType());
+                    chunk.setTags(document.getTags());
+                    chunks.add(chunk);
+                }
+
+                if (chunks.isEmpty()) {
+                    document.markFailed("No valid chunks provided");
+                    documentRepository.update(document);
+                    if (callback != null) {
+                        callback.onError("No valid chunks provided");
+                    }
+                    return;
+                }
+
+                chunkRepository.saveBatch(chunks);
+
+                // 向量化并存入 Milvus（带进度回调）
+                vectorStoreService.storeChunks(chunks, callback);
+
+                DocumentExtractionService.ExtractionResult extraction = getOrReextract(document);
+                document.markIndexed(extraction.totalPages());
+                document.setFileChecksum(extraction.checksum());
+                documentRepository.update(document);
+
+                eventPublisher.publishEvent(new DocumentProcessedEvent(
+                        document.getDocumentKey(), document.getFileName(),
+                        extraction.totalPages(), chunks.size(),
+                        document.getOwnerId(), document.getDepartmentId(), LocalDateTime.now()));
+
+                extractionCache.remove(documentKey);
+
+                logger.info("Document {} indexed with custom chunks: {} chunks",
+                        document.getDocumentKey(), chunks.size());
+
+                if (callback != null) {
+                    callback.onComplete();
+                }
+
+            } catch (Exception e) {
+                logger.error("Async custom indexing failed for document {}: {}",
+                        documentKey, e.getMessage(), e);
+                if (callback != null) {
+                    callback.onError(e.getMessage());
+                }
+            }
+        });
     }
 
     /**
@@ -612,6 +830,14 @@ public class DocumentIngestionApplicationService {
      * 处理文档：分块 → 向量化 → 存储
      */
     private void processDocument(Document document, DocumentExtractionService.ExtractionResult result) {
+        processDocument(document, result, null);
+    }
+
+    /**
+     * 处理文档：分块 → 向量化 → 存储（带进度回调）
+     */
+    private void processDocument(Document document, DocumentExtractionService.ExtractionResult result,
+                                 IndexProgressCallback callback) {
         try {
             document.markProcessing();
             documentRepository.update(document);
@@ -628,14 +854,17 @@ public class DocumentIngestionApplicationService {
             if (chunks.isEmpty()) {
                 document.markFailed("No content extracted from PDF");
                 documentRepository.update(document);
+                if (callback != null) {
+                    callback.onError("No content extracted");
+                }
                 return;
             }
 
             // 保存分块到关系数据库
             chunkRepository.saveBatch(chunks);
 
-            // 向量化并存入 Milvus
-            vectorStoreService.storeChunks(chunks);
+            // 向量化并存入 Milvus（带进度回调）
+            vectorStoreService.storeChunks(chunks, callback);
 
             // 标记完成
             document.markIndexed(result.totalPages());
@@ -650,17 +879,24 @@ public class DocumentIngestionApplicationService {
             logger.info("Document {} processed successfully: {} pages, {} chunks",
                     document.getDocumentKey(), result.totalPages(), chunks.size());
 
+            if (callback != null) {
+                callback.onComplete();
+            }
+
         } catch (Exception e) {
             logger.error("Failed to process document {}: {}", document.getDocumentKey(), e.getMessage(), e);
             document.markFailed(e.getMessage());
             documentRepository.update(document);
+            if (callback != null) {
+                callback.onError(e.getMessage());
+            }
         }
     }
 
     private Document buildDocument(String documentKey, MultipartFile file, String storagePath,
                                    String ownerId, String departmentId,
                                    DocumentVisibilityEnum visibility,
-                                   String allowedRoles, String tags,
+                                   String allowedRoles, String tags, String category,
                                    ChunkingConfig chunkingConfig) {
         Document document = new Document();
         document.setDocumentKey(documentKey);
@@ -674,6 +910,7 @@ public class DocumentIngestionApplicationService {
         document.setDepartmentId(departmentId);
         document.setAllowedRoles(allowedRoles);
         document.setTags(tags);
+        document.setCategory(category);
         document.setChunkingConfig(chunkingConfig != null ? chunkingConfig : ChunkingConfig.defaultConfig());
         return document;
     }

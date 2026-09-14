@@ -49,12 +49,14 @@ public class KnowledgeQueryApplicationService {
      * @param permission 用户权限上下文
      * @param maxResults 最大返回数量（null 使用默认 10）
      * @param minScore   最低相似度（null 使用默认 0.5）
+     * @param category   文档分类过滤（null 或空表示不过滤）
      * @return 检索结果列表
      */
     public List<SearchResult> search(String query,
                                      Permission permission,
                                      Integer maxResults,
-                                     Double minScore) {
+                                     Double minScore,
+                                     String category) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("Query must not be blank");
         }
@@ -65,8 +67,15 @@ public class KnowledgeQueryApplicationService {
         // 构建权限过滤表达式
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
 
-        // 执行语义检索
-        List<SearchResult> results = vectorStoreService.search(query, max, min, filterExpr);
+        // 执行语义检索（传入分类参数）
+        List<SearchResult> results = vectorStoreService.search(query, max, min, filterExpr, category);
+
+        // 应用层分类过滤（LangChain4j Filter 暂不支持 Milvus 原生 expr，在应用层二次过滤）
+        if (category != null && !category.isBlank()) {
+            results = results.stream()
+                    .filter(sr -> category.equals(sr.getCategory()))
+                    .toList();
+        }
 
         // 补全文档名称
         List<SearchResult> enrichedResults = new java.util.ArrayList<>(results.size());
@@ -80,11 +89,22 @@ public class KnowledgeQueryApplicationService {
                     docName,
                     sr.getPageNumber(),
                     sr.getChunkIndex(),
-                    sr.getScore()
+                    sr.getScore(),
+                    sr.getCategory()
             ));
         }
 
         logger.info("Search for user '{}' returned {} results", permission.getUserId(), enrichedResults.size());
         return enrichedResults;
+    }
+
+    /**
+     * 语义检索知识库（无分类过滤，向后兼容）
+     */
+    public List<SearchResult> search(String query,
+                                     Permission permission,
+                                     Integer maxResults,
+                                     Double minScore) {
+        return search(query, permission, maxResults, minScore, null);
     }
 }

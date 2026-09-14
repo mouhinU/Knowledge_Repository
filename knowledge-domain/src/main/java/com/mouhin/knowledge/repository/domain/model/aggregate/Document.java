@@ -65,6 +65,9 @@ public class Document {
     /** 标签（逗号分隔） */
     private String tags;
 
+    /** 文档分类（如：工作、学习、休闲） */
+    private String category;
+
     private LocalDateTime createdTime;
 
     private LocalDateTime updatedTime;
@@ -274,6 +277,14 @@ public class Document {
 
     public void setTags(String tags) {
         this.tags = tags;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public LocalDateTime getCreatedTime() {

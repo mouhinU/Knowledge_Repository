@@ -61,6 +61,9 @@ public class DocumentChunk {
     /** 标签（冗余，用于 Milvus 元数据过滤） */
     private String tags;
 
+    /** 文档分类（冗余，用于 Milvus 元数据过滤） */
+    private String category;
+
     private LocalDateTime createdTime;
 
     // ==================== 业务方法 ====================
@@ -220,6 +223,14 @@ public class DocumentChunk {
 
     public void setTags(String tags) {
         this.tags = tags;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public LocalDateTime getCreatedTime() {

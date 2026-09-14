@@ -28,8 +28,11 @@ RUN mvn clean package -DskipTests -q
 # ============================================================
 FROM eclipse-temurin:21-jre
 
+# 版本号（构建时注入，用于运行时识别镜像版本）
+ARG APP_VERSION=unknown
 LABEL maintainer="Knowledge-Repository"
 LABEL description="Knowledge Repository - RAG 知识库管理系统"
+LABEL version="${APP_VERSION}"
 
 # 创建非 root 用户
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
@@ -47,6 +50,7 @@ USER appuser
 
 # JVM 参数（可通过 JAVA_OPTS 环境变量覆盖）
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+ENV APP_VERSION=${APP_VERSION}
 
 EXPOSE 8091
 

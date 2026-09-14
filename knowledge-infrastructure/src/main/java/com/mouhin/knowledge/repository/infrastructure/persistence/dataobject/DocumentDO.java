@@ -83,6 +83,9 @@ public class DocumentDO {
     @TableField("tags")
     private String tags;
 
+    @TableField("category")
+    private String category;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 

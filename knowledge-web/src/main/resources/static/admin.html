@@ -97,10 +97,42 @@
         .upload-area:hover { border-color: var(--primary); background: #eff6ff; }
         .upload-area.dragover { border-color: var(--primary); background: #eff6ff; }
         .upload-icon { font-size: 40px; margin-bottom: 12px; }
+        .upload-actions { display: flex; justify-content: center; gap: 16px; margin-top: 10px; }
+        .upload-actions a { font-size: 13px; color: var(--primary); cursor: pointer; text-decoration: none; }
+        .upload-actions a:hover { text-decoration: underline; }
+        /* Upload queue */
+        .upload-queue { margin-top: 12px; max-height: 320px; overflow-y: auto; }
+        .upload-queue-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+        .upload-queue-item:last-child { border-bottom: none; }
+        .uq-icon { font-size: 20px; flex-shrink: 0; }
+        .uq-info { flex: 1; min-width: 0; }
+        .uq-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .uq-meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+        .uq-progress-wrap { height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+        .uq-progress-bar { height: 100%; background: var(--primary); transition: width .3s; border-radius: 2px; }
+        .uq-progress-bar.done { background: var(--success); }
+        .uq-progress-bar.error { background: var(--danger); }
+        .uq-status { font-size: 12px; flex-shrink: 0; min-width: 60px; text-align: right; }
+        .uq-status.waiting { color: var(--text-light); }
+        .uq-status.uploading { color: var(--primary); }
+        .uq-status.done { color: var(--success); }
+        .uq-status.error { color: var(--danger); }
+        .uq-status.resuming { color: #f59e0b; }
+        .uq-remove { cursor: pointer; color: var(--text-light); font-size: 16px; flex-shrink: 0; }
+        .uq-remove:hover { color: var(--danger); }
+        .upload-summary { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8fafc; border-radius: var(--radius); margin-top: 8px; font-size: 12px; color: var(--text-light); }
 
         /* Section visibility */
         .section { display: none; }
         .section.active { display: block; }
+
+        /* Lab tabs */
+        .lab-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:20px; }
+        .lab-tab { padding:10px 24px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-light); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; user-select:none; }
+        .lab-tab:hover { color:var(--text); background:#f8fafc; }
+        .lab-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+        .lab-panel { display:none; }
+        .lab-panel.active { display:block; }
 
         /* Toast */
         .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 6px; color: #fff; font-size: 14px; z-index: 300; animation: slideIn .3s ease; }
@@ -164,7 +196,15 @@
         .pv-config-row .pv-field label { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:.3px; }
         .pv-config-row .pv-field select, .pv-config-row .pv-field input { padding:6px 10px; border:1px solid var(--border); border-radius:5px; font-size:13px; outline:none; }
         .pv-config-row .pv-field select { width:130px; }
-        .pv-config-row .pv-field input { width:90px; }
+        .pv-config-row .pv-field input[type=number] { width:90px; }
+        .pv-slider-field { min-width:200px; flex:1; max-width:280px; }
+        .pv-slider-row { display:flex; align-items:center; gap:10px; }
+        .pv-slider-row input[type=range] { flex:1; -webkit-appearance:none; appearance:none; height:5px; border-radius:3px; background:#e2e8f0; outline:none; cursor:pointer; }
+        .pv-slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:var(--primary); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.18); cursor:pointer; transition:transform .15s; }
+        .pv-slider-row input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+        .pv-slider-row input[type=range]::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--primary); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.18); cursor:pointer; }
+        .pv-slider-row input[type=range]::-moz-range-track { height:5px; border-radius:3px; background:#e2e8f0; }
+        .pv-slider-val { min-width:42px; text-align:center; font-size:13px; font-weight:600; color:var(--primary); background:#eff6ff; border-radius:4px; padding:2px 6px; }
         .pv-actions { display:flex; gap:8px; margin-left:auto; align-items:end; }
         .btn-success { background:var(--success); color:#fff; }
         .btn-success:hover { background:#16a34a; }
@@ -204,6 +244,83 @@
             white-space:pre-wrap; word-wrap:break-word; 
             max-height:300px; overflow-y:auto;
         }
+
+        /* AI Writing */
+        .writing-input-area { display:flex; gap:12px; margin-bottom:20px; }
+        .writing-input-area textarea { flex:1; min-height:60px; resize:vertical; }
+        .writing-progress { display:none; padding:20px 0; }
+        .writing-progress.active { display:block; }
+        .phase-steps { display:flex; gap:0; margin-bottom:24px; }
+        .phase-step { flex:1; text-align:center; padding:12px 8px; position:relative; }
+        .phase-step::before { content:''; position:absolute; top:18px; left:0; right:0; height:2px; background:var(--border); z-index:0; }
+        .phase-step:first-child::before { left:50%; }
+        .phase-step:last-child::before { right:50%; }
+        .phase-dot { width:28px; height:28px; border-radius:50%; background:var(--border); display:inline-flex; align-items:center; justify-content:center; position:relative; z-index:1; font-size:12px; color:#fff; transition:all .3s; }
+        .phase-step.active .phase-dot { background:var(--primary); box-shadow:0 0 0 4px rgba(59,130,246,.2); }
+        .phase-step.done .phase-dot { background:var(--success); }
+        .phase-step.done .phase-dot::after { content:'✓'; }
+        .phase-label { display:block; font-size:12px; color:var(--text-light); margin-top:6px; }
+        .phase-step.active .phase-label { color:var(--primary); font-weight:600; }
+        .phase-step.done .phase-label { color:var(--success); }
+
+        .agent-panel { border:1px solid var(--border); border-radius:8px; margin-bottom:10px; overflow:hidden; }
+        .agent-panel-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; background:#fafbfc; transition:background .15s; }
+        .agent-panel-header:hover { background:#f0f2f5; }
+        .agent-name { font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; }
+        .agent-name .agent-icon { width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
+        .agent-icon.researcher { background:#8b5cf6; }
+        .agent-icon.writer { background:#3b82f6; }
+        .agent-icon.reviewer { background:#f59e0b; }
+        .agent-status { font-size:12px; padding:2px 8px; border-radius:10px; }
+        .agent-status.pending { background:#f1f5f9; color:#94a3b8; }
+        .agent-status.running { background:#dbeafe; color:#1e40af; }
+        .agent-status.done { background:#dcfce7; color:#166534; }
+        .agent-panel-body { display:none; padding:14px 16px; border-top:1px solid var(--border); }
+        .agent-panel.open .agent-panel-body { display:block; }
+        .agent-panel-body pre { font-size:13px; line-height:1.7; color:var(--text); background:var(--bg); padding:12px 14px; border-radius:6px; max-height:300px; overflow:auto; white-space:pre-wrap; margin:0; }
+        .agent-materials { margin-bottom:10px; }
+        .agent-materials-content { font-size:12px; line-height:1.6; color:var(--text-light); background:#f8fafc; padding:10px 12px; border-radius:6px; max-height:200px; overflow:auto; white-space:pre-wrap; margin:6px 0 0; border:1px dashed var(--border); }
+        .agent-output-label { font-size:12px; font-weight:500; color:var(--text-light); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+
+        .article-result { display:none; }
+        .article-result.active { display:block; }
+        .article-content { font-size:15px; line-height:1.8; color:var(--text); padding:20px; background:#fff; border:1px solid var(--border); border-radius:8px; }
+        .article-content h1 { font-size:22px; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid var(--border); }
+        .article-content h2 { font-size:18px; margin-top:24px; margin-bottom:12px; color:var(--primary); }
+        .article-content h3 { font-size:16px; margin-top:16px; margin-bottom:8px; }
+        .article-content p { margin-bottom:12px; }
+        .article-content ul, .article-content ol { margin-bottom:12px; padding-left:24px; }
+        .article-content li { margin-bottom:4px; }
+        .article-content blockquote { border-left:3px solid var(--primary); padding:8px 16px; margin:12px 0; background:#f8fafc; color:var(--text-light); }
+        .article-content code { background:#f1f5f9; padding:2px 6px; border-radius:3px; font-size:13px; }
+        .article-content pre { background:#1e293b; color:#e2e8f0; padding:14px; border-radius:6px; overflow-x:auto; margin:12px 0; }
+        .article-content pre code { background:transparent; color:inherit; padding:0; }
+        .article-meta { display:flex; gap:16px; margin-bottom:16px; font-size:13px; color:var(--text-light); }
+        .article-meta span { display:flex; align-items:center; gap:4px; }
+        .quality-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+        .quality-high { background:#dcfce7; color:#166534; }
+        .quality-mid { background:#fef3c7; color:#92400e; }
+        .quality-low { background:#fee2e2; color:#991b1b; }
+
+        .writing-error { display:none; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:14px 18px; color:#991b1b; font-size:14px; margin-top:12px; }
+        .writing-error.active { display:block; }
+
+        /* AI Lab tabs */
+        .lab-tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:2px solid var(--border); padding-bottom:0; }
+        .lab-tab { padding:10px 24px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-light); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; border-radius:6px 6px 0 0; user-select:none; }
+        .lab-tab:hover { color:var(--text); background:#f8fafc; }
+        .lab-tab.active { color:var(--primary); border-bottom-color:var(--primary); background:#eff6ff; }
+        .lab-panel { display:none; }
+        .lab-panel.active { display:block; }
+
+        /* Confirm dialog */
+        .confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; align-items:center; justify-content:center; }
+        .confirm-overlay.active { display:flex; }
+        .confirm-box { background:var(--card); border-radius:12px; padding:28px 32px 20px; width:400px; max-width:88vw; box-shadow:0 8px 30px rgba(0,0,0,.18); text-align:center; }
+        .confirm-icon { font-size:36px; margin-bottom:12px; }
+        .confirm-msg { font-size:15px; line-height:1.6; color:var(--text); margin-bottom:24px; word-break:break-word; }
+        .confirm-btns { display:flex; gap:12px; justify-content:center; }
+        .confirm-btns .btn { min-width:90px; justify-content:center; }
     </style>
 </head>
 <body>
@@ -222,6 +339,9 @@
             </div>
             <div class="nav-item" onclick="showSection('search')">
                 <span class="nav-icon">&#128269;</span> 知识检索
+            </div>
+            <div class="nav-item" onclick="showSection('ai-lab')">
+                <span class="nav-icon">&#9881;</span> AI 实验室
             </div>
             <div class="nav-item" onclick="showSection('users')">
                 <span class="nav-icon">&#9679;</span> 用户权限
@@ -244,6 +364,12 @@
                 <div class="stat-card"><div class="stat-value" id="stat-failed" style="color:var(--danger)">-</div><div class="stat-label">失败</div></div>
             </div>
             <div class="card">
+                <div class="card-title">分类统计</div>
+                <div id="category-stats" style="display:flex;flex-direction:column;gap:12px;padding:4px 0">
+                    <div style="text-align:center;color:var(--text-light);padding:16px">加载中...</div>
+                </div>
+            </div>
+            <div class="card">
                 <div class="card-title">最近文档</div>
                 <table>
                     <thead><tr><th>文件名</th><th>状态</th><th>所有者</th><th>创建时间</th></tr></thead>
@@ -257,14 +383,24 @@
             <div class="page-header"><h2>文档管理</h2><p>上传、查看和管理知识库文档</p></div>
             <div class="card">
                 <div class="card-title">上传文档</div>
-                <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                <div class="upload-area" id="upload-area" onclick="pickFiles()">
                     <div class="upload-icon">&#128196;</div>
-                    <p>点击或拖拽文件到此处上传</p>
+                    <p>点击选择文件或拖拽到此处上传</p>
                     <p style="font-size:12px;color:var(--text-light);margin-top:8px">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML</p>
                 </div>
-                <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.html,.rtf" onchange="handleFileSelect(this)">
+                <div class="upload-actions">
+                    <a onclick="pickFiles()">选择文件</a>
+                    <a onclick="pickFolder()">选择目录</a>
+                </div>
+                <input type="file" id="file-input" multiple style="display:none" onchange="handleFileSelect(this)">
+                <input type="file" id="dir-input" multiple webkitdirectory style="display:none" onchange="handleFileSelect(this)">
                 <div id="upload-form" style="display:none;margin-top:16px">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div id="upload-queue" class="upload-queue"></div>
+                    <div id="upload-summary-bar" class="upload-summary" style="display:none">
+                        <span id="upload-summary-text">共 0 个文件</span>
+                        <span id="upload-summary-size">0 B</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
                         <div class="form-group">
                             <label class="form-label">所有者 ID</label>
                             <input class="form-input" id="upload-owner" value="user-admin">
@@ -291,15 +427,18 @@
                         <label class="form-label">标签</label>
                         <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
                     </div>
-                    <div style="display:flex;gap:8px;margin-top:8px">
-                        <button class="btn btn-primary" onclick="uploadFile()">上传</button>
-                        <button class="btn btn-outline" onclick="cancelUpload()">取消</button>
+                    <div class="form-group">
+                        <label class="form-label">文档分类</label>
+                        <select class="form-select" id="upload-category">
+                            <option value="工作">工作</option>
+                            <option value="学习">学习</option>
+                            <option value="休闲">休闲</option>
+                            <option value="其他" selected>其他</option>
+                        </select>
                     </div>
-                    <div id="upload-progress" style="margin-top:12px;display:none">
-                        <div style="background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden">
-                            <div id="progress-bar" style="background:var(--primary);height:100%;width:0;transition:width .3s"></div>
-                        </div>
-                        <p id="progress-text" style="font-size:12px;color:var(--text-light);margin-top:4px">上传中...</p>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传</button>
+                        <button class="btn btn-outline" onclick="cancelUpload()">清空</button>
                     </div>
                 </div>
             </div>
@@ -340,6 +479,376 @@
             <div class="card" id="search-results-card" style="display:none">
                 <div class="card-title">搜索结果 <span id="search-count" style="color:var(--primary)"></span></div>
                 <div id="search-results"></div>
+            </div>
+        </div>
+
+        <!-- AI Lab -->
+        <div id="section-ai-lab" class="section">
+            <div class="page-header"><h2>AI 实验室</h2><p>AI 驱动的智能内容生成工具集</p></div>
+
+            <!-- Lab Tabs -->
+            <div class="lab-tabs">
+                <div class="lab-tab active" onclick="switchLabTab('writing')">AI 写作</div>
+                <div class="lab-tab" onclick="switchLabTab('exam')">AI 出卷</div>
+            </div>
+
+            <!-- Panel: AI Writing -->
+            <div class="lab-panel active" id="lab-panel-writing">
+                <div class="card">
+                    <div class="card-title">写作输入</div>
+                    <div class="writing-input-area">
+                        <textarea class="form-input" id="writing-question" placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
+                        <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()" style="align-self:flex-end;height:42px;white-space:nowrap">生成文章</button>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px">
+                        <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                        <input class="form-input" style="width:160px" id="writing-user" value="user-admin">
+                        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="writing-admin" checked> 管理员模式</label>
+                        <div style="flex:1"></div>
+                        <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                        <select class="form-input" style="width:120px" id="writing-category">
+                            <option value="">全部分类</option>
+                            <option value="工作">工作</option>
+                            <option value="学习">学习</option>
+                            <option value="休闲">休闲</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="writing-progress" id="writing-progress">
+                    <div class="phase-steps" id="phase-steps">
+                        <div class="phase-step" id="phase-research">
+                            <span class="phase-dot">1</span>
+                            <span class="phase-label">知识检索</span>
+                        </div>
+                        <div class="phase-step" id="phase-writing">
+                            <span class="phase-dot">2</span>
+                            <span class="phase-label">文章撰写</span>
+                        </div>
+                        <div class="phase-step" id="phase-review">
+                            <span class="phase-dot">3</span>
+                            <span class="phase-label">质量审核</span>
+                        </div>
+                        <div class="phase-step" id="phase-complete">
+                            <span class="phase-dot">4</span>
+                            <span class="phase-label">完成</span>
+                        </div>
+                    </div>
+
+                    <!-- Agent Panels -->
+                    <div class="agent-panel" id="panel-researcher">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                            <span class="agent-status pending" id="status-researcher">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" id="materials-researcher" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
+                            </details>
+                            <div class="agent-output-label">研究发现</div>
+                            <pre id="output-researcher">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="panel-writer">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
+                            <span class="agent-status pending" id="status-writer">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" id="materials-writer" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
+                            </details>
+                            <div class="agent-output-label">文章草稿</div>
+                            <pre id="output-writer">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="panel-reviewer">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                            <span class="agent-status pending" id="status-reviewer">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" id="materials-reviewer" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
+                            </details>
+                            <div class="agent-output-label">审核结果</div>
+                            <pre id="output-reviewer">等待执行...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div class="writing-error" id="writing-error"></div>
+
+                <!-- Result -->
+                <div class="article-result" id="article-result">
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                            <div class="card-title" style="margin:0">生成结果</div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程</button>
+                                <button class="btn btn-primary btn-sm" onclick="copyArticle()">复制文章</button>
+                            </div>
+                        </div>
+                        <div class="article-meta" id="article-meta"></div>
+                        <div class="article-content" id="article-content"></div>
+                    </div>
+                </div>
+
+                <!-- Writing History -->
+                <div class="card" style="margin-top:20px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <div class="card-title" style="margin:0">写作历史</div>
+                        <button class="btn btn-outline btn-sm" onclick="loadWritingHistory()">刷新</button>
+                    </div>
+                    <table>
+                        <thead><tr><th style="width:45%">问题</th><th>状态</th><th>评分</th><th>时间</th><th>操作</th></tr></thead>
+                        <tbody id="writing-history-list">
+                            <tr><td colspan="5" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Panel: AI Exam -->
+            <div class="lab-panel" id="lab-panel-exam">
+                <!-- 配置表单 -->
+                <div class="card">
+                    <div class="card-title">试卷配置</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                        <div>
+                            <label class="form-label">考试主题 / 科目</label>
+                            <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
+                        </div>
+                        <div>
+                            <label class="form-label">难度</label>
+                            <select class="form-input" id="exam-difficulty">
+                                <option value="EASY">简单（基础概念）</option>
+                                <option value="MEDIUM" selected>中等（理解应用）</option>
+                                <option value="HARD">困难（综合分析）</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px">
+                        <label class="form-label">题型分布（设置各题型数量，0 表示不出该题型）</label>
+                        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">单选题</label>
+                                <input class="form-input" type="number" id="exam-single" value="5" min="0" max="50" style="text-align:center">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">多选题</label>
+                                <input class="form-input" type="number" id="exam-multi" value="3" min="0" max="30" style="text-align:center">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">判断题</label>
+                                <input class="form-input" type="number" id="exam-tf" value="5" min="0" max="50" style="text-align:center">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">填空题</label>
+                                <input class="form-input" type="number" id="exam-fill" value="5" min="0" max="30" style="text-align:center">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">简答题</label>
+                                <input class="form-input" type="number" id="exam-short" value="3" min="0" max="20" style="text-align:center">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-light)">论述题</label>
+                                <input class="form-input" type="number" id="exam-essay" value="2" min="0" max="10" style="text-align:center">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:12px;align-items:center;margin-top:16px">
+                        <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                        <input class="form-input" style="width:160px" id="exam-user" value="user-admin">
+                        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="exam-admin" checked> 管理员模式</label>
+                        <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                        <select class="form-input" style="width:120px" id="exam-category">
+                            <option value="">全部分类</option>
+                            <option value="工作">工作</option>
+                            <option value="学习">学习</option>
+                            <option value="休闲">休闲</option>
+                            <option value="其他">其他</option>
+                        </select>
+                        <div style="flex:1"></div>
+                        <button class="btn btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()" style="height:42px;white-space:nowrap">生成试卷</button>
+                    </div>
+                </div>
+
+                <!-- 阶段进度 -->
+                <div class="writing-progress" id="exam-progress">
+                    <div class="phase-steps" id="exam-phase-steps">
+                        <div class="phase-step" id="exam-phase-research">
+                            <span class="phase-dot">1</span>
+                            <span class="phase-label">知识检索</span>
+                        </div>
+                        <div class="phase-step" id="exam-phase-writing">
+                            <span class="phase-dot">2</span>
+                            <span class="phase-label">试卷编写</span>
+                        </div>
+                        <div class="phase-step" id="exam-phase-answer">
+                            <span class="phase-dot">3</span>
+                            <span class="phase-label">答案生成</span>
+                        </div>
+                        <div class="phase-step" id="exam-phase-review">
+                            <span class="phase-dot">4</span>
+                            <span class="phase-label">内容审核</span>
+                        </div>
+                        <div class="phase-step" id="exam-phase-calibrate">
+                            <span class="phase-dot">5</span>
+                            <span class="phase-label">难度校准</span>
+                        </div>
+                        <div class="phase-step" id="exam-phase-dedup">
+                            <span class="phase-dot">6</span>
+                            <span class="phase-label">查重去重</span>
+                        </div>
+                    </div>
+
+                    <!-- Agent Panels -->
+                    <div class="agent-panel" id="exam-panel-researcher">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                            <span class="agent-status pending" id="exam-status-researcher">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-researcher">等待检索...</pre>
+                            </details>
+                            <div class="agent-output-label">知识点分析</div>
+                            <pre id="exam-output-researcher">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-writer">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon writer">W</span> 出题人 (Writer)</span>
+                            <span class="agent-status pending" id="exam-status-writer">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-writer">等待研究员完成...</pre>
+                            </details>
+                            <div class="agent-output-label">试卷内容</div>
+                            <pre id="exam-output-writer">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-answer">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon" style="background:#10b981">A</span> 答案生成 (Answer)</span>
+                            <span class="agent-status pending" id="exam-status-answer">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-answer">等待出题人完成...</pre>
+                            </details>
+                            <div class="agent-output-label">标准答案</div>
+                            <pre id="exam-output-answer">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-reviewer">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                            <span class="agent-status pending" id="exam-status-reviewer">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-reviewer">等待答案生成完成...</pre>
+                            </details>
+                            <div class="agent-output-label">审核结果</div>
+                            <pre id="exam-output-reviewer">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-calibrator">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon" style="background:#f97316">C</span> 校准员 (Calibrator)</span>
+                            <span class="agent-status pending" id="exam-status-calibrator">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-calibrator">等待审核完成...</pre>
+                            </details>
+                            <div class="agent-output-label">难度评估</div>
+                            <pre id="exam-output-calibrator">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-deduplicator">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon" style="background:#6366f1">D</span> 查重员 (Deduplicator)</span>
+                            <span class="agent-status pending" id="exam-status-deduplicator">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-deduplicator">等待校准完成...</pre>
+                            </details>
+                            <div class="agent-output-label">查重报告</div>
+                            <pre id="exam-output-deduplicator">等待执行...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 错误提示 -->
+                <div class="writing-error" id="exam-error"></div>
+
+                <!-- 试卷结果 -->
+                <div id="exam-result" style="display:none">
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                            <div class="card-title" style="margin:0">生成结果</div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-outline btn-sm" onclick="toggleExamPanels()">展开/收起过程</button>
+                                <button class="btn btn-primary btn-sm" onclick="copyExamPaper()">复制试卷</button>
+                                <button class="btn btn-primary btn-sm" onclick="exportExamWord()">导出 Word</button>
+                            </div>
+                        </div>
+                        <div class="article-meta" id="exam-meta"></div>
+                        <div class="article-content" id="exam-content"></div>
+                        <div id="exam-answer-section" style="margin-top:20px;display:none">
+                            <details open>
+                                <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--primary);padding:8px 0">标准答案与评分标准</summary>
+                                <div class="article-content" id="exam-answer-content" style="margin-top:8px"></div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出卷历史 -->
+                <div class="card" style="margin-top:20px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <div class="card-title" style="margin:0">出卷历史</div>
+                        <button class="btn btn-outline btn-sm" onclick="loadExamHistory()">刷新</button>
+                    </div>
+                    <table class="form-table" style="width:100%">
+                        <thead><tr>
+                            <th style="width:40%">主题</th>
+                            <th style="width:10%">难度</th>
+                            <th style="width:10%">状态</th>
+                            <th style="width:10%">评分</th>
+                            <th style="width:18%">时间</th>
+                            <th style="width:12%">操作</th>
+                        </tr></thead>
+                        <tbody id="exam-history-list">
+                            <tr><td colspan="6" style="text-align:center;color:var(--text-light)">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="history-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;justify-content:center;align-items:center" onclick="if(event.target===this)closeHistoryModal()">
+                <div style="background:#fff;border-radius:12px;width:720px;max-height:85vh;overflow-y:auto;padding:28px;position:relative">
+                    <button onclick="closeHistoryModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light)">&times;</button>
+                    <div id="history-detail-content"></div>
+                </div>
             </div>
         </div>
 
@@ -414,7 +923,7 @@
             <div class="pv-config-row">
                 <div class="pv-field">
                     <label>切分策略</label>
-                    <select id="pv-strategy">
+                    <select id="pv-strategy" onchange="triggerAutoPreview()">
                         <option value="FIXED_SIZE">固定大小</option>
                         <option value="RECURSIVE">递归切分</option>
                         <option value="SENTENCE">按句子</option>
@@ -422,18 +931,34 @@
                         <option value="PARAGRAPH">按段落</option>
                     </select>
                 </div>
-                <div class="pv-field">
+                <div class="pv-field pv-slider-field">
                     <label>分块大小</label>
-                    <input type="number" id="pv-chunk-size" value="500">
+                    <div class="pv-slider-row">
+                        <input type="range" id="pv-chunk-size" min="200" max="2000" step="50" value="500" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()">
+                        <span class="pv-slider-val">500</span>
+                    </div>
                 </div>
-                <div class="pv-field">
+                <div class="pv-field pv-slider-field">
                     <label>重叠大小</label>
-                    <input type="number" id="pv-overlap" value="50">
+                    <div class="pv-slider-row">
+                        <input type="range" id="pv-overlap" min="20" max="200" step="10" value="50" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()">
+                        <span class="pv-slider-val">50</span>
+                    </div>
                 </div>
                 <div class="pv-actions">
                     <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
                     <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">确认入库</button>
                 </div>
+            </div>
+            <div id="pv-index-progress" style="display:none;margin-bottom:12px;padding:10px 16px;background:#eff6ff;border-radius:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-size:13px;font-weight:500;color:var(--primary)" id="pv-index-label">入库中...</span>
+                    <span style="font-size:13px;font-weight:600;color:var(--primary)" id="pv-index-percent">0%</span>
+                </div>
+                <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden">
+                    <div id="pv-index-bar" style="background:linear-gradient(90deg,var(--primary),#3b82f6);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
+                </div>
+                <div style="font-size:11px;color:var(--text-light);margin-top:4px" id="pv-index-detail">准备中...</div>
             </div>
             <div id="pv-modal-warn"></div>
             <div id="pv-modal-summary" class="preview-info-bar"></div>
@@ -459,11 +984,342 @@
         </div>
     </div>
 
+    <!-- Confirm Dialog -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-box">
+            <div class="confirm-icon" id="confirm-icon">&#9888;</div>
+            <div class="confirm-msg" id="confirm-msg"></div>
+            <div class="confirm-btns">
+                <button class="btn btn-outline" id="confirm-cancel-btn">取消</button>
+                <button class="btn btn-danger" id="confirm-ok-btn">确认</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     const API = '';
     let selectedFile = null;
+    let uploadQueue = [];       // [{file, id, status, progress, uploadId, totalChunks, uploadedChunks}]
+    let isUploading = false;
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
+    const SUPPORTED_EXTS = ['.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.txt','.csv','.html','.rtf'];
 
-    // ==================== Navigation ====================
+    function generateId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    // ==================== Documents ====================
+
+    function pickFiles() {
+        const input = document.getElementById('file-input');
+        input.value = '';
+        input.click();
+    }
+
+    function pickFolder() {
+        const input = document.getElementById('dir-input');
+        input.value = '';
+        input.click();
+    }
+
+    function isSupportedFile(file) {
+        const name = file.name.toLowerCase();
+        return SUPPORTED_EXTS.some(ext => name.endsWith(ext));
+    }
+
+    function getFileIcon(name) {
+        const ext = name.split('.').pop().toLowerCase();
+        const icons = { pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙', txt: '📄', csv: '📊', html: '🌐', rtf: '📝' };
+        return icons[ext] || '📄';
+    }
+
+    function handleFileSelect(input) {
+        if (input.files.length === 0) {
+            toast('未选择到文件，请重新选择', 'error');
+            return;
+        }
+        const files = Array.from(input.files);
+        const supported = files.filter(f => isSupportedFile(f));
+        const skipped = files.length - supported.length;
+
+        if (skipped > 0) {
+            toast(`已跳过 ${skipped} 个不支持的文件格式`, 'error');
+        }
+        if (supported.length === 0) return;
+
+        // 追加到队列，按 name+size 去重
+        const existingKeys = new Set(uploadQueue.map(q => q.file.name + ':' + q.file.size));
+        supported.forEach(f => {
+            const key = f.name + ':' + f.size;
+            if (!existingKeys.has(key)) {
+                uploadQueue.push({
+                    file: f, id: generateId(), status: 'waiting',
+                    progress: 0, uploadId: null, totalChunks: 0, uploadedChunks: new Set()
+                });
+                existingKeys.add(key);
+            }
+        });
+
+        document.getElementById('upload-form').style.display = 'block';
+        renderUploadQueue();
+        loadDeptOptions();
+    }
+
+    function renderUploadQueue() {
+        const container = document.getElementById('upload-queue');
+        if (uploadQueue.length === 0) {
+            container.innerHTML = '';
+            document.getElementById('upload-summary-bar').style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = uploadQueue.map(item => {
+            const statusLabels = {
+                waiting: '<span class="uq-status waiting">等待中</span>',
+                uploading: `<span class="uq-status uploading">${item.progress}%</span>`,
+                done: '<span class="uq-status done">完成</span>',
+                error: '<span class="uq-status error">失败</span>',
+                resuming: '<span class="uq-status resuming">续传中</span>'
+            };
+            const barClass = item.status === 'done' ? 'done' : item.status === 'error' ? 'error' : '';
+            const removable = !isUploading && (item.status === 'waiting' || item.status === 'error');
+
+            return `<div class="upload-queue-item" data-id="${item.id}">
+                <span class="uq-icon">${getFileIcon(item.file.name)}</span>
+                <div class="uq-info">
+                    <div class="uq-name" title="${esc(item.file.name)}">${esc(item.file.name)}</div>
+                    <div class="uq-meta">${formatSize(item.file.size)} · ${Math.ceil(item.file.size / CHUNK_SIZE)} 分片</div>
+                    <div class="uq-progress-wrap"><div class="uq-progress-bar ${barClass}" style="width:${item.progress}%"></div></div>
+                </div>
+                ${statusLabels[item.status] || ''}
+                ${removable ? `<span class="uq-remove" onclick="removeFromQueue('${item.id}')" title="移除">✕</span>` : ''}
+            </div>`;
+        }).join('');
+
+        const totalFiles = uploadQueue.length;
+        const totalSize = uploadQueue.reduce((s, q) => s + q.file.size, 0);
+        const doneCount = uploadQueue.filter(q => q.status === 'done').length;
+        document.getElementById('upload-summary-bar').style.display = 'flex';
+        document.getElementById('upload-summary-text').textContent =
+            isUploading ? `上传中 ${doneCount}/${totalFiles}` : `共 ${totalFiles} 个文件`;
+        document.getElementById('upload-summary-size').textContent = formatSize(totalSize);
+    }
+
+    function updateQueueItem(id, updates) {
+        const item = uploadQueue.find(q => q.id === id);
+        if (item) {
+            Object.assign(item, updates);
+            renderUploadQueue();
+        }
+    }
+
+    function removeFromQueue(id) {
+        uploadQueue = uploadQueue.filter(q => q.id !== id);
+        renderUploadQueue();
+        if (uploadQueue.length === 0) {
+            document.getElementById('upload-form').style.display = 'none';
+        }
+    }
+
+    async function loadDeptOptions() {
+        try {
+            const res = await fetch(API + '/api/admin/department');
+            const depts = await res.json();
+            const sel = document.getElementById('upload-dept');
+            sel.innerHTML = depts.map(d => `<option value="${esc(d.departmentKey)}">${esc(d.departmentName)}</option>`).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    // ==================== Chunked Upload ====================
+
+    async function startBatchUpload() {
+        if (isUploading) return;
+        const pending = uploadQueue.filter(q => q.status === 'waiting' || q.status === 'error');
+        if (pending.length === 0) {
+            toast('没有待上传的文件', 'error');
+            return;
+        }
+
+        isUploading = true;
+        document.getElementById('btn-start-upload').disabled = true;
+        document.getElementById('btn-start-upload').textContent = '上传中...';
+
+        // Reset error items to waiting
+        uploadQueue.forEach(q => { if (q.status === 'error') { q.status = 'waiting'; q.progress = 0; } });
+        renderUploadQueue();
+
+        for (const item of uploadQueue) {
+            if (item.status === 'done') continue;
+            await uploadOneFile(item);
+        }
+
+        isUploading = false;
+        document.getElementById('btn-start-upload').disabled = false;
+        document.getElementById('btn-start-upload').textContent = '开始上传';
+        renderUploadQueue();
+
+        const doneCount = uploadQueue.filter(q => q.status === 'done').length;
+        const errCount = uploadQueue.filter(q => q.status === 'error').length;
+        if (errCount === 0) {
+            toast(`全部 ${doneCount} 个文件上传成功`, 'success');
+        } else {
+            toast(`${doneCount} 个成功，${errCount} 个失败`, 'error');
+        }
+        loadDocuments();
+    }
+
+    async function uploadOneFile(item) {
+        const file = item.file;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+        try {
+            // 1. Initialize upload session
+            updateQueueItem(item.id, { status: 'uploading', progress: 0 });
+
+            const initRes = await fetch(API + '/api/document/upload/init', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName: file.name, fileSize: file.size, totalChunks: totalChunks })
+            });
+            if (!initRes.ok) throw new Error('初始化上传失败');
+            const initData = await initRes.json();
+            const uploadId = initData.uploadId;
+
+            updateQueueItem(item.id, { uploadId, totalChunks });
+
+            // 2. Upload chunks
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+
+                const formData = new FormData();
+                formData.append('file', chunk, `chunk_${i}`);
+                formData.append('uploadId', uploadId);
+                formData.append('chunkIndex', String(i));
+
+                const chunkRes = await fetch(API + '/api/document/upload/chunk', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!chunkRes.ok) throw new Error(`分片 ${i} 上传失败`);
+
+                const pct = Math.round(((i + 1) / totalChunks) * 90); // 0-90% for chunks
+                updateQueueItem(item.id, { progress: pct });
+            }
+
+            // 3. Complete upload — assemble and create document
+            updateQueueItem(item.id, { progress: 92 });
+
+            const completeForm = new FormData();
+            completeForm.append('uploadId', uploadId);
+            completeForm.append('ownerId', document.getElementById('upload-owner').value);
+            completeForm.append('departmentId', document.getElementById('upload-dept').value);
+            completeForm.append('visibility', document.getElementById('upload-visibility').value);
+            completeForm.append('allowedRoles', document.getElementById('upload-roles').value);
+            completeForm.append('tags', document.getElementById('upload-tags').value);
+            completeForm.append('category', document.getElementById('upload-category').value);
+
+            const completeRes = await fetch(API + '/api/document/upload/complete', {
+                method: 'POST',
+                body: completeForm
+            });
+
+            if (!completeRes.ok) {
+                const errData = await completeRes.json().catch(() => ({}));
+                throw new Error(errData.errorMessage || '完成上传失败');
+            }
+
+            updateQueueItem(item.id, { status: 'done', progress: 100 });
+
+        } catch (err) {
+            console.error('Upload failed for', file.name, err);
+            // Try to support resume: keep uploadId so we can check status later
+            updateQueueItem(item.id, { status: 'error' });
+        }
+    }
+
+    async function resumeUpload(id) {
+        const item = uploadQueue.find(q => q.id === id);
+        if (!item || !item.uploadId) return;
+
+        try {
+            updateQueueItem(id, { status: 'resuming' });
+
+            // Query already-uploaded chunks
+            const statusRes = await fetch(API + `/api/document/upload/status/${item.uploadId}`);
+            if (!statusRes.ok) throw new Error('查询上传状态失败');
+            const statusData = await statusRes.json();
+            const uploadedSet = new Set(statusData.uploadedChunks || []);
+
+            updateQueueItem(id, { uploadedChunks: uploadedSet });
+
+            const file = item.file;
+            const totalChunks = item.totalChunks;
+
+            // Upload missing chunks
+            for (let i = 0; i < totalChunks; i++) {
+                if (uploadedSet.has(i)) continue;
+
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+
+                const formData = new FormData();
+                formData.append('file', chunk, `chunk_${i}`);
+                formData.append('uploadId', item.uploadId);
+                formData.append('chunkIndex', String(i));
+
+                const chunkRes = await fetch(API + '/api/document/upload/chunk', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!chunkRes.ok) throw new Error(`分片 ${i} 续传失败`);
+
+                const doneCount = uploadedSet.size + (i - [...uploadedSet].filter(x => x < i).length);
+                const pct = Math.round(((i + 1) / totalChunks) * 90);
+                updateQueueItem(id, { progress: pct });
+            }
+
+            // Complete
+            const completeForm = new FormData();
+            completeForm.append('uploadId', item.uploadId);
+            completeForm.append('ownerId', document.getElementById('upload-owner').value);
+            completeForm.append('departmentId', document.getElementById('upload-dept').value);
+            completeForm.append('visibility', document.getElementById('upload-visibility').value);
+            completeForm.append('allowedRoles', document.getElementById('upload-roles').value);
+            completeForm.append('tags', document.getElementById('upload-tags').value);
+            completeForm.append('category', document.getElementById('upload-category').value);
+
+            const completeRes = await fetch(API + '/api/document/upload/complete', {
+                method: 'POST',
+                body: completeForm
+            });
+            if (!completeRes.ok) throw new Error('完成上传失败');
+
+            updateQueueItem(id, { status: 'done', progress: 100 });
+        } catch (err) {
+            console.error('Resume failed for', item.file.name, err);
+            updateQueueItem(id, { status: 'error' });
+        }
+    }
+
+    function cancelUpload() {
+        if (isUploading) return;
+        uploadQueue = [];
+        document.getElementById('upload-form').style.display = 'none';
+        document.getElementById('upload-summary-bar').style.display = 'none';
+        document.getElementById('file-input').value = '';
+        document.getElementById('dir-input').value = '';
+        document.getElementById('upload-area').innerHTML = '<div class="upload-icon">&#128196;</div><p>点击选择文件或拖拽到此处上传</p><p style="font-size:12px;color:var(--text-light);margin-top:8px">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML</p>';
+    }
     function showSection(name) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -474,6 +1330,22 @@
         if (name === 'documents') loadDocuments();
         if (name === 'users') { loadUsers(); loadDeptTree(); }
         if (name === 'system') loadSystemStatus();
+        if (name === 'ai-lab') { loadWritingHistory(); loadExamHistory(); }
+    }
+
+    function switchLabTab(tabName) {
+        document.querySelectorAll('.lab-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
+        // Activate the clicked tab
+        const tabs = document.querySelectorAll('.lab-tab');
+        const panels = document.querySelectorAll('.lab-panel');
+        if (tabName === 'writing') {
+            tabs[0].classList.add('active');
+            document.getElementById('lab-panel-writing').classList.add('active');
+        } else if (tabName === 'exam') {
+            tabs[1].classList.add('active');
+            document.getElementById('lab-panel-exam').classList.add('active');
+        }
     }
 
     // ==================== Dashboard ====================
@@ -487,6 +1359,31 @@
             document.getElementById('stat-failed').textContent = data.failedDocuments || 0;
         } catch (e) { console.error('Failed to load stats', e); }
 
+        // 分类统计
+        try {
+            const res = await fetch(API + '/api/admin/document/category-stats');
+            const data = await res.json();
+            const container = document.getElementById('category-stats');
+            const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            if (!entries.length) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:16px">暂无数据</div>';
+            } else {
+                const maxCount = Math.max(...entries.map(e => e[1]));
+                const colors = ['#4A90D9', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#8B5CF6', '#EC4899', '#06B6D4'];
+                container.innerHTML = entries.map(([cat, count], i) => {
+                    const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
+                    const color = colors[i % colors.length];
+                    return `<div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:48px;text-align:right;font-size:13px;color:var(--text-secondary);flex-shrink:0">${esc(cat)}</div>
+                        <div style="flex:1;background:var(--bg);border-radius:4px;height:24px;overflow:hidden">
+                            <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width 0.5s ease;min-width:${count > 0 ? '2px' : '0'}"></div>
+                        </div>
+                        <div style="width:36px;text-align:right;font-size:13px;font-weight:600;color:var(--text)">${count}</div>
+                    </div>`;
+                }).join('');
+            }
+        } catch (e) { console.error('Failed to load category stats', e); }
+
         try {
             const res = await fetch(API + '/api/admin/document/status/INDEXED');
             const docs = await res.json();
@@ -499,65 +1396,6 @@
                 <td>${d.createdTime ? d.createdTime.substring(0, 16) : '-'}</td>
             </tr>`).join('');
         } catch (e) { console.error('Failed to load docs', e); }
-    }
-
-    // ==================== Documents ====================
-    function handleFileSelect(input) {
-        if (input.files.length === 0) return;
-        selectedFile = input.files[0];
-        document.getElementById('upload-form').style.display = 'block';
-        document.getElementById('upload-area').innerHTML = `<p><strong>${esc(selectedFile.name)}</strong> (${formatSize(selectedFile.size)})</p><p style="font-size:12px;color:var(--text-light)">配置文档参数后点击上传</p>`;
-        loadDeptOptions();
-    }
-
-    async function loadDeptOptions() {
-        try {
-            const res = await fetch(API + '/api/admin/department');
-            const depts = await res.json();
-            const sel = document.getElementById('upload-dept');
-            sel.innerHTML = depts.map(d => `<option value="${esc(d.departmentKey)}">${esc(d.departmentName)}</option>`).join('');
-        } catch (e) { console.error(e); }
-    }
-
-    async function uploadFile() {
-        if (!selectedFile) return;
-        const form = new FormData();
-        form.append('file', selectedFile);
-        form.append('ownerId', document.getElementById('upload-owner').value);
-        form.append('departmentId', document.getElementById('upload-dept').value);
-        form.append('visibility', document.getElementById('upload-visibility').value);
-        form.append('allowedRoles', document.getElementById('upload-roles').value);
-        form.append('tags', document.getElementById('upload-tags').value);
-
-        document.getElementById('upload-progress').style.display = 'block';
-        document.getElementById('progress-bar').style.width = '30%';
-        document.getElementById('progress-text').textContent = '上传中...';
-
-        try {
-            const res = await fetch(API + '/api/document/upload', { method: 'POST', body: form });
-            document.getElementById('progress-bar').style.width = '100%';
-            const data = await res.json();
-            if (res.ok) {
-                document.getElementById('progress-text').textContent = '上传成功，请在文档列表中点击「解析预览」确认入库';
-                toast('文档上传成功', 'success');
-                cancelUpload();
-                loadDocuments();
-            } else {
-                document.getElementById('progress-text').textContent = '失败: ' + (data.errorMessage || 'Unknown error');
-                toast('上传失败: ' + (data.errorMessage || ''), 'error');
-            }
-        } catch (e) {
-            document.getElementById('progress-text').textContent = '网络错误';
-            toast('上传失败: ' + e.message, 'error');
-        }
-    }
-
-    function cancelUpload() {
-        selectedFile = null;
-        document.getElementById('upload-form').style.display = 'none';
-        document.getElementById('upload-progress').style.display = 'none';
-        document.getElementById('file-input').value = '';
-        document.getElementById('upload-area').innerHTML = '<div class="upload-icon">&#128196;</div><p>点击或拖拽文件到此处上传</p><p style="font-size:12px;color:var(--text-light);margin-top:8px">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML</p>';
     }
 
     async function loadDocuments() {
@@ -591,7 +1429,7 @@
     }
 
     async function reindexDoc(key) {
-        if (!confirm('确认重新入库此文档？将清理旧数据并重新处理。')) return;
+        if (!await showConfirm('确认重新入库此文档？将清理旧数据并重新处理。')) return;
         try {
             const res = await fetch(API + `/api/admin/document/${key}/reindex`, { method: 'POST' });
             const data = await res.json();
@@ -605,14 +1443,14 @@
     }
 
     async function archiveDoc(key) {
-        if (!confirm('确认归档此文档？归档后将不再参与检索。')) return;
+        if (!await showConfirm('确认归档此文档？归档后将不再参与检索。')) return;
         await fetch(API + `/api/admin/document/${key}/archive`, { method: 'PUT' });
         toast('文档已归档', 'success');
         loadDocuments();
     }
 
     async function deleteDoc(key) {
-        if (!confirm('确认删除此文档？此操作不可恢复。')) return;
+        if (!await showConfirm('确认删除此文档？此操作不可恢复。', { icon: '&#128465;', confirmText: '删除' })) return;
         await fetch(API + `/api/admin/document/${key}`, { method: 'DELETE' });
         toast('文档已删除', 'success');
         loadDocuments();
@@ -628,6 +1466,7 @@
     function openPreviewModal(docKey, fileName) {
         _pvDocKey = docKey;
         document.getElementById('pv-modal-title').textContent = '解析预览 — ' + fileName;
+        document.getElementById('pv-index-progress').style.display = 'none';
         document.getElementById('pv-modal-warn').innerHTML = '';
         document.getElementById('pv-modal-summary').innerHTML = '';
         document.getElementById('pv-modal-pages').innerHTML = '';
@@ -636,6 +1475,8 @@
         document.getElementById('pv-m-tab-chunks').textContent = '0';
         document.getElementById('pv-m-chunk-stats').textContent = '';
         document.getElementById('pv-confirm-btn').style.display = 'none';
+        document.getElementById('pv-confirm-btn').disabled = false;
+        document.getElementById('pv-confirm-btn').textContent = '确认入库';
         document.getElementById('preview-modal-overlay').classList.add('active');
     }
 
@@ -658,6 +1499,16 @@
         document.querySelectorAll('#' + container + ' .pv-item').forEach(el => {
             el.classList.toggle('open', expand);
         });
+    }
+
+    let _pvAutoPreviewTimer = null;
+    function triggerAutoPreview() {
+        if (!_pvDocKey) return;
+        if (_pvAutoPreviewTimer) clearTimeout(_pvAutoPreviewTimer);
+        _pvAutoPreviewTimer = setTimeout(() => {
+            _pvAutoPreviewTimer = null;
+            doModalPreview();
+        }, 400);
     }
 
     async function doModalPreview() {
@@ -852,9 +1703,9 @@
     }
 
     // 与下一分块合并
-    function mergeWithNext(idx) {
+    async function mergeWithNext(idx) {
         if (idx >= _pvChunks.length - 1) return;
-        if (!confirm(`确认将分块 #${idx} 和 #${idx + 1} 合并？`)) return;
+        if (!await showConfirm(`确认将分块 #${idx} 和 #${idx + 1} 合并？`)) return;
         
         const currentContent = _pvChunks[idx].content || '';
         const nextContent = _pvChunks[idx + 1].content || '';
@@ -963,22 +1814,91 @@
         if (_pvChunksModified) {
             confirmMsg = `确认使用手动调整后的 ${_pvChunks.length} 个分块入库？`;
         }
-        if (!confirm(confirmMsg)) return;
+        if (!await showConfirm(confirmMsg, { icon: '&#10004;', confirmText: '入库', confirmClass: 'btn-primary' })) return;
+
+        // 显示进度条
+        const progressEl = document.getElementById('pv-index-progress');
+        const barEl = document.getElementById('pv-index-bar');
+        const percentEl = document.getElementById('pv-index-percent');
+        const labelEl = document.getElementById('pv-index-label');
+        const detailEl = document.getElementById('pv-index-detail');
+        progressEl.style.display = 'block';
+        barEl.style.width = '0%';
+        percentEl.textContent = '0%';
+        labelEl.textContent = '入库中...';
+        detailEl.textContent = '正在连接...';
 
         document.getElementById('pv-confirm-btn').disabled = true;
         document.getElementById('pv-confirm-btn').textContent = '入库中...';
 
+        // 1. 先建立 SSE 连接
+        const eventSource = new EventSource(API + `/api/admin/document/${_pvDocKey}/index/progress`);
+        let sseOpen = false;
+
+        eventSource.onopen = () => { sseOpen = true; };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'PROGRESS') {
+                const pct = data.percent || 0;
+                barEl.style.width = pct + '%';
+                percentEl.textContent = pct + '%';
+                detailEl.textContent = `已向量化 ${data.completedChunks} / ${data.totalChunks} 个分块`;
+            } else if (data.type === 'COMPLETED') {
+                barEl.style.width = '100%';
+                percentEl.textContent = '100%';
+                labelEl.textContent = '入库完成';
+                detailEl.textContent = '文档已成功入库';
+                barEl.style.background = 'var(--success)';
+                eventSource.close();
+                toast('文档已成功入库', 'success');
+                setTimeout(() => {
+                    progressEl.style.display = 'none';
+                    barEl.style.background = '';
+                    closePreviewModal();
+                    loadDocuments();
+                }, 1200);
+            } else if (data.type === 'ERROR') {
+                labelEl.textContent = '入库失败';
+                labelEl.style.color = 'var(--danger)';
+                percentEl.textContent = '';
+                percentEl.style.color = 'var(--danger)';
+                detailEl.textContent = data.message || '未知错误';
+                barEl.style.background = 'var(--danger)';
+                barEl.style.width = '100%';
+                eventSource.close();
+                toast('入库失败: ' + (data.message || ''), 'error');
+                document.getElementById('pv-confirm-btn').disabled = false;
+                document.getElementById('pv-confirm-btn').textContent = '确认入库';
+            }
+        };
+
+        eventSource.onerror = () => {
+            if (!sseOpen) {
+                // SSE 连接失败
+                labelEl.textContent = '进度连接失败';
+                detailEl.textContent = '入库可能仍在后台执行，请稍后刷新文档列表查看';
+                eventSource.close();
+            }
+        };
+
+        // 2. 等待 SSE 就绪后发送 POST
+        const waitForSse = () => new Promise(resolve => {
+            if (sseOpen) { resolve(); return; }
+            const check = () => { if (sseOpen) resolve(); else setTimeout(check, 50); };
+            check();
+            setTimeout(resolve, 3000); // 超时保护
+        });
+
         try {
+            await waitForSse();
+
             let url, options;
-            
             if (_pvChunksModified && _pvChunks.length > 0) {
-                // 使用自定义分块入库
                 url = `/api/admin/document/${_pvDocKey}/index-custom`;
                 const customChunks = _pvChunks.map((c, idx) => ({
-                    chunkIndex: idx,
-                    startPage: c.startPage,
-                    endPage: c.endPage,
-                    content: c.content
+                    chunkIndex: idx, startPage: c.startPage, endPage: c.endPage, content: c.content
                 }));
                 options = {
                     method: 'POST',
@@ -986,23 +1906,18 @@
                     body: JSON.stringify(customChunks)
                 };
             } else {
-                // 使用默认分块入库
                 url = `/api/admin/document/${_pvDocKey}/index?chunkSize=${chunkSize}&overlap=${overlap}&strategy=${strategy}`;
                 options = { method: 'POST' };
             }
-            
-            const res = await fetch(API + url, options);
-            const data = await res.json();
-            if (res.ok && data.status === 'INDEXED') {
-                toast('文档已成功入库', 'success');
-                closePreviewModal();
-                loadDocuments();
-            } else {
-                toast('入库状态: ' + (data.status || data.errorMessage || '未知'), 'error');
-            }
+
+            detailEl.textContent = '正在启动入库任务...';
+            await fetch(API + url, options);
         } catch (e) {
+            labelEl.textContent = '入库失败';
+            detailEl.textContent = e.message;
+            barEl.style.background = 'var(--danger)';
             toast('入库失败: ' + e.message, 'error');
-        } finally {
+            eventSource.close();
             document.getElementById('pv-confirm-btn').disabled = false;
             document.getElementById('pv-confirm-btn').textContent = '确认入库';
         }
@@ -1173,9 +2088,802 @@
         } catch (e) { console.error(e); }
     }
 
+    // ==================== AI Writing ====================
+    let _writingThinkingVisible = false;
+
+    function resetWritingUI() {
+        document.getElementById('writing-progress').classList.add('active');
+        document.getElementById('article-result').classList.remove('active');
+        document.getElementById('writing-error').classList.remove('active');
+        ['research','writing','review','complete'].forEach(p => {
+            const el = document.getElementById('phase-' + p);
+            el.classList.remove('active','done');
+        });
+        ['researcher','writer','reviewer'].forEach(a => {
+            document.getElementById('status-' + a).className = 'agent-status pending';
+            document.getElementById('status-' + a).textContent = '等待中';
+            document.getElementById('output-' + a).textContent = '等待执行...';
+        });
+        // 重置物料区域
+        document.getElementById('materials-content-researcher').textContent = '等待检索...';
+        document.getElementById('materials-content-writer').textContent = '等待研究员完成...';
+        document.getElementById('materials-content-reviewer').textContent = '等待写手完成...';
+        document.querySelectorAll('.agent-panel').forEach(p => p.classList.remove('open'));
+    }
+
+    function setPhase(phase) {
+        const order = ['research','writing','review','complete'];
+        const idx = order.indexOf(phase);
+        order.forEach((p, i) => {
+            const el = document.getElementById('phase-' + p);
+            el.classList.remove('active','done');
+            if (i < idx) el.classList.add('done');
+            else if (i === idx) el.classList.add('active');
+        });
+    }
+
+    function setAgentStatus(agent, status, text) {
+        const el = document.getElementById('status-' + agent);
+        el.className = 'agent-status ' + status;
+        el.textContent = text || ({pending:'等待中', running:'执行中...', done:'已完成'}[status]);
+    }
+
+    async function generateArticle() {
+        const question = document.getElementById('writing-question').value.trim();
+        if (!question) { toast('请输入问题或主题', 'error'); return; }
+
+        const btn = document.getElementById('writing-generate-btn');
+        btn.disabled = true;
+        btn.textContent = '连接中...';
+        resetWritingUI();
+
+        // 生成 sessionId，先建立 SSE 连接
+        const sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
+        const eventSource = new EventSource(API + '/api/agent/article/progress/' + sessionId);
+        let sseReady = false;
+
+        // SSE 连接成功标志
+        eventSource.onopen = () => {
+            sseReady = true;
+        };
+
+        // PHASE 事件：更新阶段进度条
+        eventSource.addEventListener('PHASE', (e) => {
+            const data = JSON.parse(e.data);
+            const phaseMap = {
+                'INIT': 'research', 'RESEARCH': 'research',
+                'WRITING': 'writing', 'REVIEWING': 'review',
+                'COMPLETED': 'complete'
+            };
+            const uiPhase = phaseMap[data.phase] || 'research';
+            setPhase(uiPhase);
+        });
+
+        // AGENT_OUTPUT 事件：更新 Agent 面板
+        eventSource.addEventListener('AGENT_OUTPUT', (e) => {
+            const data = JSON.parse(e.data);
+            const agent = data.agentName;
+            if (!agent) return;
+
+            if (data.agentStatus === 'running') {
+                setAgentStatus(agent, 'running');
+                document.getElementById('panel-' + agent).classList.add('open');
+                _writingThinkingVisible = true;
+                if (data.message) {
+                    document.getElementById('output-' + agent).textContent = data.message;
+                }
+                // 显示输入物料
+                if (data.materials) {
+                    const materialsEl = document.getElementById('materials-content-' + agent);
+                    if (materialsEl) {
+                        materialsEl.textContent = data.materials;
+                    }
+                    const materialsDetails = document.getElementById('materials-' + agent);
+                    if (materialsDetails) {
+                        materialsDetails.open = true;
+                    }
+                }
+            } else if (data.agentStatus === 'done') {
+                setAgentStatus(agent, 'done');
+                if (data.output) {
+                    document.getElementById('output-' + agent).textContent = data.output;
+                }
+            }
+        });
+
+        // COMPLETED 事件：显示最终结果
+        eventSource.addEventListener('COMPLETED', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            setPhase('complete');
+            loadWritingHistory();
+
+            if (data.finalArticle) {
+                const metaHtml = [];
+                if (data.qualityScore) {
+                    const score = data.qualityScore;
+                    const qClass = score >= 80 ? 'quality-high' : score >= 60 ? 'quality-mid' : 'quality-low';
+                    metaHtml.push(`<span>质量评分: <span class="quality-badge ${qClass}">${score}</span></span>`);
+                }
+                if (data.retrievedChunks) {
+                    metaHtml.push(`<span>检索分块: ${data.retrievedChunks}</span>`);
+                }
+                metaHtml.push(`<span>会话: ${esc(sessionId).substring(0, 8)}...</span>`);
+                document.getElementById('article-meta').innerHTML = metaHtml.join('');
+                document.getElementById('article-content').innerHTML = renderMarkdown(data.finalArticle);
+                document.getElementById('article-result').classList.add('active');
+            } else {
+                document.getElementById('writing-error').textContent = '未生成文章内容，请检查知识库中是否有相关资料。';
+                document.getElementById('writing-error').classList.add('active');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        });
+
+        // ERROR 事件：显示错误
+        eventSource.addEventListener('ERROR', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            setPhase('complete');
+            ['researcher','writer','reviewer'].forEach(a => {
+                const el = document.getElementById('status-' + a);
+                if (el.textContent === '执行中...') {
+                    el.className = 'agent-status pending';
+                    el.textContent = '已跳过';
+                }
+            });
+            document.getElementById('writing-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
+            document.getElementById('writing-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        });
+
+        // SSE 连接异常
+        eventSource.onerror = () => {
+            const completePhase = document.getElementById('phase-complete');
+            if (!completePhase.classList.contains('done')) {
+                eventSource.close();
+                document.getElementById('writing-error').textContent = '进度连接中断，请刷新页面重试。';
+                document.getElementById('writing-error').classList.add('active');
+                btn.disabled = false;
+                btn.textContent = '生成文章';
+            }
+        };
+
+        // 等待 SSE 连接建立后发送 POST 请求
+        const waitForSse = () => new Promise((resolve) => {
+            if (sseReady) { resolve(); return; }
+            const check = () => {
+                if (sseReady) resolve();
+                else setTimeout(check, 50);
+            };
+            check();
+            // 超时保护：3 秒后即使 SSE 未就绪也继续
+            setTimeout(resolve, 3000);
+        });
+
+        try {
+            btn.textContent = '生成中...';
+            await waitForSse();
+
+            // 发送 POST 启动生成
+            const body = {
+                sessionId: sessionId,
+                question: question,
+                userId: document.getElementById('writing-user').value,
+                departmentId: 'dept-root',
+                roles: 'ADMIN',
+                admin: document.getElementById('writing-admin').checked,
+                category: document.getElementById('writing-category').value || null
+            };
+
+            const res = await fetch(API + '/api/agent/article/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.errorMessage || '启动生成失败');
+            }
+        } catch (e) {
+            eventSource.close();
+            document.getElementById('writing-error').textContent = '启动失败: ' + e.message;
+            document.getElementById('writing-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        }
+    }
+
+    function renderMarkdown(md) {
+        if (!md) return '';
+        let html = escHtml(md);
+        // Code blocks
+        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+        // Headers
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        // Bold & italic
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Blockquote
+        html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+        // Unordered list
+        html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+        // Ordered list
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        // Paragraphs (double newline)
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = '<p>' + html + '</p>';
+        // Clean up empty paragraphs around block elements
+        html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
+        html = html.replace(/(<\/h[123]>)\s*<\/p>/g, '$1');
+        html = html.replace(/<p>\s*(<ul>)/g, '$1');
+        html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
+        html = html.replace(/<p>\s*(<pre>)/g, '$1');
+        html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
+        html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
+        html = html.replace(/(<\/blockquote>)\s*<\/p>/g, '$1');
+        html = html.replace(/<p>\s*<\/p>/g, '');
+        // Single newlines to <br>
+        html = html.replace(/\n/g, '<br>');
+        return html;
+    }
+
+    function toggleThinkingPanels() {
+        _writingThinkingVisible = !_writingThinkingVisible;
+        document.querySelectorAll('.agent-panel').forEach(p => {
+            p.classList.toggle('open', _writingThinkingVisible);
+        });
+    }
+
+    function copyArticle() {
+        const content = document.getElementById('article-content');
+        if (!content) return;
+        const text = content.innerText;
+        navigator.clipboard.writeText(text).then(() => toast('文章已复制到剪贴板', 'success'));
+    }
+
+    async function loadWritingHistory() {
+        const tbody = document.getElementById('writing-history-list');
+        try {
+            const res = await fetch(API + '/api/agent/article/history?limit=50');
+            const list = await res.json();
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:24px">暂无写作记录</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(h => {
+                const statusLabel = h.status === 'COMPLETED' ? '<span style="color:#16a34a">成功</span>' : '<span style="color:#dc2626">失败</span>';
+                const score = h.qualityScore != null ? h.qualityScore : '-';
+                const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 16) : '-';
+                const q = h.question && h.question.length > 60 ? h.question.substring(0, 60) + '...' : (h.question || '-');
+                return `<tr>
+                    <td title="${escHtml(h.question || '')}">${escHtml(q)}</td>
+                    <td>${statusLabel}</td>
+                    <td>${score}</td>
+                    <td style="white-space:nowrap">${time}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="showHistoryDetail('${esc(h.sessionId)}')">查看</button></td>
+                </tr>`;
+            }).join('');
+        } catch (e) {
+            console.error('加载写作历史失败', e);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light)">加载失败</td></tr>';
+        }
+    }
+
+    async function showHistoryDetail(sessionId) {
+        const container = document.getElementById('history-detail-content');
+        container.innerHTML = '<p style="text-align:center;color:var(--text-light)">加载中...</p>';
+        document.getElementById('history-modal-overlay').style.display = 'flex';
+
+        try {
+            const res = await fetch(API + '/api/agent/article/history/' + encodeURIComponent(sessionId));
+            if (!res.ok) throw new Error('加载失败');
+            const h = await res.json();
+
+            const statusLabel = h.status === 'COMPLETED' ? '<span style="color:#16a34a;font-weight:500">成功</span>' : '<span style="color:#dc2626;font-weight:500">失败</span>';
+            const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 19) : '-';
+
+            let html = `<div style="margin-bottom:20px">
+                <h3 style="margin:0 0 12px;font-size:18px">写作详情</h3>
+                <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--text-light)">
+                    <span>状态: ${statusLabel}</span>
+                    <span>评分: ${h.qualityScore != null ? h.qualityScore : '-'}</span>
+                    <span>检索分块: ${h.retrievedChunks != null ? h.retrievedChunks : '-'}</span>
+                    <span>时间: ${time}</span>
+                </div>
+            </div>`;
+
+            html += `<div style="margin-bottom:16px">
+                <div style="font-weight:500;margin-bottom:6px">问题</div>
+                <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px">${escHtml(h.question || '-')}</div>
+            </div>`;
+
+            if (h.keyFindings) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px">关键发现</div>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap">${escHtml(h.keyFindings)}</div>
+                </div>`;
+            }
+
+            if (h.finalArticle) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px">最终文章</div>
+                    <div class="article-content" style="font-size:14px">${renderMarkdown(h.finalArticle)}</div>
+                </div>`;
+            } else if (h.errorMessage) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px;color:#dc2626">错误信息</div>
+                    <div style="background:#fef2f2;padding:12px;border-radius:6px;border:1px solid #fecaca;color:#dc2626;font-size:14px">${escHtml(h.errorMessage)}</div>
+                </div>`;
+            }
+
+            if (h.draftArticle) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">查看草稿（审核前）</summary>
+                    <div class="article-content" style="margin-top:8px;font-size:13px;opacity:0.85">${renderMarkdown(h.draftArticle)}</div>
+                </details>`;
+            }
+
+            if (h.reviewFeedback) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">查看审核反馈</summary>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">${escHtml(h.reviewFeedback)}</div>
+                </details>`;
+            }
+
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#dc2626">加载详情失败: ' + escHtml(e.message) + '</p>';
+        }
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('history-modal-overlay').style.display = 'none';
+    }
+
+    // ==================== Exam History ====================
+
+    async function loadExamHistory() {
+        const tbody = document.getElementById('exam-history-list');
+        try {
+            const res = await fetch(API + '/api/agent/exam/history?limit=50');
+            const list = await res.json();
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:24px">暂无出卷记录</td></tr>';
+                return;
+            }
+            const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
+            tbody.innerHTML = list.map(h => {
+                const statusLabel = h.status === 'COMPLETED' ? '<span style="color:#16a34a">成功</span>' : '<span style="color:#dc2626">失败</span>';
+                const score = h.qualityScore != null ? h.qualityScore : '-';
+                const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 16) : '-';
+                const diff = diffMap[h.difficulty] || h.difficulty || '-';
+                const t = h.topic && h.topic.length > 40 ? h.topic.substring(0, 40) + '...' : (h.topic || '-');
+                return `<tr>
+                    <td title="${escHtml(h.topic || '')}">${escHtml(t)}</td>
+                    <td>${diff}</td>
+                    <td>${statusLabel}</td>
+                    <td>${score}</td>
+                    <td style="white-space:nowrap">${time}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="showExamHistoryDetail('${esc(h.sessionId)}')">查看</button></td>
+                </tr>`;
+            }).join('');
+        } catch (e) {
+            console.error('加载出卷历史失败', e);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light)">加载失败</td></tr>';
+        }
+    }
+
+    async function showExamHistoryDetail(sessionId) {
+        const container = document.getElementById('history-detail-content');
+        container.innerHTML = '<p style="text-align:center;color:var(--text-light)">加载中...</p>';
+        document.getElementById('history-modal-overlay').style.display = 'flex';
+
+        try {
+            const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId));
+            if (!res.ok) throw new Error('加载失败');
+            const h = await res.json();
+
+            const statusLabel = h.status === 'COMPLETED' ? '<span style="color:#16a34a;font-weight:500">成功</span>' : '<span style="color:#dc2626;font-weight:500">失败</span>';
+            const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 19) : '-';
+            const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
+            const diff = diffMap[h.difficulty] || h.difficulty || '-';
+
+            let html = `<div style="margin-bottom:20px">
+                <h3 style="margin:0 0 12px;font-size:18px">出卷详情</h3>
+                <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--text-light)">
+                    <span>状态: ${statusLabel}</span>
+                    <span>难度: ${diff}</span>
+                    <span>评分: ${h.qualityScore != null ? h.qualityScore : '-'}</span>
+                    <span>检索分块: ${h.retrievedChunks != null ? h.retrievedChunks : '-'}</span>
+                    <span>时间: ${time}</span>
+                    ${h.category ? '<span>分类: ' + escHtml(h.category) + '</span>' : ''}
+                </div>
+            </div>`;
+
+            html += `<div style="margin-bottom:16px">
+                <div style="font-weight:500;margin-bottom:6px">考试主题</div>
+                <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px">${escHtml(h.topic || '-')}</div>
+            </div>`;
+
+            if (h.questionConfig) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px">题型配置</div>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px">${escHtml(h.questionConfig)}</div>
+                </div>`;
+            }
+
+            if (h.keyFindings) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">关键发现（研究员）</summary>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">${escHtml(h.keyFindings)}</div>
+                </details>`;
+            }
+
+            if (h.examPaper) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px">试卷内容</div>
+                    <div class="article-content" style="font-size:14px">${renderMarkdown(h.examPaper)}</div>
+                </div>`;
+            }
+
+            if (h.answerKey) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--primary)">标准答案与评分标准</summary>
+                    <div class="article-content" style="margin-top:8px;font-size:14px">${renderMarkdown(h.answerKey)}</div>
+                </details>`;
+            }
+
+            if (h.reviewFeedback) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">审核反馈</summary>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">${escHtml(h.reviewFeedback)}</div>
+                </details>`;
+            }
+
+            if (h.difficultyAssessment) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">难度评估</summary>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">${escHtml(h.difficultyAssessment)}</div>
+                </details>`;
+            }
+
+            if (h.deduplicationReport) {
+                html += `<details style="margin-bottom:16px">
+                    <summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">查重报告</summary>
+                    <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">${escHtml(h.deduplicationReport)}</div>
+                </details>`;
+            }
+
+            if (h.errorMessage) {
+                html += `<div style="margin-bottom:16px">
+                    <div style="font-weight:500;margin-bottom:6px;color:#dc2626">错误信息</div>
+                    <div style="background:#fef2f2;padding:12px;border-radius:6px;border:1px solid #fecaca;color:#dc2626;font-size:14px">${escHtml(h.errorMessage)}</div>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#dc2626">加载详情失败: ' + escHtml(e.message) + '</p>';
+        }
+    }
+
+    // ==================== AI Exam ====================
+    let _lastExamRequest = null;
+    let _examThinkingVisible = false;
+
+    function resetExamUI() {
+        document.getElementById('exam-progress').classList.add('active');
+        document.getElementById('exam-error').classList.remove('active');
+        document.getElementById('exam-error').textContent = '';
+        document.getElementById('exam-result').style.display = 'none';
+        document.getElementById('exam-answer-section').style.display = 'none';
+        // 重置阶段步骤
+        ['research','writing','answer','review','calibrate','dedup'].forEach(p => {
+            const el = document.getElementById('exam-phase-' + p);
+            if (el) el.classList.remove('active','done');
+        });
+        // 重置 Agent 面板
+        ['researcher','writer','answer','reviewer','calibrator','deduplicator'].forEach(a => {
+            setExamAgentStatus(a, 'pending');
+            const outputEl = document.getElementById('exam-output-' + a);
+            if (outputEl) outputEl.textContent = '等待执行...';
+            const panelEl = document.getElementById('exam-panel-' + a);
+            if (panelEl) panelEl.classList.remove('open');
+        });
+        // 重置物料
+        document.getElementById('exam-materials-researcher').textContent = '等待检索...';
+        document.getElementById('exam-materials-writer').textContent = '等待研究员完成...';
+        document.getElementById('exam-materials-answer').textContent = '等待出题人完成...';
+        document.getElementById('exam-materials-reviewer').textContent = '等待答案生成完成...';
+        document.getElementById('exam-materials-calibrator').textContent = '等待审核完成...';
+        document.getElementById('exam-materials-deduplicator').textContent = '等待校准完成...';
+    }
+
+    function setExamPhase(phase) {
+        const order = ['research','writing','answer','review','calibrate','dedup'];
+        const idx = order.indexOf(phase);
+        order.forEach((p, i) => {
+            const el = document.getElementById('exam-phase-' + p);
+            if (!el) return;
+            el.classList.remove('active','done');
+            if (i < idx) el.classList.add('done');
+            else if (i === idx) el.classList.add('active');
+        });
+    }
+
+    function setExamAgentStatus(agent, status, text) {
+        const el = document.getElementById('exam-status-' + agent);
+        if (!el) return;
+        el.className = 'agent-status ' + status;
+        el.textContent = text || ({pending:'等待中', running:'执行中...', done:'已完成'}[status]);
+    }
+
+    async function generateExamWithAgents() {
+        const topic = document.getElementById('exam-topic').value.trim();
+        if (!topic) { toast('请输入考试主题', 'error'); return; }
+
+        const singleChoice = parseInt(document.getElementById('exam-single').value) || 0;
+        const multiChoice = parseInt(document.getElementById('exam-multi').value) || 0;
+        const trueFalse = parseInt(document.getElementById('exam-tf').value) || 0;
+        const fillBlank = parseInt(document.getElementById('exam-fill').value) || 0;
+        const shortAnswer = parseInt(document.getElementById('exam-short').value) || 0;
+        const essay = parseInt(document.getElementById('exam-essay').value) || 0;
+        const total = singleChoice + multiChoice + trueFalse + fillBlank + shortAnswer + essay;
+        if (total <= 0) { toast('至少需要设置一种题型及数量', 'error'); return; }
+
+        const btn = document.getElementById('exam-generate-btn');
+        btn.disabled = true;
+        btn.textContent = '连接中...';
+        resetExamUI();
+
+        // 保存请求用于 Word 导出
+        _lastExamRequest = {
+            topic: topic,
+            difficulty: document.getElementById('exam-difficulty').value,
+            singleChoiceCount: singleChoice,
+            multiChoiceCount: multiChoice,
+            trueFalseCount: trueFalse,
+            fillBlankCount: fillBlank,
+            shortAnswerCount: shortAnswer,
+            essayCount: essay,
+            userId: document.getElementById('exam-user').value,
+            departmentId: 'dept-root',
+            roles: 'ADMIN',
+            admin: document.getElementById('exam-admin').checked,
+            category: document.getElementById('exam-category').value || null
+        };
+
+        // 生成 sessionId，先建立 SSE 连接
+        const sessionId = 'exam-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
+        const eventSource = new EventSource(API + '/api/agent/exam/progress/' + sessionId);
+        let sseReady = false;
+
+        eventSource.onopen = () => { sseReady = true; };
+
+        // PHASE 事件
+        eventSource.addEventListener('PHASE', (e) => {
+            const data = JSON.parse(e.data);
+            const phaseMap = {
+                'INIT': 'research', 'RESEARCH': 'research',
+                'WRITING': 'writing', 'ANSWER_GENERATING': 'answer',
+                'REVIEWING': 'review', 'CALIBRATING': 'calibrate',
+                'DEDUPLICATING': 'dedup', 'COMPLETED': 'dedup'
+            };
+            const uiPhase = phaseMap[data.phase] || 'research';
+            setExamPhase(uiPhase);
+        });
+
+        // AGENT_OUTPUT 事件
+        eventSource.addEventListener('AGENT_OUTPUT', (e) => {
+            const data = JSON.parse(e.data);
+            const agent = data.agentName;
+            if (!agent) return;
+
+            // Agent 名称映射到 UI 元素
+            const agentUiMap = {
+                'exam-researcher': 'researcher',
+                'exam-writer': 'writer',
+                'answer-generator': 'answer',
+                'exam-reviewer': 'reviewer',
+                'exam-calibrator': 'calibrator',
+                'exam-deduplicator': 'deduplicator'
+            };
+            const uiAgent = agentUiMap[agent] || agent;
+
+            if (data.agentStatus === 'running') {
+                setExamAgentStatus(uiAgent, 'running');
+                const panel = document.getElementById('exam-panel-' + uiAgent);
+                if (panel) panel.classList.add('open');
+                _examThinkingVisible = true;
+                if (data.message) {
+                    const outputEl = document.getElementById('exam-output-' + uiAgent);
+                    if (outputEl) outputEl.textContent = data.message;
+                }
+                if (data.materials) {
+                    const matEl = document.getElementById('exam-materials-' + uiAgent);
+                    if (matEl) matEl.textContent = data.materials;
+                }
+            } else if (data.agentStatus === 'done') {
+                setExamAgentStatus(uiAgent, 'done');
+                if (data.output) {
+                    const outputEl = document.getElementById('exam-output-' + uiAgent);
+                    if (outputEl) outputEl.textContent = data.output;
+                }
+            }
+        });
+
+        // COMPLETED 事件
+        eventSource.addEventListener('COMPLETED', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            setExamPhase('dedup');
+            // 标记所有步骤完成
+            ['research','writing','answer','review','calibrate','dedup'].forEach(p => {
+                const el = document.getElementById('exam-phase-' + p);
+                if (el) { el.classList.remove('active'); el.classList.add('done'); }
+            });
+
+            // 显示结果
+            const resultEl = document.getElementById('exam-result');
+            resultEl.style.display = 'block';
+
+            // 构建 meta 信息
+            const metaParts = [];
+            if (data.qualityScore) {
+                const score = data.qualityScore;
+                const cls = score >= 80 ? 'quality-high' : score >= 60 ? 'quality-mid' : 'quality-low';
+                metaParts.push(`<span>质量评分：<strong class="quality-badge ${cls}">${score}</strong></span>`);
+            }
+            if (data.retrievedChunks) metaParts.push(`<span>知识片段：${data.retrievedChunks}</span>`);
+            document.getElementById('exam-meta').innerHTML = metaParts.join('');
+
+            // 显示试卷内容
+            if (data.examPaper) {
+                document.getElementById('exam-content').innerHTML = renderMarkdown(data.examPaper);
+            }
+
+            // 显示答案
+            if (data.answerKey) {
+                document.getElementById('exam-answer-content').innerHTML = renderMarkdown(data.answerKey);
+                document.getElementById('exam-answer-section').style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.textContent = '生成试卷';
+            toast('试卷生成完成', 'success');
+            loadExamHistory();
+        });
+
+        // ERROR 事件
+        eventSource.addEventListener('ERROR', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            document.getElementById('exam-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
+            document.getElementById('exam-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成试卷';
+        });
+
+        // 等待 SSE 就绪后发送 POST
+        const waitForSse = () => new Promise((resolve) => {
+            if (sseReady) { resolve(); return; }
+            const check = () => {
+                if (sseReady) resolve();
+                else setTimeout(check, 50);
+            };
+            check();
+            setTimeout(resolve, 3000);
+        });
+
+        try {
+            btn.textContent = '生成中...';
+            await waitForSse();
+
+            const body = { ..._lastExamRequest, sessionId: sessionId };
+            const res = await fetch(API + '/api/agent/exam/generate-stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || '启动生成失败');
+            }
+        } catch (e) {
+            eventSource.close();
+            document.getElementById('exam-error').textContent = '启动失败: ' + e.message;
+            document.getElementById('exam-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成试卷';
+        }
+    }
+
+    function toggleExamPanels() {
+        _examThinkingVisible = !_examThinkingVisible;
+        ['researcher','writer','answer','reviewer','calibrator','deduplicator'].forEach(a => {
+            const panel = document.getElementById('exam-panel-' + a);
+            if (panel) panel.classList.toggle('open', _examThinkingVisible);
+        });
+    }
+
+    function copyExamPaper() {
+        const content = document.getElementById('exam-content');
+        if (!content) return;
+        navigator.clipboard.writeText(content.innerText)
+                .then(() => toast('试卷已复制到剪贴板', 'success'));
+    }
+
+    async function exportExamWord() {
+        if (!_lastExamRequest) { toast('请先生成试卷', 'error'); return; }
+        toast('正在导出 Word 文档...', 'info');
+        try {
+            const res = await fetch(API + '/api/agent/exam/export-word', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(_lastExamRequest)
+            });
+            if (!res.ok) throw new Error('导出失败');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = _lastExamRequest.topic + '_试卷.docx';
+            a.click();
+            URL.revokeObjectURL(url);
+            toast('Word 文档已下载', 'success');
+        } catch (e) {
+            toast('导出失败: ' + e.message, 'error');
+        }
+    }
+
     // ==================== Utilities ====================
     function openModal() { document.getElementById('modal-overlay').classList.add('active'); }
     function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+
+    /**
+     * 居中确认弹窗（替代浏览器原生 confirm）
+     * @param {string} msg 确认消息
+     * @param {object} [opts] 可选配置 { icon, confirmText, confirmClass }
+     * @returns {Promise<boolean>}
+     */
+    function showConfirm(msg, opts) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('confirm-overlay');
+            const iconEl = document.getElementById('confirm-icon');
+            const msgEl = document.getElementById('confirm-msg');
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const o = opts || {};
+            iconEl.innerHTML = o.icon || '&#9888;';
+            msgEl.textContent = msg;
+            okBtn.textContent = o.confirmText || '确认';
+            okBtn.className = 'btn ' + (o.confirmClass || 'btn-danger');
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                okBtn.removeEventListener('click', onOk);
+                cancelBtn.removeEventListener('click', onCancel);
+            };
+            const onOk = () => { cleanup(); resolve(true); };
+            const onCancel = () => { cleanup(); resolve(false); };
+
+            okBtn.addEventListener('click', onOk);
+            cancelBtn.addEventListener('click', onCancel);
+            overlay.classList.add('active');
+            okBtn.focus();
+        });
+    }
 
     function toast(msg, type) {
         const el = document.createElement('div');
@@ -1196,8 +2904,79 @@
         uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
         uploadArea.addEventListener('drop', e => {
             e.preventDefault(); uploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length) { document.getElementById('file-input').files = e.dataTransfer.files; handleFileSelect(document.getElementById('file-input')); }
+            const items = e.dataTransfer.items;
+            if (items && items.length) {
+                // Try to handle directory drops
+                const entries = [];
+                for (let i = 0; i < items.length; i++) {
+                    const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+                    if (entry) entries.push(entry);
+                }
+                if (entries.length > 0 && entries.some(e => e.isDirectory)) {
+                    readEntriesRecursive(entries).then(files => {
+                        addDroppedFiles(files);
+                    });
+                    return;
+                }
+            }
+            // Regular multi-file drop
+            if (e.dataTransfer.files.length) {
+                addDroppedFiles(Array.from(e.dataTransfer.files));
+            }
         });
+    }
+
+    function addDroppedFiles(files) {
+        const supported = files.filter(f => isSupportedFile(f));
+        if (supported.length === 0) { toast('没有支持的文件格式', 'error'); return; }
+
+        const existingKeys = new Set(uploadQueue.map(q => q.file.name + ':' + q.file.size));
+        supported.forEach(f => {
+            const key = f.name + ':' + f.size;
+            if (!existingKeys.has(key)) {
+                uploadQueue.push({
+                    file: f, id: generateId(), status: 'waiting',
+                    progress: 0, uploadId: null, totalChunks: 0, uploadedChunks: new Set()
+                });
+                existingKeys.add(key);
+            }
+        });
+
+        document.getElementById('upload-form').style.display = 'block';
+        renderUploadQueue();
+        loadDeptOptions();
+    }
+
+    async function readEntriesRecursive(entries) {
+        const files = [];
+        async function readEntry(entry, path) {
+            if (entry.isFile) {
+                const file = await new Promise(resolve => entry.file(resolve));
+                // Preserve relative path
+                Object.defineProperty(file, 'webkitRelativePath', { value: path + file.name });
+                files.push(file);
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+                const children = await new Promise(resolve => {
+                    const entries = [];
+                    function readBatch() {
+                        reader.readEntries(batch => {
+                            if (batch.length === 0) { resolve(entries); return; }
+                            entries.push(...batch);
+                            readBatch();
+                        });
+                    }
+                    readBatch();
+                });
+                for (const child of children) {
+                    await readEntry(child, path + entry.name + '/');
+                }
+            }
+        }
+        for (const entry of entries) {
+            await readEntry(entry, '');
+        }
+        return files;
     }
 
     // Init

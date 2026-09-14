@@ -1,0 +1,154 @@
+package com.mouhin.knowledge.repository.infrastructure.agent;
+
+import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
+import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
+import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
+import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
+import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+/**
+ * 试卷编写 Agent
+ * <p>
+ * 基于知识点分析结果和考试配置（难度、题型分布），生成完整的考试试卷。
+ * </p>
+ * <p>
+ * 读取：keyFindings（知识点摘要）、question（考试主题）、examDifficulty、examQuestionConfig
+ * 写入：examPaper（试卷 Markdown 内容）
+ * </p>
+ *
+ * @author Knowledge-Repository
+ * @date 2026-09-14
+ */
+@Component("examWriterAgent")
+public class ExamWriterAgent implements BlackboardAgent {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExamWriterAgent.class);
+
+    private static final String SYSTEM_PROMPT = """
+            你是一位资深教育考试专家，擅长根据知识内容编写高质量的考试试卷。
+
+            出题原则：
+            1. 题目必须基于提供的知识点，不得超出知识范围
+            2. 题目表述清晰准确，避免歧义
+            3. 选择题的干扰项要合理，不能过于明显
+            4. 题目难度要符合指定要求
+            5. 知识点覆盖要均匀，不重复考查同一知识点
+            6. 题目序号连续编排，分值标注清晰
+
+            输出格式要求：
+            - 使用 Markdown 格式
+            - 按题型分节（一、单选题 / 二、多选题 / ...）
+            - 每题标注分值，如 "（5分）"
+            - 选择题选项用 A. B. C. D. 格式
+            - 只输出试卷部分，不要输出答案
+            """;
+
+    private final ChatModel chatModel;
+
+    public ExamWriterAgent(ChatModel chatModel) {
+        this.chatModel = chatModel;
+    }
+
+    @Override
+    public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
+        String findings = blackboard.getKeyFindings();
+        String topic = blackboard.getQuestion();
+        String difficulty = blackboard.getExamDifficulty();
+        String questionConfig = blackboard.getExamQuestionConfig();
+        String reviewFeedback = blackboard.getExamReviewFeedback();
+
+        boolean isRetry = reviewFeedback != null && !reviewFeedback.isBlank();
+        logger.info("[ExamWriter] 开始{}编写试卷，主题：{}，难度：{}", isRetry ? "改进" : "", topic, difficulty);
+
+        blackboard.advanceTo(BlackboardPhase.WRITING);
+
+        String materials = findings != null && findings.length() > 500
+                ? findings.substring(0, 500) + "..." : findings;
+        emitProgress(progressCallback, BlackboardProgressEvent.agentStartedWithMaterials(
+                "exam-writer", isRetry ? "正在根据审核意见改进试卷..." : "正在根据知识点编写试卷...", materials));
+
+        if (findings == null || findings.isBlank() || findings.contains("未找到")) {
+            String fallback = "# " + topic + " 考试试卷\n\n> 提示：知识库中未找到足够的相关内容，试卷基于 AI 通用知识生成。\n\n";
+            blackboard.setExamPaper(fallback);
+            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted(
+                    "exam-writer", fallback));
+            logger.warn("[ExamWriter] 知识点不足，使用回退方案");
+            return;
+        }
+
+        String difficultyDesc = switch (difficulty) {
+            case "EASY" -> "简单（侧重基础概念和记忆）";
+            case "HARD" -> "困难（侧重综合分析和应用）";
+            default -> "中等（侧重理解和简单应用）";
+        };
+
+        String userPrompt;
+        if (isRetry) {
+            userPrompt = String.format("""
+                    考试主题：%s
+                    难度要求：%s
+                    题型分布：%s
+
+                    以下是相关知识点：
+
+                    %s
+
+                    【上一轮审核意见】
+                    %s
+
+                    请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
+                    重点解决审核中指出的问题，保持优点，修正不足。只输出试卷，不要输出答案。
+                    """, topic, difficultyDesc, questionConfig, findings, reviewFeedback);
+        } else {
+            userPrompt = String.format("""
+                    考试主题：%s
+                    难度要求：%s
+                    题型分布：%s
+
+                    以下是相关知识点：
+
+                    %s
+
+                    请根据以上知识点和要求，编写一份完整的考试试卷。只输出试卷，不要输出答案。
+                    """, topic, difficultyDesc, questionConfig, findings);
+        }
+
+        ChatRequest request = ChatRequest.builder()
+                .messages(
+                        SystemMessage.from(SYSTEM_PROMPT),
+                        UserMessage.from(userPrompt)
+                )
+                .build();
+
+        ChatResponse response = chatModel.chat(request);
+        String examPaper = response.aiMessage().text();
+
+        if (examPaper == null || examPaper.isBlank()) {
+            logger.error("[ExamWriter] LLM 返回空试卷");
+            examPaper = "# " + topic + " 考试试卷\n\n> 试卷生成失败，请重试。";
+        }
+
+        blackboard.setExamPaper(examPaper);
+        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
+        logger.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
+    }
+
+    @Override
+    public String getName() {
+        return "ExamWriter";
+    }
+
+    private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {
+        if (callback != null) {
+            callback.onProgress(event);
+        }
+    }
+}

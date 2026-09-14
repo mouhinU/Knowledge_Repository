@@ -707,6 +707,7 @@ public class DocumentIngestionDomainService {
         chunk.setDocumentName(document.getFileName());
         chunk.setFileType(document.getFileType());
         chunk.setTags(document.getTags());
+        chunk.setCategory(document.getCategory());
 
         return chunk;
     }

@@ -62,6 +62,9 @@ public class DocumentChunkDO {
     @TableField("owner_id")
     private String ownerId;
 
+    @TableField("category")
+    private String category;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 }

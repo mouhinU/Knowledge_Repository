@@ -34,6 +34,7 @@ public final class DocumentChunkConverter {
         domain.setVisibility(doObj.getVisibility());
         domain.setAllowedRoles(doObj.getAllowedRoles());
         domain.setOwnerId(doObj.getOwnerId());
+        domain.setCategory(doObj.getCategory());
         domain.setCreatedTime(doObj.getCreateTime());
 
         return domain;
@@ -59,6 +60,7 @@ public final class DocumentChunkConverter {
         doObj.setVisibility(domain.getVisibility());
         doObj.setAllowedRoles(domain.getAllowedRoles());
         doObj.setOwnerId(domain.getOwnerId());
+        doObj.setCategory(domain.getCategory());
         doObj.setCreateTime(domain.getCreatedTime());
 
         return doObj;

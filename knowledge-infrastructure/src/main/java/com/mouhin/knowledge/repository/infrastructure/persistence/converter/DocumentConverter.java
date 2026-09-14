@@ -42,6 +42,7 @@ public final class DocumentConverter {
         domain.setSummary(doObj.getSummary());
         domain.setErrorMessage(doObj.getErrorMessage());
         domain.setTags(doObj.getTags());
+        domain.setCategory(doObj.getCategory());
         domain.setCreatedTime(doObj.getCreateTime());
         domain.setUpdatedTime(doObj.getUpdateTime());
 
@@ -85,6 +86,7 @@ public final class DocumentConverter {
         doObj.setSummary(domain.getSummary());
         doObj.setErrorMessage(domain.getErrorMessage());
         doObj.setTags(domain.getTags());
+        doObj.setCategory(domain.getCategory());
         doObj.setCreateTime(domain.getCreatedTime());
         doObj.setUpdateTime(domain.getUpdatedTime());
 

@@ -1,143 +1,52 @@
-version: '3.8'
+# ============================================================
+# Knowledge Repository - 应用服务
+# ============================================================
+# 仅管理 knowledge-app 容器。
+# MySQL / Milvus / etcd / minio 为共用基础设施，由 docker-compose.infra.yml 管理。
+# 所有持久化存储均使用宿主机 bind mount，不依赖 Docker named volume。
+# ============================================================
 
 services:
 
-  # ==================== MySQL ====================
-  mysql:
-    image: mysql:8.0
-    container_name: knowledge-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: "123456"
-      MYSQL_DATABASE: knowledge_repository
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
-      TZ: Asia/Shanghai
-    ports:
-      - "3307:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --default-authentication-plugin=mysql_native_password
-      --max-connections=500
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
-    networks:
-      - knowledge-net
-
-  # ==================== Milvus 向量数据库 ====================
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.18
-    container_name: knowledge-etcd
-    environment:
-      ETCD_AUTO_COMPACTION_MODE: revision
-      ETCD_AUTO_COMPACTION_RETENTION: "1000"
-      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
-      ETCD_SNAPSHOT_COUNT: "50000"
-    volumes:
-      - etcd_data:/etcd
-    command:
-      - etcd
-      - --advertise-client-urls=http://127.0.0.1:2379
-      - --listen-client-urls=http://0.0.0.0:2379
-      - --data-dir=/etcd
-      - --initial-cluster-token=etcd-0
-      - --initial-cluster-state=new
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - knowledge-net
-
-  minio:
-    image: minio/minio:latest
-    container_name: knowledge-minio
-    environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-    ports:
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    command: minio server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - knowledge-net
-
-  milvus:
-    image: milvusdb/milvus:v2.5.4
-    container_name: knowledge-milvus
-    command: ["milvus", "run", "standalone"]
-    security_opt:
-      - seccomp:unconfined
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-    ports:
-      - "19530:19530"
-      - "9091:9091"
-    volumes:
-      - milvus_data:/var/lib/milvus
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-    depends_on:
-      etcd:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - knowledge-net
-
-  # ==================== 应用服务 ====================
   knowledge-app:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION}
+    image: ${IMAGE_NAME}:${APP_VERSION}
     container_name: knowledge-app
     ports:
       - "8091:8091"
     environment:
-      # MySQL
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
+      # 时区
+      TZ: Asia/Shanghai
+      # MySQL（共用服务，宿主机端口 3307）
+      MYSQL_HOST: host.docker.internal
+      MYSQL_PORT: 3307
       MYSQL_USERNAME: root
       MYSQL_PASSWORD: "123456"
-      # Milvus
-      MILVUS_HOST: milvus
+      # Milvus（共用服务，宿主机端口 19530）
+      MILVUS_HOST: host.docker.internal
       MILVUS_PORT: 19530
-      # Ollama（宿主机上运行，通过 host.docker.internal 访问）
+      # Ollama（宿主机上运行）
       OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
       OLLAMA_MODEL: bge-m3
-      # 文件存储
+      # LLM 对话模型（DeepSeek 云端）
+      LLM_PROVIDER: deepseek
+      DEEPSEEK_API_KEY: sk-0fa0f833080143eabb3dc6c53b81e60c
+      DEEPSEEK_CHAT_MODEL: deepseek-chat
+      LLM_TEMPERATURE: "0.7"
+      LLM_MAX_TOKENS: "4096"
+      # 文件存储（宿主机 bind mount）
       STORAGE_PATH: /app/data/documents
       # JVM
-      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC -Duser.timezone=Asia/Shanghai"
     volumes:
-      - app_documents:/app/data/documents
-    depends_on:
-      mysql:
-        condition: service_healthy
-      milvus:
-        condition: service_healthy
+      # 文档文件存储 → 宿主机 data/documents/
+      - ./data/documents:/app/data/documents
+      # 日志存储 → 宿主机 docker/logs/app/
+      - ./docker/logs/app:/app/logs
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -147,21 +56,3 @@ services:
       retries: 10
       start_period: 60s
     restart: unless-stopped
-    networks:
-      - knowledge-net
-
-volumes:
-  mysql_data:
-    driver: local
-  etcd_data:
-    driver: local
-  minio_data:
-    driver: local
-  milvus_data:
-    driver: local
-  app_documents:
-    driver: local
-
-networks:
-  knowledge-net:
-    driver: bridge

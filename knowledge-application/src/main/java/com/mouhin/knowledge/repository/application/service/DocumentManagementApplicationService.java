@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文档管理应用服务
@@ -100,6 +101,13 @@ public class DocumentManagementApplicationService {
                 documentRepository.countByStatus(DocumentStatusEnum.PROCESSING),
                 documentRepository.countByStatus(DocumentStatusEnum.FAILED)
         );
+    }
+
+    /**
+     * 获取各分类文档统计
+     */
+    public Map<String, Long> getCategoryStats() {
+        return documentRepository.countByCategory();
     }
 
     /**

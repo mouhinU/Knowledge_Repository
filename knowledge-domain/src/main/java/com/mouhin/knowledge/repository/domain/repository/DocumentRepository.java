@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -63,6 +64,11 @@ public interface DocumentRepository {
      * 统计文档数量
      */
     long countByStatus(DocumentStatusEnum status);
+
+    /**
+     * 按分类统计文档数量
+     */
+    Map<String, Long> countByCategory();
 
     /**
      * 删除文档

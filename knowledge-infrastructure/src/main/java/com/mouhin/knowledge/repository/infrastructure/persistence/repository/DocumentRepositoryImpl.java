@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.repository.DocumentRepository;
@@ -10,7 +11,9 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.Documen
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -113,6 +116,24 @@ public class DocumentRepositoryImpl implements DocumentRepository {
         LambdaQueryWrapper<DocumentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentDO::getStatus, status.name());
         return documentMapper.selectCount(wrapper);
+    }
+
+    @Override
+    public Map<String, Long> countByCategory() {
+        QueryWrapper<DocumentDO> wrapper = new QueryWrapper<>();
+        wrapper.select("category", "COUNT(*) AS total")
+                .groupBy("category");
+        List<Map<String, Object>> rows = documentMapper.selectMaps(wrapper);
+        Map<String, Long> result = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            String category = (String) row.get("category");
+            if (category == null) {
+                category = "其他";
+            }
+            Long count = ((Number) row.get("total")).longValue();
+            result.merge(category, count, Long::sum);
+        }
+        return result;
     }
 
     @Override

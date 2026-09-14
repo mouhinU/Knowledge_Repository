@@ -1,0 +1,109 @@
+# ============================================================
+# Knowledge Repository - 共用基础设施
+# ============================================================
+# etcd / minio / milvus / mysql 共用基础设施。
+# 所有持久化存储均使用宿主机 bind mount，不依赖 Docker named volume。
+# 与 knowledge-app（docker-compose.yml）通过宿主机端口通信。
+# ============================================================
+
+services:
+
+  # ==================== MySQL ====================
+  mysql:
+    image: mysql:8.0
+    container_name: knowledge-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: knowledge_repository
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"
+    volumes:
+      # MySQL 数据使用 Docker named volume（macOS 限制：MySQL 8.0 不允许在
+      # 大小写不敏感文件系统上使用 lower_case_table_names=0，而现有数据以此配置创建）
+      - mysql_data:/var/lib/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --max-connections=500
+      --lower-case-table-names=0
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - knowledge-net
+
+  # ==================== etcd ====================
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    container_name: knowledge-etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    volumes:
+      # etcd 数据 → 宿主机 docker/volumes/etcd/
+      - ./docker/volumes/etcd:/etcd
+    command: etcd
+      --advertise-client-urls=http://127.0.0.1:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+      --initial-cluster-token=etcd-0
+      --initial-cluster-state=new
+    restart: unless-stopped
+    networks:
+      - knowledge-net
+
+  # ==================== MinIO ====================
+  minio:
+    image: minio/minio:latest
+    container_name: knowledge-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      # MinIO 对象存储 → 宿主机 docker/volumes/minio/
+      - ./docker/volumes/minio:/data
+    command: minio server /data --console-address :9001
+    ports:
+      - "9001:9001"
+    restart: unless-stopped
+    networks:
+      - knowledge-net
+
+  # ==================== Milvus ====================
+  milvus:
+    image: milvusdb/milvus:v2.5.4
+    container_name: knowledge-milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      # Milvus 向量数据 → 宿主机 docker/volumes/milvus/
+      - ./docker/volumes/milvus:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+    restart: unless-stopped
+    networks:
+      - knowledge-net
+
+networks:
+  knowledge-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    external: true

@@ -88,6 +88,35 @@ knowledge:
       model-name: ${OLLAMA_MODEL:bge-m3}
       api-key: ollama
 
+  # ---------- LLM 对话模型配置 ----------
+  # provider: dashscope | deepseek | ollama
+  llm:
+    provider: ${LLM_PROVIDER:ollama}
+    temperature: ${LLM_TEMPERATURE:0.7}
+    max-tokens: ${LLM_MAX_TOKENS:4096}
+
+    # DashScope (阿里云通义)
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:your-dashscope-api-key}
+      model-name: ${DASHSCOPE_CHAT_MODEL:qwen-plus}
+
+    # DeepSeek
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
+      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-chat}
+
+    # Ollama (本地模型)
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
+      model-name: ${OLLAMA_CHAT_MODEL:llama3.2}
+      api-key: ollama
+
+  # ---------- 黑板模式 Agent 配置 ----------
+  blackboard:
+    search:
+      max-results: 10
+      min-score: 0.5
+
   # ---------- 文件存储 ----------
   storage:
     path: ${STORAGE_PATH:./data/documents}

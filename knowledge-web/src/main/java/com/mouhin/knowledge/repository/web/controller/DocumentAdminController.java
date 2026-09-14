@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
@@ -30,11 +31,14 @@ public class DocumentAdminController {
 
     private final DocumentManagementApplicationService managementService;
     private final DocumentIngestionApplicationService ingestionService;
+    private final IndexProgressStore indexProgressStore;
 
     public DocumentAdminController(DocumentManagementApplicationService managementService,
-                                   DocumentIngestionApplicationService ingestionService) {
+                                   DocumentIngestionApplicationService ingestionService,
+                                   IndexProgressStore indexProgressStore) {
         this.managementService = managementService;
         this.ingestionService = ingestionService;
+        this.indexProgressStore = indexProgressStore;
     }
 
     /**
@@ -109,6 +113,14 @@ public class DocumentAdminController {
     }
 
     /**
+     * 获取各分类文档数量统计
+     */
+    @GetMapping("/category-stats")
+    public ResponseEntity<Map<String, Long>> getCategoryStats() {
+        return ResponseEntity.ok(managementService.getCategoryStats());
+    }
+
+    /**
      * 归档文档
      */
     @PutMapping("/{documentKey}/archive")
@@ -149,7 +161,7 @@ public class DocumentAdminController {
     }
 
     /**
-     * 确认入库（分块 → 向量化 → 存储）
+     * 确认入库（异步，通过 SSE 推送进度）
      */
     @PostMapping("/{documentKey}/index")
     public ResponseEntity<Map<String, Object>> indexDocument(
@@ -158,41 +170,48 @@ public class DocumentAdminController {
 
         ChunkingStrategyEnum strategyEnum = resolveStrategy(chunkingRequest.getStrategy());
 
-        logger.info("Indexing document {}: chunkSize={}, strategy={}", documentKey,
+        logger.info("Async indexing document {}: chunkSize={}, strategy={}", documentKey,
                 chunkingRequest.getChunkSize(), strategyEnum);
-        Document document = ingestionService.indexDocument(
-                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(), strategyEnum);
+
+        var callback = indexProgressStore.createCallback(documentKey);
+        ingestionService.indexDocumentAsync(
+                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
+                strategyEnum, callback);
 
         return ResponseEntity.ok(Map.of(
-                "documentKey", document.getDocumentKey(),
-                "fileName", document.getFileName(),
-                "status", document.getStatus().name(),
-                "message", document.getStatus() == DocumentStatusEnum.INDEXED
-                        ? "Document indexed successfully"
-                        : "Indexing status: " + document.getStatus()
+                "documentKey", documentKey,
+                "status", "STARTED",
+                "message", "Indexing started. Connect to SSE for progress."
         ));
     }
 
     /**
-     * 使用自定义分块入库（支持手动调整分块顺序）
+     * 使用自定义分块入库（异步，通过 SSE 推送进度）
      */
     @PostMapping("/{documentKey}/index-custom")
     public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
             @PathVariable String documentKey,
             @RequestBody List<DocumentIngestionApplicationService.CustomChunkInput> customChunks) {
 
-        logger.info("Indexing document {} with {} custom chunks", documentKey,
+        logger.info("Async indexing document {} with {} custom chunks", documentKey,
                 customChunks != null ? customChunks.size() : 0);
-        Document document = ingestionService.indexWithCustomChunks(documentKey, customChunks);
+
+        var callback = indexProgressStore.createCallback(documentKey);
+        ingestionService.indexWithCustomChunksAsync(documentKey, customChunks, callback);
 
         return ResponseEntity.ok(Map.of(
-                "documentKey", document.getDocumentKey(),
-                "fileName", document.getFileName(),
-                "status", document.getStatus().name(),
-                "message", document.getStatus() == DocumentStatusEnum.INDEXED
-                        ? "Document indexed with custom chunks successfully"
-                        : "Indexing status: " + document.getStatus()
+                "documentKey", documentKey,
+                "status", "STARTED",
+                "message", "Indexing started. Connect to SSE for progress."
         ));
+    }
+
+    /**
+     * 入库进度 SSE 端点
+     */
+    @GetMapping("/{documentKey}/index/progress")
+    public SseEmitter indexProgress(@PathVariable String documentKey) {
+        return indexProgressStore.createEmitter(documentKey);
     }
 
     /**

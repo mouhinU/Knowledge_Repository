@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * 知识库查询控制器
@@ -49,6 +50,7 @@ public class KnowledgeQueryController {
         Boolean admin = body.get("admin") != null && (Boolean) body.get("admin");
         Integer maxResults = body.get("maxResults") != null ? ((Number) body.get("maxResults")).intValue() : null;
         Double minScore = body.get("minScore") != null ? ((Number) body.get("minScore")).doubleValue() : null;
+        String category = (String) body.get("category");
 
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -58,7 +60,7 @@ public class KnowledgeQueryController {
         }
 
         Permission permission = new Permission(userId, departmentId, roles, admin);
-        List<SearchResult> results = queryService.search(query, permission, maxResults, minScore);
+        List<SearchResult> results = queryService.search(query, permission, maxResults, minScore, category);
 
         return ResponseEntity.ok(Map.of(
                 "query", query,
@@ -69,8 +71,23 @@ public class KnowledgeQueryController {
                         "documentName", r.getDocumentName() != null ? r.getDocumentName() : "",
                         "pageNumber", r.getPageNumber() != null ? r.getPageNumber() : 0,
                         "chunkIndex", r.getChunkIndex() != null ? r.getChunkIndex() : 0,
-                        "score", Math.round(r.getScore() * 10000.0) / 10000.0
+                        "score", Math.round(r.getScore() * 10000.0) / 10000.0,
+                        "category", r.getCategory() != null ? r.getCategory() : ""
                 )).toList()
         ));
+    }
+
+    /**
+     * 获取知识库分类列表
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<Map<String, Object>>> listCategories() {
+        List<Map<String, Object>> categories = List.of(
+                Map.of("name", "工作", "sortOrder", 1),
+                Map.of("name", "学习", "sortOrder", 2),
+                Map.of("name", "休闲", "sortOrder", 3),
+                Map.of("name", "其他", "sortOrder", 4)
+        );
+        return ResponseEntity.ok(categories);
     }
 }
