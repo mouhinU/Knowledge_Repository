@@ -250,18 +250,64 @@
         .writing-input-area textarea { flex:1; min-height:60px; resize:vertical; }
         .writing-progress { display:none; padding:20px 0; }
         .writing-progress.active { display:block; }
-        .phase-steps { display:flex; gap:0; margin-bottom:24px; }
-        .phase-step { flex:1; text-align:center; padding:12px 8px; position:relative; }
-        .phase-step::before { content:''; position:absolute; top:18px; left:0; right:0; height:2px; background:var(--border); z-index:0; }
-        .phase-step:first-child::before { left:50%; }
-        .phase-step:last-child::before { right:50%; }
-        .phase-dot { width:28px; height:28px; border-radius:50%; background:var(--border); display:inline-flex; align-items:center; justify-content:center; position:relative; z-index:1; font-size:12px; color:#fff; transition:all .3s; }
-        .phase-step.active .phase-dot { background:var(--primary); box-shadow:0 0 0 4px rgba(59,130,246,.2); }
-        .phase-step.done .phase-dot { background:var(--success); }
-        .phase-step.done .phase-dot::after { content:'✓'; }
-        .phase-label { display:block; font-size:12px; color:var(--text-light); margin-top:6px; }
-        .phase-step.active .phase-label { color:var(--primary); font-weight:600; }
-        .phase-step.done .phase-label { color:var(--success); }
+        /* Pipeline flow diagram — horizontal, polished */
+        .flow-container { display:flex; flex-direction:row; align-items:center; gap:0; margin-bottom:24px; padding:20px 0; width:100%; }
+        .flow-node { display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 16px; border-radius:10px; background:#fff; border:1.5px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,.06); transition:all .3s; min-width:88px; justify-content:center; cursor:pointer; }
+        .flow-node:hover { box-shadow:0 3px 12px rgba(0,0,0,.1); transform:translateY(-1px); }
+        .flow-dot { width:26px; height:26px; border-radius:50%; background:#cbd5e1; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:#fff; font-weight:700; flex-shrink:0; transition:all .3s; }
+        .flow-label { font-size:12px; color:#64748b; font-weight:500; white-space:nowrap; }
+        .flow-node.active { border-color:var(--primary); background:#eff6ff; box-shadow:0 2px 8px rgba(59,130,246,.15); }
+        .flow-node.active .flow-dot { background:var(--primary); box-shadow:0 0 0 4px rgba(59,130,246,.18); }
+        .flow-node.active .flow-label { color:var(--primary); font-weight:600; }
+        .flow-node.done { border-color:#86efac; background:#f0fdf4; }
+        .flow-node.done .flow-dot { background:var(--success); }
+        .flow-node.done .flow-dot::after { content:'✓'; }
+        .flow-node.done .flow-label { color:#16a34a; }
+        .flow-time { font-size:10px; color:#94a3b8; white-space:nowrap; min-height:14px; }
+        .flow-node.active .flow-time { color:var(--primary); animation:flow-pulse 1s ease-in-out infinite; }
+        .flow-node.done .flow-time { color:#16a34a; animation:none; }
+        @keyframes flow-pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+        /* Arrow connector */
+        .flow-connector { flex:1; min-width:16px; height:2px; background:linear-gradient(to right, #cbd5e1 70%, transparent 70%); background-size:8px 2px; position:relative; }
+        .flow-connector::after { content:''; position:absolute; right:-1px; top:50%; transform:translateY(-50%); width:0; height:0; border-left:6px solid #cbd5e1; border-top:4px solid transparent; border-bottom:4px solid transparent; }
+        .flow-node.done + .flow-connector, .flow-connector.done { background:linear-gradient(to right, #86efac 70%, transparent 70%); background-size:8px 2px; }
+        .flow-node.done + .flow-connector::after { border-left-color:#86efac; }
+        /* Parallel group */
+        .flow-parallel { display:flex; flex-direction:column; gap:6px; align-items:center; position:relative; padding:18px 14px 14px; background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04)); border-radius:14px; border:1.5px dashed rgba(99,102,241,.25); }
+        .flow-parallel-badge { position:absolute; top:-9px; left:50%; transform:translateX(-50%); font-size:10px; color:#6366f1; background:linear-gradient(135deg, #eef2ff, #e0e7ff); padding:1px 10px; border-radius:8px; border:1px solid rgba(99,102,241,.2); white-space:nowrap; font-weight:600; letter-spacing:.3px; }
+        /* Terminal nodes (开始 / 完成) */
+        .flow-terminal { display:flex; align-items:center; justify-content:center; padding:8px 18px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; flex-shrink:0; transition:all .3s; }
+        .flow-terminal.start { background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; box-shadow:0 2px 6px rgba(99,102,241,.3); }
+        .flow-terminal.end { background:#f1f5f9; color:#94a3b8; border:1.5px solid #e2e8f0; }
+        .flow-terminal.end.done { background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; border-color:transparent; box-shadow:0 2px 6px rgba(34,197,94,.3); }
+        /* Node detail modal */
+        .node-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; justify-content:center; align-items:center; backdrop-filter:blur(2px); }
+        .node-modal-overlay.active { display:flex; }
+        .node-modal { background:#fff; border-radius:14px; width:680px; max-width:92vw; max-height:82vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.2); animation:node-modal-in .2s ease-out; }
+        @keyframes node-modal-in { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:none; } }
+        .node-modal-header { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid #f1f5f9; }
+        .node-modal-title { font-size:17px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:10px; }
+        .node-modal-badge { font-size:11px; padding:2px 10px; border-radius:10px; font-weight:600; }
+        .node-modal-badge.running { background:#dbeafe; color:#1e40af; }
+        .node-modal-badge.done { background:#dcfce7; color:#166534; }
+        .node-modal-badge.pending { background:#f1f5f9; color:#94a3b8; }
+        .node-modal-close { width:30px; height:30px; border:none; background:#f1f5f9; border-radius:50%; cursor:pointer; font-size:16px; color:#64748b; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+        .node-modal-close:hover { background:#e2e8f0; color:#1e293b; }
+        .node-modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
+        .node-time-row { display:flex; gap:12px; margin-bottom:20px; }
+        .node-time-card { flex:1; background:#f8fafc; border-radius:10px; padding:12px 14px; border:1px solid #f1f5f9; }
+        .node-time-label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.6px; font-weight:600; margin-bottom:4px; }
+        .node-time-value { font-size:14px; font-weight:600; color:#1e293b; }
+        .node-detail-section { margin-bottom:16px; }
+        .node-detail-section:last-child { margin-bottom:0; }
+        .node-detail-title { font-size:12px; font-weight:600; color:#64748b; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .node-detail-title::before { content:''; width:3px; height:14px; border-radius:2px; }
+        .node-detail-title.input::before { background:#8b5cf6; }
+        .node-detail-title.thinking::before { background:#3b82f6; }
+        .node-detail-title.output::before { background:#22c55e; }
+        .node-detail-content { font-size:13px; line-height:1.7; color:#334155; background:#f8fafc; padding:14px 16px; border-radius:10px; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; border:1px solid #f1f5f9; }
+        .node-detail-content::-webkit-scrollbar { width:4px; }
+        .node-detail-content::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:2px; }
 
         .agent-panel { border:1px solid var(--border); border-radius:8px; margin-bottom:10px; overflow:hidden; }
         .agent-panel-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; background:#fafbfc; transition:background .15s; }
@@ -342,6 +388,12 @@
             </div>
             <div class="nav-item" onclick="showSection('ai-lab')">
                 <span class="nav-icon">&#9881;</span> AI 实验室
+            </div>
+            <div class="nav-item" onclick="showSection('exam-review')">
+                <span class="nav-icon">&#128221;</span> 成绩复核
+            </div>
+            <div class="nav-item" onclick="showSection('error-book')">
+                <span class="nav-icon">&#10060;</span> 错题本
             </div>
             <div class="nav-item" onclick="showSection('users')">
                 <span class="nav-icon">&#9679;</span> 用户权限
@@ -518,23 +570,28 @@
 
                 <!-- Progress -->
                 <div class="writing-progress" id="writing-progress">
-                    <div class="phase-steps" id="phase-steps">
-                        <div class="phase-step" id="phase-research">
-                            <span class="phase-dot">1</span>
-                            <span class="phase-label">知识检索</span>
+                    <div class="flow-container" id="writing-flow">
+                        <div class="flow-terminal start" id="flow-start">开始</div>
+                        <div class="flow-connector"></div>
+                        <div class="flow-node" id="flow-research">
+                            <span class="flow-dot">1</span>
+                            <span class="flow-label">知识检索</span>
+                            <span class="flow-time" id="flow-time-research"></span>
                         </div>
-                        <div class="phase-step" id="phase-writing">
-                            <span class="phase-dot">2</span>
-                            <span class="phase-label">文章撰写</span>
+                        <div class="flow-connector"></div>
+                        <div class="flow-node" id="flow-writing">
+                            <span class="flow-dot">2</span>
+                            <span class="flow-label">文章撰写</span>
+                            <span class="flow-time" id="flow-time-writing"></span>
                         </div>
-                        <div class="phase-step" id="phase-review">
-                            <span class="phase-dot">3</span>
-                            <span class="phase-label">质量审核</span>
+                        <div class="flow-connector"></div>
+                        <div class="flow-node" id="flow-review">
+                            <span class="flow-dot">3</span>
+                            <span class="flow-label">质量审核</span>
+                            <span class="flow-time" id="flow-time-review"></span>
                         </div>
-                        <div class="phase-step" id="phase-complete">
-                            <span class="phase-dot">4</span>
-                            <span class="phase-label">完成</span>
-                        </div>
+                        <div class="flow-connector"></div>
+                        <div class="flow-terminal end" id="flow-complete">完成</div>
                     </div>
 
                     <!-- Agent Panels -->
@@ -684,31 +741,62 @@
 
                 <!-- 阶段进度 -->
                 <div class="writing-progress" id="exam-progress">
-                    <div class="phase-steps" id="exam-phase-steps">
-                        <div class="phase-step" id="exam-phase-research">
-                            <span class="phase-dot">1</span>
-                            <span class="phase-label">知识检索</span>
+                    <div class="flow-container" id="exam-flow">
+                        <div class="flow-terminal start" id="exam-flow-start">开始</div>
+                        <div class="flow-connector"></div>
+                        <!-- Stage 1: 知识检索 ∥ 分值分配 -->
+                        <div class="flow-parallel">
+                            <span class="flow-parallel-badge">⚡ 并行</span>
+                            <div class="flow-node" id="exam-flow-research">
+                                <span class="flow-dot">1</span>
+                                <span class="flow-label">知识检索</span>
+                                <span class="flow-time" id="exam-flow-time-research"></span>
+                            </div>
+                            <div class="flow-node" id="exam-flow-scoring">
+                                <span class="flow-dot">2</span>
+                                <span class="flow-label">分值分配</span>
+                                <span class="flow-time" id="exam-flow-time-scoring"></span>
+                            </div>
                         </div>
-                        <div class="phase-step" id="exam-phase-writing">
-                            <span class="phase-dot">2</span>
-                            <span class="phase-label">试卷编写</span>
+                        <div class="flow-connector"></div>
+                        <!-- Stage 2: 试卷编写 -->
+                        <div class="flow-node" id="exam-flow-writing">
+                            <span class="flow-dot">3</span>
+                            <span class="flow-label">试卷编写</span>
+                            <span class="flow-time" id="exam-flow-time-writing"></span>
                         </div>
-                        <div class="phase-step" id="exam-phase-answer">
-                            <span class="phase-dot">3</span>
-                            <span class="phase-label">答案生成</span>
+                        <div class="flow-connector"></div>
+                        <!-- Stage 3: 答案生成 ∥ 难度校准 -->
+                        <div class="flow-parallel">
+                            <span class="flow-parallel-badge">⚡ 并行</span>
+                            <div class="flow-node" id="exam-flow-answer">
+                                <span class="flow-dot">4</span>
+                                <span class="flow-label">答案生成</span>
+                                <span class="flow-time" id="exam-flow-time-answer"></span>
+                            </div>
+                            <div class="flow-node" id="exam-flow-calibrate">
+                                <span class="flow-dot">5</span>
+                                <span class="flow-label">难度校准</span>
+                                <span class="flow-time" id="exam-flow-time-calibrate"></span>
+                            </div>
                         </div>
-                        <div class="phase-step" id="exam-phase-review">
-                            <span class="phase-dot">4</span>
-                            <span class="phase-label">内容审核</span>
+                        <div class="flow-connector"></div>
+                        <!-- Stage 4: 内容审核 ∥ 查重去重 -->
+                        <div class="flow-parallel">
+                            <span class="flow-parallel-badge">⚡ 并行</span>
+                            <div class="flow-node" id="exam-flow-review">
+                                <span class="flow-dot">6</span>
+                                <span class="flow-label">内容审核</span>
+                                <span class="flow-time" id="exam-flow-time-review"></span>
+                            </div>
+                            <div class="flow-node" id="exam-flow-dedup">
+                                <span class="flow-dot">7</span>
+                                <span class="flow-label">查重去重</span>
+                                <span class="flow-time" id="exam-flow-time-dedup"></span>
+                            </div>
                         </div>
-                        <div class="phase-step" id="exam-phase-calibrate">
-                            <span class="phase-dot">5</span>
-                            <span class="phase-label">难度校准</span>
-                        </div>
-                        <div class="phase-step" id="exam-phase-dedup">
-                            <span class="phase-dot">6</span>
-                            <span class="phase-label">查重去重</span>
-                        </div>
+                        <div class="flow-connector"></div>
+                        <div class="flow-terminal end" id="exam-flow-complete">完成</div>
                     </div>
 
                     <!-- Agent Panels -->
@@ -724,6 +812,20 @@
                             </details>
                             <div class="agent-output-label">知识点分析</div>
                             <pre id="exam-output-researcher">等待执行...</pre>
+                        </div>
+                    </div>
+                    <div class="agent-panel" id="exam-panel-scoring">
+                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span class="agent-name"><span class="agent-icon" style="background:#ec4899">S</span> 分值分配 (Scoring)</span>
+                            <span class="agent-status pending" id="exam-status-scoring">等待中</span>
+                        </div>
+                        <div class="agent-panel-body">
+                            <details class="agent-materials" open>
+                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
+                                <pre class="agent-materials-content" id="exam-materials-scoring">等待检索...</pre>
+                            </details>
+                            <div class="agent-output-label">分值方案</div>
+                            <pre id="exam-output-scoring">等待执行...</pre>
                         </div>
                     </div>
                     <div class="agent-panel" id="exam-panel-writer">
@@ -849,6 +951,130 @@
                     <button onclick="closeHistoryModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light)">&times;</button>
                     <div id="history-detail-content"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Exam Review -->
+        <div id="section-exam-review" class="section">
+            <div class="page-header"><h2>成绩复核</h2><p>AI 评分、人工复核、调整分数并发布最终成绩</p></div>
+
+            <!-- Summary Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="grading-pending-count" style="color:var(--primary)">-</div>
+                    <div class="stat-label">待 AI 评分</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="review-pending-count" style="color:var(--warning)">-</div>
+                    <div class="stat-label">待复核</div>
+                </div>
+            </div>
+
+            <!-- Pending Grading Table -->
+            <div class="card">
+                <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>待 AI 评分（已交卷）</span>
+                    <button class="btn btn-primary btn-sm" onclick="batchTriggerGrading()" id="batch-grade-btn">一键 AI 评分</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>考生 ID</th>
+                            <th>考试主题</th>
+                            <th>难度</th>
+                            <th>考试时长</th>
+                            <th>总分</th>
+                            <th>交卷时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-grading-list">
+                        <tr><td colspan="7" class="loading">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pending Review Table -->
+            <div class="card">
+                <div class="card-title">待复核列表（AI 已评分）</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>考生 ID</th>
+                            <th>考试主题</th>
+                            <th>难度</th>
+                            <th>考试时长</th>
+                            <th>AI 评分</th>
+                            <th>总分</th>
+                            <th>提交时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-review-list">
+                        <tr><td colspan="8" class="loading">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Duration Override -->
+            <div class="card" style="margin-top:16px">
+                <div class="card-title">设置考试时长（覆盖进行中考试的时长）</div>
+                <div style="display:flex;gap:12px;align-items:end">
+                    <div style="flex:1">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">Session Key</label>
+                        <input type="text" id="duration-session-key" class="input" placeholder="输入考试场次的 Session Key">
+                    </div>
+                    <div style="width:140px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">时长（分钟）</label>
+                        <input type="number" id="duration-minutes" class="input" placeholder="分钟" min="1" max="600">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="updateSessionDuration()">设置</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">留空时长或设为 0 表示不限时。仅对 IN_PROGRESS 状态的场次有效。</p>
+            </div>
+        </div>
+
+        <!-- Error Book (错题本) -->
+        <div id="section-error-book" class="section">
+            <div class="page-header">
+                <h2>错题本</h2><p>收集和分析考生错题，AI 智能总结薄弱环节</p>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="card" style="margin-bottom:16px">
+                <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+                    <div style="flex:0 0 180px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">考生</label>
+                        <select id="wb-student" class="input"><option value="">全部考生</option></select>
+                    </div>
+                    <div style="flex:1;min-width:160px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">主题关键词</label>
+                        <input type="text" id="wb-topic" class="input" placeholder="搜索考试主题...">
+                    </div>
+                    <div style="flex:0 0 140px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">题型</label>
+                        <select id="wb-type" class="input">
+                            <option value="">全部题型</option>
+                            <option value="SINGLE_CHOICE">单选题</option>
+                            <option value="MULTI_CHOICE">多选题</option>
+                            <option value="TRUE_FALSE">判断题</option>
+                            <option value="FILL_BLANK">填空题</option>
+                            <option value="SHORT_ANSWER">简答题</option>
+                            <option value="ESSAY">论述题</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="loadWrongAnswers()" style="height:36px">&#128269; 查询</button>
+                    <button class="btn btn-secondary btn-sm" onclick="generateAiSummary()" style="height:36px">&#9889; AI 总结</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div id="wb-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+            </div>
+
+            <!-- Wrong Answers List -->
+            <div id="wb-list">
+                <div style="text-align:center;color:var(--text-light);padding:40px">选择筛选条件后点击"查询"加载错题</div>
             </div>
         </div>
 
@@ -1331,6 +1557,8 @@
         if (name === 'users') { loadUsers(); loadDeptTree(); }
         if (name === 'system') loadSystemStatus();
         if (name === 'ai-lab') { loadWritingHistory(); loadExamHistory(); }
+        if (name === 'exam-review') showExamReview();
+        if (name === 'error-book') initErrorBook();
     }
 
     function switchLabTab(tabName) {
@@ -2090,14 +2318,118 @@
 
     // ==================== AI Writing ====================
     let _writingThinkingVisible = false;
+    let _writingAgentTimes = {};
+    let _writingTimerInterval = null;
+    let _writingActiveTimers = new Set();
+    const _writingAgentNodeMap = { researcher:'research', writer:'writing', reviewer:'review' };
+
+    function startWritingLiveTimer(agent) {
+        _writingActiveTimers.add(agent);
+        if (!_writingTimerInterval) {
+            _writingTimerInterval = setInterval(() => {
+                _writingActiveTimers.forEach(a => {
+                    const node = _writingAgentNodeMap[a];
+                    if (node && _writingAgentTimes[a]) {
+                        const tEl = document.getElementById('flow-time-' + node);
+                        if (tEl) tEl.textContent = formatElapsed(Date.now() - _writingAgentTimes[a]);
+                    }
+                });
+            }, 200);
+        }
+    }
+    function stopWritingTimer(agent) {
+        _writingActiveTimers.delete(agent);
+        if (_writingActiveTimers.size === 0 && _writingTimerInterval) {
+            clearInterval(_writingTimerInterval);
+            _writingTimerInterval = null;
+        }
+    }
+
+    function formatElapsed(ms) {
+        if (ms < 10000) return (ms / 1000).toFixed(1) + 's';
+        const s = Math.round(ms / 1000);
+        return s < 60 ? s + 's' : Math.floor(s / 60) + 'm' + (s % 60) + 's';
+    }
+
+    // ==================== Node Detail Modal ====================
+    const _nodeDetails = {};
+    const _nodeLabels = {
+        research:'知识检索', scoring:'分值分配', writing:'试卷编写',
+        answer:'答案生成', calibrate:'难度校准', review:'内容审核', dedup:'查重去重'
+    };
+
+    function formatTime(ts) {
+        if (!ts) return '-';
+        const d = new Date(ts);
+        return d.toLocaleTimeString('zh-CN', { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' })
+            + '.' + String(d.getMilliseconds()).padStart(3,'0');
+    }
+
+    function storeNodeDetail(nodeKey, field, value) {
+        if (!_nodeDetails[nodeKey]) _nodeDetails[nodeKey] = {};
+        _nodeDetails[nodeKey][field] = value;
+    }
+
+    function showNodeModal(nodeKey) {
+        const d = _nodeDetails[nodeKey] || {};
+        const label = _nodeLabels[nodeKey] || nodeKey;
+        document.getElementById('node-modal-name').textContent = label;
+        // 状态
+        const badge = document.getElementById('node-modal-badge');
+        if (d.endTime) { badge.textContent = '已完成'; badge.className = 'node-modal-badge done'; }
+        else if (d.startTime) { badge.textContent = '执行中'; badge.className = 'node-modal-badge running'; }
+        else { badge.textContent = '等待中'; badge.className = 'node-modal-badge pending'; }
+        // 时间
+        document.getElementById('node-modal-start').textContent = formatTime(d.startTime);
+        document.getElementById('node-modal-end').textContent = d.endTime ? formatTime(d.endTime) : '-';
+        document.getElementById('node-modal-elapsed').textContent = d.startTime ? formatElapsed((d.endTime || Date.now()) - d.startTime) : '-';
+        // 内容
+        document.getElementById('node-modal-input').textContent = d.materials || '暂无数据';
+        document.getElementById('node-modal-thinking').textContent = d.message || '暂无数据';
+        document.getElementById('node-modal-output').textContent = d.output || '暂无数据';
+        // 显示
+        document.getElementById('node-modal-overlay').classList.add('active');
+    }
+
+    function closeNodeModal() {
+        document.getElementById('node-modal-overlay').classList.remove('active');
+    }
+
+    function bindNodeClick(elementId, nodeKey) {
+        const el = document.getElementById(elementId);
+        if (el) el.addEventListener('click', () => showNodeModal(nodeKey));
+    }
+
+    // 绑定写作流水线节点点击
+    bindNodeClick('flow-research', 'research');
+    bindNodeClick('flow-writing', 'writing');
+    bindNodeClick('flow-review', 'review');
+    // 绑定出卷流水线节点点击
+    ['research','scoring','writing','answer','calibrate','review','dedup'].forEach(n => {
+        bindNodeClick('exam-flow-' + n, n);
+    });
+    // ESC 关闭弹窗
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNodeModal(); });
 
     function resetWritingUI() {
         document.getElementById('writing-progress').classList.add('active');
         document.getElementById('article-result').classList.remove('active');
         document.getElementById('writing-error').classList.remove('active');
-        ['research','writing','review','complete'].forEach(p => {
-            const el = document.getElementById('phase-' + p);
-            el.classList.remove('active','done');
+        // 开始节点始终为完成态
+        document.getElementById('flow-start').classList.add('done');
+        ['research','writing','review'].forEach(n => {
+            const el = document.getElementById('flow-' + n);
+            if (el) el.classList.remove('active','done');
+        });
+        document.getElementById('flow-complete').classList.remove('done');
+        // 重置耗时
+        _writingActiveTimers.clear();
+        if (_writingTimerInterval) { clearInterval(_writingTimerInterval); _writingTimerInterval = null; }
+        _writingAgentTimes = {};
+        Object.keys(_nodeDetails).forEach(k => delete _nodeDetails[k]);
+        ['research','writing','review'].forEach(n => {
+            const t = document.getElementById('flow-time-' + n);
+            if (t) t.textContent = '';
         });
         ['researcher','writer','reviewer'].forEach(a => {
             document.getElementById('status-' + a).className = 'agent-status pending';
@@ -2112,14 +2444,25 @@
     }
 
     function setPhase(phase) {
-        const order = ['research','writing','review','complete'];
+        const order = ['research','writing','review'];
+        const completeEl = document.getElementById('flow-complete');
+        if (phase === 'complete') {
+            order.forEach(n => {
+                const el = document.getElementById('flow-' + n);
+                if (el) { el.classList.remove('active'); el.classList.add('done'); }
+            });
+            if (completeEl) completeEl.classList.add('done');
+            return;
+        }
         const idx = order.indexOf(phase);
-        order.forEach((p, i) => {
-            const el = document.getElementById('phase-' + p);
+        order.forEach((n, i) => {
+            const el = document.getElementById('flow-' + n);
+            if (!el) return;
             el.classList.remove('active','done');
             if (i < idx) el.classList.add('done');
             else if (i === idx) el.classList.add('active');
         });
+        if (completeEl) completeEl.classList.remove('done');
     }
 
     function setAgentStatus(agent, status, text) {
@@ -2166,7 +2509,18 @@
             if (!agent) return;
 
             if (data.agentStatus === 'running') {
+                _writingAgentTimes[agent] = Date.now();
+                startWritingLiveTimer(agent);
                 setAgentStatus(agent, 'running');
+                // 立即更新流程图节点为执行中
+                const wNode = _writingAgentNodeMap[agent];
+                if (wNode) {
+                    const flowEl = document.getElementById('flow-' + wNode);
+                    if (flowEl) { flowEl.classList.remove('done'); flowEl.classList.add('active'); }
+                    storeNodeDetail(wNode, 'startTime', Date.now());
+                    if (data.materials) storeNodeDetail(wNode, 'materials', data.materials);
+                    if (data.message) storeNodeDetail(wNode, 'message', data.message);
+                }
                 document.getElementById('panel-' + agent).classList.add('open');
                 _writingThinkingVisible = true;
                 if (data.message) {
@@ -2187,6 +2541,20 @@
                 setAgentStatus(agent, 'done');
                 if (data.output) {
                     document.getElementById('output-' + agent).textContent = data.output;
+                }
+                // 停止计时并显示最终耗时
+                stopWritingTimer(agent);
+                const wNode = _writingAgentNodeMap[agent];
+                if (wNode) {
+                    // 立即更新流程图节点状态
+                    const flowEl = document.getElementById('flow-' + wNode);
+                    if (flowEl) { flowEl.classList.remove('active'); flowEl.classList.add('done'); }
+                    if (_writingAgentTimes[agent]) {
+                        const tEl = document.getElementById('flow-time-' + wNode);
+                        if (tEl) tEl.textContent = formatElapsed(Date.now() - _writingAgentTimes[agent]);
+                    }
+                    storeNodeDetail(wNode, 'endTime', Date.now());
+                    if (data.output) storeNodeDetail(wNode, 'output', data.output);
                 }
             }
         });
@@ -2241,7 +2609,7 @@
 
         // SSE 连接异常
         eventSource.onerror = () => {
-            const completePhase = document.getElementById('phase-complete');
+            const completePhase = document.getElementById('flow-complete');
             if (!completePhase.classList.contains('done')) {
                 eventSource.close();
                 document.getElementById('writing-error').textContent = '进度连接中断，请刷新页面重试。';
@@ -2473,7 +2841,11 @@
                     <td>${statusLabel}</td>
                     <td>${score}</td>
                     <td style="white-space:nowrap">${time}</td>
-                    <td><button class="btn btn-outline btn-sm" onclick="showExamHistoryDetail('${esc(h.sessionId)}')">查看</button></td>
+                    <td style="white-space:nowrap">
+                        <button class="btn btn-outline btn-sm" onclick="showExamHistoryDetail('${esc(h.sessionId)}')">查看</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportHistoryWord('${esc(h.sessionId)}')" title="导出 Word">导出</button>
+                        <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="deleteExamHistory('${esc(h.sessionId)}')" title="删除">删除</button>
+                    </td>
                 </tr>`;
             }).join('');
         } catch (e) {
@@ -2576,9 +2948,72 @@
         }
     }
 
+    async function deleteExamHistory(sessionId) {
+        if (!confirm('确定要删除这条出卷记录吗？')) return;
+        try {
+            const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId), { method: 'DELETE' });
+            if (!res.ok) throw new Error('删除失败');
+            toast('出卷记录已删除', 'success');
+            loadExamHistory();
+        } catch (e) {
+            console.error('删除出卷历史失败', e);
+            toast('删除失败: ' + e.message, 'error');
+        }
+    }
+
+    async function exportHistoryWord(sessionId) {
+        try {
+            const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId) + '/export-word', { method: 'POST' });
+            if (!res.ok) throw new Error('导出失败');
+            const blob = await res.blob();
+            const disposition = res.headers.get('Content-Disposition') || '';
+            let filename = '试卷.docx';
+            const match = disposition.match(/filename\*?=(?:UTF-8'')?(.+)/);
+            if (match) filename = decodeURIComponent(match[1]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast('导出成功', 'success');
+        } catch (e) {
+            console.error('导出历史试卷失败', e);
+            toast('导出失败: ' + e.message, 'error');
+        }
+    }
+
     // ==================== AI Exam ====================
     let _lastExamRequest = null;
     let _examThinkingVisible = false;
+    let _examAgentTimes = {};
+    let _examTimerInterval = null;
+    let _examActiveTimers = new Set();
+    const _examAgentNodeMap = { researcher:'research', scoring:'scoring', writer:'writing', answer:'answer', reviewer:'review', calibrator:'calibrate', deduplicator:'dedup' };
+
+    function startExamLiveTimer(agent) {
+        _examActiveTimers.add(agent);
+        if (!_examTimerInterval) {
+            _examTimerInterval = setInterval(() => {
+                _examActiveTimers.forEach(a => {
+                    const node = _examAgentNodeMap[a];
+                    if (node && _examAgentTimes[a]) {
+                        const tEl = document.getElementById('exam-flow-time-' + node);
+                        if (tEl) tEl.textContent = formatElapsed(Date.now() - _examAgentTimes[a]);
+                    }
+                });
+            }, 200);
+        }
+    }
+    function stopExamTimer(agent) {
+        _examActiveTimers.delete(agent);
+        if (_examActiveTimers.size === 0 && _examTimerInterval) {
+            clearInterval(_examTimerInterval);
+            _examTimerInterval = null;
+        }
+    }
 
     function resetExamUI() {
         document.getElementById('exam-progress').classList.add('active');
@@ -2586,13 +3021,25 @@
         document.getElementById('exam-error').textContent = '';
         document.getElementById('exam-result').style.display = 'none';
         document.getElementById('exam-answer-section').style.display = 'none';
-        // 重置阶段步骤
-        ['research','writing','answer','review','calibrate','dedup'].forEach(p => {
-            const el = document.getElementById('exam-phase-' + p);
+        // 开始节点始终为完成态
+        document.getElementById('exam-flow-start').classList.add('done');
+        // 重置流程图节点
+        ['research','scoring','writing','answer','calibrate','review','dedup'].forEach(n => {
+            const el = document.getElementById('exam-flow-' + n);
             if (el) el.classList.remove('active','done');
         });
+        // 重置完成终端
+        document.getElementById('exam-flow-complete').classList.remove('done');
+        // 重置耗时
+        _examActiveTimers.clear();
+        if (_examTimerInterval) { clearInterval(_examTimerInterval); _examTimerInterval = null; }
+        _examAgentTimes = {};
+        ['research','scoring','writing','answer','calibrate','review','dedup'].forEach(n => {
+            const t = document.getElementById('exam-flow-time-' + n);
+            if (t) t.textContent = '';
+        });
         // 重置 Agent 面板
-        ['researcher','writer','answer','reviewer','calibrator','deduplicator'].forEach(a => {
+        ['researcher','scoring','writer','answer','reviewer','calibrator','deduplicator'].forEach(a => {
             setExamAgentStatus(a, 'pending');
             const outputEl = document.getElementById('exam-output-' + a);
             if (outputEl) outputEl.textContent = '等待执行...';
@@ -2601,22 +3048,35 @@
         });
         // 重置物料
         document.getElementById('exam-materials-researcher').textContent = '等待检索...';
+        document.getElementById('exam-materials-scoring').textContent = '等待检索...';
         document.getElementById('exam-materials-writer').textContent = '等待研究员完成...';
         document.getElementById('exam-materials-answer').textContent = '等待出题人完成...';
         document.getElementById('exam-materials-reviewer').textContent = '等待答案生成完成...';
-        document.getElementById('exam-materials-calibrator').textContent = '等待审核完成...';
-        document.getElementById('exam-materials-deduplicator').textContent = '等待校准完成...';
+        document.getElementById('exam-materials-calibrator').textContent = '等待出题人完成...';
+        document.getElementById('exam-materials-deduplicator').textContent = '等待答案生成完成...';
     }
 
     function setExamPhase(phase) {
-        const order = ['research','writing','answer','review','calibrate','dedup'];
-        const idx = order.indexOf(phase);
-        order.forEach((p, i) => {
-            const el = document.getElementById('exam-phase-' + p);
-            if (!el) return;
-            el.classList.remove('active','done');
-            if (i < idx) el.classList.add('done');
-            else if (i === idx) el.classList.add('active');
+        // 阶段顺序：stage1(research,scoring) → stage2(writing) → stage3(answer,calibrate) → stage4(review,dedup)
+        const stages = [
+            ['research', 'scoring'],
+            ['writing'],
+            ['answer', 'calibrate'],
+            ['review', 'dedup']
+        ];
+        // 找到当前 phase 所在的阶段索引
+        let stageIdx = -1;
+        for (let i = 0; i < stages.length; i++) {
+            if (stages[i].includes(phase)) { stageIdx = i; break; }
+        }
+        stages.forEach((stage, i) => {
+            stage.forEach(node => {
+                const el = document.getElementById('exam-flow-' + node);
+                if (!el) return;
+                el.classList.remove('active', 'done');
+                if (i < stageIdx) el.classList.add('done');
+                else if (i === stageIdx) el.classList.add('active');
+            });
         });
     }
 
@@ -2673,7 +3133,7 @@
         eventSource.addEventListener('PHASE', (e) => {
             const data = JSON.parse(e.data);
             const phaseMap = {
-                'INIT': 'research', 'RESEARCH': 'research',
+                'INIT': 'research', 'RESEARCH': 'research', 'SCORING': 'scoring',
                 'WRITING': 'writing', 'ANSWER_GENERATING': 'answer',
                 'REVIEWING': 'review', 'CALIBRATING': 'calibrate',
                 'DEDUPLICATING': 'dedup', 'COMPLETED': 'dedup'
@@ -2691,6 +3151,7 @@
             // Agent 名称映射到 UI 元素
             const agentUiMap = {
                 'exam-researcher': 'researcher',
+                'exam-scoring': 'scoring',
                 'exam-writer': 'writer',
                 'answer-generator': 'answer',
                 'exam-reviewer': 'reviewer',
@@ -2700,7 +3161,18 @@
             const uiAgent = agentUiMap[agent] || agent;
 
             if (data.agentStatus === 'running') {
+                _examAgentTimes[uiAgent] = Date.now();
+                startExamLiveTimer(uiAgent);
                 setExamAgentStatus(uiAgent, 'running');
+                // 立即更新流程图节点为执行中
+                const eNode = _examAgentNodeMap[uiAgent];
+                if (eNode) {
+                    const flowEl = document.getElementById('exam-flow-' + eNode);
+                    if (flowEl) { flowEl.classList.remove('done'); flowEl.classList.add('active'); }
+                    storeNodeDetail(eNode, 'startTime', Date.now());
+                    if (data.materials) storeNodeDetail(eNode, 'materials', data.materials);
+                    if (data.message) storeNodeDetail(eNode, 'message', data.message);
+                }
                 const panel = document.getElementById('exam-panel-' + uiAgent);
                 if (panel) panel.classList.add('open');
                 _examThinkingVisible = true;
@@ -2718,6 +3190,20 @@
                     const outputEl = document.getElementById('exam-output-' + uiAgent);
                     if (outputEl) outputEl.textContent = data.output;
                 }
+                // 停止计时并显示最终耗时
+                stopExamTimer(uiAgent);
+                const eNode = _examAgentNodeMap[uiAgent];
+                if (eNode) {
+                    // 立即更新流程图节点状态
+                    const flowEl = document.getElementById('exam-flow-' + eNode);
+                    if (flowEl) { flowEl.classList.remove('active'); flowEl.classList.add('done'); }
+                    if (_examAgentTimes[uiAgent]) {
+                        const tEl = document.getElementById('exam-flow-time-' + eNode);
+                        if (tEl) tEl.textContent = formatElapsed(Date.now() - _examAgentTimes[uiAgent]);
+                    }
+                    storeNodeDetail(eNode, 'endTime', Date.now());
+                    if (data.output) storeNodeDetail(eNode, 'output', data.output);
+                }
             }
         });
 
@@ -2725,12 +3211,14 @@
         eventSource.addEventListener('COMPLETED', (e) => {
             const data = JSON.parse(e.data);
             eventSource.close();
-            setExamPhase('dedup');
-            // 标记所有步骤完成
-            ['research','writing','answer','review','calibrate','dedup'].forEach(p => {
-                const el = document.getElementById('exam-phase-' + p);
+            // 标记所有流程图节点完成
+            ['research','scoring','writing','answer','calibrate','review','dedup'].forEach(n => {
+                const el = document.getElementById('exam-flow-' + n);
                 if (el) { el.classList.remove('active'); el.classList.add('done'); }
             });
+            // 标记完成终端
+            const completeEl = document.getElementById('exam-flow-complete');
+            if (completeEl) completeEl.classList.add('done');
 
             // 显示结果
             const resultEl = document.getElementById('exam-result');
@@ -2979,8 +3467,664 @@
         return files;
     }
 
+    // ==================== Exam Review ====================
+    let currentReviewSessionId = null;
+
+    function showExamReview() {
+        loadPendingGrading();
+        loadPendingReviews();
+    }
+
+    async function loadPendingGrading() {
+        const tbody = document.getElementById('pending-grading-list');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">加载中...</td></tr>';
+        try {
+            const countRes = await fetch(API + '/api/admin/exam-review/pending-grading?limit=1&offset=0');
+            const countData = await countRes.json();
+            document.getElementById('grading-pending-count').textContent = countData.total || 0;
+
+            const res = await fetch(API + '/api/admin/exam-review/pending-grading?limit=20&offset=0');
+            const data = await res.json();
+            const records = data.records || [];
+
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">暂无待评分记录</td></tr>';
+                return;
+            }
+
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            tbody.innerHTML = records.map(function(r) {
+                const diff = difficultyMap[r.difficulty] || [r.difficulty || '-', 'badge-info'];
+                const duration = r.durationMinutes ? r.durationMinutes + '分钟' : '不限时';
+                return '<tr>'
+                    + '<td>' + esc(r.studentId) + '</td>'
+                    + '<td>' + esc(r.topic) + '</td>'
+                    + '<td><span class="badge ' + diff[1] + '">' + diff[0] + '</span></td>'
+                    + '<td>' + duration + '</td>'
+                    + '<td>' + (r.totalScore != null ? r.totalScore : '-') + '</td>'
+                    + '<td>' + esc(r.submitTime || '-') + '</td>'
+                    + '<td><button class="btn btn-primary btn-sm" onclick="triggerSingleGrading(' + (r.id) + ')">AI 评分</button></td>'
+                    + '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load pending grading', e);
+            tbody.innerHTML = '<tr><td colspan="7" class="loading" style="color:var(--danger)">加载失败</td></tr>';
+        }
+    }
+
+    async function triggerSingleGrading(sessionId) {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '评分中...';
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/trigger-grading', { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                alert('评分失败: ' + data.error);
+            } else {
+                alert(data.message || 'AI 评分完成');
+            }
+            loadPendingGrading();
+            loadPendingReviews();
+        } catch (e) {
+            alert('评分失败: ' + e.message);
+            btn.disabled = false;
+            btn.textContent = 'AI 评分';
+        }
+    }
+
+    async function batchTriggerGrading() {
+        if (!confirm('确定要对所有待评分考试执行 AI 评分吗？')) return;
+        const btn = document.getElementById('batch-grade-btn');
+        btn.disabled = true;
+        btn.textContent = '评分中...';
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/batch-trigger-grading', { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                alert('批量评分失败: ' + data.error);
+            } else {
+                alert((data.message || '批量评分完成') + '，共处理 ' + (data.count || 0) + ' 场考试');
+            }
+            loadPendingGrading();
+            loadPendingReviews();
+        } catch (e) {
+            alert('批量评分失败: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '一键 AI 评分';
+        }
+    }
+
+    async function loadPendingReviews() {
+        const tbody = document.getElementById('pending-review-list');
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">加载中...</td></tr>';
+        try {
+            // Load pending count
+            const countRes = await fetch(API + '/api/admin/exam-review/pending?limit=1&offset=0');
+            const countData = await countRes.json();
+            document.getElementById('review-pending-count').textContent = countData.total || 0;
+
+            // Load pending records
+            const res = await fetch(API + '/api/admin/exam-review/pending?limit=20&offset=0');
+            const data = await res.json();
+            const records = data.records || [];
+
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">暂无待复核记录</td></tr>';
+                return;
+            }
+
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            tbody.innerHTML = records.map(function(r) {
+                const diff = difficultyMap[r.difficulty] || [r.difficulty || '-', 'badge-info'];
+                const duration = r.durationMinutes ? r.durationMinutes + '分钟' : '不限时';
+                return '<tr>'
+                    + '<td>' + esc(r.studentId) + '</td>'
+                    + '<td>' + esc(r.topic) + '</td>'
+                    + '<td><span class="badge ' + diff[1] + '">' + diff[0] + '</span></td>'
+                    + '<td>' + duration + '</td>'
+                    + '<td>' + (r.aiScore != null ? r.aiScore : '-') + '</td>'
+                    + '<td>' + (r.totalScore != null ? r.totalScore : '-') + '</td>'
+                    + '<td>' + esc(r.submitTime || '-') + '</td>'
+                    + '<td><button class="btn btn-primary btn-sm" onclick="openReviewDetail(\'' + esc(r.id || r.sessionKey) + '\')">复核</button></td>'
+                    + '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load pending reviews', e);
+            tbody.innerHTML = '<tr><td colspan="8" class="loading" style="color:var(--danger)">加载失败</td></tr>';
+        }
+    }
+
+    async function openReviewDetail(sessionId) {
+        currentReviewSessionId = sessionId;
+        const overlay = document.getElementById('review-modal-overlay');
+        overlay.style.display = 'block';
+        const infoEl = document.getElementById('review-session-info');
+        const listEl = document.getElementById('review-answers-list');
+        const subtitleEl = document.getElementById('review-modal-subtitle');
+        infoEl.innerHTML = '<div class="loading">加载中...</div>';
+        listEl.innerHTML = '<div class="loading">加载中...</div>';
+        subtitleEl.textContent = '';
+
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/answers');
+            const data = await res.json();
+
+            const session = data;
+            const answers = data.answers || [];
+
+            if (!answers.length) {
+                infoEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:24px">暂无答题数据</div>';
+                listEl.innerHTML = '';
+                return;
+            }
+
+            // Render subtitle
+            subtitleEl.textContent = 'Session ID: ' + sessionId;
+
+            // Render session info card
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            const diff = difficultyMap[session.difficulty] || [session.difficulty || '-', 'badge-info'];
+            const statusMap = { SUBMITTED: ['已提交', 'badge-warning'], AI_GRADED: ['AI已评分', 'badge-info'], REVIEWED: ['已复核', 'badge-success'], PUBLISHED: ['已发布', 'badge-success'] };
+            const st = statusMap[session.status] || [session.status || '-', 'badge-info'];
+            const duration = session.durationMinutes ? session.durationMinutes + '分钟' : '不限时';
+
+            infoEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 20px;background:linear-gradient(135deg,#f0f9ff,#f8fafc);border-radius:10px;border:1px solid #e0f2fe">'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考试主题</div><div style="font-size:14px;font-weight:600;color:#1e293b">' + esc(session.topic || '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考生 ID</div><div style="font-size:14px;font-weight:600;color:#1e293b">' + esc(session.studentId != null ? session.studentId : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">难度</div><div><span class="badge ' + diff[1] + '">' + diff[0] + '</span></div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考试时长</div><div style="font-size:14px;color:#1e293b">' + duration + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">AI 评分</div><div style="font-size:18px;font-weight:700;color:var(--primary)">' + (session.aiScore != null ? session.aiScore : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">最终得分</div><div style="font-size:18px;font-weight:700;color:#1e293b">' + (session.finalScore != null ? session.finalScore : (session.aiScore != null ? session.aiScore : '-')) + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">总分</div><div style="font-size:14px;color:#1e293b">' + (session.totalScore != null ? session.totalScore : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">状态</div><div><span class="badge ' + st[1] + '">' + st[0] + '</span></div></div>'
+                + '</div>';
+
+            // Render answers
+            const typeMap = { SINGLE_CHOICE: '单选题', MULTI_CHOICE: '多选题', TRUE_FALSE: '判断题', FILL_BLANK: '填空题', SHORT_ANSWER: '简答题', ESSAY: '论述题' };
+            const typeColorMap = { SINGLE_CHOICE: '#3b82f6', MULTI_CHOICE: '#8b5cf6', TRUE_FALSE: '#06b6d4', FILL_BLANK: '#f59e0b', SHORT_ANSWER: '#10b981', ESSAY: '#ec4899' };
+
+            listEl.innerHTML = answers.map(function(a, idx) {
+                const qType = a.questionType || '-';
+                const qTypeLabel = typeMap[qType] || qType;
+                const qTypeColor = typeColorMap[qType] || '#6b7280';
+                const reviewScoreVal = a.reviewScore != null ? a.reviewScore : '';
+                const reviewFeedbackVal = a.reviewFeedback || '';
+
+                // Score badge styling
+                let scoreBadgeClass = '';
+                let scoreColor = '#6b7280';
+                if (a.aiScore != null && a.maxScore != null) {
+                    if (a.aiScore >= a.maxScore) { scoreColor = '#16a34a'; }
+                    else if (a.aiScore > 0) { scoreColor = '#f59e0b'; }
+                    else { scoreColor = '#dc2626'; }
+                }
+
+                // Student answer display
+                const studentAnswer = a.studentAnswer || '';
+                const correctAnswer = a.correctAnswer || '';
+                const hasAnswer = studentAnswer.trim().length > 0;
+
+                let html = '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff">';
+
+                // Question header
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">';
+                html += '<div style="width:28px;height:28px;border-radius:6px;background:' + qTypeColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">' + (idx + 1) + '</div>';
+                html += '<div style="flex:1;font-size:13px;font-weight:600;color:#1e293b">' + esc(qTypeLabel) + ' <span style="font-weight:400;color:#94a3b8">(' + (a.maxScore != null ? a.maxScore : 0) + '分)</span></div>';
+                if (a.aiScore != null) {
+                    html += '<div style="font-size:13px;font-weight:700;color:' + scoreColor + '">' + a.aiScore + ' / ' + (a.maxScore || 0) + ' 分</div>';
+                }
+                if (a.reviewScore != null) {
+                    html += '<div style="font-size:11px;background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:4px;font-weight:600">复核: ' + a.reviewScore + '</div>';
+                }
+                html += '</div>';
+
+                // Question content + answers grid
+                html += '<div style="padding:16px">';
+                html += '<div style="font-size:13px;color:#334155;line-height:1.7;margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid ' + qTypeColor + ';white-space:pre-wrap">' + esc(a.questionContent || '题目内容缺失') + '</div>';
+
+                // Two-column: student answer + correct answer
+                html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">';
+                html += '<div>';
+                html += '<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">考生答案</div>';
+                html += '<div style="font-size:13px;line-height:1.6;padding:10px 12px;border-radius:8px;min-height:40px;white-space:pre-wrap;' + (hasAnswer ? 'background:#fefce8;border:1px solid #fde68a' : 'background:#fef2f2;border:1px solid #fecaca;color:#991b1b') + '">' + (hasAnswer ? esc(studentAnswer) : '<em style="color:#991b1b">未作答</em>') + '</div>';
+                html += '</div>';
+                html += '<div>';
+                html += '<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">正确答案</div>';
+                html += '<div style="font-size:13px;line-height:1.6;padding:10px 12px;border-radius:8px;min-height:40px;background:#f0fdf4;border:1px solid #bbf7d0;white-space:pre-wrap">' + (correctAnswer ? esc(correctAnswer) : '<em style="color:#94a3b8">暂无标准答案</em>') + '</div>';
+                html += '</div>';
+                html += '</div>';
+
+                // AI feedback
+                if (a.aiFeedback) {
+                    html += '<div style="margin-bottom:12px">';
+                    html += '<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI 反馈</div>';
+                    html += '<div style="font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">' + esc(a.aiFeedback) + '</div>';
+                    html += '</div>';
+                }
+
+                // Review input section
+                html += '<div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px">';
+                html += '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">';
+                html += '<div style="min-width:100px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;font-weight:600">复核分数</label><input type="number" class="form-input" id="review-score-' + a.id + '" value="' + reviewScoreVal + '" min="0" max="' + (a.maxScore || 100) + '" style="width:100px;height:34px;font-size:13px"></div>';
+                html += '<div style="flex:1;min-width:180px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;font-weight:600">复核反馈</label><textarea class="form-input" id="review-feedback-' + a.id + '" rows="1" placeholder="输入复核意见..." style="min-height:34px;font-size:13px;resize:vertical">' + esc(reviewFeedbackVal) + '</textarea></div>';
+                html += '<button class="btn btn-primary btn-sm" onclick="submitAnswerReview(\'' + esc(a.id) + '\', \'' + esc(sessionId) + '\')" style="height:34px;white-space:nowrap;font-size:12px">提交复核</button>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '</div>'; // end padding
+                html += '</div>'; // end card
+                return html;
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load review detail', e);
+            infoEl.innerHTML = '';
+            listEl.innerHTML = '<div class="loading" style="color:var(--danger)">加载失败: ' + esc(e.message) + '</div>';
+        }
+    }
+
+    async function submitAnswerReview(answerId, sessionId) {
+        const scoreEl = document.getElementById('review-score-' + answerId);
+        const feedbackEl = document.getElementById('review-feedback-' + answerId);
+        const reviewScore = scoreEl ? scoreEl.value : '';
+        const reviewFeedback = feedbackEl ? feedbackEl.value : '';
+
+        if (reviewScore === '') {
+            toast('请输入复核分数', 'error');
+            return;
+        }
+
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/answer/' + answerId + '/review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reviewScore: Number(reviewScore),
+                    reviewFeedback: reviewFeedback,
+                    reviewer: 'admin'
+                })
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || '提交失败');
+            }
+            toast('复核提交成功', 'success');
+        } catch (e) {
+            console.error('Failed to submit answer review', e);
+            toast('提交失败: ' + e.message, 'error');
+        }
+    }
+
+    async function publishExamScore(sessionId) {
+        if (!sessionId) {
+            toast('缺少考试会话 ID', 'error');
+            return;
+        }
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/publish?reviewer=admin', {
+                method: 'POST'
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || '发布失败');
+            }
+            toast('成绩已发布', 'success');
+            closeReviewModal();
+            loadPendingGrading();
+            loadPendingReviews();
+        } catch (e) {
+            console.error('Failed to publish exam score', e);
+            toast('发布失败: ' + e.message, 'error');
+        }
+    }
+
+    async function updateSessionDuration() {
+        const sessionKey = document.getElementById('duration-session-key').value.trim();
+        const minutesInput = document.getElementById('duration-minutes').value;
+        if (!sessionKey) {
+            toast('请输入 Session Key', 'error');
+            return;
+        }
+        const minutes = minutesInput ? parseInt(minutesInput) : 0;
+        if (minutes < 0 || minutes > 600) {
+            toast('时长必须在 1-600 分钟之间', 'error');
+            return;
+        }
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + encodeURIComponent(sessionKey) + '/duration', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ durationMinutes: minutes > 0 ? minutes : null })
+            });
+            const data = await res.json();
+            if (data.error) {
+                toast('设置失败: ' + data.error, 'error');
+            } else {
+                toast(data.message || '考试时长已更新为 ' + (minutes > 0 ? minutes + ' 分钟' : '不限时'), 'success');
+                document.getElementById('duration-session-key').value = '';
+                document.getElementById('duration-minutes').value = '';
+            }
+        } catch (e) {
+            console.error('Failed to update session duration', e);
+            toast('设置失败: ' + e.message, 'error');
+        }
+    }
+
+    function closeReviewModal() {
+        document.getElementById('review-modal-overlay').style.display = 'none';
+        currentReviewSessionId = null;
+    }
+
+    // ==================== Error Book (错题本) ====================
+
+    let wbData = [];
+    let wbStudentLoaded = false;
+
+    const QUESTION_TYPE_LABELS = {
+        'SINGLE_CHOICE': '单选', 'MULTI_CHOICE': '多选', 'TRUE_FALSE': '判断',
+        'FILL_BLANK': '填空', 'SHORT_ANSWER': '简答', 'ESSAY': '论述'
+    };
+    const DIFFICULTY_LABELS = { 'EASY': '简单', 'MEDIUM': '中等', 'HARD': '困难' };
+
+    function initErrorBook() {
+        if (!wbStudentLoaded) {
+            loadStudentOptions();
+            wbStudentLoaded = true;
+        }
+        loadWrongAnswers();
+    }
+
+    async function loadStudentOptions() {
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers/students');
+            if (!res.ok) return;
+            const data = await res.json();
+            const sel = document.getElementById('wb-student');
+            const students = Array.isArray(data) ? data : (data.records || []);
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = (s.displayName || s.username) + (s.studentNo ? ' (' + s.studentNo + ')' : '');
+                sel.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Failed to load students for error book', e);
+        }
+    }
+
+    async function loadWrongAnswers() {
+        const studentId = document.getElementById('wb-student').value;
+        const topic = document.getElementById('wb-topic').value.trim();
+        const questionType = document.getElementById('wb-type').value;
+
+        const params = new URLSearchParams();
+        if (studentId) params.set('studentId', studentId);
+        if (topic) params.set('topic', topic);
+        if (questionType) params.set('questionType', questionType);
+
+        document.getElementById('wb-list').innerHTML = '<div class="loading">加载错题数据...</div>';
+        document.getElementById('wb-stats').innerHTML = '';
+
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers?' + params.toString());
+            if (!res.ok) throw new Error('查询失败');
+            const data = await res.json();
+            wbData = data.records || [];
+            renderWrongAnswerStats(wbData);
+            renderWrongAnswerList(wbData);
+        } catch (e) {
+            document.getElementById('wb-list').innerHTML = '<div style="text-align:center;color:var(--danger);padding:40px">' + esc(e.message) + '</div>';
+        }
+    }
+
+    function renderWrongAnswerStats(items) {
+        const statsEl = document.getElementById('wb-stats');
+        if (items.length === 0) {
+            statsEl.innerHTML = '';
+            return;
+        }
+
+        const totalCount = items.length;
+        const topics = new Set(items.map(i => i.topic));
+        const students = new Set(items.map(i => i.studentId));
+        const typeCounts = {};
+        items.forEach(i => { typeCounts[i.questionType] = (typeCounts[i.questionType] || 0) + 1; });
+        const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+
+        const avgScoreRate = items.reduce((sum, i) => {
+            return sum + (i.maxScore > 0 ? i.effectiveScore / i.maxScore : 0);
+        }, 0) / totalCount;
+
+        statsEl.innerHTML = `
+            <div class="stat-card"><div class="stat-value" style="color:var(--danger)">${totalCount}</div><div class="stat-label">错题总数</div></div>
+            <div class="stat-card"><div class="stat-value">${topics.size}</div><div class="stat-label">涉及主题</div></div>
+            <div class="stat-card"><div class="stat-value">${students.size}</div><div class="stat-label">涉及考生</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">${topType ? QUESTION_TYPE_LABELS[topType[0]] || topType[0] : '-'}</div><div class="stat-label">最多错题题型</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:${avgScoreRate < 0.3 ? 'var(--danger)' : 'var(--warning)'}">${Math.round(avgScoreRate * 100)}%</div><div class="stat-label">平均得分率</div></div>
+        `;
+    }
+
+    function renderWrongAnswerList(items) {
+        const listEl = document.getElementById('wb-list');
+        if (items.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:40px">暂无错题数据，请调整筛选条件</div>';
+            return;
+        }
+
+        let html = '';
+        items.forEach((item, idx) => {
+            const typeLabel = QUESTION_TYPE_LABELS[item.questionType] || item.questionType;
+            const diffLabel = DIFFICULTY_LABELS[item.difficulty] || item.difficulty;
+            const isObjective = ['SINGLE_CHOICE', 'MULTI_CHOICE', 'TRUE_FALSE'].includes(item.questionType);
+            const scoreColor = item.effectiveScore === 0 ? 'var(--danger)' : 'var(--warning)';
+            const scorePercent = item.maxScore > 0 ? Math.round(item.effectiveScore / item.maxScore * 100) : 0;
+
+            let optionsHtml = '';
+            if (item.optionsJson && isObjective) {
+                try {
+                    const options = JSON.parse(item.optionsJson);
+                    if (Array.isArray(options)) {
+                        optionsHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:13px">';
+                        options.forEach(opt => {
+                            const isCorrect = item.correctAnswer && opt.label === item.correctAnswer;
+                            const isStudentPick = item.studentAnswer && opt.label === item.studentAnswer;
+                            let style = 'padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px';
+                            if (isCorrect) style += ';background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:600';
+                            else if (isStudentPick) style += ';background:#ffebee;border-color:#f44336;color:#c62828;font-weight:600';
+                            optionsHtml += `<span style="${style}">${esc(opt.label)}. ${esc(opt.text)}</span>`;
+                        });
+                        optionsHtml += '</div>';
+                    }
+                } catch (e) { /* ignore parse error */ }
+            }
+
+            html += `
+            <div class="card" style="margin-bottom:12px;border-left:4px solid ${scoreColor}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <span style="background:${scoreColor};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">${typeLabel}</span>
+                        <span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:4px;font-size:12px">${esc(item.topic)}</span>
+                        <span style="background:#f3e5f5;color:#7b1fa2;padding:2px 8px;border-radius:4px;font-size:12px">${diffLabel}</span>
+                        <span style="font-size:12px;color:var(--text-secondary)">第 ${item.questionIndex} 题</span>
+                    </div>
+                    <div style="text-align:right">
+                        <span style="font-size:18px;font-weight:700;color:${scoreColor}">${item.effectiveScore}</span>
+                        <span style="font-size:13px;color:var(--text-secondary)"> / ${item.maxScore}分</span>
+                        <div style="font-size:11px;color:var(--text-light)">得分率 ${scorePercent}%</div>
+                    </div>
+                </div>
+                <div style="font-size:14px;line-height:1.6;margin-bottom:10px">${esc(item.questionContent)}</div>
+                ${optionsHtml}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+                    <div style="padding:10px;background:#fff3e0;border-radius:8px">
+                        <div style="font-size:12px;color:#e65100;font-weight:600;margin-bottom:4px">学生答案</div>
+                        <div style="font-size:13px">${esc(item.studentAnswer || '（未作答）')}</div>
+                    </div>
+                    <div style="padding:10px;background:#e8f5e9;border-radius:8px">
+                        <div style="font-size:12px;color:#2e7d32;font-weight:600;margin-bottom:4px">正确答案</div>
+                        <div style="font-size:13px">${esc(item.correctAnswer || '（无标准答案）')}</div>
+                    </div>
+                </div>
+                ${item.aiFeedback ? `<div style="padding:10px;background:#f5f5f5;border-radius:8px;font-size:13px;color:var(--text-secondary)"><span style="font-weight:600;color:var(--text-primary)">AI 反馈：</span>${esc(item.aiFeedback)}</div>` : ''}
+                <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-light)">
+                    <span>考生：${esc(item.studentName)}</span>
+                    <span>${item.submitTime ? item.submitTime.replace('T', ' ').substring(0, 16) : ''}</span>
+                </div>
+            </div>`;
+        });
+
+        listEl.innerHTML = html;
+    }
+
+    async function generateAiSummary() {
+        if (wbData.length === 0) {
+            toast('请先查询错题数据', 'error');
+            return;
+        }
+
+        const studentId = document.getElementById('wb-student').value;
+        const topic = document.getElementById('wb-topic').value.trim();
+        const questionType = document.getElementById('wb-type').value;
+
+        // Show loading modal
+        const overlay = document.getElementById('wb-summary-modal');
+        overlay.style.display = 'block';
+        document.getElementById('wb-summary-content').innerHTML = '<div class="loading" style="padding:30px;text-align:center"><p>AI 正在分析错题数据，请稍候...</p></div>';
+
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers/summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId: studentId ? parseInt(studentId) : null,
+                    topic: topic || null,
+                    questionType: questionType || null
+                })
+            });
+            const data = await res.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            const md = data.summary || '暂无分析结果';
+            document.getElementById('wb-summary-content').innerHTML = renderMarkdown(md);
+        } catch (e) {
+            document.getElementById('wb-summary-content').innerHTML = '<div style="color:var(--danger);padding:20px">分析失败：' + esc(e.message) + '</div>';
+        }
+    }
+
+    function closeWbSummaryModal() {
+        document.getElementById('wb-summary-modal').style.display = 'none';
+    }
+
+    function renderMarkdown(text) {
+        if (!text) return '';
+        let html = esc(text);
+        // Headers
+        html = html.replace(/^### (.+)$/gm, '<h4 style="margin:12px 0 6px">$1</h4>');
+        html = html.replace(/^## (.+)$/gm, '<h3 style="margin:16px 0 8px">$1</h3>');
+        html = html.replace(/^# (.+)$/gm, '<h2 style="margin:20px 0 10px">$1</h2>');
+        // Bold
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Lists
+        html = html.replace(/^\d+\. (.+)$/gm, '<div style="padding:2px 0 2px 16px">$1</div>');
+        html = html.replace(/^- (.+)$/gm, '<div style="padding:2px 0 2px 16px">&#8226; $1</div>');
+        // Line breaks
+        html = html.replace(/\n/g, '<br>');
+        return html;
+    }
+
     // Init
     loadDashboard();
     </script>
+
+    <!-- Node Detail Modal -->
+    <div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()">
+        <div class="node-modal">
+            <div class="node-modal-header">
+                <div class="node-modal-title">
+                    <span id="node-modal-name"></span>
+                    <span class="node-modal-badge pending" id="node-modal-badge"></span>
+                </div>
+                <button class="node-modal-close" onclick="closeNodeModal()">✕</button>
+            </div>
+            <div class="node-modal-body">
+                <div class="node-time-row">
+                    <div class="node-time-card">
+                        <div class="node-time-label">开始时间</div>
+                        <div class="node-time-value" id="node-modal-start">-</div>
+                    </div>
+                    <div class="node-time-card">
+                        <div class="node-time-label">结束时间</div>
+                        <div class="node-time-value" id="node-modal-end">-</div>
+                    </div>
+                    <div class="node-time-card">
+                        <div class="node-time-label">耗时</div>
+                        <div class="node-time-value" id="node-modal-elapsed">-</div>
+                    </div>
+                </div>
+                <div class="node-detail-section" id="node-modal-input-section">
+                    <div class="node-detail-title input">输入物料</div>
+                    <div class="node-detail-content" id="node-modal-input">等待数据...</div>
+                </div>
+                <div class="node-detail-section" id="node-modal-thinking-section">
+                    <div class="node-detail-title thinking">思考与分析</div>
+                    <div class="node-detail-content" id="node-modal-thinking">等待数据...</div>
+                </div>
+                <div class="node-detail-section" id="node-modal-output-section">
+                    <div class="node-detail-title output">输出结果</div>
+                    <div class="node-detail-content" id="node-modal-output">等待数据...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exam Review Detail Modal -->
+    <div id="review-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:20px 0" onclick="if(event.target===this)closeReviewModal()">
+        <div style="background:#fff;border-radius:12px;width:960px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+            <!-- Modal Header -->
+            <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#f8fafc,#fff);border-radius:12px 12px 0 0">
+                <div>
+                    <h3 style="font-size:18px;font-weight:700;margin:0">成绩复核详情</h3>
+                    <p id="review-modal-subtitle" style="font-size:12px;color:var(--text-light);margin-top:2px"></p>
+                </div>
+                <button onclick="closeReviewModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">&times;</button>
+            </div>
+
+            <div style="padding:24px 28px">
+                <!-- Session Info -->
+                <div id="review-session-info" style="margin-bottom:24px"></div>
+
+                <!-- Answers List -->
+                <div id="review-answers-list" style="display:flex;flex-direction:column;gap:12px">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#f8fafc;border-radius:0 0 12px 12px">
+                <button class="btn btn-secondary" onclick="closeReviewModal()">关闭</button>
+                <button class="btn btn-primary" id="review-publish-btn" onclick="publishExamScore(currentReviewSessionId)" style="padding:10px 28px">发布成绩</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Book AI Summary Modal -->
+    <div id="wb-summary-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:30px 0" onclick="if(event.target===this)closeWbSummaryModal()">
+        <div style="background:#fff;border-radius:12px;width:800px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+            <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#e3f2fd,#fff);border-radius:12px 12px 0 0">
+                <div>
+                    <h3 style="font-size:18px;font-weight:700;margin:0">AI 错题分析总结</h3>
+                    <p style="font-size:12px;color:var(--text-light);margin-top:2px">基于错题数据的智能分析</p>
+                </div>
+                <button onclick="closeWbSummaryModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">&times;</button>
+            </div>
+            <div id="wb-summary-content" style="padding:24px 28px;font-size:14px;line-height:1.8;min-height:200px">
+            </div>
+            <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;background:#f8fafc;border-radius:0 0 12px 12px">
+                <button class="btn btn-secondary" onclick="closeWbSummaryModal()">关闭</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -30,7 +30,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/", "/admin.html", "/index.html",
+                        .requestMatchers("/", "/admin.html", "/exam.html", "/index.html",
                                 "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 );

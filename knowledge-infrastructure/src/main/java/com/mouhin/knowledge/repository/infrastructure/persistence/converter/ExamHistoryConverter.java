@@ -23,6 +23,7 @@ public final class ExamHistoryConverter {
         domain.setSessionId(doObj.getSessionId());
         domain.setTopic(doObj.getTopic());
         domain.setDifficulty(doObj.getDifficulty());
+        domain.setDurationMinutes(doObj.getDurationMinutes());
         domain.setQuestionConfig(doObj.getQuestionConfig());
         domain.setExamPaper(doObj.getExamPaper());
         domain.setAnswerKey(doObj.getAnswerKey());
@@ -51,6 +52,7 @@ public final class ExamHistoryConverter {
         doObj.setSessionId(domain.getSessionId());
         doObj.setTopic(domain.getTopic());
         doObj.setDifficulty(domain.getDifficulty());
+        doObj.setDurationMinutes(domain.getDurationMinutes());
         doObj.setQuestionConfig(domain.getQuestionConfig());
         doObj.setExamPaper(domain.getExamPaper());
         doObj.setAnswerKey(domain.getAnswerKey());

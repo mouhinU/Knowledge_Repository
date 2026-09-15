@@ -33,9 +33,9 @@ import java.util.concurrent.Executors;
  * 支持两种模式：
  * <ul>
  *     <li>同步模式（generateExam）：单次 LLM 调用生成试卷，用于 Word 导出</li>
- *     <li>异步模式（generateExamAsync）：6 步 Agent 流水线，支持 SSE 实时进度</li>
+ *     <li>异步模式（generateExamAsync）：7 步 Agent 流水线（含并行），支持 SSE 实时进度</li>
  * </ul>
- * 异步流水线：知识检索 → 试卷编写 → 答案生成 → 内容审核 → 难度校准 → 查重去重
+ * 异步流水线：(知识检索 ∥ 分值分配) → 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
  * </p>
  *
  * @author Knowledge-Repository
@@ -48,10 +48,11 @@ public class ExamGenerationApplicationService {
 
     private static final int DEFAULT_MAX_RESULTS = 20;
     private static final double DEFAULT_MIN_SCORE = 0.3;
-    private static final int QUALITY_SCORE_THRESHOLD = 75;
-    private static final int MAX_REVIEW_RETRIES = 2;
+    private static final int QUALITY_SCORE_THRESHOLD = 80;
+    private static final int MAX_REVIEW_RETRIES = 5;
 
     private final BlackboardAgent examResearcherAgent;
+    private final BlackboardAgent examScoringAgent;
     private final BlackboardAgent examWriterAgent;
     private final BlackboardAgent answerKeyGeneratorAgent;
     private final BlackboardAgent examReviewerAgent;
@@ -72,6 +73,7 @@ public class ExamGenerationApplicationService {
 
     public ExamGenerationApplicationService(
             @Qualifier("examResearcherAgent") BlackboardAgent examResearcherAgent,
+            @Qualifier("examScoringAgent") BlackboardAgent examScoringAgent,
             @Qualifier("examWriterAgent") BlackboardAgent examWriterAgent,
             @Qualifier("answerKeyGeneratorAgent") BlackboardAgent answerKeyGeneratorAgent,
             @Qualifier("examReviewerAgent") BlackboardAgent examReviewerAgent,
@@ -82,6 +84,7 @@ public class ExamGenerationApplicationService {
             ChatModel chatModel,
             ExamHistoryRepository examHistoryRepository) {
         this.examResearcherAgent = examResearcherAgent;
+        this.examScoringAgent = examScoringAgent;
         this.examWriterAgent = examWriterAgent;
         this.answerKeyGeneratorAgent = answerKeyGeneratorAgent;
         this.examReviewerAgent = examReviewerAgent;
@@ -94,7 +97,7 @@ public class ExamGenerationApplicationService {
     }
 
     /**
-     * 异步启动试卷生成（6 步 Agent 流水线），立即返回。
+     * 异步启动试卷生成（7 步 Agent 流水线，含并行），立即返回。
      *
      * @param topic            考试主题
      * @param difficulty       难度（EASY / MEDIUM / HARD）
@@ -163,19 +166,36 @@ public class ExamGenerationApplicationService {
                 }
             }
 
-            // 2. 出卷研究员 Agent
-            examResearcherAgent.execute(blackboard, callback);
+            // 2. 出卷研究员 Agent ∥ 分值分配 Agent（无数据依赖，并行执行）
+            if (callback != null) {
+                callback.onProgress(BlackboardProgressEvent.phaseChanged(
+                        BlackboardPhase.RESEARCH, "正在检索知识库并计算分值分配..."));
+            }
+            CompletableFuture<Void> researchFuture = CompletableFuture.runAsync(
+                    () -> examResearcherAgent.execute(blackboard, callback), agentExecutor);
+            CompletableFuture<Void> scoringFuture = CompletableFuture.runAsync(
+                    () -> examScoringAgent.execute(blackboard, callback), agentExecutor);
+            CompletableFuture.allOf(researchFuture, scoringFuture).join();
 
-            // 3-5. 试卷编写 → 答案生成 → 内容审核（低分自动重试，最多 MAX_REVIEW_RETRIES 次）
+            // 3-5. 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
+            // 低分自动重试，最多 MAX_REVIEW_RETRIES 次
             for (int attempt = 0; attempt <= MAX_REVIEW_RETRIES; attempt++) {
                 // 3. 试卷编写 Agent（重试时会读取审核反馈进行改进）
                 examWriterAgent.execute(blackboard, callback);
 
-                // 4. 答案生成 Agent
-                answerKeyGeneratorAgent.execute(blackboard, callback);
+                // 4. 答案生成 Agent ∥ 难度校准 Agent（均只依赖 examPaper，并行执行）
+                CompletableFuture<Void> answerFuture = CompletableFuture.runAsync(
+                        () -> answerKeyGeneratorAgent.execute(blackboard, callback), agentExecutor);
+                CompletableFuture<Void> calibratorFuture = CompletableFuture.runAsync(
+                        () -> examCalibratorAgent.execute(blackboard, callback), agentExecutor);
+                answerFuture.join();  // 等待答案完成，审核和查重依赖 answerKey
 
-                // 5. 内容审核 Agent
-                examReviewerAgent.execute(blackboard, callback);
+                // 5. 内容审核 Agent ∥ 查重去重 Agent（均依赖 examPaper + answerKey，并行执行）
+                CompletableFuture<Void> reviewFuture = CompletableFuture.runAsync(
+                        () -> examReviewerAgent.execute(blackboard, callback), agentExecutor);
+                CompletableFuture<Void> dedupFuture = CompletableFuture.runAsync(
+                        () -> examDeduplicatorAgent.execute(blackboard, callback), agentExecutor);
+                CompletableFuture.allOf(reviewFuture, dedupFuture).join();
 
                 int score = blackboard.getQualityScore();
                 if (score >= QUALITY_SCORE_THRESHOLD || attempt == MAX_REVIEW_RETRIES) {
@@ -193,12 +213,6 @@ public class ExamGenerationApplicationService {
                                     score, QUALITY_SCORE_THRESHOLD, attempt + 1, MAX_REVIEW_RETRIES)));
                 }
             }
-
-            // 6. 难度校准 Agent
-            examCalibratorAgent.execute(blackboard, callback);
-
-            // 7. 查重去重 Agent
-            examDeduplicatorAgent.execute(blackboard, callback);
 
             logger.info("试卷生成完成 [session={}, phase={}, score={}]",
                     sessionId, blackboard.getPhase(), blackboard.getQualityScore());
@@ -454,6 +468,9 @@ public class ExamGenerationApplicationService {
             history.setQuestionConfig(questionConfig);
             history.setExamPaper(blackboard.getExamPaper());
             history.setAnswerKey(blackboard.getAnswerKey());
+            history.setDurationMinutes(
+                    com.mouhin.knowledge.repository.application.util.ExamPaperParser
+                            .parseDuration(blackboard.getExamPaper()));
             history.setQualityScore(blackboard.getQualityScore());
             history.setRetrievedChunks(retrievedChunks);
             history.setKeyFindings(blackboard.getKeyFindings());
@@ -492,5 +509,15 @@ public class ExamGenerationApplicationService {
      */
     public ExamHistory getHistoryBySessionId(String sessionId) {
         return examHistoryRepository.findBySessionId(sessionId).orElse(null);
+    }
+
+    /**
+     * 删除出卷历史记录
+     *
+     * @param sessionId 会话 ID
+     */
+    public void deleteHistory(String sessionId) {
+        examHistoryRepository.deleteBySessionId(sessionId);
+        logger.info("出卷历史记录已删除 [session={}]", sessionId);
     }
 }

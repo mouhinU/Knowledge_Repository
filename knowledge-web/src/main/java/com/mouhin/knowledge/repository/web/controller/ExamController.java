@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -267,5 +268,49 @@ public class ExamController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(history);
+    }
+
+    /**
+     * 删除出卷历史记录
+     *
+     * @param sessionId 会话 ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/exam/history/{sessionId}")
+    public ResponseEntity<Map<String, String>> deleteExamHistory(@PathVariable String sessionId) {
+        examGenerationService.deleteHistory(sessionId);
+        return ResponseEntity.ok(Map.of("message", "出卷历史已删除: " + sessionId));
+    }
+
+    /**
+     * 导出历史试卷为 Word 文档
+     *
+     * @param sessionId 会话 ID
+     * @param response  HTTP 响应
+     */
+    @PostMapping("/exam/history/{sessionId}/export-word")
+    public void exportHistoryWord(@PathVariable String sessionId,
+                                  HttpServletResponse response) {
+        ExamHistory history = examGenerationService.getHistoryBySessionId(sessionId);
+        if (history == null || history.getExamPaper() == null) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        try {
+            String topic = history.getTopic() != null ? history.getTopic() : "试卷";
+            String filename = URLEncoder.encode(topic + "_试卷.docx", StandardCharsets.UTF_8);
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
+
+            examWordExporter.export(history.getExamPaper(), response.getOutputStream());
+            response.flushBuffer();
+
+            logger.info("历史试卷 Word 导出完成 [session={}, topic={}]", sessionId, topic);
+        } catch (Exception e) {
+            logger.error("历史试卷 Word 导出失败 [session={}]", sessionId, e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 }

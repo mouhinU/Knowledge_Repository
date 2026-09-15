@@ -32,6 +32,9 @@ public class ExamHistoryDO {
     @TableField("difficulty")
     private String difficulty;
 
+    @TableField("duration_minutes")
+    private Integer durationMinutes;
+
     @TableField("question_config")
     private String questionConfig;
 

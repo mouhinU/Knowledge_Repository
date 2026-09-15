@@ -73,6 +73,9 @@ public class BlackboardState {
     /** 题型配置描述（JSON 格式：各题型数量） */
     private String examQuestionConfig;
 
+    /** 分值分配方案（各题型每题分值、小计、总分） */
+    private String scoringScheme;
+
     /** 生成的试卷内容（Markdown） */
     private String examPaper;
 
@@ -248,6 +251,15 @@ public class BlackboardState {
 
     public void setExamQuestionConfig(String examQuestionConfig) {
         this.examQuestionConfig = examQuestionConfig;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getScoringScheme() {
+        return scoringScheme;
+    }
+
+    public void setScoringScheme(String scoringScheme) {
+        this.scoringScheme = scoringScheme;
         this.updatedAt = Instant.now();
     }
 

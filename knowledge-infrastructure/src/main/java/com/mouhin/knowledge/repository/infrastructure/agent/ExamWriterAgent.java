@@ -45,6 +45,8 @@ public class ExamWriterAgent implements BlackboardAgent {
 
             输出格式要求：
             - 使用 Markdown 格式
+            - 试卷标题后紧跟一行考试时长信息，格式为：**考试时间：XX分钟**
+              根据题目数量、难度和科目特性合理设定时长（一般 30~120 分钟）
             - 按题型分节（一、单选题 / 二、多选题 / ...）
             - 每题标注分值，如 "（5分）"
             - 选择题选项用 A. B. C. D. 格式
@@ -64,6 +66,7 @@ public class ExamWriterAgent implements BlackboardAgent {
         String difficulty = blackboard.getExamDifficulty();
         String questionConfig = blackboard.getExamQuestionConfig();
         String reviewFeedback = blackboard.getExamReviewFeedback();
+        String scoringScheme = blackboard.getScoringScheme();
 
         boolean isRetry = reviewFeedback != null && !reviewFeedback.isBlank();
         logger.info("[ExamWriter] 开始{}编写试卷，主题：{}，难度：{}", isRetry ? "改进" : "", topic, difficulty);
@@ -90,13 +93,16 @@ public class ExamWriterAgent implements BlackboardAgent {
             default -> "中等（侧重理解和简单应用）";
         };
 
+        String scoringSection = (scoringScheme != null && !scoringScheme.isBlank())
+                ? "\n\n【分值分配方案（严格遵守）】\n" + scoringScheme : "";
+
         String userPrompt;
         if (isRetry) {
             userPrompt = String.format("""
                     考试主题：%s
                     难度要求：%s
                     题型分布：%s
-
+                    %s
                     以下是相关知识点：
 
                     %s
@@ -105,20 +111,22 @@ public class ExamWriterAgent implements BlackboardAgent {
                     %s
 
                     请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
-                    重点解决审核中指出的问题，保持优点，修正不足。只输出试卷，不要输出答案。
-                    """, topic, difficultyDesc, questionConfig, findings, reviewFeedback);
+                    重点解决审核中指出的问题，保持优点，修正不足。
+                    每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
+                    """, topic, difficultyDesc, questionConfig, scoringSection, findings, reviewFeedback);
         } else {
             userPrompt = String.format("""
                     考试主题：%s
                     难度要求：%s
                     题型分布：%s
-
+                    %s
                     以下是相关知识点：
 
                     %s
 
-                    请根据以上知识点和要求，编写一份完整的考试试卷。只输出试卷，不要输出答案。
-                    """, topic, difficultyDesc, questionConfig, findings);
+                    请根据以上知识点和要求，编写一份完整的考试试卷。
+                    每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
+                    """, topic, difficultyDesc, questionConfig, scoringSection, findings);
         }
 
         ChatRequest request = ChatRequest.builder()

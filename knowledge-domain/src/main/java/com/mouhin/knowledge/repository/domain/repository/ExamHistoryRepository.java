@@ -17,10 +17,17 @@ public interface ExamHistoryRepository {
 
     void update(ExamHistory history);
 
+    Optional<ExamHistory> findById(Long id);
+
     Optional<ExamHistory> findBySessionId(String sessionId);
 
     /**
      * 按创建时间倒序查询历史记录
      */
     List<ExamHistory> listRecent(int limit);
+
+    /**
+     * 根据会话 ID 删除出卷历史
+     */
+    void deleteBySessionId(String sessionId);
 }

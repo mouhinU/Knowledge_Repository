@@ -40,6 +40,12 @@ public class ExamHistoryRepositoryImpl implements ExamHistoryRepository {
     }
 
     @Override
+    public Optional<ExamHistory> findById(Long id) {
+        ExamHistoryDO doObj = examHistoryMapper.selectById(id);
+        return Optional.ofNullable(ExamHistoryConverter.toDomain(doObj));
+    }
+
+    @Override
     public Optional<ExamHistory> findBySessionId(String sessionId) {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getSessionId, sessionId);
@@ -55,5 +61,12 @@ public class ExamHistoryRepositoryImpl implements ExamHistoryRepository {
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
+    }
+
+    @Override
+    public void deleteBySessionId(String sessionId) {
+        LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ExamHistoryDO::getSessionId, sessionId);
+        examHistoryMapper.delete(wrapper);
     }
 }

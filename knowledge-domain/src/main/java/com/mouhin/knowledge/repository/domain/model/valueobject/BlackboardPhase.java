@@ -14,6 +14,9 @@ public enum BlackboardPhase {
     /** 研究阶段：检索知识库 */
     RESEARCH,
 
+    /** 分值分配阶段：根据题型和难度计算各题型分值 */
+    SCORING,
+
     /** 写作阶段：生成文章/试卷 */
     WRITING,
 

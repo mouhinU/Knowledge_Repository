@@ -22,6 +22,9 @@ public class ExamHistory {
     /** 难度：EASY / MEDIUM / HARD */
     private String difficulty;
 
+    /** 考试时长（分钟），AI 根据科目特性设定 */
+    private Integer durationMinutes;
+
     /** 题型配置描述 */
     private String questionConfig;
 
@@ -81,6 +84,9 @@ public class ExamHistory {
 
     public String getDifficulty() { return difficulty; }
     public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
+
+    public Integer getDurationMinutes() { return durationMinutes; }
+    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
 
     public String getQuestionConfig() { return questionConfig; }
     public void setQuestionConfig(String questionConfig) { this.questionConfig = questionConfig; }

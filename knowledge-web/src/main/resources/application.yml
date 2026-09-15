@@ -121,6 +121,10 @@ knowledge:
   storage:
     path: ${STORAGE_PATH:./data/documents}
 
+  # ---------- 在线考试评分配置 ----------
+  exam:
+    grading-delay-minutes: ${EXAM_GRADING_DELAY_MINUTES:30}
+
 # ==================== 日志 ====================
 logging:
   level:
