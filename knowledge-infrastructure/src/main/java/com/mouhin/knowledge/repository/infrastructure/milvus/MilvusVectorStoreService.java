@@ -33,7 +33,10 @@ import java.util.List;
 public class MilvusVectorStoreService {
 
     private static final Logger logger = LoggerFactory.getLogger(MilvusVectorStoreService.class);
-
+    /**
+     * 每批向量化处理的分块数量
+     */
+    private static final int EMBEDDING_BATCH_SIZE = 20;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final EmbeddingModel embeddingModel;
 
@@ -42,9 +45,6 @@ public class MilvusVectorStoreService {
         this.embeddingStore = embeddingStore;
         this.embeddingModel = embeddingModel;
     }
-
-    /** 每批向量化处理的分块数量 */
-    private static final int EMBEDDING_BATCH_SIZE = 20;
 
     /**
      * 批量向量化并存储文档分块

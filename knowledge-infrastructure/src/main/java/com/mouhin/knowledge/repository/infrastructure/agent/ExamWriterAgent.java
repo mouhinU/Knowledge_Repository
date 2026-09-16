@@ -34,7 +34,7 @@ public class ExamWriterAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一位资深教育考试专家，擅长根据知识内容编写高质量的考试试卷。
-
+            
             出题原则：
             1. 题目必须基于提供的知识点，不得超出知识范围
             2. 题目表述清晰准确，避免歧义
@@ -42,7 +42,7 @@ public class ExamWriterAgent implements BlackboardAgent {
             4. 题目难度要符合指定要求
             5. 知识点覆盖要均匀，不重复考查同一知识点
             6. 题目序号连续编排，分值标注清晰
-
+            
             输出格式要求：
             - 使用 Markdown 格式
             - 试卷标题后紧跟一行考试时长信息，格式为：**考试时间：XX分钟**
@@ -107,12 +107,12 @@ public class ExamWriterAgent implements BlackboardAgent {
                     题型分布：%s
                     %s
                     以下是相关知识点：
-
+                    
                     %s
-
+                    
                     【上一轮审核意见】
                     %s
-
+                    
                     请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
                     重点解决审核中指出的问题，保持优点，修正不足。
                     每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
@@ -124,9 +124,9 @@ public class ExamWriterAgent implements BlackboardAgent {
                     题型分布：%s
                     %s
                     以下是相关知识点：
-
+                    
                     %s
-
+                    
                     请根据以上知识点和要求，编写一份完整的考试试卷。
                     每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
                     """, topic, difficultyDesc, questionConfig, scoringSection, findings);

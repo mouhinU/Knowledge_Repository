@@ -63,8 +63,8 @@ public class ExamTakingApplicationService {
     /**
      * 从历史试卷开始考试
      *
-     * @param studentToken       考生令牌
-     * @param historySessionId   出卷历史会话 ID
+     * @param studentToken     考生令牌
+     * @param historySessionId 出卷历史会话 ID
      * @return 考试场次
      */
     @Transactional
@@ -289,8 +289,8 @@ public class ExamTakingApplicationService {
     /**
      * 更新考试场次的 questionsJson（用于修复旧数据的选项解析问题）
      *
-     * @param sessionKey   场次标识
-     * @param studentToken 考生令牌
+     * @param sessionKey    场次标识
+     * @param studentToken  考生令牌
      * @param questionsJson 新的题目 JSON
      */
     @Transactional
@@ -305,8 +305,8 @@ public class ExamTakingApplicationService {
     /**
      * 更新考试时长（管理员覆盖）
      *
-     * @param sessionKey       场次标识
-     * @param durationMinutes  新的考试时长（分钟），null 表示不限时
+     * @param sessionKey      场次标识
+     * @param durationMinutes 新的考试时长（分钟），null 表示不限时
      */
     @Transactional
     public void updateDuration(String sessionKey, Integer durationMinutes) {

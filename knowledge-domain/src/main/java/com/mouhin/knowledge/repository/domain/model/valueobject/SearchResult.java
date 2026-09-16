@@ -8,25 +8,39 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public final class SearchResult {
 
-    /** 匹配的文本分块 */
+    /**
+     * 匹配的文本分块
+     */
     private final String text;
 
-    /** 所属文档 ID */
+    /**
+     * 所属文档 ID
+     */
     private final String documentId;
 
-    /** 所属文档名称 */
+    /**
+     * 所属文档名称
+     */
     private final String documentName;
 
-    /** 页码（从 1 开始） */
+    /**
+     * 页码（从 1 开始）
+     */
     private final Integer pageNumber;
 
-    /** 分块在文档内的序号 */
+    /**
+     * 分块在文档内的序号
+     */
     private final Integer chunkIndex;
 
-    /** 相似度得分（0~1，1 为最相似） */
+    /**
+     * 相似度得分（0~1，1 为最相似）
+     */
     private final double score;
 
-    /** 文档分类 */
+    /**
+     * 文档分类
+     */
     private final String category;
 
     public SearchResult(String text, String documentId, String documentName,

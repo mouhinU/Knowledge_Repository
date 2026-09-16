@@ -33,7 +33,9 @@ public class ExamScoringAgent implements BlackboardAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamScoringAgent.class);
 
-    /** 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式 */
+    /**
+     * 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式
+     */
     private static final Pattern QUESTION_PATTERN =
             Pattern.compile("(单选题|多选题|判断题|填空题|简答题|论述题)\\s*(\\d+)\\s*[道题个]");
 

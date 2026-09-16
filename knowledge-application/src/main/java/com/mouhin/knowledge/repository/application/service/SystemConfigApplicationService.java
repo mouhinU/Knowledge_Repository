@@ -1,6 +1,5 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.repository.DocumentRepository;
 import com.mouhin.knowledge.repository.infrastructure.milvus.MilvusVectorStoreService;

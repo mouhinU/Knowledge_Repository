@@ -28,7 +28,9 @@ public class StudentAuthApplicationService {
 
     private static final Logger logger = LoggerFactory.getLogger(StudentAuthApplicationService.class);
 
-    /** 令牌有效期：24 小时 */
+    /**
+     * 令牌有效期：24 小时
+     */
     private static final int TOKEN_VALIDITY_HOURS = 24;
 
     private final StudentRepository studentRepository;

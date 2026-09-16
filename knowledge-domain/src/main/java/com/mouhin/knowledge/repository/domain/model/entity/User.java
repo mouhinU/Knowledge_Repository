@@ -13,16 +13,24 @@ public class User {
 
     private Long id;
 
-    /** 用户唯一标识（UUID） */
+    /**
+     * 用户唯一标识（UUID）
+     */
     private String userKey;
 
-    /** 用户名 */
+    /**
+     * 用户名
+     */
     private String username;
 
-    /** 所属部门 ID */
+    /**
+     * 所属部门 ID
+     */
     private String departmentId;
 
-    /** 是否为超级管理员 */
+    /**
+     * 是否为超级管理员
+     */
     private Boolean admin;
 
     private LocalDateTime createdTime;

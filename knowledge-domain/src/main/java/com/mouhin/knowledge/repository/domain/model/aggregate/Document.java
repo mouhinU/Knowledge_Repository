@@ -17,55 +17,89 @@ public class Document {
 
     private Long id;
 
-    /** 文档唯一标识（UUID） */
+    /**
+     * 文档唯一标识（UUID）
+     */
     private String documentKey;
 
-    /** 原始文件名 */
+    /**
+     * 原始文件名
+     */
     private String fileName;
 
-    /** 文件 MIME 类型 */
+    /**
+     * 文件 MIME 类型
+     */
     private String fileType;
 
-    /** 文件大小（字节） */
+    /**
+     * 文件大小（字节）
+     */
     private Long fileSize;
 
-    /** 文件存储路径（对象存储 / 本地） */
+    /**
+     * 文件存储路径（对象存储 / 本地）
+     */
     private String storagePath;
 
-    /** 文件 MD5 校验值（用于去重） */
+    /**
+     * 文件 MD5 校验值（用于去重）
+     */
     private String fileChecksum;
 
-    /** 文档总页数 */
+    /**
+     * 文档总页数
+     */
     private Integer totalPages;
 
-    /** 处理状态 */
+    /**
+     * 处理状态
+     */
     private DocumentStatusEnum status;
 
-    /** 可见性 */
+    /**
+     * 可见性
+     */
     private DocumentVisibilityEnum visibility;
 
-    /** 所有者用户 ID */
+    /**
+     * 所有者用户 ID
+     */
     private String ownerId;
 
-    /** 所属部门 ID */
+    /**
+     * 所属部门 ID
+     */
     private String departmentId;
 
-    /** 允许访问的角色（JSON 数组字符串，如 ["ADMIN","MANAGER"]） */
+    /**
+     * 允许访问的角色（JSON 数组字符串，如 ["ADMIN","MANAGER"]）
+     */
     private String allowedRoles;
 
-    /** 文档摘要（AI 生成或手动填写） */
+    /**
+     * 文档摘要（AI 生成或手动填写）
+     */
     private String summary;
 
-    /** 分块配置 */
+    /**
+     * 分块配置
+     */
     private ChunkingConfig chunkingConfig;
 
-    /** 错误信息（处理失败时记录） */
+    /**
+     * 错误信息（处理失败时记录）
+     */
     private String errorMessage;
 
-    /** 标签（逗号分隔） */
+    /**
+     * 标签（逗号分隔）
+     */
     private String tags;
 
-    /** 文档分类（如：工作、学习、休闲） */
+    /**
+     * 文档分类（如：工作、学习、休闲）
+     */
     private String category;
 
     private LocalDateTime createdTime;

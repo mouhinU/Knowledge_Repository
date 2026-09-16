@@ -1,11 +1,7 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.repository.ExamHistoryRepository;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
@@ -351,7 +347,7 @@ public class ExamGenerationApplicationService {
     private String buildSystemPrompt() {
         return """
                 你是一个专业的出题专家。你的任务是根据提供的知识库内容，生成高质量的考试试卷。
-
+                
                 出题要求：
                 1. 题目必须基于知识库内容，不要编造知识库中不存在的知识点
                 2. 题目表述清晰准确，避免歧义
@@ -360,51 +356,51 @@ public class ExamGenerationApplicationService {
                 5. 每道题目都要有明确的参考答案
                 6. 使用 Markdown 格式输出
                 7. 分值必须严格遵循用户提供的【分值分配方案】：卷面总分等于方案给定的本卷满分，每题分值等于方案给定的小题分值，各题分值之和必须等于总分
-
+                
                 输出格式（严格遵守）：
-
+                
                 # [主题] 考试试卷
-
+                
                 **科目：** [主题]  **难度：** [难度]  **总分：** [取自分值分配方案的本卷满分] 分
-
+                
                 ---
-
+                
                 ## 一、单选题（每题 X 分，共 X 分）
-
+                
                 **1.** 题目内容
                 - A. 选项A
                 - B. 选项B
                 - C. 选项C
                 - D. 选项D
-
+                
                 ## 二、多选题（每题 X 分，共 X 分）
-
+                
                 **X.** 题目内容
                 - A. 选项A
                 - B. 选项B
                 - C. 选项C
                 - D. 选项D
-
+                
                 ## 三、判断题（每题 X 分，共 X 分）
-
+                
                 **X.** 题目内容（    ）
-
+                
                 ## 四、填空题（每题 X 分，共 X 分）
-
+                
                 **X.** 题目内容，空白处用 ______ 表示。
-
+                
                 ## 五、简答题（每题 X 分，共 X 分）
-
+                
                 **X.** 题目内容
-
+                
                 ## 六、论述题（每题 X 分，共 X 分）
-
+                
                 **X.** 题目内容
-
+                
                 ---
-
+                
                 # 参考答案
-
+                
                 ## 一、单选题
                 1. **B** — 解析简要说明
                 ## 二、多选题
@@ -417,7 +413,7 @@ public class ExamGenerationApplicationService {
                 X. 参考答案要点
                 ## 六、论述题
                 X. 参考答案要点
-
+                
                 注意：
                 - 只输出用户要求的题型，不要求的题型不要输出
                 - 每种题型的题目数量必须严格匹配用户要求
@@ -458,7 +454,7 @@ public class ExamGenerationApplicationService {
 
         return String.format("""
                 请根据以下知识库内容，生成一份考试试卷。
-
+                
                 **考试主题：** %s
                 **难度要求：** %s
                 **题型分布：**
@@ -467,7 +463,7 @@ public class ExamGenerationApplicationService {
                 **【分值分配方案（严格遵守）】**
                 %s
                 **知识库参考内容：**
-
+                
                 %s
                 """, topic, difficultyLabel, typeDesc, total, schemeText, knowledgeContext);
     }

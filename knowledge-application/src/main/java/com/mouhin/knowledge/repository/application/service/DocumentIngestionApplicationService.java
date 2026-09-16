@@ -14,9 +14,9 @@ import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainSer
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import com.mouhin.knowledge.repository.infrastructure.milvus.MilvusVectorStoreService;
 import com.mouhin.knowledge.repository.infrastructure.pdf.DocumentExtractionService;
-import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +57,9 @@ public class DocumentIngestionApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final Path storagePath;
 
-    /** 缓存已提取的文本结果，供预览和入库复用（documentKey → ExtractionResult） */
+    /**
+     * 缓存已提取的文本结果，供预览和入库复用（documentKey → ExtractionResult）
+     */
     private final Map<String, DocumentExtractionService.ExtractionResult> extractionCache =
             new ConcurrentHashMap<>();
 
@@ -309,11 +311,13 @@ public class DocumentIngestionApplicationService {
         try {
             String name = file.getFileName().toString();
             if (name.endsWith(".pdf")) return "application/pdf";
-            if (name.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            if (name.endsWith(".docx"))
+                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             if (name.endsWith(".doc")) return "application/msword";
             if (name.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             if (name.endsWith(".xls")) return "application/vnd.ms-excel";
-            if (name.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            if (name.endsWith(".pptx"))
+                return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
             if (name.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
             if (name.endsWith(".txt")) return "text/plain";
             if (name.endsWith(".csv")) return "text/csv";
@@ -334,7 +338,7 @@ public class DocumentIngestionApplicationService {
      * @return 解析预览结果
      */
     public PreviewResult previewFromDocument(String documentKey, int chunkSize, int overlap,
-                                            ChunkingStrategyEnum strategy) {
+                                             ChunkingStrategyEnum strategy) {
         Document document = documentRepository.findByDocumentKey(documentKey)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
 
@@ -706,30 +710,6 @@ public class DocumentIngestionApplicationService {
     }
 
     /**
-     * 解析预览结果
-     */
-    public record PreviewResult(
-            String fileName,
-            String format,
-            int totalPages,
-            int extractedSections,
-            boolean likelyScanned,
-            String checksum,
-            int totalChunks,
-            List<PageDetail> pages,
-            List<ChunkDetail> chunks
-    ) {}
-
-    public record PageDetail(int pageNumber, int charCount, String preview) {}
-
-    public record ChunkDetail(int chunkIndex, int startPage, int endPage, int tokenCount, int charCount, String preview, String content) {}
-
-    /**
-     * 自定义分块输入（前端提交）
-     */
-    public record CustomChunkInput(int chunkIndex, int startPage, int endPage, String content) {}
-
-    /**
      * 使用用户自定义分块入库（支持手动调整分块顺序和内容）
      *
      * @param documentKey  文档唯一标识
@@ -972,5 +952,34 @@ public class DocumentIngestionApplicationService {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * 解析预览结果
+     */
+    public record PreviewResult(
+            String fileName,
+            String format,
+            int totalPages,
+            int extractedSections,
+            boolean likelyScanned,
+            String checksum,
+            int totalChunks,
+            List<PageDetail> pages,
+            List<ChunkDetail> chunks
+    ) {
+    }
+
+    public record PageDetail(int pageNumber, int charCount, String preview) {
+    }
+
+    public record ChunkDetail(int chunkIndex, int startPage, int endPage, int tokenCount, int charCount, String preview,
+                              String content) {
+    }
+
+    /**
+     * 自定义分块输入（前端提交）
+     */
+    public record CustomChunkInput(int chunkIndex, int startPage, int endPage, String content) {
     }
 }

@@ -45,24 +45,40 @@ public class ExamGradingApplicationService {
 
     private static final String AI_GRADING_SYSTEM_PROMPT = """
             你是一位专业的考试阅卷老师。请根据题目、参考答案和学生的回答进行评分。
-
+            
             评分要求：
             1. 严格按照满分上限评分，不能超过满分
             2. 给出合理的分数和简短的评分理由
             3. 如果学生未作答，给 0 分
             4. 答案意思相近即可给分，不要求与参考答案完全一致
-
+            
             请严格按以下格式输出：
             分数：X
             理由：XXX
             """;
 
-    /** 匹配 AI 返回的分数 */
+    /**
+     * 匹配 AI 返回的分数
+     */
     private static final Pattern SCORE_PATTERN = Pattern.compile("分数[：:]\\s*(\\d+)");
 
-    /** 匹配 AI 返回的理由 */
+    /**
+     * 匹配 AI 返回的理由
+     */
     private static final Pattern REASON_PATTERN = Pattern.compile("理由[：:]\\s*(.+)", Pattern.DOTALL);
-
+    /**
+     * 题号标记（行首）：**1. 或 1. 或 1、
+     */
+    private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})[.、．]\\s*");
+    /**
+     * 题号标记（标题）：第1题 / 第 1 题
+     */
+    private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
+    /**
+     * 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容
+     */
+    private static final Pattern ANSWER_LINE = Pattern.compile(
+            "(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
     private final ExamSessionRepository examSessionRepository;
     private final ExamAnswerRepository examAnswerRepository;
     private final ChatModel chatModel;
@@ -134,10 +150,10 @@ public class ExamGradingApplicationService {
     /**
      * 人工复核单题
      *
-     * @param answerId      答题记录 ID
-     * @param reviewScore   复核分数
+     * @param answerId       答题记录 ID
+     * @param reviewScore    复核分数
      * @param reviewFeedback 复核反馈
-     * @param reviewer      复核人
+     * @param reviewer       复核人
      */
     @Transactional
     public void reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback,
@@ -242,6 +258,8 @@ public class ExamGradingApplicationService {
         return examSessionRepository.listPendingReview(limit, offset);
     }
 
+    // ==================== 内部评分方法 ====================
+
     /**
      * 统计待复核数量
      */
@@ -263,8 +281,6 @@ public class ExamGradingApplicationService {
         return examSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
     }
-
-    // ==================== 内部评分方法 ====================
 
     /**
      * 客观题自动评分：比对标准答案
@@ -382,16 +398,6 @@ public class ExamGradingApplicationService {
                 .replaceAll("\\s+", "")
                 .toUpperCase();
     }
-
-    /** 题号标记（行首）：**1. 或 1. 或 1、 */
-    private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})[.、．]\\s*");
-
-    /** 题号标记（标题）：第1题 / 第 1 题 */
-    private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
-
-    /** 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容 */
-    private static final Pattern ANSWER_LINE = Pattern.compile(
-            "(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
 
     /**
      * 从标准答案 Markdown 中解析每道题的正确答案。

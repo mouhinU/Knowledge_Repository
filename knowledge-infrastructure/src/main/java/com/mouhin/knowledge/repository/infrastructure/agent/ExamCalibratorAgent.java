@@ -35,23 +35,23 @@ public class ExamCalibratorAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一位考试难度校准专家，负责评估和调整试卷的难度分布。
-
+            
             任务：
             1. 逐题分析试卷中每道题的认知层次（记忆/理解/应用/分析/综合）
             2. 评估整体难度分布是否与目标难度匹配
             3. 检查是否有过难或过易的题目
             4. 如果难度偏差较大，给出具体的调整建议
-
+            
             输出格式（严格按以下 Markdown 结构）：
             ## 难度分析
             （逐题分析认知层次和难度）
-
+            
             ## 难度分布
             （统计各认知层次的题目占比）
-
+            
             ## 校准结论
             （总体评价：难度是否符合目标要求）
-
+            
             ## 调整建议
             （如有需要调整的题目，给出具体建议）
             """;
@@ -92,10 +92,10 @@ public class ExamCalibratorAgent implements BlackboardAgent {
         String userPrompt = String.format("""
                 考试主题：%s
                 目标难度：%s
-
+                
                 【试卷内容】
                 %s
-
+                
                 请分析试卷的难度分布，评估是否与目标难度匹配。
                 """, blackboard.getQuestion(), difficultyDesc, examPaper);
 

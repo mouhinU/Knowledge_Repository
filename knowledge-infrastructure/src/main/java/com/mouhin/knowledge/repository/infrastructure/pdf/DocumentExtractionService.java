@@ -48,46 +48,30 @@ public class DocumentExtractionService {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentExtractionService.class);
 
-    /** 最大文件大小：200MB */
+    /**
+     * 最大文件大小：200MB
+     */
     private static final long MAX_FILE_SIZE = 200L * 1024 * 1024;
 
-    /** 扫描型 PDF 检测阈值：每页少于 50 字符视为扫描页 */
+    /**
+     * 扫描型 PDF 检测阈值：每页少于 50 字符视为扫描页
+     */
     private static final int SCAN_PAGE_CHAR_THRESHOLD = 50;
 
-    /** 扫描型 PDF 检测：超过 30% 的页面为扫描页则整体标记 */
+    /**
+     * 扫描型 PDF 检测：超过 30% 的页面为扫描页则整体标记
+     */
     private static final double SCAN_DOCUMENT_RATIO = 0.3;
 
-    /** 支持的文件扩展名 */
+    /**
+     * 支持的文件扩展名
+     */
     private static final List<String> SUPPORTED_EXTENSIONS = List.of(
             "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
             "txt", "csv", "md", "html", "htm", "rtf"
     );
 
     private final Tika tika = new Tika();
-
-    /**
-     * 文档提取结果
-     */
-    public record ExtractionResult(
-            List<String> pageTexts,
-            int totalPages,
-            boolean likelyScanned,
-            String checksum,
-            String detectedFormat,
-            List<String> warnings,
-            boolean encrypted,
-            String title,
-            String author
-    ) {
-        // 向后兼容的简化构造器
-        public ExtractionResult(List<String> pageTexts, int totalPages, boolean likelyScanned,
-                                String checksum, String detectedFormat) {
-            this(pageTexts, totalPages, likelyScanned, checksum, detectedFormat,
-                    List.of(), false, null, null);
-        }
-    }
-
-    // ==================== 公开 API ====================
 
     /**
      * 校验文件
@@ -111,6 +95,8 @@ public class DocumentExtractionService {
             }
         }
     }
+
+    // ==================== 公开 API ====================
 
     /**
      * 从文件中提取文本（按页/结构单元拆分）
@@ -149,8 +135,6 @@ public class DocumentExtractionService {
         return extractText(filePath, fileSize, fileName);
     }
 
-    // ==================== PDF 提取 ====================
-
     private ExtractionResult extractPdf(Path filePath) throws IOException {
         EnhancedPdfTextExtractor extractor = new EnhancedPdfTextExtractor();
         EnhancedPdfTextExtractor.PdfExtractionResult result = extractor.extract(filePath);
@@ -181,7 +165,7 @@ public class DocumentExtractionService {
         );
     }
 
-    // ==================== Word 提取 ====================
+    // ==================== PDF 提取 ====================
 
     private ExtractionResult extractWord(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
@@ -226,7 +210,7 @@ public class DocumentExtractionService {
         }
     }
 
-    // ==================== Excel 提取 ====================
+    // ==================== Word 提取 ====================
 
     private ExtractionResult extractExcel(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
@@ -270,7 +254,7 @@ public class DocumentExtractionService {
         }
     }
 
-    // ==================== PowerPoint 提取 ====================
+    // ==================== Excel 提取 ====================
 
     private ExtractionResult extractPowerPoint(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
@@ -305,7 +289,7 @@ public class DocumentExtractionService {
         }
     }
 
-    // ==================== 纯文本格式提取 ====================
+    // ==================== PowerPoint 提取 ====================
 
     private ExtractionResult extractPlainText(Path filePath, String mimeType) throws IOException {
         String fullText = Files.readString(filePath).trim();
@@ -329,7 +313,7 @@ public class DocumentExtractionService {
         return new ExtractionResult(sections, sections.size(), false, calculateChecksum(filePath), "text");
     }
 
-    // ==================== 通用格式提取（Tika） ====================
+    // ==================== 纯文本格式提取 ====================
 
     private ExtractionResult extractGeneric(Path filePath, String mimeType) throws IOException {
         try (InputStream is = Files.newInputStream(filePath)) {
@@ -364,7 +348,7 @@ public class DocumentExtractionService {
         }
     }
 
-    // ==================== 工具方法 ====================
+    // ==================== 通用格式提取（Tika） ====================
 
     private String getCellValueAsString(XSSFCell cell) {
         return switch (cell.getCellType()) {
@@ -379,6 +363,8 @@ public class DocumentExtractionService {
             default -> "";
         };
     }
+
+    // ==================== 工具方法 ====================
 
     private String getExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf('.');
@@ -400,6 +386,28 @@ public class DocumentExtractionService {
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("MD5 algorithm not available", e);
+        }
+    }
+
+    /**
+     * 文档提取结果
+     */
+    public record ExtractionResult(
+            List<String> pageTexts,
+            int totalPages,
+            boolean likelyScanned,
+            String checksum,
+            String detectedFormat,
+            List<String> warnings,
+            boolean encrypted,
+            String title,
+            String author
+    ) {
+        // 向后兼容的简化构造器
+        public ExtractionResult(List<String> pageTexts, int totalPages, boolean likelyScanned,
+                                String checksum, String detectedFormat) {
+            this(pageTexts, totalPages, likelyScanned, checksum, detectedFormat,
+                    List.of(), false, null, null);
         }
     }
 }

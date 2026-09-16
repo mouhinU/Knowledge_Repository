@@ -1,11 +1,7 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.repository.WritingHistoryRepository;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
@@ -22,13 +18,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /**
  * 文章生成应用服务（黑板模式）
@@ -294,5 +289,6 @@ public class ArticleGenerationApplicationService {
             String finalArticle,
             int retrievedChunks,
             String errorMessage
-    ) {}
+    ) {
+    }
 }

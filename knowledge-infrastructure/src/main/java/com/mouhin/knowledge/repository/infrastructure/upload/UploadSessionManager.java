@@ -31,14 +31,16 @@ public class UploadSessionManager {
 
     private static final Logger logger = LoggerFactory.getLogger(UploadSessionManager.class);
 
-    /** 会话超时时间：2 小时 */
+    /**
+     * 会话超时时间：2 小时
+     */
     private static final long SESSION_TIMEOUT_MS = 7_200_000L;
-
+    /**
+     * 活跃会话
+     */
+    private final Map<String, UploadSession> sessions = new ConcurrentHashMap<>();
     @Value("${knowledge.storage.path:./data/documents}")
     private String storagePath;
-
-    /** 活跃会话 */
-    private final Map<String, UploadSession> sessions = new ConcurrentHashMap<>();
 
     /**
      * 创建上传会话
@@ -233,12 +235,32 @@ public class UploadSessionManager {
             return receivedChunks.size() >= totalChunks;
         }
 
-        public String getUploadId() { return uploadId; }
-        public String getFileName() { return fileName; }
-        public long getFileSize() { return fileSize; }
-        public int getTotalChunks() { return totalChunks; }
-        public Path getSessionDir() { return sessionDir; }
-        public Instant getCreatedAt() { return createdAt; }
-        public Set<Integer> getReceivedChunks() { return receivedChunks; }
+        public String getUploadId() {
+            return uploadId;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public long getFileSize() {
+            return fileSize;
+        }
+
+        public int getTotalChunks() {
+            return totalChunks;
+        }
+
+        public Path getSessionDir() {
+            return sessionDir;
+        }
+
+        public Instant getCreatedAt() {
+            return createdAt;
+        }
+
+        public Set<Integer> getReceivedChunks() {
+            return receivedChunks;
+        }
     }
 }

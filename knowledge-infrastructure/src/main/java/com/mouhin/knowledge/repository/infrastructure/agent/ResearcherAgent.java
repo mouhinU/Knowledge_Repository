@@ -6,11 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -35,7 +35,7 @@ public class ResearcherAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一个知识库研究员。你的任务是根据用户的问题，从知识库检索结果中提取和组织关键信息。
-
+            
             要求：
             1. 仔细阅读每个知识片段，提取与问题直接相关的信息
             2. 按主题或逻辑关系组织信息，形成结构化的研究发现
@@ -43,7 +43,7 @@ public class ResearcherAgent implements BlackboardAgent {
             4. 如果不同文档的信息有冲突或互补，请指出
             5. 如果检索结果不足以回答问题，明确指出缺失的信息方向
             6. 保持客观，不要添加自己的推测
-
+            
             输出格式：使用 Markdown 格式，按主题分节组织。
             """;
 
@@ -92,9 +92,9 @@ public class ResearcherAgent implements BlackboardAgent {
 
         String userPrompt = String.format("""
                 用户问题：%s
-
+                
                 以下是从知识库中检索到的相关片段：
-
+                
                 %s
                 请提取和组织与问题相关的关键信息。
                 """, blackboard.getQuestion(), contextBuilder);

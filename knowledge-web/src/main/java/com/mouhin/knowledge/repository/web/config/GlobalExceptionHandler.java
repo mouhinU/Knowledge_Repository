@@ -1,6 +1,5 @@
 package com.mouhin.knowledge.repository.web.config;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

@@ -13,13 +13,19 @@ public class Department {
 
     private Long id;
 
-    /** 部门唯一标识（UUID） */
+    /**
+     * 部门唯一标识（UUID）
+     */
     private String departmentKey;
 
-    /** 部门名称 */
+    /**
+     * 部门名称
+     */
     private String departmentName;
 
-    /** 父部门 ID（null 表示顶级部门） */
+    /**
+     * 父部门 ID（null 表示顶级部门）
+     */
     private Long parentId;
 
     private LocalDateTime createdTime;

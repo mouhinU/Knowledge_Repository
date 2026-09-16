@@ -1,11 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 试卷分数规则引擎
@@ -28,92 +23,20 @@ import java.util.Map;
  */
 public final class ScoreRuleEngine {
 
-    /** 识别不到学段/科目时的兜底满分 */
+    /**
+     * 识别不到学段/科目时的兜底满分
+     */
     public static final int DEFAULT_FULL_MARK = 100;
-
-    private ScoreRuleEngine() {
-    }
+    /**
+     * 科目识别关键词表（按匹配优先级）
+     */
+    private static final Map<Subject, String[]> SUBJECT_KEYWORDS = new LinkedHashMap<>();
 
     // ==================== 学段 ====================
-
-    /** 学段 */
-    public enum SchoolLevel {
-        /** 小学 */
-        PRIMARY,
-        /** 初中 */
-        JUNIOR,
-        /** 高中 */
-        SENIOR,
-        /** 未知 */
-        UNKNOWN
-    }
-
-    /** 学段中文名 */
-    public static String levelLabel(SchoolLevel level) {
-        return switch (level) {
-            case PRIMARY -> "小学";
-            case JUNIOR -> "初中";
-            case SENIOR -> "高中";
-            default -> "未识别";
-        };
-    }
-
     /**
-     * 解析学段：优先使用显式指定值，否则从主题文本识别。
-     *
-     * @param topic 主题文本
-     * @param forced 前端显式选择的学段（可空）
-     * @return 学段枚举，识别不到返回 {@link SchoolLevel#UNKNOWN}
+     * 题型权重（用于总分在各题型间的分配比例）
      */
-    public static SchoolLevel resolveLevel(String topic, String forced) {
-        SchoolLevel fromForced = parseLevelCode(forced);
-        if (fromForced != SchoolLevel.UNKNOWN) {
-            return fromForced;
-        }
-        return detectLevel(topic);
-    }
-
-    /** 学段编码解析（PRIMARY / JUNIOR / SENIOR，兼容中文）。 */
-    public static SchoolLevel parseLevelCode(String code) {
-        if (code == null || code.isBlank()) {
-            return SchoolLevel.UNKNOWN;
-        }
-        String c = code.trim().toUpperCase();
-        return switch (c) {
-            case "PRIMARY", "小学" -> SchoolLevel.PRIMARY;
-            case "JUNIOR", "初中", "JUNIOR_HIGH" -> SchoolLevel.JUNIOR;
-            case "SENIOR", "高中", "SENIOR_HIGH" -> SchoolLevel.SENIOR;
-            default -> SchoolLevel.UNKNOWN;
-        };
-    }
-
-    /** 从主题文本识别学段。 */
-    public static SchoolLevel detectLevel(String topic) {
-        if (topic == null || topic.isBlank()) {
-            return SchoolLevel.UNKNOWN;
-        }
-        if (containsAny(topic, "高中", "高考", "高三", "高二", "高一")) {
-            return SchoolLevel.SENIOR;
-        }
-        if (containsAny(topic, "初中", "中考", "初三", "初二", "初一", "七年级", "八年级", "九年级")) {
-            return SchoolLevel.JUNIOR;
-        }
-        if (containsAny(topic, "小学", "一年级", "二年级", "三年级", "四年级", "五年级", "六年级")) {
-            return SchoolLevel.PRIMARY;
-        }
-        return SchoolLevel.UNKNOWN;
-    }
-
-    // ==================== 科目 ====================
-
-    /** 规范科目 */
-    public enum Subject {
-        CHINESE, MATH, FOREIGN, PHYSICS, CHEMISTRY, BIOLOGY,
-        MORAL_LAW, HISTORY, GEOGRAPHY, SCIENCE, PE, EXPERIMENT, OTHER
-    }
-
-    /** 科目识别关键词表（按匹配优先级） */
-    private static final Map<Subject, String[]> SUBJECT_KEYWORDS = new LinkedHashMap<>();
+    private static final Map<String, Integer> TYPE_WEIGHTS = new LinkedHashMap<>();
 
     static {
         SUBJECT_KEYWORDS.put(Subject.CHINESE, new String[]{"语文", "中文"});
@@ -130,7 +53,85 @@ public final class ScoreRuleEngine {
         SUBJECT_KEYWORDS.put(Subject.SCIENCE, new String[]{"科学"});
     }
 
-    /** 科目中文名 */
+    static {
+        TYPE_WEIGHTS.put("单选题", 2);
+        TYPE_WEIGHTS.put("多选题", 3);
+        TYPE_WEIGHTS.put("判断题", 2);
+        TYPE_WEIGHTS.put("填空题", 3);
+        TYPE_WEIGHTS.put("简答题", 6);
+        TYPE_WEIGHTS.put("论述题", 10);
+    }
+
+    private ScoreRuleEngine() {
+    }
+
+    /**
+     * 学段中文名
+     */
+    public static String levelLabel(SchoolLevel level) {
+        return switch (level) {
+            case PRIMARY -> "小学";
+            case JUNIOR -> "初中";
+            case SENIOR -> "高中";
+            default -> "未识别";
+        };
+    }
+
+    // ==================== 科目 ====================
+
+    /**
+     * 解析学段：优先使用显式指定值，否则从主题文本识别。
+     *
+     * @param topic  主题文本
+     * @param forced 前端显式选择的学段（可空）
+     * @return 学段枚举，识别不到返回 {@link SchoolLevel#UNKNOWN}
+     */
+    public static SchoolLevel resolveLevel(String topic, String forced) {
+        SchoolLevel fromForced = parseLevelCode(forced);
+        if (fromForced != SchoolLevel.UNKNOWN) {
+            return fromForced;
+        }
+        return detectLevel(topic);
+    }
+
+    /**
+     * 学段编码解析（PRIMARY / JUNIOR / SENIOR，兼容中文）。
+     */
+    public static SchoolLevel parseLevelCode(String code) {
+        if (code == null || code.isBlank()) {
+            return SchoolLevel.UNKNOWN;
+        }
+        String c = code.trim().toUpperCase();
+        return switch (c) {
+            case "PRIMARY", "小学" -> SchoolLevel.PRIMARY;
+            case "JUNIOR", "初中", "JUNIOR_HIGH" -> SchoolLevel.JUNIOR;
+            case "SENIOR", "高中", "SENIOR_HIGH" -> SchoolLevel.SENIOR;
+            default -> SchoolLevel.UNKNOWN;
+        };
+    }
+
+    /**
+     * 从主题文本识别学段。
+     */
+    public static SchoolLevel detectLevel(String topic) {
+        if (topic == null || topic.isBlank()) {
+            return SchoolLevel.UNKNOWN;
+        }
+        if (containsAny(topic, "高中", "高考", "高三", "高二", "高一")) {
+            return SchoolLevel.SENIOR;
+        }
+        if (containsAny(topic, "初中", "中考", "初三", "初二", "初一", "七年级", "八年级", "九年级")) {
+            return SchoolLevel.JUNIOR;
+        }
+        if (containsAny(topic, "小学", "一年级", "二年级", "三年级", "四年级", "五年级", "六年级")) {
+            return SchoolLevel.PRIMARY;
+        }
+        return SchoolLevel.UNKNOWN;
+    }
+
+    /**
+     * 科目中文名
+     */
     public static String subjectLabel(Subject subject) {
         return switch (subject) {
             case CHINESE -> "语文";
@@ -209,8 +210,8 @@ public final class ScoreRuleEngine {
      * 计算试卷目标满分。
      * <p>识别到多科时按各科满分累加（合卷一张卷）；识别不到科目时按学段兜底（小学/初中/高中默认 100）。</p>
      *
-     * @param topic  主题文本
-     * @param level  学段
+     * @param topic           主题文本
+     * @param level           学段
      * @param forcedLevelCode 前端显式学段（可空）
      * @return 目标满分
      */
@@ -252,31 +253,11 @@ public final class ScoreRuleEngine {
 
     // ==================== 分值分配 ====================
 
-    /** 题型权重（用于总分在各题型间的分配比例） */
-    private static final Map<String, Integer> TYPE_WEIGHTS = new LinkedHashMap<>();
-
-    static {
-        TYPE_WEIGHTS.put("单选题", 2);
-        TYPE_WEIGHTS.put("多选题", 3);
-        TYPE_WEIGHTS.put("判断题", 2);
-        TYPE_WEIGHTS.put("填空题", 3);
-        TYPE_WEIGHTS.put("简答题", 6);
-        TYPE_WEIGHTS.put("论述题", 10);
-    }
-
-    /** 单个题型的分值分配结果 */
-    public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {
-    }
-
-    /** 完整分值分配方案 */
-    public record ScoreScheme(int total, List<TypeAllocation> allocations) {
-    }
-
     /**
      * 把目标满分按题型权重、再按小题拆分为整数分值方案，保证各题分值之和恰好等于满分。
      * <p>单题（总题数为 1）时该题即为满分。</p>
      *
-     * @param total        目标满分
+     * @param total         目标满分
      * @param orderedCounts 题型 → 数量（保持题型出现顺序）
      * @return 分值方案；total≤0 或无题时返回空方案
      */
@@ -392,9 +373,9 @@ public final class ScoreRuleEngine {
     /**
      * 渲染分值分配方案为 Markdown 文本，供试卷编写 Agent 严格遵循。
      *
-     * @param scheme    分值方案
-     * @param topic     主题（用于合卷说明）
-     * @param level     学段
+     * @param scheme 分值方案
+     * @param topic  主题（用于合卷说明）
+     * @param level  学段
      * @return 方案文本
      */
     public static String renderScheme(ScoreScheme scheme, String topic, SchoolLevel level) {
@@ -448,8 +429,6 @@ public final class ScoreRuleEngine {
         return sb.toString();
     }
 
-    // ==================== 工具 ====================
-
     private static boolean containsAny(String text, String... keys) {
         if (text == null) {
             return false;
@@ -460,5 +439,49 @@ public final class ScoreRuleEngine {
             }
         }
         return false;
+    }
+
+    /**
+     * 学段
+     */
+    public enum SchoolLevel {
+        /**
+         * 小学
+         */
+        PRIMARY,
+        /**
+         * 初中
+         */
+        JUNIOR,
+        /**
+         * 高中
+         */
+        SENIOR,
+        /**
+         * 未知
+         */
+        UNKNOWN
+    }
+
+    /**
+     * 规范科目
+     */
+    public enum Subject {
+        CHINESE, MATH, FOREIGN, PHYSICS, CHEMISTRY, BIOLOGY,
+        MORAL_LAW, HISTORY, GEOGRAPHY, SCIENCE, PE, EXPERIMENT, OTHER
+    }
+
+    /**
+     * 单个题型的分值分配结果
+     */
+    public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {
+    }
+
+    // ==================== 工具 ====================
+
+    /**
+     * 完整分值分配方案
+     */
+    public record ScoreScheme(int total, List<TypeAllocation> allocations) {
     }
 }

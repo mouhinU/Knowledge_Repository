@@ -1,7 +1,5 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import com.mouhin.knowledge.repository.domain.model.entity.Role;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.repository.DepartmentRepository;
 import com.mouhin.knowledge.repository.domain.repository.UserRepository;

@@ -8,19 +8,29 @@ package com.mouhin.knowledge.repository.web.dto;
  */
 public class ChunkUploadRequest {
 
-    /** 上传会话 ID */
+    /**
+     * 上传会话 ID
+     */
     private String uploadId;
 
-    /** 当前分片序号（从 0 开始） */
+    /**
+     * 当前分片序号（从 0 开始）
+     */
     private Integer chunkIndex;
 
-    /** 总分片数 */
+    /**
+     * 总分片数
+     */
     private Integer totalChunks;
 
-    /** 原始文件名 */
+    /**
+     * 原始文件名
+     */
     private String fileName;
 
-    /** 文件总大小（字节） */
+    /**
+     * 文件总大小（字节）
+     */
     private Long fileSize;
 
     public String getUploadId() {

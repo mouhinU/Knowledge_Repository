@@ -34,7 +34,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一位资深的教育评估专家，负责审核考试试卷的质量。
-
+            
             请从以下 6 个维度审核试卷，每个维度独立打分（0-100）：
             1. 知识准确性（权重 25%%）：题目和答案是否与知识点一致，有无事实错误
             2. 题目表述（权重 15%%）：题目是否清晰无歧义，选项是否合理
@@ -42,11 +42,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
             4. 题型合理性（权重 15%%）：各题型的设置是否恰当，题量是否合理
             5. 难度适当性（权重 10%%）：难度是否符合要求，梯度是否合理
             6. 格式规范性（权重 10%%）：排版、编号、分值标注是否规范
-
+            
             输出格式（严格按以下 Markdown 结构）：
             ## 审核意见
             （详细的审核意见，按维度逐条分析）
-
+            
             ## 评分明细
             - 知识准确性：X
             - 题目表述：X
@@ -54,10 +54,10 @@ public class ExamReviewerAgent implements BlackboardAgent {
             - 题型合理性：X
             - 难度适当性：X
             - 格式规范性：X
-
+            
             ## 质量评分
             （加权总分，一个 0-100 的整数，计算方式：知识准确性×0.25 + 题目表述×0.15 + 知识点覆盖×0.25 + 题型合理性×0.15 + 难度适当性×0.10 + 格式规范性×0.10）
-
+            
             ## 改进建议
             （如有需要改进的地方，列出具体建议）
             """;
@@ -95,14 +95,14 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
         String userPrompt = String.format("""
                 考试主题：%s
-
+                
                 【试卷内容】
                 %s
-
+                
                 【标准答案】
                 %s
                 %s
-
+                
                 请审核试卷质量。
                 """, blackboard.getQuestion(), examPaper, answerKey, knowledgeContext);
 
@@ -164,11 +164,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
                         && typeReasonable >= 0 && difficulty >= 0 && format >= 0) {
                     int weighted = (int) Math.round(
                             accuracy * 0.25
-                            + wording * 0.15
-                            + coverage * 0.25
-                            + typeReasonable * 0.15
-                            + difficulty * 0.10
-                            + format * 0.10);
+                                    + wording * 0.15
+                                    + coverage * 0.25
+                                    + typeReasonable * 0.15
+                                    + difficulty * 0.10
+                                    + format * 0.10);
                     int result = Math.min(100, Math.max(0, weighted));
                     logger.info("[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
                             accuracy, wording, coverage, typeReasonable, difficulty, format, result);

@@ -41,24 +41,18 @@ public class DocumentIngestionDomainService {
             "(?<=[.。!！?？;；…\\n])\\s+"
     );
 
-    /** 中文句子结尾标点 */
+    /**
+     * 中文句子结尾标点
+     */
     private static final Pattern CHINESE_SENTENCE_END =
             Pattern.compile("[.。!！?？;；…]+\\s*");
 
-    /** 列表项模式：数字编号、字母编号、中文编号 */
+    /**
+     * 列表项模式：数字编号、字母编号、中文编号
+     */
     private static final Pattern LIST_ITEM_PATTERN = Pattern.compile(
             "^\\s*(\\d+[.、)）]|\\([0-9]+\\)|[a-zA-Z][.、)）]|[-•·]\\s|[一二三四五六七八九十]+[、.．])"
     );
-
-    /**
-     * 带页码信息的文本段
-     */
-    private record PageText(String text, int pageNumber) {}
-
-    /**
-     * 带页码信息的分块中间表示
-     */
-    private record RawChunk(String content, int startPage, int endPage) {}
 
     /**
      * 将文本内容按配置分块，并附加文档权限元数据
@@ -114,8 +108,6 @@ public class DocumentIngestionDomainService {
                 document.getDocumentKey(), chunks.size(), strategy);
         return chunks;
     }
-
-    // ==================== FIXED_SIZE 策略 ====================
 
     /**
      * FIXED_SIZE：按 Token 上限切分
@@ -219,8 +211,6 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    // ==================== RECURSIVE 策略 ====================
-
     /**
      * RECURSIVE：递归分隔符切分
      * <p>
@@ -254,9 +244,11 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
+    // ==================== FIXED_SIZE 策略 ====================
+
     private void recursiveSplitWithPages(String text, int maxChars, int overlapChars,
-                                          String[] separators, int sepIndex,
-                                          List<int[]> charPageMap, List<RawChunk> result) {
+                                         String[] separators, int sepIndex,
+                                         List<int[]> charPageMap, List<RawChunk> result) {
         if (text.length() <= maxChars) {
             if (!text.isBlank()) {
                 int startPage = lookupPage(charPageMap, 0);
@@ -340,7 +332,7 @@ public class DocumentIngestionDomainService {
         }
     }
 
-    // ==================== SENTENCE 策略 ====================
+    // ==================== RECURSIVE 策略 ====================
 
     /**
      * SENTENCE：按句子边界切分，合并至 Token 上限
@@ -418,8 +410,6 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    // ==================== PAGE 策略 ====================
-
     /**
      * PAGE：每页作为一个独立分块
      * <p>
@@ -437,7 +427,7 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    // ==================== PARAGRAPH 策略 ====================
+    // ==================== SENTENCE 策略 ====================
 
     /**
      * PARAGRAPH：按段落切分，小段落合并至 Token 上限
@@ -536,7 +526,7 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    // ==================== 工具方法 ====================
+    // ==================== PAGE 策略 ====================
 
     /**
      * 查找段落范围：返回 List of [start, end]
@@ -554,6 +544,8 @@ public class DocumentIngestionDomainService {
         return ranges;
     }
 
+    // ==================== PARAGRAPH 策略 ====================
+
     /**
      * 按字符集分割文本（用于句子边界分割）
      */
@@ -561,6 +553,8 @@ public class DocumentIngestionDomainService {
         String regex = "(?<=[" + Pattern.quote(charSet) + "])\\s*";
         return text.split(regex);
     }
+
+    // ==================== 工具方法 ====================
 
     /**
      * 增强句子分割
@@ -590,7 +584,7 @@ public class DocumentIngestionDomainService {
      * 对超长文本进行句子级切分
      */
     private List<RawChunk> splitLongText(String text, int maxTokens, int overlapTokens,
-                                          List<int[]> charPageMap, int textOffset) {
+                                         List<int[]> charPageMap, int textOffset) {
         List<RawChunk> result = new ArrayList<>();
         List<String> sentences = splitSentences(text);
         StringBuilder current = new StringBuilder();
@@ -642,7 +636,7 @@ public class DocumentIngestionDomainService {
      * 强制字符切分（带页码追踪）
      */
     private List<RawChunk> forceSplitWithPages(String text, int maxChars, int overlapChars,
-                                                List<int[]> charPageMap) {
+                                               List<int[]> charPageMap) {
         List<RawChunk> result = new ArrayList<>();
         int start = 0;
         while (start < text.length()) {
@@ -758,5 +752,17 @@ public class DocumentIngestionDomainService {
             // 跳过其他控制字符(0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F, 0x7F)
         }
         return sb.toString();
+    }
+
+    /**
+     * 带页码信息的文本段
+     */
+    private record PageText(String text, int pageNumber) {
+    }
+
+    /**
+     * 带页码信息的分块中间表示
+     */
+    private record RawChunk(String content, int startPage, int endPage) {
     }
 }

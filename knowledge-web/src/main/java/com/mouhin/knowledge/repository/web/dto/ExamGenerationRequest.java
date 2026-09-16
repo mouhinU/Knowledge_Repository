@@ -8,95 +8,200 @@ package com.mouhin.knowledge.repository.web.dto;
  */
 public class ExamGenerationRequest {
 
-    /** 会话 ID（前端预分配，用于 SSE 关联） */
+    /**
+     * 会话 ID（前端预分配，用于 SSE 关联）
+     */
     private String sessionId;
 
-    /** 考试主题/科目 */
+    /**
+     * 考试主题/科目
+     */
     private String topic;
 
-    /** 难度：EASY / MEDIUM / HARD */
+    /**
+     * 难度：EASY / MEDIUM / HARD
+     */
     private String difficulty;
 
-    /** 单选题数量 */
+    /**
+     * 单选题数量
+     */
     private Integer singleChoiceCount;
 
-    /** 多选题数量 */
+    /**
+     * 多选题数量
+     */
     private Integer multiChoiceCount;
 
-    /** 判断题数量 */
+    /**
+     * 判断题数量
+     */
     private Integer trueFalseCount;
 
-    /** 填空题数量 */
+    /**
+     * 填空题数量
+     */
     private Integer fillBlankCount;
 
-    /** 简答题数量 */
+    /**
+     * 简答题数量
+     */
     private Integer shortAnswerCount;
 
-    /** 论述题数量 */
+    /**
+     * 论述题数量
+     */
     private Integer essayCount;
 
-    /** 用户 ID */
+    /**
+     * 用户 ID
+     */
     private String userId;
 
-    /** 用户部门 ID */
+    /**
+     * 用户部门 ID
+     */
     private String departmentId;
 
-    /** 用户角色（逗号分隔） */
+    /**
+     * 用户角色（逗号分隔）
+     */
     private String roles;
 
-    /** 是否管理员 */
+    /**
+     * 是否管理员
+     */
     private Boolean admin;
 
-    /** 知识库分类过滤 */
+    /**
+     * 知识库分类过滤
+     */
     private String category;
 
-    /** 学段：PRIMARY（小学）/ JUNIOR（初中）/ SENIOR（高中），留空则自动识别 */
+    /**
+     * 学段：PRIMARY（小学）/ JUNIOR（初中）/ SENIOR（高中），留空则自动识别
+     */
     private String schoolLevel;
 
-    public String getSessionId() { return sessionId; }
-    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+    public String getSessionId() {
+        return sessionId;
+    }
 
-    public String getTopic() { return topic; }
-    public void setTopic(String topic) { this.topic = topic; }
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
 
-    public String getDifficulty() { return difficulty; }
-    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
+    public String getTopic() {
+        return topic;
+    }
 
-    public Integer getSingleChoiceCount() { return singleChoiceCount; }
-    public void setSingleChoiceCount(Integer singleChoiceCount) { this.singleChoiceCount = singleChoiceCount; }
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 
-    public Integer getMultiChoiceCount() { return multiChoiceCount; }
-    public void setMultiChoiceCount(Integer multiChoiceCount) { this.multiChoiceCount = multiChoiceCount; }
+    public String getDifficulty() {
+        return difficulty;
+    }
 
-    public Integer getTrueFalseCount() { return trueFalseCount; }
-    public void setTrueFalseCount(Integer trueFalseCount) { this.trueFalseCount = trueFalseCount; }
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
 
-    public Integer getFillBlankCount() { return fillBlankCount; }
-    public void setFillBlankCount(Integer fillBlankCount) { this.fillBlankCount = fillBlankCount; }
+    public Integer getSingleChoiceCount() {
+        return singleChoiceCount;
+    }
 
-    public Integer getShortAnswerCount() { return shortAnswerCount; }
-    public void setShortAnswerCount(Integer shortAnswerCount) { this.shortAnswerCount = shortAnswerCount; }
+    public void setSingleChoiceCount(Integer singleChoiceCount) {
+        this.singleChoiceCount = singleChoiceCount;
+    }
 
-    public Integer getEssayCount() { return essayCount; }
-    public void setEssayCount(Integer essayCount) { this.essayCount = essayCount; }
+    public Integer getMultiChoiceCount() {
+        return multiChoiceCount;
+    }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public void setMultiChoiceCount(Integer multiChoiceCount) {
+        this.multiChoiceCount = multiChoiceCount;
+    }
 
-    public String getDepartmentId() { return departmentId; }
-    public void setDepartmentId(String departmentId) { this.departmentId = departmentId; }
+    public Integer getTrueFalseCount() {
+        return trueFalseCount;
+    }
 
-    public String getRoles() { return roles; }
-    public void setRoles(String roles) { this.roles = roles; }
+    public void setTrueFalseCount(Integer trueFalseCount) {
+        this.trueFalseCount = trueFalseCount;
+    }
 
-    public Boolean getAdmin() { return admin; }
-    public void setAdmin(Boolean admin) { this.admin = admin; }
+    public Integer getFillBlankCount() {
+        return fillBlankCount;
+    }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public void setFillBlankCount(Integer fillBlankCount) {
+        this.fillBlankCount = fillBlankCount;
+    }
 
-    public String getSchoolLevel() { return schoolLevel; }
-    public void setSchoolLevel(String schoolLevel) { this.schoolLevel = schoolLevel; }
+    public Integer getShortAnswerCount() {
+        return shortAnswerCount;
+    }
+
+    public void setShortAnswerCount(Integer shortAnswerCount) {
+        this.shortAnswerCount = shortAnswerCount;
+    }
+
+    public Integer getEssayCount() {
+        return essayCount;
+    }
+
+    public void setEssayCount(Integer essayCount) {
+        this.essayCount = essayCount;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(String departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public String getRoles() {
+        return roles;
+    }
+
+    public void setRoles(String roles) {
+        this.roles = roles;
+    }
+
+    public Boolean getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        this.admin = admin;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getSchoolLevel() {
+        return schoolLevel;
+    }
+
+    public void setSchoolLevel(String schoolLevel) {
+        this.schoolLevel = schoolLevel;
+    }
 
     /**
      * 计算总题目数

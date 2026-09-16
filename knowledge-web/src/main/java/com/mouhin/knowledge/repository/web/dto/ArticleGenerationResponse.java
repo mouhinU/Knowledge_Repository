@@ -10,31 +10,49 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
  */
 public class ArticleGenerationResponse {
 
-    /** 会话 ID */
+    /**
+     * 会话 ID
+     */
     private String sessionId;
 
-    /** 当前阶段 */
+    /**
+     * 当前阶段
+     */
     private BlackboardPhase phase;
 
-    /** 研究员的关键发现 */
+    /**
+     * 研究员的关键发现
+     */
     private String keyFindings;
 
-    /** 文章草稿 */
+    /**
+     * 文章草稿
+     */
     private String draftArticle;
 
-    /** 审核反馈 */
+    /**
+     * 审核反馈
+     */
     private String reviewFeedback;
 
-    /** 质量评分（0~100） */
+    /**
+     * 质量评分（0~100）
+     */
     private int qualityScore;
 
-    /** 最终文章 */
+    /**
+     * 最终文章
+     */
     private String finalArticle;
 
-    /** 检索到的知识片段数 */
+    /**
+     * 检索到的知识片段数
+     */
     private int retrievedChunks;
 
-    /** 错误信息 */
+    /**
+     * 错误信息
+     */
     private String errorMessage;
 
     public ArticleGenerationResponse() {

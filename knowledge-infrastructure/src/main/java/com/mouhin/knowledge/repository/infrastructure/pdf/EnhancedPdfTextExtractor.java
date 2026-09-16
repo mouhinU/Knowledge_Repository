@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
+
 /**
  * 增强型 PDF 文本提取器
  * <p>
@@ -41,20 +42,45 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 常量定义 ====================
 
-    /** 扫描页检测：每页少于此字符数视为扫描页 */
+    /**
+     * 扫描页检测：每页少于此字符数视为扫描页
+     */
     private static final int SCAN_PAGE_CHAR_THRESHOLD = 50;
 
-    /** 扫描页检测：超过此比例的页面为扫描页则整体标记 */
+    /**
+     * 扫描页检测：超过此比例的页面为扫描页则整体标记
+     */
     private static final double SCAN_DOCUMENT_RATIO = 0.3;
 
-    /** 页眉页脚检测：出现在页面顶部/底部此比例区域内的文本 */
+    /**
+     * 页眉页脚检测：出现在页面顶部/底部此比例区域内的文本
+     */
     private static final double HEADER_FOOTER_ZONE_RATIO = 0.15;
 
-    /** 页眉页脚检测：至少在 N 页中重复出现才判定 */
+    /**
+     * 页眉页脚检测：至少在 N 页中重复出现才判定
+     */
     private static final int HEADER_FOOTER_MIN_OCCURRENCE = 3;
 
-    /** 连字映射表 */
+    /**
+     * 连字映射表
+     */
     private static final Map<Character, String> LIGATURE_MAP = createLigatureMap();
+    /**
+     * 空白字符规范化映射
+     */
+    private static final Map<Character, Character> WHITESPACE_MAP = createWhitespaceMap();
+    /**
+     * 软连字符
+     */
+    private static final char SOFT_HYPHEN = '\u00AD';
+    /**
+     * 页码模式
+     */
+    private static final Pattern PAGE_NUMBER_PATTERN = Pattern.compile(
+            "^\\s*(-?\\d+|-\\s*\\d+|\\d+\\s*/\\s*\\d+|第\\s*\\d+\\s*页|Page\\s+\\d+)\\s*$",
+            Pattern.CASE_INSENSITIVE
+    );
 
     private static Map<Character, String> createLigatureMap() {
         Map<Character, String> map = new HashMap<>();
@@ -72,9 +98,6 @@ public class EnhancedPdfTextExtractor {
         map.put('\u00DF', "ss");
         return Collections.unmodifiableMap(map);
     }
-
-    /** 空白字符规范化映射 */
-    private static final Map<Character, Character> WHITESPACE_MAP = createWhitespaceMap();
 
     private static Map<Character, Character> createWhitespaceMap() {
         Map<Character, Character> map = new HashMap<>();
@@ -96,74 +119,7 @@ public class EnhancedPdfTextExtractor {
         return Collections.unmodifiableMap(map);
     }
 
-    /** 软连字符 */
-    private static final char SOFT_HYPHEN = '\u00AD';
-
-    /** 页码模式 */
-    private static final Pattern PAGE_NUMBER_PATTERN = Pattern.compile(
-            "^\\s*(-?\\d+|-\\s*\\d+|\\d+\\s*/\\s*\\d+|第\\s*\\d+\\s*页|Page\\s+\\d+)\\s*$",
-            Pattern.CASE_INSENSITIVE
-    );
-
     // ==================== 结果类定义 ====================
-
-    /**
-     * PDF 提取结果
-     */
-    public record PdfExtractionResult(
-            List<PageContent> pages,
-            PdfMetadata metadata,
-            List<String> warnings,
-            boolean encrypted,
-            boolean ocrRecommended
-    ) {
-        public List<String> getAllTexts() {
-            return pages.stream().map(PageContent::text).toList();
-        }
-
-        public int getTotalPages() {
-            return pages.size();
-        }
-    }
-
-    /**
-     * 单页内容
-     */
-    public record PageContent(
-            int pageNumber,
-            String text,
-            String filteredText,  // 过滤页眉页脚后的文本
-            boolean likelyScanned,
-            int imageCount,
-            boolean hasMultiColumns,
-            PageMetadata pageMetadata
-    ) {}
-
-    /**
-     * PDF 文档元数据
-     */
-    public record PdfMetadata(
-            String title,
-            String author,
-            String subject,
-            String keywords,
-            String creator,
-            String producer,
-            String creationDate,
-            String modificationDate,
-            String pdfVersion
-    ) {}
-
-    /**
-     * 页面元数据
-     */
-    public record PageMetadata(
-            float width,
-            float height,
-            int rotation
-    ) {}
-
-    // ==================== 公开 API ====================
 
     /**
      * 从 PDF 文件提取文本
@@ -189,8 +145,6 @@ public class EnhancedPdfTextExtractor {
             return extractFromDocument(document);
         }
     }
-
-    // ==================== 核心提取逻辑 ====================
 
     private PdfExtractionResult extractFromDocument(PDDocument document) throws IOException {
         List<String> warnings = new ArrayList<>();
@@ -289,8 +243,6 @@ public class EnhancedPdfTextExtractor {
         return new PdfExtractionResult(pages, metadata, warnings, encrypted, ocrRecommended);
     }
 
-    // ==================== 文本规范化 ====================
-
     /**
      * 文本规范化处理
      */
@@ -337,7 +289,7 @@ public class EnhancedPdfTextExtractor {
                 .trim();
     }
 
-    // ==================== 页眉页脚检测 ====================
+    // ==================== 公开 API ====================
 
     /**
      * 检测页眉页脚模式
@@ -406,7 +358,7 @@ public class EnhancedPdfTextExtractor {
         return sb.toString().trim();
     }
 
-    // ==================== 图像检测 ====================
+    // ==================== 核心提取逻辑 ====================
 
     /**
      * 统计页面图像数量
@@ -428,7 +380,7 @@ public class EnhancedPdfTextExtractor {
         return count;
     }
 
-    // ==================== 多栏检测 ====================
+    // ==================== 文本规范化 ====================
 
     /**
      * 检测多栏排版
@@ -467,7 +419,7 @@ public class EnhancedPdfTextExtractor {
                 && centerGap < total * 0.1;
     }
 
-    // ==================== 元数据提取 ====================
+    // ==================== 页眉页脚检测 ====================
 
     /**
      * 提取文档元数据
@@ -499,7 +451,7 @@ public class EnhancedPdfTextExtractor {
         );
     }
 
-    // ==================== 跨页段落合并 ====================
+    // ==================== 图像检测 ====================
 
     /**
      * 合并跨页段落（实验性）
@@ -556,12 +508,77 @@ public class EnhancedPdfTextExtractor {
         return merged;
     }
 
+    // ==================== 多栏检测 ====================
+
     private boolean endsWithPunctuation(String text) {
         if (text == null || text.isEmpty()) {
             return false;
         }
         char last = text.charAt(text.length() - 1);
         return ".。!！?？;；:：,\"'）)】」』\"".indexOf(last) >= 0;
+    }
+
+    // ==================== 元数据提取 ====================
+
+    /**
+     * PDF 提取结果
+     */
+    public record PdfExtractionResult(
+            List<PageContent> pages,
+            PdfMetadata metadata,
+            List<String> warnings,
+            boolean encrypted,
+            boolean ocrRecommended
+    ) {
+        public List<String> getAllTexts() {
+            return pages.stream().map(PageContent::text).toList();
+        }
+
+        public int getTotalPages() {
+            return pages.size();
+        }
+    }
+
+    /**
+     * 单页内容
+     */
+    public record PageContent(
+            int pageNumber,
+            String text,
+            String filteredText,  // 过滤页眉页脚后的文本
+            boolean likelyScanned,
+            int imageCount,
+            boolean hasMultiColumns,
+            PageMetadata pageMetadata
+    ) {
+    }
+
+    // ==================== 跨页段落合并 ====================
+
+    /**
+     * PDF 文档元数据
+     */
+    public record PdfMetadata(
+            String title,
+            String author,
+            String subject,
+            String keywords,
+            String creator,
+            String producer,
+            String creationDate,
+            String modificationDate,
+            String pdfVersion
+    ) {
+    }
+
+    /**
+     * 页面元数据
+     */
+    public record PageMetadata(
+            float width,
+            float height,
+            int rotation
+    ) {
     }
 
     // ==================== 内部类：位置捕获文本提取器 ====================

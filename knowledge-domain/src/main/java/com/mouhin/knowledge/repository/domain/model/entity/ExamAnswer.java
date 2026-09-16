@@ -13,49 +13,79 @@ public class ExamAnswer {
 
     private Long id;
 
-    /** 所属考试场次 ID */
+    /**
+     * 所属考试场次 ID
+     */
     private Long sessionId;
 
-    /** 题目序号（从 1 开始） */
+    /**
+     * 题目序号（从 1 开始）
+     */
     private Integer questionIndex;
 
-    /** 题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY */
+    /**
+     * 题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY
+     */
     private String questionType;
 
-    /** 题目内容 */
+    /**
+     * 题目内容
+     */
     private String questionContent;
 
-    /** 选项 JSON（选择题/判断题） */
+    /**
+     * 选项 JSON（选择题/判断题）
+     */
     private String optionsJson;
 
-    /** 满分 */
+    /**
+     * 满分
+     */
     private Integer maxScore;
 
-    /** 正确答案 */
+    /**
+     * 正确答案
+     */
     private String correctAnswer;
 
-    /** 学生答案 */
+    /**
+     * 学生答案
+     */
     private String studentAnswer;
 
-    /** 客观题是否正确 */
+    /**
+     * 客观题是否正确
+     */
     private Boolean correct;
 
-    /** AI 评分 */
+    /**
+     * AI 评分
+     */
     private Integer aiScore;
 
-    /** AI 评分反馈 */
+    /**
+     * AI 评分反馈
+     */
     private String aiFeedback;
 
-    /** 人工复核分数 */
+    /**
+     * 人工复核分数
+     */
     private Integer reviewScore;
 
-    /** 人工复核反馈 */
+    /**
+     * 人工复核反馈
+     */
     private String reviewFeedback;
 
-    /** 复核人 */
+    /**
+     * 复核人
+     */
     private String reviewedBy;
 
-    /** 复核时间 */
+    /**
+     * 复核时间
+     */
     private LocalDateTime reviewTime;
 
     private LocalDateTime createTime;
@@ -64,59 +94,149 @@ public class ExamAnswer {
 
     // ==================== Getters & Setters ====================
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getSessionId() { return sessionId; }
-    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Integer getQuestionIndex() { return questionIndex; }
-    public void setQuestionIndex(Integer questionIndex) { this.questionIndex = questionIndex; }
+    public Long getSessionId() {
+        return sessionId;
+    }
 
-    public String getQuestionType() { return questionType; }
-    public void setQuestionType(String questionType) { this.questionType = questionType; }
+    public void setSessionId(Long sessionId) {
+        this.sessionId = sessionId;
+    }
 
-    public String getQuestionContent() { return questionContent; }
-    public void setQuestionContent(String questionContent) { this.questionContent = questionContent; }
+    public Integer getQuestionIndex() {
+        return questionIndex;
+    }
 
-    public String getOptionsJson() { return optionsJson; }
-    public void setOptionsJson(String optionsJson) { this.optionsJson = optionsJson; }
+    public void setQuestionIndex(Integer questionIndex) {
+        this.questionIndex = questionIndex;
+    }
 
-    public Integer getMaxScore() { return maxScore; }
-    public void setMaxScore(Integer maxScore) { this.maxScore = maxScore; }
+    public String getQuestionType() {
+        return questionType;
+    }
 
-    public String getCorrectAnswer() { return correctAnswer; }
-    public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
+    public void setQuestionType(String questionType) {
+        this.questionType = questionType;
+    }
 
-    public String getStudentAnswer() { return studentAnswer; }
-    public void setStudentAnswer(String studentAnswer) { this.studentAnswer = studentAnswer; }
+    public String getQuestionContent() {
+        return questionContent;
+    }
 
-    public Boolean getCorrect() { return correct; }
-    public void setCorrect(Boolean correct) { this.correct = correct; }
+    public void setQuestionContent(String questionContent) {
+        this.questionContent = questionContent;
+    }
 
-    public Integer getAiScore() { return aiScore; }
-    public void setAiScore(Integer aiScore) { this.aiScore = aiScore; }
+    public String getOptionsJson() {
+        return optionsJson;
+    }
 
-    public String getAiFeedback() { return aiFeedback; }
-    public void setAiFeedback(String aiFeedback) { this.aiFeedback = aiFeedback; }
+    public void setOptionsJson(String optionsJson) {
+        this.optionsJson = optionsJson;
+    }
 
-    public Integer getReviewScore() { return reviewScore; }
-    public void setReviewScore(Integer reviewScore) { this.reviewScore = reviewScore; }
+    public Integer getMaxScore() {
+        return maxScore;
+    }
 
-    public String getReviewFeedback() { return reviewFeedback; }
-    public void setReviewFeedback(String reviewFeedback) { this.reviewFeedback = reviewFeedback; }
+    public void setMaxScore(Integer maxScore) {
+        this.maxScore = maxScore;
+    }
 
-    public String getReviewedBy() { return reviewedBy; }
-    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
+    public String getCorrectAnswer() {
+        return correctAnswer;
+    }
 
-    public LocalDateTime getReviewTime() { return reviewTime; }
-    public void setReviewTime(LocalDateTime reviewTime) { this.reviewTime = reviewTime; }
+    public void setCorrectAnswer(String correctAnswer) {
+        this.correctAnswer = correctAnswer;
+    }
 
-    public LocalDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public String getStudentAnswer() {
+        return studentAnswer;
+    }
 
-    public LocalDateTime getUpdateTime() { return updateTime; }
-    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public void setStudentAnswer(String studentAnswer) {
+        this.studentAnswer = studentAnswer;
+    }
+
+    public Boolean getCorrect() {
+        return correct;
+    }
+
+    public void setCorrect(Boolean correct) {
+        this.correct = correct;
+    }
+
+    public Integer getAiScore() {
+        return aiScore;
+    }
+
+    public void setAiScore(Integer aiScore) {
+        this.aiScore = aiScore;
+    }
+
+    public String getAiFeedback() {
+        return aiFeedback;
+    }
+
+    public void setAiFeedback(String aiFeedback) {
+        this.aiFeedback = aiFeedback;
+    }
+
+    public Integer getReviewScore() {
+        return reviewScore;
+    }
+
+    public void setReviewScore(Integer reviewScore) {
+        this.reviewScore = reviewScore;
+    }
+
+    public String getReviewFeedback() {
+        return reviewFeedback;
+    }
+
+    public void setReviewFeedback(String reviewFeedback) {
+        this.reviewFeedback = reviewFeedback;
+    }
+
+    public String getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(String reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public LocalDateTime getReviewTime() {
+        return reviewTime;
+    }
+
+    public void setReviewTime(LocalDateTime reviewTime) {
+        this.reviewTime = reviewTime;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 
     // ==================== 业务方法 ====================
 

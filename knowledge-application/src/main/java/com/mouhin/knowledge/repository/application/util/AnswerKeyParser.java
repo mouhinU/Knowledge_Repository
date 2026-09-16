@@ -24,46 +24,45 @@ public final class AnswerKeyParser {
 
     private static final Logger logger = LoggerFactory.getLogger(AnswerKeyParser.class);
 
-    /** 题号标记（标题）：第1题 / 第 1 题 */
+    /**
+     * 题号标记（标题）：第1题 / 第 1 题
+     */
     private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
 
-    /** 题号标记（行首）：**1. 或 1. 或 1、 */
+    /**
+     * 题号标记（行首）：**1. 或 1. 或 1、
+     */
     private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*");
 
-    /** 答案标记 */
+    /**
+     * 答案标记
+     */
     private static final Pattern ANSWER_MARK = Pattern.compile(
             "\\*{0,2}(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
 
-    /** 解析标记 */
+    /**
+     * 解析标记
+     */
     private static final Pattern ANALYSIS_MARK = Pattern.compile(
             "\\*{0,2}(?:解析|分析|说明)\\s*[：:]\\s*(.*)$");
 
-    /** 评分标准标记 */
+    /**
+     * 评分标准标记
+     */
     private static final Pattern CRITERIA_MARK = Pattern.compile(
             "\\*{0,2}(?:评分标准|给分标准|赋分标准|得分标准|评分细则)\\s*[：:]\\s*(.*)$");
 
-    /** 通用「加粗标签」标记（如 **题目：** / **知识点：**），命中则切换到无归属状态 */
+    /**
+     * 通用「加粗标签」标记（如 **题目：** / **知识点：**），命中则切换到无归属状态
+     */
     private static final Pattern OTHER_LABEL_MARK = Pattern.compile("^\\*{1,2}[^*：:]{1,10}[：:]");
 
-    /** 标题行（# / ## / ###） */
+    /**
+     * 标题行（# / ## / ###）
+     */
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s");
 
-    /** 集合内容块 */
-    private enum Section {
-        NONE, ANSWER, ANALYSIS, CRITERIA
-    }
-
     private AnswerKeyParser() {
-    }
-
-    /**
-     * 单题的答案、解析与评分标准
-     *
-     * @param answer          标准答案（可能为空）
-     * @param analysis        解析 / 说明（可能为空）
-     * @param scoringCriteria 评分标准（可能为空）
-     */
-    public record QuestionKey(String answer, String analysis, String scoringCriteria) {
     }
 
     /**
@@ -175,7 +174,7 @@ public final class AnswerKeyParser {
     }
 
     private static void flush(Map<Integer, QuestionKey> result, Integer q, String answer,
-                             StringBuilder analysis, StringBuilder criteria) {
+                              StringBuilder analysis, StringBuilder criteria) {
         if (q == null) {
             return;
         }
@@ -245,5 +244,22 @@ public final class AnswerKeyParser {
             }
         }
         return answers;
+    }
+
+    /**
+     * 集合内容块
+     */
+    private enum Section {
+        NONE, ANSWER, ANALYSIS, CRITERIA
+    }
+
+    /**
+     * 单题的答案、解析与评分标准
+     *
+     * @param answer          标准答案（可能为空）
+     * @param analysis        解析 / 说明（可能为空）
+     * @param scoringCriteria 评分标准（可能为空）
+     */
+    public record QuestionKey(String answer, String analysis, String scoringCriteria) {
     }
 }

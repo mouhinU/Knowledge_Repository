@@ -13,55 +13,89 @@ public class ExamSession {
 
     private Long id;
 
-    /** 场次唯一标识（UUID） */
+    /**
+     * 场次唯一标识（UUID）
+     */
     private String sessionKey;
 
-    /** 考生 ID */
+    /**
+     * 考生 ID
+     */
     private Long studentId;
 
-    /** 关联的出卷历史 ID（可为空，表示即时生成） */
+    /**
+     * 关联的出卷历史 ID（可为空，表示即时生成）
+     */
     private Long examHistoryId;
 
-    /** 考试主题 */
+    /**
+     * 考试主题
+     */
     private String topic;
 
-    /** 难度：EASY / MEDIUM / HARD */
+    /**
+     * 难度：EASY / MEDIUM / HARD
+     */
     private String difficulty;
 
-    /** 考试时长（分钟），为空表示不限时 */
+    /**
+     * 考试时长（分钟），为空表示不限时
+     */
     private Integer durationMinutes;
 
-    /** 试卷原文（Markdown） */
+    /**
+     * 试卷原文（Markdown）
+     */
     private String examPaper;
 
-    /** 参考答案 */
+    /**
+     * 参考答案
+     */
     private String answerKey;
 
-    /** 结构化题目 JSON */
+    /**
+     * 结构化题目 JSON
+     */
     private String questionsJson;
 
-    /** 总分 */
+    /**
+     * 总分
+     */
     private Integer totalScore;
 
-    /** AI 评分 */
+    /**
+     * AI 评分
+     */
     private Integer aiScore;
 
-    /** 最终成绩（人工复核后） */
+    /**
+     * 最终成绩（人工复核后）
+     */
     private Integer finalScore;
 
-    /** 状态：IN_PROGRESS / SUBMITTED / AI_GRADED / REVIEWED / PUBLISHED */
+    /**
+     * 状态：IN_PROGRESS / SUBMITTED / AI_GRADED / REVIEWED / PUBLISHED
+     */
     private String status;
 
-    /** 开始答题时间 */
+    /**
+     * 开始答题时间
+     */
     private LocalDateTime startTime;
 
-    /** 交卷时间 */
+    /**
+     * 交卷时间
+     */
     private LocalDateTime submitTime;
 
-    /** 评分完成时间 */
+    /**
+     * 评分完成时间
+     */
     private LocalDateTime gradeTime;
 
-    /** 成绩发布时间 */
+    /**
+     * 成绩发布时间
+     */
     private LocalDateTime publishTime;
 
     private LocalDateTime createTime;
@@ -70,65 +104,165 @@ public class ExamSession {
 
     // ==================== Getters & Setters ====================
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getSessionKey() { return sessionKey; }
-    public void setSessionKey(String sessionKey) { this.sessionKey = sessionKey; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getStudentId() { return studentId; }
-    public void setStudentId(Long studentId) { this.studentId = studentId; }
+    public String getSessionKey() {
+        return sessionKey;
+    }
 
-    public Long getExamHistoryId() { return examHistoryId; }
-    public void setExamHistoryId(Long examHistoryId) { this.examHistoryId = examHistoryId; }
+    public void setSessionKey(String sessionKey) {
+        this.sessionKey = sessionKey;
+    }
 
-    public String getTopic() { return topic; }
-    public void setTopic(String topic) { this.topic = topic; }
+    public Long getStudentId() {
+        return studentId;
+    }
 
-    public String getDifficulty() { return difficulty; }
-    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
+    }
 
-    public Integer getDurationMinutes() { return durationMinutes; }
-    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
+    public Long getExamHistoryId() {
+        return examHistoryId;
+    }
 
-    public String getExamPaper() { return examPaper; }
-    public void setExamPaper(String examPaper) { this.examPaper = examPaper; }
+    public void setExamHistoryId(Long examHistoryId) {
+        this.examHistoryId = examHistoryId;
+    }
 
-    public String getAnswerKey() { return answerKey; }
-    public void setAnswerKey(String answerKey) { this.answerKey = answerKey; }
+    public String getTopic() {
+        return topic;
+    }
 
-    public String getQuestionsJson() { return questionsJson; }
-    public void setQuestionsJson(String questionsJson) { this.questionsJson = questionsJson; }
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 
-    public Integer getTotalScore() { return totalScore; }
-    public void setTotalScore(Integer totalScore) { this.totalScore = totalScore; }
+    public String getDifficulty() {
+        return difficulty;
+    }
 
-    public Integer getAiScore() { return aiScore; }
-    public void setAiScore(Integer aiScore) { this.aiScore = aiScore; }
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
 
-    public Integer getFinalScore() { return finalScore; }
-    public void setFinalScore(Integer finalScore) { this.finalScore = finalScore; }
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
+    }
 
-    public LocalDateTime getStartTime() { return startTime; }
-    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
+    public String getExamPaper() {
+        return examPaper;
+    }
 
-    public LocalDateTime getSubmitTime() { return submitTime; }
-    public void setSubmitTime(LocalDateTime submitTime) { this.submitTime = submitTime; }
+    public void setExamPaper(String examPaper) {
+        this.examPaper = examPaper;
+    }
 
-    public LocalDateTime getGradeTime() { return gradeTime; }
-    public void setGradeTime(LocalDateTime gradeTime) { this.gradeTime = gradeTime; }
+    public String getAnswerKey() {
+        return answerKey;
+    }
 
-    public LocalDateTime getPublishTime() { return publishTime; }
-    public void setPublishTime(LocalDateTime publishTime) { this.publishTime = publishTime; }
+    public void setAnswerKey(String answerKey) {
+        this.answerKey = answerKey;
+    }
 
-    public LocalDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public String getQuestionsJson() {
+        return questionsJson;
+    }
 
-    public LocalDateTime getUpdateTime() { return updateTime; }
-    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public void setQuestionsJson(String questionsJson) {
+        this.questionsJson = questionsJson;
+    }
+
+    public Integer getTotalScore() {
+        return totalScore;
+    }
+
+    public void setTotalScore(Integer totalScore) {
+        this.totalScore = totalScore;
+    }
+
+    public Integer getAiScore() {
+        return aiScore;
+    }
+
+    public void setAiScore(Integer aiScore) {
+        this.aiScore = aiScore;
+    }
+
+    public Integer getFinalScore() {
+        return finalScore;
+    }
+
+    public void setFinalScore(Integer finalScore) {
+        this.finalScore = finalScore;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getSubmitTime() {
+        return submitTime;
+    }
+
+    public void setSubmitTime(LocalDateTime submitTime) {
+        this.submitTime = submitTime;
+    }
+
+    public LocalDateTime getGradeTime() {
+        return gradeTime;
+    }
+
+    public void setGradeTime(LocalDateTime gradeTime) {
+        this.gradeTime = gradeTime;
+    }
+
+    public LocalDateTime getPublishTime() {
+        return publishTime;
+    }
+
+    public void setPublishTime(LocalDateTime publishTime) {
+        this.publishTime = publishTime;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 
     // ==================== 业务方法 ====================
 

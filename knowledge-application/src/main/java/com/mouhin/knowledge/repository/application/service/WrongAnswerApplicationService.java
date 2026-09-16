@@ -3,7 +3,6 @@ package com.mouhin.knowledge.repository.application.service;
 import com.mouhin.knowledge.repository.application.util.AnswerKeyParser;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.repository.ExamAnswerRepository;
 import com.mouhin.knowledge.repository.domain.repository.ExamSessionRepository;
 import com.mouhin.knowledge.repository.domain.repository.StudentRepository;
@@ -16,13 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,18 +33,20 @@ public class WrongAnswerApplicationService {
 
     private static final Logger logger = LoggerFactory.getLogger(WrongAnswerApplicationService.class);
 
-    /** 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED） */
+    /**
+     * 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED）
+     */
     private static final List<String> GRADED_STATUSES = List.of("AI_GRADED", "REVIEWED", "PUBLISHED");
 
     private static final String AI_SUMMARY_SYSTEM_PROMPT = """
             你是一位专业的教育分析师。请根据学生的错题信息进行分析总结，帮助教师了解学生的薄弱环节。
-
+            
             请从以下维度进行分析：
             1. 错误原因分析（知识性错误、理解偏差、粗心等）
             2. 知识点薄弱领域
             3. 按题型分析表现差异
             4. 针对性的改进建议和学习方向
-
+            
             请用中文输出，结构清晰，重点突出。
             """;
 
@@ -151,7 +146,7 @@ public class WrongAnswerApplicationService {
      * @return 分页结果（records / total / page / size）
      */
     public Map<String, Object> pageWrongAnswers(Long studentId, String topic, String questionType,
-                                                 int page, int size) {
+                                                int page, int size) {
         List<Map<String, Object>> all = listWrongAnswers(studentId, topic, questionType);
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 10;
@@ -341,8 +336,8 @@ public class WrongAnswerApplicationService {
      * 组装单条错题的返回数据
      */
     private Map<String, Object> buildWrongAnswerMap(ExamAnswer answer, ExamSession session,
-                                                     Map<Long, String> studentNames,
-                                                     AnswerKeyParser.QuestionKey key) {
+                                                    Map<Long, String> studentNames,
+                                                    AnswerKeyParser.QuestionKey key) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("answerId", answer.getId());
         map.put("sessionId", answer.getSessionId());

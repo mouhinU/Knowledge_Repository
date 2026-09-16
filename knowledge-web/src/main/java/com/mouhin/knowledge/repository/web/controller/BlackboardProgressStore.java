@@ -27,13 +27,19 @@ public class BlackboardProgressStore {
 
     private static final Logger logger = LoggerFactory.getLogger(BlackboardProgressStore.class);
 
-    /** SSE 超时时间：10 分钟 */
+    /**
+     * SSE 超时时间：10 分钟
+     */
     private static final long SSE_TIMEOUT_MS = 600_000L;
 
-    /** 每个 session 的 SSE 连接列表 */
+    /**
+     * 每个 session 的 SSE 连接列表
+     */
     private final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
-    /** 每个 session 的事件缓冲（SSE 连接前的早期事件） */
+    /**
+     * 每个 session 的事件缓冲（SSE 连接前的早期事件）
+     */
     private final Map<String, List<BlackboardProgressEvent>> eventBuffers = new ConcurrentHashMap<>();
 
     /**
@@ -87,7 +93,9 @@ public class BlackboardProgressStore {
         } else {
             // SSE 尚未连接，缓冲事件
             eventBuffers.computeIfAbsent(sessionId, k -> {
-                synchronized (new Object()) { return new CopyOnWriteArrayList<>(); }
+                synchronized (new Object()) {
+                    return new CopyOnWriteArrayList<>();
+                }
             }).add(event);
         }
 

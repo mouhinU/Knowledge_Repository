@@ -28,8 +28,30 @@ public final class ExamPaperParser {
     private static final Logger logger = LoggerFactory.getLogger(ExamPaperParser.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /** 题型标题映射 */
+    /**
+     * 题型标题映射
+     */
     private static final Map<String, String> SECTION_TYPE_MAP = new LinkedHashMap<>();
+    /**
+     * 匹配大题标题
+     */
+    private static final Pattern SECTION_PATTERN = Pattern.compile(
+            "#{1,3}\\s*[一二三四五六七八九十]+[、.．]\\s*(单选题|多选题|判断题|填空题|简答题|论述题)"
+                    + "[^（(]*[（(]([^）)]+)[）)]");
+    /**
+     * 匹配分值：每题5分
+     */
+    private static final Pattern SCORE_PATTERN = Pattern.compile("每题\\s*(\\d+)\\s*分");
+    /**
+     * 匹配单个选项：A. xxx 或 A、xxx 或 **A.** xxx
+     */
+    private static final Pattern SINGLE_OPTION_PATTERN = Pattern.compile(
+            "([A-Da-d])\\s*[.、．]\\s*");
+    /**
+     * 匹配考试时长：**考试时间：XX分钟** 或 考试时间：XX分钟
+     */
+    private static final Pattern DURATION_PATTERN = Pattern.compile(
+            "考试时间[：:]\\s*(\\d+)\\s*分钟?");
 
     static {
         SECTION_TYPE_MAP.put("单选题", "SINGLE_CHOICE");
@@ -39,22 +61,6 @@ public final class ExamPaperParser {
         SECTION_TYPE_MAP.put("简答题", "SHORT_ANSWER");
         SECTION_TYPE_MAP.put("论述题", "ESSAY");
     }
-
-    /** 匹配大题标题 */
-    private static final Pattern SECTION_PATTERN = Pattern.compile(
-            "#{1,3}\\s*[一二三四五六七八九十]+[、.．]\\s*(单选题|多选题|判断题|填空题|简答题|论述题)"
-                    + "[^（(]*[（(]([^）)]+)[）)]");
-
-    /** 匹配分值：每题5分 */
-    private static final Pattern SCORE_PATTERN = Pattern.compile("每题\\s*(\\d+)\\s*分");
-
-    /** 匹配单个选项：A. xxx 或 A、xxx 或 **A.** xxx */
-    private static final Pattern SINGLE_OPTION_PATTERN = Pattern.compile(
-            "([A-Da-d])\\s*[.、．]\\s*");
-
-    /** 匹配考试时长：**考试时间：XX分钟** 或 考试时间：XX分钟 */
-    private static final Pattern DURATION_PATTERN = Pattern.compile(
-            "考试时间[：:]\\s*(\\d+)\\s*分钟?");
 
     private ExamPaperParser() {
     }

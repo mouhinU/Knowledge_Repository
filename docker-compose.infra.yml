@@ -31,7 +31,7 @@ services:
       --max-connections=500
       --lower-case-table-names=0
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -83,7 +83,7 @@ services:
   milvus:
     image: milvusdb/milvus:v2.5.4
     container_name: knowledge-milvus
-    command: ["milvus", "run", "standalone"]
+    command: [ "milvus", "run", "standalone" ]
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000

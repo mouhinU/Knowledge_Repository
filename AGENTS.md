@@ -1,7 +1,8 @@
-# AGENTS.md —  编码规范
+# AGENTS.md — 编码规范
 
 > 本规范基于《Java开发手册》v1.5.0（华山版），结合 Knowledge_Repository 项目技术栈（Spring Boot 3.4 / Java 21 / MyBatis-Plus
-> 3.5.17 / LangChain4j 1.0 / Milvus 2.5 / PDFBox 3 / Apache Tika 3 / Apache POI 5 / H2 + MySQL / Flyway）进行定制化裁剪。**所有 AI 生成的代码必须严格遵循以下规则。**
+> 3.5.17 / LangChain4j 1.0 / Milvus 2.5 / PDFBox 3 / Apache Tika 3 / Apache POI 5 / H2 + MySQL / Flyway）进行定制化裁剪。*
+*所有 AI 生成的代码必须严格遵循以下规则。**
 
 ---
 
@@ -15,12 +16,12 @@
 
 ### 1.2 风格要求
 
-| 元素                      | 风格             | 正例                                     | 反例                              |
-|-------------------------|----------------|----------------------------------------|---------------------------------|
-| 类名                      | UpperCamelCase | `UserService`、`SearchResultVO`         | `userService`、`SearchResultVo`  |
-| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()`        | `LocalValue`、`gethttpmessage()` |
-| 常量                      | 全大写 + 下划线分隔    | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME`  | `MAX_SIZE`                     |
-| 包名                      | 全小写，单数形式       | `com.mouhin.knowledge.repository.util`  | `com.mouhin.Knowledge.Repository.Utils` |
+| 元素                      | 风格             | 正例                                     | 反例                                      |
+|-------------------------|----------------|----------------------------------------|-----------------------------------------|
+| 类名                      | UpperCamelCase | `UserService`、`SearchResultVO`         | `userService`、`SearchResultVo`          |
+| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()`        | `LocalValue`、`gethttpmessage()`         |
+| 常量                      | 全大写 + 下划线分隔    | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME`  | `MAX_SIZE`                              |
+| 包名                      | 全小写，单数形式       | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
 
 - 类名例外（保持全大写后缀）：`DO` / `BO` / `DTO` / `VO` / `AO` / `PO` / `UID`。
 - 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test` 结尾。
@@ -38,14 +39,14 @@
 
 ### 1.5 各层方法命名
 
-| 操作     | 前缀                           |
-|--------|------------------------------|
-| 获取单个对象 | `get` / `find`               |
+| 操作     | 前缀                             |
+|--------|--------------------------------|
+| 获取单个对象 | `get` / `find`                 |
 | 获取多个对象 | `list`（复数结尾，如 `listDocuments`） |
-| 获取统计值  | `count`                      |
-| 插入     | `save` / `insert`            |
-| 删除     | `remove` / `delete`          |
-| 修改     | `update`                     |
+| 获取统计值  | `count`                        |
+| 插入     | `save` / `insert`              |
+| 删除     | `remove` / `delete`            |
+| 修改     | `update`                       |
 
 ### 1.6 数据对象与领域模型命名
 
@@ -57,17 +58,17 @@
 
 **DDD 领域模型命名：**
 
-| 概念                   | 后缀                        | 正例                                         |
-|----------------------|---------------------------|--------------------------------------------|
-| 聚合根（Aggregate Root）  | 直接用业务名词                   | `Document`                                   |
-| 实体（Entity）           | 直接用业务名词                   | `DocumentChunk`、`User`                      |
-| 值对象（Value Object）    | 直接用业务名词                   | `Permission`、`ChunkingConfig`、`SearchResult` |
-| 领域服务（Domain Service） | `DomainService`           | `DocumentIngestionDomainService`             |
-| 仓储接口（Repository）     | `Repository`              | `DocumentRepository`                       |
-| 仓储实现                 | `RepositoryImpl`          | `DocumentRepositoryImpl`                   |
-| 应用服务                 | `ApplicationService`      | `DocumentIngestionApplicationService`      |
-| 领域事件（Domain Event）   | `Event`（过去式）              | `DocumentCreatedEvent`                     |
-| 转换器（Converter）       | `Converter`               | `DocumentConverter`                        |
+| 概念                   | 后缀                   | 正例                                           |
+|----------------------|----------------------|----------------------------------------------|
+| 聚合根（Aggregate Root）  | 直接用业务名词              | `Document`                                   |
+| 实体（Entity）           | 直接用业务名词              | `DocumentChunk`、`User`                       |
+| 值对象（Value Object）    | 直接用业务名词              | `Permission`、`ChunkingConfig`、`SearchResult` |
+| 领域服务（Domain Service） | `DomainService`      | `DocumentIngestionDomainService`             |
+| 仓储接口（Repository）     | `Repository`         | `DocumentRepository`                         |
+| 仓储实现                 | `RepositoryImpl`     | `DocumentRepositoryImpl`                     |
+| 应用服务                 | `ApplicationService` | `DocumentIngestionApplicationService`        |
+| 领域事件（Domain Event）   | `Event`（过去式）         | `DocumentCreatedEvent`                       |
+| 转换器（Converter）       | `Converter`          | `DocumentConverter`                          |
 
 ---
 
@@ -202,47 +203,51 @@ knowledge-infrastructure → 基础设施层（Repository 实现、DO 实体、M
 
 ### 11.2 各层职责
 
-| 层级                    | 职责                                                              | 依赖方向          |
-|-----------------------|-----------------------------------------------------------------|---------------|
-| 表现层（Web）              | 处理 HTTP 请求/响应，参数校验，调用应用层，返回统一响应格式。不包含业务逻辑。                    | → 应用层         |
-| 应用层（Application）      | 实现用例，编排领域对象，控制事务边界（`@Transactional`），DTO ↔ 领域对象转换。不包含业务规则。 | → 领域层 + 基础设施层 |
-| 领域层（Domain）           | 核心业务逻辑（实体、值对象、领域服务、仓储接口、领域事件）。不依赖基础设施。                          | 仅依赖 Spring Context |
-| 基础设施层（Infrastructure） | 实现仓储接口，操作数据库（MyBatis-Plus）和向量库（Milvus），DO ↔ 领域对象转换。不含业务规则。 | → 领域层（实现其接口）  |
+| 层级                    | 职责                                                         | 依赖方向               |
+|-----------------------|------------------------------------------------------------|--------------------|
+| 表现层（Web）              | 处理 HTTP 请求/响应，参数校验，调用应用层，返回统一响应格式。不包含业务逻辑。                 | → 应用层              |
+| 应用层（Application）      | 实现用例，编排领域对象，控制事务边界（`@Transactional`），DTO ↔ 领域对象转换。不包含业务规则。 | → 领域层 + 基础设施层      |
+| 领域层（Domain）           | 核心业务逻辑（实体、值对象、领域服务、仓储接口、领域事件）。不依赖基础设施。                     | 仅依赖 Spring Context |
+| 基础设施层（Infrastructure） | 实现仓储接口，操作数据库（MyBatis-Plus）和向量库（Milvus），DO ↔ 领域对象转换。不含业务规则。 | → 领域层（实现其接口）       |
 
 ### 11.3 领域模型分布
 
-| 模型                 | 说明                                  | 所在模块                         |
-|--------------------|-------------------------------------|------------------------------|
-| DO                 | 与数据库表一一对应，MyBatis-Plus 注解           | `knowledge-infrastructure` |
-| 领域实体               | 业务对象，`@Getter` + `@Setter`          | `knowledge-domain`         |
-| 聚合根                | 文档聚合根，包含业务校验方法                       | `knowledge-domain`         |
-| 值对象                | 不可变对象（final 类 + final 属性）            | `knowledge-domain`         |
-| Converter          | DO ↔ 领域对象转换器                        | `knowledge-infrastructure` |
-| Repository         | 仓储接口（领域对象参数/返回值）                    | `knowledge-domain`         |
-| RepositoryImpl     | 仓储实现（Mapper + Converter）            | `knowledge-infrastructure` |
-| ApplicationService | 用例编排，事务控制                           | `knowledge-application`    |
-| DomainService      | 跨实体业务逻辑（分块、权限过滤）                     | `knowledge-domain`         |
+| 模型                 | 说明                         | 所在模块                       |
+|--------------------|----------------------------|----------------------------|
+| DO                 | 与数据库表一一对应，MyBatis-Plus 注解  | `knowledge-infrastructure` |
+| 领域实体               | 业务对象，`@Getter` + `@Setter` | `knowledge-domain`         |
+| 聚合根                | 文档聚合根，包含业务校验方法             | `knowledge-domain`         |
+| 值对象                | 不可变对象（final 类 + final 属性）  | `knowledge-domain`         |
+| Converter          | DO ↔ 领域对象转换器               | `knowledge-infrastructure` |
+| Repository         | 仓储接口（领域对象参数/返回值）           | `knowledge-domain`         |
+| RepositoryImpl     | 仓储实现（Mapper + Converter）   | `knowledge-infrastructure` |
+| ApplicationService | 用例编排，事务控制                  | `knowledge-application`    |
+| DomainService      | 跨实体业务逻辑（分块、权限过滤）           | `knowledge-domain`         |
 
 ### 11.4 编码规范
 
 **领域层：**
+
 - 实体/聚合根：属性为 `private`，使用 `@Getter` + `@Setter`（禁止 `@Data`）。须基于 ID 重写 `equals` / `hashCode`。
 - 仓储接口：定义在 `domain.repository` 包，参数和返回值均为领域对象，严禁出现 DO 或 DTO。
 - 领域服务：无状态，`@Service` 管理，方法命名体现业务意图。
 - 领域事件：Java record 实现 `DomainEvent` 标记接口，命名使用过去式。
 
 **应用层：**
+
 - 类名以 `ApplicationService` 结尾。每个方法对应一个用户用例，使用 `@Transactional` 控制事务。
 - 禁止直接操作 DAO 或 Mapper，必须通过仓储接口。
 - 构造器注入，不使用 `@Autowired`。
 
 **基础设施层：**
+
 - 仓储实现类以 `RepositoryImpl` 结尾，`@Repository` 注解。
 - Converter 为 `final` 工具类，提供 `toDomain()`、`toDO()` 静态方法。
 - 不得包含业务规则，只负责技术实现。
 - 分页查询使用 `selectCount`（无 ORDER BY）+ `selectList`（LAST LIMIT OFFSET）。
 
 **依赖注入：**
+
 - 所有 Spring Bean 构造器注入，面向接口。
 - 领域层保持纯净，不引用基础设施注解。
 

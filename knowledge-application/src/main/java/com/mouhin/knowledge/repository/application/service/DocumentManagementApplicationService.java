@@ -80,17 +80,6 @@ public class DocumentManagementApplicationService {
         return documentRepository.listAll();
     }
 
-    /**
-     * 获取知识库统计信息
-     */
-    public record KnowledgeStats(
-            long totalDocuments,
-            long indexedDocuments,
-            long processingDocuments,
-            long failedDocuments
-    ) {
-    }
-
     public KnowledgeStats getStats() {
         return new KnowledgeStats(
                 documentRepository.countByStatus(DocumentStatusEnum.INDEXED)
@@ -142,5 +131,16 @@ public class DocumentManagementApplicationService {
         documentRepository.deleteById(document.getId());
 
         logger.info("Document {} deleted", documentKey);
+    }
+
+    /**
+     * 获取知识库统计信息
+     */
+    public record KnowledgeStats(
+            long totalDocuments,
+            long indexedDocuments,
+            long processingDocuments,
+            long failedDocuments
+    ) {
     }
 }

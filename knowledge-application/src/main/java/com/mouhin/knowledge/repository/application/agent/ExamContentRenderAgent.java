@@ -35,7 +35,9 @@ public class ExamContentRenderAgent {
     private static final Logger logger = LoggerFactory.getLogger(ExamContentRenderAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /** 默认每题分值（解析不到时使用） */
+    /**
+     * 默认每题分值（解析不到时使用）
+     */
     private static final int DEFAULT_MAX_SCORE = 5;
 
     /**
@@ -215,7 +217,9 @@ public class ExamContentRenderAgent {
         return fallback;
     }
 
-    /** 正文与抽取出的选项的拆分结果 */
+    /**
+     * 正文与抽取出的选项的拆分结果
+     */
     private record OptionSplit(String content, List<Map<String, Object>> options) {
     }
 }

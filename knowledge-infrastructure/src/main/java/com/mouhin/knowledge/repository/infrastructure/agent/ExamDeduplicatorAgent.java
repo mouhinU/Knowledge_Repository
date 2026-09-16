@@ -34,20 +34,20 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一位试卷查重专家，负责检查试卷中是否存在重复或高度相似的题目。
-
+            
             检查维度：
             1. 知识点重复：不同题目是否考查了完全相同的知识点
             2. 题目相似：是否有题目在表述或考查角度上高度相似
             3. 选项重叠：选择题的选项之间是否有不合理的内容重叠
             4. 答案一致：不同题目的答案是否实质上相同
-
+            
             输出格式（严格按以下 Markdown 结构）：
             ## 查重结果
             （列出发现的重复或相似题目对，说明重复原因）
-
+            
             ## 重复率评估
             （给出整体重复率百分比估计）
-
+            
             ## 建议
             （如有重复，给出替换或修改建议）
             """;
@@ -84,11 +84,11 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
 
         String userPrompt = String.format("""
                 考试主题：%s
-
+                
                 【试卷内容】
                 %s
                 %s
-
+                
                 请检查试卷中是否存在重复或高度相似的题目。
                 """, blackboard.getQuestion(), examPaper, answerContext);
 

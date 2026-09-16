@@ -14,64 +14,104 @@ import java.time.Instant;
  */
 public class BlackboardProgressEvent {
 
-    /** 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR */
+    /**
+     * 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
+     */
     private final String type;
 
-    /** 当前阶段 */
+    /**
+     * 当前阶段
+     */
     private final BlackboardPhase phase;
 
-    /** Agent 名称（researcher / writer / reviewer） */
+    /**
+     * Agent 名称（researcher / writer / reviewer）
+     */
     private final String agentName;
 
-    /** Agent 状态（running / done） */
+    /**
+     * Agent 状态（running / done）
+     */
     private final String agentStatus;
 
-    /** Agent 输出内容 */
+    /**
+     * Agent 输出内容
+     */
     private final String output;
 
-    /** 人类可读消息 */
+    /**
+     * 人类可读消息
+     */
     private final String message;
 
-    /** 最终文章（仅 COMPLETED 事件） */
+    /**
+     * 最终文章（仅 COMPLETED 事件）
+     */
     private final String finalArticle;
 
-    /** 关键发现（仅 COMPLETED 事件） */
+    /**
+     * 关键发现（仅 COMPLETED 事件）
+     */
     private final String keyFindings;
 
-    /** 文章草稿（仅 COMPLETED 事件） */
+    /**
+     * 文章草稿（仅 COMPLETED 事件）
+     */
     private final String draftArticle;
 
-    /** 审核反馈（仅 COMPLETED 事件） */
+    /**
+     * 审核反馈（仅 COMPLETED 事件）
+     */
     private final String reviewFeedback;
 
-    /** 质量评分（仅 COMPLETED 事件） */
+    /**
+     * 质量评分（仅 COMPLETED 事件）
+     */
     private final int qualityScore;
 
-    /** 检索到的知识片段数 */
+    /**
+     * 检索到的知识片段数
+     */
     private final int retrievedChunks;
 
-    /** 错误信息（仅 ERROR 事件） */
+    /**
+     * 错误信息（仅 ERROR 事件）
+     */
     private final String errorMessage;
 
-    /** 输入物料信息（仅 AGENT_OUTPUT running 事件） */
+    /**
+     * 输入物料信息（仅 AGENT_OUTPUT running 事件）
+     */
     private final String materials;
 
-    /** 试卷内容（仅出卷 COMPLETED 事件） */
+    /**
+     * 试卷内容（仅出卷 COMPLETED 事件）
+     */
     private final String examPaper;
 
-    /** 标准答案（仅出卷 COMPLETED 事件） */
+    /**
+     * 标准答案（仅出卷 COMPLETED 事件）
+     */
     private final String answerKey;
 
-    /** 试卷审核反馈（仅出卷 COMPLETED 事件） */
+    /**
+     * 试卷审核反馈（仅出卷 COMPLETED 事件）
+     */
     private final String examReviewFeedback;
 
-    /** 难度校准评估（仅出卷 COMPLETED 事件） */
+    /**
+     * 难度校准评估（仅出卷 COMPLETED 事件）
+     */
     private final String difficultyAssessment;
 
-    /** 查重报告（仅出卷 COMPLETED 事件） */
+    /**
+     * 查重报告（仅出卷 COMPLETED 事件）
+     */
     private final String deduplicationReport;
 
-    /** 事件时间戳 */
+    /**
+     * 事件时间戳
+     */
     private final Instant timestamp;
 
     private BlackboardProgressEvent(Builder builder) {
@@ -192,26 +232,85 @@ public class BlackboardProgressEvent {
 
     // ==================== Getters ====================
 
-    public String getType() { return type; }
-    public BlackboardPhase getPhase() { return phase; }
-    public String getAgentName() { return agentName; }
-    public String getAgentStatus() { return agentStatus; }
-    public String getOutput() { return output; }
-    public String getMessage() { return message; }
-    public String getFinalArticle() { return finalArticle; }
-    public String getKeyFindings() { return keyFindings; }
-    public String getDraftArticle() { return draftArticle; }
-    public String getReviewFeedback() { return reviewFeedback; }
-    public int getQualityScore() { return qualityScore; }
-    public int getRetrievedChunks() { return retrievedChunks; }
-    public String getErrorMessage() { return errorMessage; }
-    public String getMaterials() { return materials; }
-    public String getExamPaper() { return examPaper; }
-    public String getAnswerKey() { return answerKey; }
-    public String getExamReviewFeedback() { return examReviewFeedback; }
-    public String getDifficultyAssessment() { return difficultyAssessment; }
-    public String getDeduplicationReport() { return deduplicationReport; }
-    public Instant getTimestamp() { return timestamp; }
+    public String getType() {
+        return type;
+    }
+
+    public BlackboardPhase getPhase() {
+        return phase;
+    }
+
+    public String getAgentName() {
+        return agentName;
+    }
+
+    public String getAgentStatus() {
+        return agentStatus;
+    }
+
+    public String getOutput() {
+        return output;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getFinalArticle() {
+        return finalArticle;
+    }
+
+    public String getKeyFindings() {
+        return keyFindings;
+    }
+
+    public String getDraftArticle() {
+        return draftArticle;
+    }
+
+    public String getReviewFeedback() {
+        return reviewFeedback;
+    }
+
+    public int getQualityScore() {
+        return qualityScore;
+    }
+
+    public int getRetrievedChunks() {
+        return retrievedChunks;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public String getMaterials() {
+        return materials;
+    }
+
+    public String getExamPaper() {
+        return examPaper;
+    }
+
+    public String getAnswerKey() {
+        return answerKey;
+    }
+
+    public String getExamReviewFeedback() {
+        return examReviewFeedback;
+    }
+
+    public String getDifficultyAssessment() {
+        return difficultyAssessment;
+    }
+
+    public String getDeduplicationReport() {
+        return deduplicationReport;
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
 
     /**
      * Builder 模式构建事件
@@ -237,25 +336,100 @@ public class BlackboardProgressEvent {
         private String difficultyAssessment;
         private String deduplicationReport;
 
-        public Builder type(String type) { this.type = type; return this; }
-        public Builder phase(BlackboardPhase phase) { this.phase = phase; return this; }
-        public Builder agentName(String agentName) { this.agentName = agentName; return this; }
-        public Builder agentStatus(String agentStatus) { this.agentStatus = agentStatus; return this; }
-        public Builder output(String output) { this.output = output; return this; }
-        public Builder message(String message) { this.message = message; return this; }
-        public Builder finalArticle(String finalArticle) { this.finalArticle = finalArticle; return this; }
-        public Builder keyFindings(String keyFindings) { this.keyFindings = keyFindings; return this; }
-        public Builder draftArticle(String draftArticle) { this.draftArticle = draftArticle; return this; }
-        public Builder reviewFeedback(String reviewFeedback) { this.reviewFeedback = reviewFeedback; return this; }
-        public Builder qualityScore(int qualityScore) { this.qualityScore = qualityScore; return this; }
-        public Builder retrievedChunks(int retrievedChunks) { this.retrievedChunks = retrievedChunks; return this; }
-        public Builder errorMessage(String errorMessage) { this.errorMessage = errorMessage; return this; }
-        public Builder materials(String materials) { this.materials = materials; return this; }
-        public Builder examPaper(String examPaper) { this.examPaper = examPaper; return this; }
-        public Builder answerKey(String answerKey) { this.answerKey = answerKey; return this; }
-        public Builder examReviewFeedback(String examReviewFeedback) { this.examReviewFeedback = examReviewFeedback; return this; }
-        public Builder difficultyAssessment(String difficultyAssessment) { this.difficultyAssessment = difficultyAssessment; return this; }
-        public Builder deduplicationReport(String deduplicationReport) { this.deduplicationReport = deduplicationReport; return this; }
+        public Builder type(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder phase(BlackboardPhase phase) {
+            this.phase = phase;
+            return this;
+        }
+
+        public Builder agentName(String agentName) {
+            this.agentName = agentName;
+            return this;
+        }
+
+        public Builder agentStatus(String agentStatus) {
+            this.agentStatus = agentStatus;
+            return this;
+        }
+
+        public Builder output(String output) {
+            this.output = output;
+            return this;
+        }
+
+        public Builder message(String message) {
+            this.message = message;
+            return this;
+        }
+
+        public Builder finalArticle(String finalArticle) {
+            this.finalArticle = finalArticle;
+            return this;
+        }
+
+        public Builder keyFindings(String keyFindings) {
+            this.keyFindings = keyFindings;
+            return this;
+        }
+
+        public Builder draftArticle(String draftArticle) {
+            this.draftArticle = draftArticle;
+            return this;
+        }
+
+        public Builder reviewFeedback(String reviewFeedback) {
+            this.reviewFeedback = reviewFeedback;
+            return this;
+        }
+
+        public Builder qualityScore(int qualityScore) {
+            this.qualityScore = qualityScore;
+            return this;
+        }
+
+        public Builder retrievedChunks(int retrievedChunks) {
+            this.retrievedChunks = retrievedChunks;
+            return this;
+        }
+
+        public Builder errorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
+            return this;
+        }
+
+        public Builder materials(String materials) {
+            this.materials = materials;
+            return this;
+        }
+
+        public Builder examPaper(String examPaper) {
+            this.examPaper = examPaper;
+            return this;
+        }
+
+        public Builder answerKey(String answerKey) {
+            this.answerKey = answerKey;
+            return this;
+        }
+
+        public Builder examReviewFeedback(String examReviewFeedback) {
+            this.examReviewFeedback = examReviewFeedback;
+            return this;
+        }
+
+        public Builder difficultyAssessment(String difficultyAssessment) {
+            this.difficultyAssessment = difficultyAssessment;
+            return this;
+        }
+
+        public Builder deduplicationReport(String deduplicationReport) {
+            this.deduplicationReport = deduplicationReport;
+            return this;
+        }
 
         public BlackboardProgressEvent build() {
             return new BlackboardProgressEvent(this);

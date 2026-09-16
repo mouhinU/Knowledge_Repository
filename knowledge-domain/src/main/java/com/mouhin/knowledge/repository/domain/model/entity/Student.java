@@ -13,28 +13,44 @@ public class Student {
 
     private Long id;
 
-    /** 登录用户名 */
+    /**
+     * 登录用户名
+     */
     private String username;
 
-    /** 密码哈希（BCrypt） */
+    /**
+     * 密码哈希（BCrypt）
+     */
     private String passwordHash;
 
-    /** 显示名称 */
+    /**
+     * 显示名称
+     */
     private String displayName;
 
-    /** 学号 / 工号 */
+    /**
+     * 学号 / 工号
+     */
     private String studentNo;
 
-    /** 部门 ID */
+    /**
+     * 部门 ID
+     */
     private String departmentId;
 
-    /** 会话令牌 */
+    /**
+     * 会话令牌
+     */
     private String sessionToken;
 
-    /** 令牌过期时间 */
+    /**
+     * 令牌过期时间
+     */
     private LocalDateTime tokenExpiry;
 
-    /** 状态：ACTIVE / DISABLED */
+    /**
+     * 状态：ACTIVE / DISABLED
+     */
     private String status;
 
     private LocalDateTime createTime;
@@ -43,38 +59,93 @@ public class Student {
 
     // ==================== Getters & Setters ====================
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public String getUsername() {
+        return username;
+    }
 
-    public String getDisplayName() { return displayName; }
-    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-    public String getStudentNo() { return studentNo; }
-    public void setStudentNo(String studentNo) { this.studentNo = studentNo; }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
 
-    public String getDepartmentId() { return departmentId; }
-    public void setDepartmentId(String departmentId) { this.departmentId = departmentId; }
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
-    public String getSessionToken() { return sessionToken; }
-    public void setSessionToken(String sessionToken) { this.sessionToken = sessionToken; }
+    public String getDisplayName() {
+        return displayName;
+    }
 
-    public LocalDateTime getTokenExpiry() { return tokenExpiry; }
-    public void setTokenExpiry(LocalDateTime tokenExpiry) { this.tokenExpiry = tokenExpiry; }
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public String getStudentNo() {
+        return studentNo;
+    }
 
-    public LocalDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
+    }
 
-    public LocalDateTime getUpdateTime() { return updateTime; }
-    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public String getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(String departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public String getSessionToken() {
+        return sessionToken;
+    }
+
+    public void setSessionToken(String sessionToken) {
+        this.sessionToken = sessionToken;
+    }
+
+    public LocalDateTime getTokenExpiry() {
+        return tokenExpiry;
+    }
+
+    public void setTokenExpiry(LocalDateTime tokenExpiry) {
+        this.tokenExpiry = tokenExpiry;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
 
     // ==================== 业务方法 ====================
 

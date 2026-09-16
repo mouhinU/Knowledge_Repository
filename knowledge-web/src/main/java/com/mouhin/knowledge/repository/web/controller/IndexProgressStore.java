@@ -25,10 +25,14 @@ public class IndexProgressStore {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexProgressStore.class);
 
-    /** SSE 超时：5 分钟 */
+    /**
+     * SSE 超时：5 分钟
+     */
     private static final long SSE_TIMEOUT = 300_000L;
 
-    /** 每个文档的 SSE 发射器 */
+    /**
+     * 每个文档的 SSE 发射器
+     */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**

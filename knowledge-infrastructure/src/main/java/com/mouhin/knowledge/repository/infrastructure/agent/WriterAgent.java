@@ -32,7 +32,7 @@ public class WriterAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一个专业的技术文章写手。你的任务是根据研究员提供的知识发现，撰写一篇结构清晰、内容准确的文章。
-
+            
             写作要求：
             1. 文章结构：标题 → 引言 → 正文（分章节）→ 总结
             2. 基于提供的知识片段撰写，不要编造不存在的信息
@@ -73,11 +73,11 @@ public class WriterAgent implements BlackboardAgent {
 
         String userPrompt = String.format("""
                 用户的问题：%s
-
+                
                 研究员的分析结果：
-
+                
                 %s
-
+                
                 请根据以上信息撰写一篇文章来回答用户的问题。
                 """, blackboard.getQuestion(), findings);
 

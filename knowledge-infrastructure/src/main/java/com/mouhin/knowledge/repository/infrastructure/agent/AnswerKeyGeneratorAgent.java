@@ -34,7 +34,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT = """
             你是一位考试答案编写专家，负责为试卷生成标准答案和评分标准。
-
+            
             要求：
             1. 答案必须准确无误，基于提供的知识点
             2. 选择题直接给出正确选项
@@ -43,7 +43,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
             5. 简答题给出要点答案（关键得分点）
             6. 论述题给出详细的参考答案和评分细则
             7. 每题标注分值分配
-
+            
             输出格式：
             - 使用 Markdown 格式
             - 按题型分节，与试卷结构对应
@@ -83,12 +83,12 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
 
         String userPrompt = String.format("""
                 考试主题：%s
-
+                
                 以下是需要生成答案的试卷：
-
+                
                 %s
                 %s
-
+                
                 请为每道题生成标准答案和评分标准。
                 """, blackboard.getQuestion(), examPaper, knowledgeContext);
 

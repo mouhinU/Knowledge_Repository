@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Knowledge Repository - 管理控制台</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -370,866 +370,1025 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h1>Knowledge Repository</h1>
-            <p>RAG 知识库管理</p>
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h1>Knowledge Repository</h1>
+        <p>RAG 知识库管理</p>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="showSection('dashboard')">
+            <span class="nav-icon">&#9632;</span> 仪表盘
         </div>
-        <nav class="sidebar-nav">
-            <div class="nav-item active" onclick="showSection('dashboard')">
-                <span class="nav-icon">&#9632;</span> 仪表盘
-            </div>
-            <div class="nav-item" onclick="showSection('documents')">
-                <span class="nav-icon">&#9776;</span> 文档管理
-            </div>
-            <div class="nav-item" onclick="showSection('search')">
-                <span class="nav-icon">&#128269;</span> 知识检索
-            </div>
-            <div class="nav-item" onclick="showSection('ai-lab')">
-                <span class="nav-icon">&#9881;</span> AI 实验室
-            </div>
-            <div class="nav-item" onclick="showSection('exam-review')">
-                <span class="nav-icon">&#128221;</span> 成绩复核
-            </div>
-            <div class="nav-item" onclick="showSection('users')">
-                <span class="nav-icon">&#9679;</span> 用户权限
-            </div>
-            <div class="nav-item" onclick="showSection('system')">
-                <span class="nav-icon">&#9881;</span> 系统配置
-            </div>
-        </nav>
-    </aside>
+        <div class="nav-item" onclick="showSection('documents')">
+            <span class="nav-icon">&#9776;</span> 文档管理
+        </div>
+        <div class="nav-item" onclick="showSection('search')">
+            <span class="nav-icon">&#128269;</span> 知识检索
+        </div>
+        <div class="nav-item" onclick="showSection('ai-lab')">
+            <span class="nav-icon">&#9881;</span> AI 实验室
+        </div>
+        <div class="nav-item" onclick="showSection('exam-review')">
+            <span class="nav-icon">&#128221;</span> 成绩复核
+        </div>
+        <div class="nav-item" onclick="showSection('users')">
+            <span class="nav-icon">&#9679;</span> 用户权限
+        </div>
+        <div class="nav-item" onclick="showSection('system')">
+            <span class="nav-icon">&#9881;</span> 系统配置
+        </div>
+    </nav>
+</aside>
 
-    <!-- Main Content -->
-    <main class="main">
-        <!-- Dashboard -->
-        <div id="section-dashboard" class="section active">
-            <div class="page-header"><h2>仪表盘</h2><p>知识库概览与统计</p></div>
-            <div class="stats-grid" id="dashboard-stats">
-                <div class="stat-card"><div class="stat-value" id="stat-total">-</div><div class="stat-label">文档总数</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-indexed" style="color:var(--success)">-</div><div class="stat-label">已索引</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-processing" style="color:var(--warning)">-</div><div class="stat-label">处理中</div></div>
-                <div class="stat-card"><div class="stat-value" id="stat-failed" style="color:var(--danger)">-</div><div class="stat-label">失败</div></div>
+<!-- Main Content -->
+<main class="main">
+    <!-- Dashboard -->
+    <div class="section active" id="section-dashboard">
+        <div class="page-header"><h2>仪表盘</h2>
+            <p>知识库概览与统计</p></div>
+        <div class="stats-grid" id="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">-</div>
+                <div class="stat-label">文档总数</div>
             </div>
-            <div class="card">
-                <div class="card-title">分类统计</div>
-                <div id="category-stats" style="display:flex;flex-direction:column;gap:12px;padding:4px 0">
-                    <div style="text-align:center;color:var(--text-light);padding:16px">加载中...</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-indexed" style="color:var(--success)">-</div>
+                <div class="stat-label">已索引</div>
             </div>
-            <div class="card">
-                <div class="card-title">最近文档</div>
-                <table>
-                    <thead><tr><th>文件名</th><th>状态</th><th>所有者</th><th>创建时间</th></tr></thead>
-                    <tbody id="recent-docs"><tr><td colspan="4" class="loading">加载中...</td></tr></tbody>
-                </table>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-processing" style="color:var(--warning)">-</div>
+                <div class="stat-label">处理中</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-failed" style="color:var(--danger)">-</div>
+                <div class="stat-label">失败</div>
             </div>
         </div>
+        <div class="card">
+            <div class="card-title">分类统计</div>
+            <div id="category-stats" style="display:flex;flex-direction:column;gap:12px;padding:4px 0">
+                <div style="text-align:center;color:var(--text-light);padding:16px">加载中...</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">最近文档</div>
+            <table>
+                <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>状态</th>
+                    <th>所有者</th>
+                    <th>创建时间</th>
+                </tr>
+                </thead>
+                <tbody id="recent-docs">
+                <tr>
+                    <td class="loading" colspan="4">加载中...</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-        <!-- Documents -->
-        <div id="section-documents" class="section">
-            <div class="page-header"><h2>文档管理</h2><p>上传、查看和管理知识库文档</p></div>
-            <div class="card">
-                <div class="card-title">上传文档</div>
-                <div class="upload-area" id="upload-area" onclick="pickFiles()">
-                    <div class="upload-icon">&#128196;</div>
-                    <p>点击选择文件或拖拽到此处上传</p>
-                    <p style="font-size:12px;color:var(--text-light);margin-top:8px">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML</p>
+    <!-- Documents -->
+    <div class="section" id="section-documents">
+        <div class="page-header"><h2>文档管理</h2>
+            <p>上传、查看和管理知识库文档</p></div>
+        <div class="card">
+            <div class="card-title">上传文档</div>
+            <div class="upload-area" id="upload-area" onclick="pickFiles()">
+                <div class="upload-icon">&#128196;</div>
+                <p>点击选择文件或拖拽到此处上传</p>
+                <p style="font-size:12px;color:var(--text-light);margin-top:8px">支持 PDF / Word / Excel / PowerPoint /
+                    TXT / CSV / HTML</p>
+            </div>
+            <div class="upload-actions">
+                <a onclick="pickFiles()">选择文件</a>
+                <a onclick="pickFolder()">选择目录</a>
+            </div>
+            <input id="file-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file">
+            <input id="dir-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file"
+                   webkitdirectory>
+            <div id="upload-form" style="display:none;margin-top:16px">
+                <div class="upload-queue" id="upload-queue"></div>
+                <div class="upload-summary" id="upload-summary-bar" style="display:none">
+                    <span id="upload-summary-text">共 0 个文件</span>
+                    <span id="upload-summary-size">0 B</span>
                 </div>
-                <div class="upload-actions">
-                    <a onclick="pickFiles()">选择文件</a>
-                    <a onclick="pickFolder()">选择目录</a>
-                </div>
-                <input type="file" id="file-input" multiple style="display:none" onchange="handleFileSelect(this)">
-                <input type="file" id="dir-input" multiple webkitdirectory style="display:none" onchange="handleFileSelect(this)">
-                <div id="upload-form" style="display:none;margin-top:16px">
-                    <div id="upload-queue" class="upload-queue"></div>
-                    <div id="upload-summary-bar" class="upload-summary" style="display:none">
-                        <span id="upload-summary-text">共 0 个文件</span>
-                        <span id="upload-summary-size">0 B</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-                        <div class="form-group">
-                            <label class="form-label">所有者 ID</label>
-                            <input class="form-input" id="upload-owner" value="user-admin">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">部门 ID</label>
-                            <select class="form-select" id="upload-dept"></select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">可见性</label>
-                            <select class="form-select" id="upload-visibility">
-                                <option value="INTERNAL">内部（同部门可见）</option>
-                                <option value="PUBLIC">公开</option>
-                                <option value="RESTRICTED">受限（指定角色）</option>
-                                <option value="PRIVATE">私有</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">允许角色（逗号分隔）</label>
-                            <input class="form-input" id="upload-roles" placeholder="ADMIN,MANAGER">
-                        </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                    <div class="form-group">
+                        <label class="form-label">所有者 ID</label>
+                        <input class="form-input" id="upload-owner" value="user-admin">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">标签</label>
-                        <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
+                        <label class="form-label">部门 ID</label>
+                        <select class="form-select" id="upload-dept"></select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">文档分类</label>
-                        <select class="form-select" id="upload-category">
-                            <option value="工作">工作</option>
-                            <option value="学习">学习</option>
-                            <option value="休闲">休闲</option>
-                            <option value="其他" selected>其他</option>
+                        <label class="form-label">可见性</label>
+                        <select class="form-select" id="upload-visibility">
+                            <option value="INTERNAL">内部（同部门可见）</option>
+                            <option value="PUBLIC">公开</option>
+                            <option value="RESTRICTED">受限（指定角色）</option>
+                            <option value="PRIVATE">私有</option>
                         </select>
                     </div>
-                    <div style="display:flex;gap:8px;margin-top:8px">
-                        <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传</button>
-                        <button class="btn btn-outline" onclick="cancelUpload()">清空</button>
+                    <div class="form-group">
+                        <label class="form-label">允许角色（逗号分隔）</label>
+                        <input class="form-input" id="upload-roles" placeholder="ADMIN,MANAGER">
                     </div>
                 </div>
-            </div>
-            <div class="card">
-                <div class="card-title">文档列表</div>
-                <div style="margin-bottom:12px;display:flex;gap:8px">
-                    <select class="form-select" style="width:160px" id="doc-filter-status" onchange="loadDocuments()">
-                        <option value="">全部状态</option>
-                        <option value="UPLOADED">待入库</option>
-                        <option value="INDEXED">已索引</option>
-                        <option value="PROCESSING">处理中</option>
-                        <option value="FAILED">失败</option>
+                <div class="form-group">
+                    <label class="form-label">标签</label>
+                    <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">文档分类</label>
+                    <select class="form-select" id="upload-category">
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="休闲">休闲</option>
+                        <option selected value="其他">其他</option>
                     </select>
                 </div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                    <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传</button>
+                    <button class="btn btn-outline" onclick="cancelUpload()">清空</button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">文档列表</div>
+            <div style="margin-bottom:12px;display:flex;gap:8px">
+                <select class="form-select" id="doc-filter-status" onchange="loadDocuments()" style="width:160px">
+                    <option value="">全部状态</option>
+                    <option value="UPLOADED">待入库</option>
+                    <option value="INDEXED">已索引</option>
+                    <option value="PROCESSING">处理中</option>
+                    <option value="FAILED">失败</option>
+                </select>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>状态</th>
+                    <th>页数</th>
+                    <th>可见性</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="doc-list">
+                <tr>
+                    <td class="loading" colspan="5">加载中...</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="section" id="section-search">
+        <div class="page-header"><h2>知识检索</h2>
+            <p>语义搜索知识库内容</p></div>
+        <div class="card">
+            <div class="search-box">
+                <input class="form-input" id="search-query" onkeydown="if(event.key==='Enter')doSearch()"
+                       placeholder="输入问题或关键词进行语义搜索...">
+                <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+            </div>
+            <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center">
+                <label class="form-label" style="margin:0;white-space:nowrap">用户ID</label>
+                <input class="form-input" id="search-user" style="width:160px" value="user-admin">
+                <label class="form-label" style="margin:0;white-space:nowrap">最大结果</label>
+                <input class="form-input" id="search-max" max="50" min="1" style="width:80px" type="number" value="10">
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input checked
+                                                                                             id="search-admin" type="checkbox">
+                    管理员模式</label>
+            </div>
+        </div>
+        <div class="card" id="search-results-card" style="display:none">
+            <div class="card-title">搜索结果 <span id="search-count" style="color:var(--primary)"></span></div>
+            <div id="search-results"></div>
+        </div>
+    </div>
+
+    <!-- AI Lab -->
+    <div class="section" id="section-ai-lab">
+        <div class="page-header"><h2>AI 实验室</h2>
+            <p>AI 驱动的智能内容生成工具集</p></div>
+
+        <!-- Lab Tabs -->
+        <div class="lab-tabs">
+            <div class="lab-tab active" onclick="switchLabTab('writing')">AI 写作</div>
+            <div class="lab-tab" onclick="switchLabTab('exam')">AI 出卷</div>
+        </div>
+
+        <!-- Panel: AI Writing -->
+        <div class="lab-panel active" id="lab-panel-writing">
+            <div class="card">
+                <div class="card-title">写作输入</div>
+                <div class="writing-input-area">
+                    <textarea class="form-input" id="writing-question"
+                              placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
+                    <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()"
+                            style="align-self:flex-end;height:42px;white-space:nowrap">生成文章
+                    </button>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px">
+                    <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                    <input class="form-input" id="writing-user" style="width:160px" value="user-admin">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input checked
+                                                                                                 id="writing-admin"
+                                                                                                 type="checkbox">
+                        管理员模式</label>
+                    <div style="flex:1"></div>
+                    <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                    <select class="form-input" id="writing-category" style="width:120px">
+                        <option value="">全部分类</option>
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="休闲">休闲</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="writing-progress" id="writing-progress">
+                <div class="flow-container" id="writing-flow">
+                    <div class="flow-terminal start" id="flow-start">开始</div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-research">
+                        <span class="flow-dot">1</span>
+                        <span class="flow-label">知识检索</span>
+                        <span class="flow-time" id="flow-time-research"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-writing">
+                        <span class="flow-dot">2</span>
+                        <span class="flow-label">文章撰写</span>
+                        <span class="flow-time" id="flow-time-writing"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-review">
+                        <span class="flow-dot">3</span>
+                        <span class="flow-label">质量审核</span>
+                        <span class="flow-time" id="flow-time-review"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-terminal end" id="flow-complete">完成</div>
+                </div>
+
+                <!-- Agent Panels -->
+                <div class="agent-panel" id="panel-researcher">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                        <span class="agent-status pending" id="status-researcher">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-researcher" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
+                        </details>
+                        <div class="agent-output-label">研究发现</div>
+                        <pre id="output-researcher">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="panel-writer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
+                        <span class="agent-status pending" id="status-writer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-writer" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
+                        </details>
+                        <div class="agent-output-label">文章草稿</div>
+                        <pre id="output-writer">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="panel-reviewer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                        <span class="agent-status pending" id="status-reviewer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-reviewer" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
+                        </details>
+                        <div class="agent-output-label">审核结果</div>
+                        <pre id="output-reviewer">等待执行...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div class="writing-error" id="writing-error"></div>
+
+            <!-- Result -->
+            <div class="article-result" id="article-result">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <div class="card-title" style="margin:0">生成结果</div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="copyArticle()">复制文章</button>
+                        </div>
+                    </div>
+                    <div class="article-meta" id="article-meta"></div>
+                    <div class="article-content" id="article-content"></div>
+                </div>
+            </div>
+
+            <!-- Writing History -->
+            <div class="card" style="margin-top:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div class="card-title" style="margin:0">写作历史</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadWritingHistory()">刷新</button>
+                </div>
                 <table>
-                    <thead><tr><th>文件名</th><th>状态</th><th>页数</th><th>可见性</th><th>操作</th></tr></thead>
-                    <tbody id="doc-list"><tr><td colspan="5" class="loading">加载中...</td></tr></tbody>
+                    <thead>
+                    <tr>
+                        <th style="width:45%">问题</th>
+                        <th>状态</th>
+                        <th>评分</th>
+                        <th>时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="writing-history-list">
+                    <tr>
+                        <td class="loading" colspan="5">加载中...</td>
+                    </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Search -->
-        <div id="section-search" class="section">
-            <div class="page-header"><h2>知识检索</h2><p>语义搜索知识库内容</p></div>
+        <!-- Panel: AI Exam -->
+        <div class="lab-panel" id="lab-panel-exam">
+            <!-- 配置表单 -->
             <div class="card">
-                <div class="search-box">
-                    <input class="form-input" id="search-query" placeholder="输入问题或关键词进行语义搜索..." onkeydown="if(event.key==='Enter')doSearch()">
-                    <button class="btn btn-primary" onclick="doSearch()">搜索</button>
-                </div>
-                <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center">
-                    <label class="form-label" style="margin:0;white-space:nowrap">用户ID</label>
-                    <input class="form-input" style="width:160px" id="search-user" value="user-admin">
-                    <label class="form-label" style="margin:0;white-space:nowrap">最大结果</label>
-                    <input class="form-input" style="width:80px" type="number" id="search-max" value="10" min="1" max="50">
-                    <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="search-admin" checked> 管理员模式</label>
-                </div>
-            </div>
-            <div class="card" id="search-results-card" style="display:none">
-                <div class="card-title">搜索结果 <span id="search-count" style="color:var(--primary)"></span></div>
-                <div id="search-results"></div>
-            </div>
-        </div>
-
-        <!-- AI Lab -->
-        <div id="section-ai-lab" class="section">
-            <div class="page-header"><h2>AI 实验室</h2><p>AI 驱动的智能内容生成工具集</p></div>
-
-            <!-- Lab Tabs -->
-            <div class="lab-tabs">
-                <div class="lab-tab active" onclick="switchLabTab('writing')">AI 写作</div>
-                <div class="lab-tab" onclick="switchLabTab('exam')">AI 出卷</div>
-            </div>
-
-            <!-- Panel: AI Writing -->
-            <div class="lab-panel active" id="lab-panel-writing">
-                <div class="card">
-                    <div class="card-title">写作输入</div>
-                    <div class="writing-input-area">
-                        <textarea class="form-input" id="writing-question" placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
-                        <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()" style="align-self:flex-end;height:42px;white-space:nowrap">生成文章</button>
+                <div class="card-title">试卷配置</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                    <div>
+                        <label class="form-label">考试主题 / 科目</label>
+                        <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
                     </div>
-                    <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px">
-                        <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
-                        <input class="form-input" style="width:160px" id="writing-user" value="user-admin">
-                        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="writing-admin" checked> 管理员模式</label>
-                        <div style="flex:1"></div>
-                        <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
-                        <select class="form-input" style="width:120px" id="writing-category">
-                            <option value="">全部分类</option>
-                            <option value="工作">工作</option>
-                            <option value="学习">学习</option>
-                            <option value="休闲">休闲</option>
-                            <option value="其他">其他</option>
+                    <div>
+                        <label class="form-label">难度</label>
+                        <select class="form-input" id="exam-difficulty">
+                            <option value="EASY">简单（基础概念）</option>
+                            <option selected value="MEDIUM">中等（理解应用）</option>
+                            <option value="HARD">困难（综合分析）</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">学段（满分规则）</label>
+                        <select class="form-input" id="exam-school-level">
+                            <option selected value="">自动识别</option>
+                            <option value="PRIMARY">小学（各科 100 分）</option>
+                            <option value="JUNIOR">初中（语数外 120 等）</option>
+                            <option value="SENIOR">高中（语数外 150 等）</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Progress -->
-                <div class="writing-progress" id="writing-progress">
-                    <div class="flow-container" id="writing-flow">
-                        <div class="flow-terminal start" id="flow-start">开始</div>
-                        <div class="flow-connector"></div>
-                        <div class="flow-node" id="flow-research">
+                <div style="margin-top:16px">
+                    <label class="form-label">题型分布（设置各题型数量，0 表示不出该题型）</label>
+                    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">单选题</label>
+                            <input class="form-input" id="exam-single" max="50" min="0" style="text-align:center" type="number"
+                                   value="5">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">多选题</label>
+                            <input class="form-input" id="exam-multi" max="30" min="0" style="text-align:center" type="number"
+                                   value="3">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">判断题</label>
+                            <input class="form-input" id="exam-tf" max="50" min="0" style="text-align:center" type="number"
+                                   value="5">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">填空题</label>
+                            <input class="form-input" id="exam-fill" max="30" min="0" style="text-align:center" type="number"
+                                   value="5">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">简答题</label>
+                            <input class="form-input" id="exam-short" max="20" min="0" style="text-align:center" type="number"
+                                   value="3">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-light)">论述题</label>
+                            <input class="form-input" id="exam-essay" max="10" min="0" style="text-align:center" type="number"
+                                   value="2">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;align-items:center;margin-top:16px">
+                    <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                    <input class="form-input" id="exam-user" style="width:160px" value="user-admin">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input checked
+                                                                                                 id="exam-admin"
+                                                                                                 type="checkbox">
+                        管理员模式</label>
+                    <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                    <select class="form-input" id="exam-category" style="width:120px">
+                        <option value="">全部分类</option>
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="休闲">休闲</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <div style="flex:1"></div>
+                    <button class="btn btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()"
+                            style="height:42px;white-space:nowrap">生成试卷
+                    </button>
+                </div>
+            </div>
+
+            <!-- 阶段进度 -->
+            <div class="writing-progress" id="exam-progress">
+                <div class="flow-container" id="exam-flow">
+                    <div class="flow-terminal start" id="exam-flow-start">开始</div>
+                    <div class="flow-connector"></div>
+                    <!-- Stage 1: 知识检索 ∥ 分值分配 -->
+                    <div class="flow-parallel">
+                        <span class="flow-parallel-badge">⚡ 并行</span>
+                        <div class="flow-node" id="exam-flow-research">
                             <span class="flow-dot">1</span>
                             <span class="flow-label">知识检索</span>
-                            <span class="flow-time" id="flow-time-research"></span>
+                            <span class="flow-time" id="exam-flow-time-research"></span>
                         </div>
-                        <div class="flow-connector"></div>
-                        <div class="flow-node" id="flow-writing">
+                        <div class="flow-node" id="exam-flow-scoring">
                             <span class="flow-dot">2</span>
-                            <span class="flow-label">文章撰写</span>
-                            <span class="flow-time" id="flow-time-writing"></span>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <div class="flow-node" id="flow-review">
-                            <span class="flow-dot">3</span>
-                            <span class="flow-label">质量审核</span>
-                            <span class="flow-time" id="flow-time-review"></span>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <div class="flow-terminal end" id="flow-complete">完成</div>
-                    </div>
-
-                    <!-- Agent Panels -->
-                    <div class="agent-panel" id="panel-researcher">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
-                            <span class="agent-status pending" id="status-researcher">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" id="materials-researcher" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
-                            </details>
-                            <div class="agent-output-label">研究发现</div>
-                            <pre id="output-researcher">等待执行...</pre>
+                            <span class="flow-label">分值分配</span>
+                            <span class="flow-time" id="exam-flow-time-scoring"></span>
                         </div>
                     </div>
-                    <div class="agent-panel" id="panel-writer">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
-                            <span class="agent-status pending" id="status-writer">等待中</span>
+                    <div class="flow-connector"></div>
+                    <!-- Stage 2: 试卷编写 -->
+                    <div class="flow-node" id="exam-flow-writing">
+                        <span class="flow-dot">3</span>
+                        <span class="flow-label">试卷编写</span>
+                        <span class="flow-time" id="exam-flow-time-writing"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <!-- Stage 3: 答案生成 ∥ 难度校准 -->
+                    <div class="flow-parallel">
+                        <span class="flow-parallel-badge">⚡ 并行</span>
+                        <div class="flow-node" id="exam-flow-answer">
+                            <span class="flow-dot">4</span>
+                            <span class="flow-label">答案生成</span>
+                            <span class="flow-time" id="exam-flow-time-answer"></span>
                         </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" id="materials-writer" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
-                            </details>
-                            <div class="agent-output-label">文章草稿</div>
-                            <pre id="output-writer">等待执行...</pre>
+                        <div class="flow-node" id="exam-flow-calibrate">
+                            <span class="flow-dot">5</span>
+                            <span class="flow-label">难度校准</span>
+                            <span class="flow-time" id="exam-flow-time-calibrate"></span>
                         </div>
                     </div>
-                    <div class="agent-panel" id="panel-reviewer">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
-                            <span class="agent-status pending" id="status-reviewer">等待中</span>
+                    <div class="flow-connector"></div>
+                    <!-- Stage 4: 内容审核 ∥ 查重去重 -->
+                    <div class="flow-parallel">
+                        <span class="flow-parallel-badge">⚡ 并行</span>
+                        <div class="flow-node" id="exam-flow-review">
+                            <span class="flow-dot">6</span>
+                            <span class="flow-label">内容审核</span>
+                            <span class="flow-time" id="exam-flow-time-review"></span>
                         </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" id="materials-reviewer" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
-                            </details>
-                            <div class="agent-output-label">审核结果</div>
-                            <pre id="output-reviewer">等待执行...</pre>
+                        <div class="flow-node" id="exam-flow-dedup">
+                            <span class="flow-dot">7</span>
+                            <span class="flow-label">查重去重</span>
+                            <span class="flow-time" id="exam-flow-time-dedup"></span>
                         </div>
                     </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-terminal end" id="exam-flow-complete">完成</div>
                 </div>
 
-                <!-- Error -->
-                <div class="writing-error" id="writing-error"></div>
-
-                <!-- Result -->
-                <div class="article-result" id="article-result">
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                            <div class="card-title" style="margin:0">生成结果</div>
-                            <div style="display:flex;gap:8px">
-                                <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程</button>
-                                <button class="btn btn-primary btn-sm" onclick="copyArticle()">复制文章</button>
-                            </div>
-                        </div>
-                        <div class="article-meta" id="article-meta"></div>
-                        <div class="article-content" id="article-content"></div>
+                <!-- Agent Panels -->
+                <div class="agent-panel" id="exam-panel-researcher">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                        <span class="agent-status pending" id="exam-status-researcher">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-researcher">等待检索...</pre>
+                        </details>
+                        <div class="agent-output-label">知识点分析</div>
+                        <pre id="exam-output-researcher">等待执行...</pre>
                     </div>
                 </div>
-
-                <!-- Writing History -->
-                <div class="card" style="margin-top:20px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <div class="card-title" style="margin:0">写作历史</div>
-                        <button class="btn btn-outline btn-sm" onclick="loadWritingHistory()">刷新</button>
+                <div class="agent-panel" id="exam-panel-scoring">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon" style="background:#ec4899">S</span> 分值分配 (Scoring)</span>
+                        <span class="agent-status pending" id="exam-status-scoring">等待中</span>
                     </div>
-                    <table>
-                        <thead><tr><th style="width:45%">问题</th><th>状态</th><th>评分</th><th>时间</th><th>操作</th></tr></thead>
-                        <tbody id="writing-history-list">
-                            <tr><td colspan="5" class="loading">加载中...</td></tr>
-                        </tbody>
-                    </table>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-scoring">等待检索...</pre>
+                        </details>
+                        <div class="agent-output-label">分值方案</div>
+                        <pre id="exam-output-scoring">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-writer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon writer">W</span> 出题人 (Writer)</span>
+                        <span class="agent-status pending" id="exam-status-writer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-writer">等待研究员完成...</pre>
+                        </details>
+                        <div class="agent-output-label">试卷内容</div>
+                        <pre id="exam-output-writer">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-answer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon" style="background:#10b981">A</span> 答案生成 (Answer)</span>
+                        <span class="agent-status pending" id="exam-status-answer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-answer">等待出题人完成...</pre>
+                        </details>
+                        <div class="agent-output-label">标准答案</div>
+                        <pre id="exam-output-answer">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-reviewer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                        <span class="agent-status pending" id="exam-status-reviewer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-reviewer">等待答案生成完成...</pre>
+                        </details>
+                        <div class="agent-output-label">审核结果</div>
+                        <pre id="exam-output-reviewer">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-calibrator">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon" style="background:#f97316">C</span> 校准员 (Calibrator)</span>
+                        <span class="agent-status pending" id="exam-status-calibrator">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-calibrator">等待审核完成...</pre>
+                        </details>
+                        <div class="agent-output-label">难度评估</div>
+                        <pre id="exam-output-calibrator">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-deduplicator">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon" style="background:#6366f1">D</span> 查重员 (Deduplicator)</span>
+                        <span class="agent-status pending" id="exam-status-deduplicator">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" open>
+                            <summary
+                                    style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">
+                                输入物料
+                            </summary>
+                            <pre class="agent-materials-content" id="exam-materials-deduplicator">等待校准完成...</pre>
+                        </details>
+                        <div class="agent-output-label">查重报告</div>
+                        <pre id="exam-output-deduplicator">等待执行...</pre>
+                    </div>
                 </div>
             </div>
 
-            <!-- Panel: AI Exam -->
-            <div class="lab-panel" id="lab-panel-exam">
-                <!-- 配置表单 -->
+            <!-- 错误提示 -->
+            <div class="writing-error" id="exam-error"></div>
+
+            <!-- 试卷结果 -->
+            <div id="exam-result" style="display:none">
                 <div class="card">
-                    <div class="card-title">试卷配置</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                        <div>
-                            <label class="form-label">考试主题 / 科目</label>
-                            <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
-                        </div>
-                        <div>
-                            <label class="form-label">难度</label>
-                            <select class="form-input" id="exam-difficulty">
-                                <option value="EASY">简单（基础概念）</option>
-                                <option value="MEDIUM" selected>中等（理解应用）</option>
-                                <option value="HARD">困难（综合分析）</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label">学段（满分规则）</label>
-                            <select class="form-input" id="exam-school-level">
-                                <option value="" selected>自动识别</option>
-                                <option value="PRIMARY">小学（各科 100 分）</option>
-                                <option value="JUNIOR">初中（语数外 120 等）</option>
-                                <option value="SENIOR">高中（语数外 150 等）</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style="margin-top:16px">
-                        <label class="form-label">题型分布（设置各题型数量，0 表示不出该题型）</label>
-                        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">单选题</label>
-                                <input class="form-input" type="number" id="exam-single" value="5" min="0" max="50" style="text-align:center">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">多选题</label>
-                                <input class="form-input" type="number" id="exam-multi" value="3" min="0" max="30" style="text-align:center">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">判断题</label>
-                                <input class="form-input" type="number" id="exam-tf" value="5" min="0" max="50" style="text-align:center">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">填空题</label>
-                                <input class="form-input" type="number" id="exam-fill" value="5" min="0" max="30" style="text-align:center">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">简答题</label>
-                                <input class="form-input" type="number" id="exam-short" value="3" min="0" max="20" style="text-align:center">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;color:var(--text-light)">论述题</label>
-                                <input class="form-input" type="number" id="exam-essay" value="2" min="0" max="10" style="text-align:center">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:12px;align-items:center;margin-top:16px">
-                        <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
-                        <input class="form-input" style="width:160px" id="exam-user" value="user-admin">
-                        <label style="display:flex;align-items:center;gap:4px;font-size:13px"><input type="checkbox" id="exam-admin" checked> 管理员模式</label>
-                        <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
-                        <select class="form-input" style="width:120px" id="exam-category">
-                            <option value="">全部分类</option>
-                            <option value="工作">工作</option>
-                            <option value="学习">学习</option>
-                            <option value="休闲">休闲</option>
-                            <option value="其他">其他</option>
-                        </select>
-                        <div style="flex:1"></div>
-                        <button class="btn btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()" style="height:42px;white-space:nowrap">生成试卷</button>
-                    </div>
-                </div>
-
-                <!-- 阶段进度 -->
-                <div class="writing-progress" id="exam-progress">
-                    <div class="flow-container" id="exam-flow">
-                        <div class="flow-terminal start" id="exam-flow-start">开始</div>
-                        <div class="flow-connector"></div>
-                        <!-- Stage 1: 知识检索 ∥ 分值分配 -->
-                        <div class="flow-parallel">
-                            <span class="flow-parallel-badge">⚡ 并行</span>
-                            <div class="flow-node" id="exam-flow-research">
-                                <span class="flow-dot">1</span>
-                                <span class="flow-label">知识检索</span>
-                                <span class="flow-time" id="exam-flow-time-research"></span>
-                            </div>
-                            <div class="flow-node" id="exam-flow-scoring">
-                                <span class="flow-dot">2</span>
-                                <span class="flow-label">分值分配</span>
-                                <span class="flow-time" id="exam-flow-time-scoring"></span>
-                            </div>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <!-- Stage 2: 试卷编写 -->
-                        <div class="flow-node" id="exam-flow-writing">
-                            <span class="flow-dot">3</span>
-                            <span class="flow-label">试卷编写</span>
-                            <span class="flow-time" id="exam-flow-time-writing"></span>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <!-- Stage 3: 答案生成 ∥ 难度校准 -->
-                        <div class="flow-parallel">
-                            <span class="flow-parallel-badge">⚡ 并行</span>
-                            <div class="flow-node" id="exam-flow-answer">
-                                <span class="flow-dot">4</span>
-                                <span class="flow-label">答案生成</span>
-                                <span class="flow-time" id="exam-flow-time-answer"></span>
-                            </div>
-                            <div class="flow-node" id="exam-flow-calibrate">
-                                <span class="flow-dot">5</span>
-                                <span class="flow-label">难度校准</span>
-                                <span class="flow-time" id="exam-flow-time-calibrate"></span>
-                            </div>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <!-- Stage 4: 内容审核 ∥ 查重去重 -->
-                        <div class="flow-parallel">
-                            <span class="flow-parallel-badge">⚡ 并行</span>
-                            <div class="flow-node" id="exam-flow-review">
-                                <span class="flow-dot">6</span>
-                                <span class="flow-label">内容审核</span>
-                                <span class="flow-time" id="exam-flow-time-review"></span>
-                            </div>
-                            <div class="flow-node" id="exam-flow-dedup">
-                                <span class="flow-dot">7</span>
-                                <span class="flow-label">查重去重</span>
-                                <span class="flow-time" id="exam-flow-time-dedup"></span>
-                            </div>
-                        </div>
-                        <div class="flow-connector"></div>
-                        <div class="flow-terminal end" id="exam-flow-complete">完成</div>
-                    </div>
-
-                    <!-- Agent Panels -->
-                    <div class="agent-panel" id="exam-panel-researcher">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
-                            <span class="agent-status pending" id="exam-status-researcher">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-researcher">等待检索...</pre>
-                            </details>
-                            <div class="agent-output-label">知识点分析</div>
-                            <pre id="exam-output-researcher">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-scoring">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon" style="background:#ec4899">S</span> 分值分配 (Scoring)</span>
-                            <span class="agent-status pending" id="exam-status-scoring">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-scoring">等待检索...</pre>
-                            </details>
-                            <div class="agent-output-label">分值方案</div>
-                            <pre id="exam-output-scoring">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-writer">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon writer">W</span> 出题人 (Writer)</span>
-                            <span class="agent-status pending" id="exam-status-writer">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-writer">等待研究员完成...</pre>
-                            </details>
-                            <div class="agent-output-label">试卷内容</div>
-                            <pre id="exam-output-writer">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-answer">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon" style="background:#10b981">A</span> 答案生成 (Answer)</span>
-                            <span class="agent-status pending" id="exam-status-answer">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-answer">等待出题人完成...</pre>
-                            </details>
-                            <div class="agent-output-label">标准答案</div>
-                            <pre id="exam-output-answer">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-reviewer">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
-                            <span class="agent-status pending" id="exam-status-reviewer">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-reviewer">等待答案生成完成...</pre>
-                            </details>
-                            <div class="agent-output-label">审核结果</div>
-                            <pre id="exam-output-reviewer">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-calibrator">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon" style="background:#f97316">C</span> 校准员 (Calibrator)</span>
-                            <span class="agent-status pending" id="exam-status-calibrator">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-calibrator">等待审核完成...</pre>
-                            </details>
-                            <div class="agent-output-label">难度评估</div>
-                            <pre id="exam-output-calibrator">等待执行...</pre>
-                        </div>
-                    </div>
-                    <div class="agent-panel" id="exam-panel-deduplicator">
-                        <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="agent-name"><span class="agent-icon" style="background:#6366f1">D</span> 查重员 (Deduplicator)</span>
-                            <span class="agent-status pending" id="exam-status-deduplicator">等待中</span>
-                        </div>
-                        <div class="agent-panel-body">
-                            <details class="agent-materials" open>
-                                <summary style="cursor:pointer;font-size:13px;font-weight:500;color:var(--text-light);padding:6px 0">输入物料</summary>
-                                <pre class="agent-materials-content" id="exam-materials-deduplicator">等待校准完成...</pre>
-                            </details>
-                            <div class="agent-output-label">查重报告</div>
-                            <pre id="exam-output-deduplicator">等待执行...</pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 错误提示 -->
-                <div class="writing-error" id="exam-error"></div>
-
-                <!-- 试卷结果 -->
-                <div id="exam-result" style="display:none">
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                            <div class="card-title" style="margin:0">生成结果</div>
-                            <div style="display:flex;gap:8px">
-                                <button class="btn btn-outline btn-sm" onclick="toggleExamPanels()">展开/收起过程</button>
-                                <button class="btn btn-primary btn-sm" onclick="copyExamPaper()">复制试卷</button>
-                                <button class="btn btn-primary btn-sm" onclick="exportExamWord()">导出 Word</button>
-                            </div>
-                        </div>
-                        <div class="article-meta" id="exam-meta"></div>
-                        <div class="article-content" id="exam-content"></div>
-                        <div id="exam-answer-section" style="margin-top:20px;display:none">
-                            <details open>
-                                <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--primary);padding:8px 0">标准答案与评分标准</summary>
-                                <div class="article-content" id="exam-answer-content" style="margin-top:8px"></div>
-                            </details>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 出卷历史 -->
-                <div class="card" style="margin-top:20px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <div class="card-title" style="margin:0">出卷历史</div>
-                        <button class="btn btn-outline btn-sm" onclick="loadExamHistory()">刷新</button>
-                    </div>
-                    <table class="form-table" style="width:100%">
-                        <thead><tr>
-                            <th style="width:40%">主题</th>
-                            <th style="width:10%">难度</th>
-                            <th style="width:10%">状态</th>
-                            <th style="width:10%">评分</th>
-                            <th style="width:18%">时间</th>
-                            <th style="width:12%">操作</th>
-                        </tr></thead>
-                        <tbody id="exam-history-list">
-                            <tr><td colspan="6" style="text-align:center;color:var(--text-light)">加载中...</td></tr>
-                        </tbody>
-                    </table>
-                    <div id="exam-history-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
-                </div>
-
-                <!-- 错题库 -->
-                <div class="card" style="margin-top:20px">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                        <div class="card-title" style="margin:0">错题库</div>
-                        <div style="font-size:12px;color:var(--text-light)">收集考生错题，支持筛选、分页与 AI 总结</div>
-                    </div>
-
-                    <!-- Filter Bar -->
-                    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
-                        <div style="flex:0 0 180px">
-                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">考生</label>
-                            <select id="wb-student" class="form-input"><option value="">全部考生</option></select>
+                        <div class="card-title" style="margin:0">生成结果</div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline btn-sm" onclick="toggleExamPanels()">展开/收起过程</button>
+                            <button class="btn btn-primary btn-sm" onclick="copyExamPaper()">复制试卷</button>
+                            <button class="btn btn-primary btn-sm" onclick="exportExamWord()">导出 Word</button>
                         </div>
-                        <div style="flex:1;min-width:160px">
-                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">主题关键词</label>
-                            <input type="text" id="wb-topic" class="form-input" placeholder="搜索考试主题...">
-                        </div>
-                        <div style="flex:0 0 140px">
-                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">题型</label>
-                            <select id="wb-type" class="form-input">
-                                <option value="">全部题型</option>
-                                <option value="SINGLE_CHOICE">单选题</option>
-                                <option value="MULTI_CHOICE">多选题</option>
-                                <option value="TRUE_FALSE">判断题</option>
-                                <option value="FILL_BLANK">填空题</option>
-                                <option value="SHORT_ANSWER">简答题</option>
-                                <option value="ESSAY">论述题</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary btn-sm" onclick="loadWrongAnswers(0)" style="height:36px">&#128269; 查询</button>
-                        <button class="btn btn-outline btn-sm" onclick="generateAiSummary()" style="height:36px">&#9889; AI 总结</button>
                     </div>
-
-                    <!-- Stats Cards -->
-                    <div id="wb-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="article-meta" id="exam-meta"></div>
+                    <div class="article-content" id="exam-content"></div>
+                    <div id="exam-answer-section" style="margin-top:20px;display:none">
+                        <details open>
+                            <summary
+                                    style="cursor:pointer;font-size:15px;font-weight:600;color:var(--primary);padding:8px 0">
+                                标准答案与评分标准
+                            </summary>
+                            <div class="article-content" id="exam-answer-content" style="margin-top:8px"></div>
+                        </details>
                     </div>
-
-                    <!-- Wrong Answers List -->
-                    <div id="wb-list">
-                        <div style="text-align:center;color:var(--text-light);padding:32px">加载错题数据...</div>
-                    </div>
-                    <div id="wb-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
                 </div>
             </div>
-            <div id="history-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;justify-content:center;align-items:center" onclick="if(event.target===this)closeHistoryModal()">
-                <div style="background:#fff;border-radius:12px;width:720px;max-height:85vh;overflow-y:auto;padding:28px;position:relative">
-                    <button onclick="closeHistoryModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light)">&times;</button>
-                    <div id="history-detail-content"></div>
+
+            <!-- 出卷历史 -->
+            <div class="card" style="margin-top:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div class="card-title" style="margin:0">出卷历史</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadExamHistory()">刷新</button>
                 </div>
+                <table class="form-table" style="width:100%">
+                    <thead>
+                    <tr>
+                        <th style="width:40%">主题</th>
+                        <th style="width:10%">难度</th>
+                        <th style="width:10%">状态</th>
+                        <th style="width:10%">评分</th>
+                        <th style="width:18%">时间</th>
+                        <th style="width:12%">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="exam-history-list">
+                    <tr>
+                        <td colspan="6" style="text-align:center;color:var(--text-light)">加载中...</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div id="exam-history-pager"
+                     style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
+            </div>
+
+            <!-- 错题库 -->
+            <div class="card" style="margin-top:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <div class="card-title" style="margin:0">错题库</div>
+                    <div style="font-size:12px;color:var(--text-light)">收集考生错题，支持筛选、分页与 AI 总结</div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+                    <div style="flex:0 0 180px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">考生</label>
+                        <select class="form-input" id="wb-student">
+                            <option value="">全部考生</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;min-width:160px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">主题关键词</label>
+                        <input class="form-input" id="wb-topic" placeholder="搜索考试主题..." type="text">
+                    </div>
+                    <div style="flex:0 0 140px">
+                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">题型</label>
+                        <select class="form-input" id="wb-type">
+                            <option value="">全部题型</option>
+                            <option value="SINGLE_CHOICE">单选题</option>
+                            <option value="MULTI_CHOICE">多选题</option>
+                            <option value="TRUE_FALSE">判断题</option>
+                            <option value="FILL_BLANK">填空题</option>
+                            <option value="SHORT_ANSWER">简答题</option>
+                            <option value="ESSAY">论述题</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="loadWrongAnswers(0)" style="height:36px">&#128269;
+                        查询
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="generateAiSummary()" style="height:36px">&#9889; AI
+                        总结
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div id="wb-stats"
+                     style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+                </div>
+
+                <!-- Wrong Answers List -->
+                <div id="wb-list">
+                    <div style="text-align:center;color:var(--text-light);padding:32px">加载错题数据...</div>
+                </div>
+                <div id="wb-pager"
+                     style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
+            </div>
+        </div>
+        <div id="history-modal-overlay"
+             onclick="if(event.target===this)closeHistoryModal()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;justify-content:center;align-items:center">
+            <div style="background:#fff;border-radius:12px;width:720px;max-height:85vh;overflow-y:auto;padding:28px;position:relative">
+                <button onclick="closeHistoryModal()"
+                        style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light)">
+                    &times;
+                </button>
+                <div id="history-detail-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exam Review -->
+    <div class="section" id="section-exam-review">
+        <div class="page-header"><h2>成绩复核</h2>
+            <p>AI 评分、人工复核、调整分数并发布最终成绩</p></div>
+
+        <!-- Summary Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="grading-pending-count" style="color:var(--primary)">-</div>
+                <div class="stat-label">待 AI 评分</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="review-pending-count" style="color:var(--warning)">-</div>
+                <div class="stat-label">待复核</div>
             </div>
         </div>
 
-        <!-- Exam Review -->
-        <div id="section-exam-review" class="section">
-            <div class="page-header"><h2>成绩复核</h2><p>AI 评分、人工复核、调整分数并发布最终成绩</p></div>
-
-            <!-- Summary Stats -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="grading-pending-count" style="color:var(--primary)">-</div>
-                    <div class="stat-label">待 AI 评分</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="review-pending-count" style="color:var(--warning)">-</div>
-                    <div class="stat-label">待复核</div>
-                </div>
+        <!-- Pending Grading Table -->
+        <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+                <span>待 AI 评分（已交卷）</span>
+                <button class="btn btn-primary btn-sm" id="batch-grade-btn" onclick="batchTriggerGrading()">一键 AI
+                    评分
+                </button>
             </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>考生 ID</th>
+                    <th>考试主题</th>
+                    <th>难度</th>
+                    <th>考试时长</th>
+                    <th>总分</th>
+                    <th>交卷时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="pending-grading-list">
+                <tr>
+                    <td class="loading" colspan="7">加载中...</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Pending Grading Table -->
+        <!-- Pending Review Table -->
+        <div class="card">
+            <div class="card-title">待复核列表（AI 已评分）</div>
+            <table>
+                <thead>
+                <tr>
+                    <th>考生 ID</th>
+                    <th>考试主题</th>
+                    <th>难度</th>
+                    <th>考试时长</th>
+                    <th>AI 评分</th>
+                    <th>总分</th>
+                    <th>提交时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="pending-review-list">
+                <tr>
+                    <td class="loading" colspan="8">加载中...</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Duration Override -->
+        <div class="card" style="margin-top:16px">
+            <div class="card-title">设置考试时长（覆盖进行中考试的时长）</div>
+            <div style="display:flex;gap:12px;align-items:end">
+                <div style="flex:1">
+                    <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">Session
+                        Key</label>
+                    <input class="input" id="duration-session-key" placeholder="输入考试场次的 Session Key" type="text">
+                </div>
+                <div style="width:140px">
+                    <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">时长（分钟）</label>
+                    <input class="input" id="duration-minutes" max="600" min="1" placeholder="分钟" type="number">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="updateSessionDuration()">设置</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">留空时长或设为 0 表示不限时。仅对
+                IN_PROGRESS 状态的场次有效。</p>
+        </div>
+    </div>
+
+    <!-- Users -->
+    <div class="section" id="section-users">
+        <div class="page-header">
+            <h2>用户权限</h2>
+            <p>管理用户、部门和访问控制</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <!-- Users -->
             <div class="card">
-                <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-                    <span>待 AI 评分（已交卷）</span>
-                    <button class="btn btn-primary btn-sm" onclick="batchTriggerGrading()" id="batch-grade-btn">一键 AI 评分</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div class="card-title" style="margin:0">用户列表</div>
+                    <button class="btn btn-primary btn-sm" onclick="showCreateUserModal()">+ 新增</button>
                 </div>
                 <table>
                     <thead>
-                        <tr>
-                            <th>考生 ID</th>
-                            <th>考试主题</th>
-                            <th>难度</th>
-                            <th>考试时长</th>
-                            <th>总分</th>
-                            <th>交卷时间</th>
-                            <th>操作</th>
-                        </tr>
+                    <tr>
+                        <th>用户名</th>
+                        <th>部门</th>
+                        <th>管理员</th>
+                        <th>操作</th>
+                    </tr>
                     </thead>
-                    <tbody id="pending-grading-list">
-                        <tr><td colspan="7" class="loading">加载中...</td></tr>
+                    <tbody id="user-list">
+                    <tr>
+                        <td class="loading" colspan="4">加载中...</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
-
-            <!-- Pending Review Table -->
+            <!-- Departments -->
             <div class="card">
-                <div class="card-title">待复核列表（AI 已评分）</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>考生 ID</th>
-                            <th>考试主题</th>
-                            <th>难度</th>
-                            <th>考试时长</th>
-                            <th>AI 评分</th>
-                            <th>总分</th>
-                            <th>提交时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pending-review-list">
-                        <tr><td colspan="8" class="loading">加载中...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Duration Override -->
-            <div class="card" style="margin-top:16px">
-                <div class="card-title">设置考试时长（覆盖进行中考试的时长）</div>
-                <div style="display:flex;gap:12px;align-items:end">
-                    <div style="flex:1">
-                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">Session Key</label>
-                        <input type="text" id="duration-session-key" class="input" placeholder="输入考试场次的 Session Key">
-                    </div>
-                    <div style="width:140px">
-                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">时长（分钟）</label>
-                        <input type="number" id="duration-minutes" class="input" placeholder="分钟" min="1" max="600">
-                    </div>
-                    <button class="btn btn-primary btn-sm" onclick="updateSessionDuration()">设置</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div class="card-title" style="margin:0">部门结构</div>
+                    <button class="btn btn-primary btn-sm" onclick="showCreateDeptModal()">+ 新增</button>
                 </div>
-                <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">留空时长或设为 0 表示不限时。仅对 IN_PROGRESS 状态的场次有效。</p>
+                <div id="dept-tree"></div>
             </div>
         </div>
+    </div>
 
-        <!-- Users -->
-        <div id="section-users" class="section">
-            <div class="page-header">
-                <h2>用户权限</h2><p>管理用户、部门和访问控制</p>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <!-- Users -->
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <div class="card-title" style="margin:0">用户列表</div>
-                        <button class="btn btn-primary btn-sm" onclick="showCreateUserModal()">+ 新增</button>
-                    </div>
-                    <table>
-                        <thead><tr><th>用户名</th><th>部门</th><th>管理员</th><th>操作</th></tr></thead>
-                        <tbody id="user-list"><tr><td colspan="4" class="loading">加载中...</td></tr></tbody>
-                    </table>
-                </div>
-                <!-- Departments -->
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <div class="card-title" style="margin:0">部门结构</div>
-                        <button class="btn btn-primary btn-sm" onclick="showCreateDeptModal()">+ 新增</button>
-                    </div>
-                    <div id="dept-tree"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- System -->
-        <div id="section-system" class="section">
-            <div class="page-header"><h2>系统配置</h2><p>Embedding 模型、向量数据库和系统参数</p></div>
-            <div class="stats-grid">
-                <div class="card">
-                    <div class="card-title">Embedding 模型</div>
-                    <div id="sys-embedding"><span class="loading">加载中...</span></div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Milvus 向量库</div>
-                    <div id="sys-milvus"><span class="loading">加载中...</span></div>
-                </div>
+    <!-- System -->
+    <div class="section" id="section-system">
+        <div class="page-header"><h2>系统配置</h2>
+            <p>Embedding 模型、向量数据库和系统参数</p></div>
+        <div class="stats-grid">
+            <div class="card">
+                <div class="card-title">Embedding 模型</div>
+                <div id="sys-embedding"><span class="loading">加载中...</span></div>
             </div>
             <div class="card">
-                <div class="card-title">系统参数</div>
-                <table>
-                    <tbody id="sys-params"><tr><td class="loading" colspan="2">加载中...</td></tr></tbody>
-                </table>
+                <div class="card-title">Milvus 向量库</div>
+                <div id="sys-milvus"><span class="loading">加载中...</span></div>
             </div>
         </div>
-    </main>
-
-    <!-- Modal -->
-    <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-title">对话框</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div id="modal-body"></div>
+        <div class="card">
+            <div class="card-title">系统参数</div>
+            <table>
+                <tbody id="sys-params">
+                <tr>
+                    <td class="loading" colspan="2">加载中...</td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </div>
+</main>
 
-    <!-- Preview/Index Modal -->
-    <div class="modal-overlay" id="preview-modal-overlay" onclick="if(event.target===this)closePreviewModal()">
-        <div class="modal modal-wide">
-            <div class="modal-header">
-                <h3 id="pv-modal-title">解析预览</h3>
-                <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modal-title">对话框</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<!-- Preview/Index Modal -->
+<div class="modal-overlay" id="preview-modal-overlay" onclick="if(event.target===this)closePreviewModal()">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h3 id="pv-modal-title">解析预览</h3>
+            <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="pv-config-row">
+            <div class="pv-field">
+                <label>切分策略</label>
+                <select id="pv-strategy" onchange="triggerAutoPreview()">
+                    <option value="FIXED_SIZE">固定大小</option>
+                    <option value="RECURSIVE">递归切分</option>
+                    <option value="SENTENCE">按句子</option>
+                    <option value="PAGE">按页面</option>
+                    <option value="PARAGRAPH">按段落</option>
+                </select>
             </div>
-            <div class="pv-config-row">
-                <div class="pv-field">
-                    <label>切分策略</label>
-                    <select id="pv-strategy" onchange="triggerAutoPreview()">
-                        <option value="FIXED_SIZE">固定大小</option>
-                        <option value="RECURSIVE">递归切分</option>
-                        <option value="SENTENCE">按句子</option>
-                        <option value="PAGE">按页面</option>
-                        <option value="PARAGRAPH">按段落</option>
-                    </select>
-                </div>
-                <div class="pv-field pv-slider-field">
-                    <label>分块大小</label>
-                    <div class="pv-slider-row">
-                        <input type="range" id="pv-chunk-size" min="200" max="2000" step="50" value="500" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()">
-                        <span class="pv-slider-val">500</span>
-                    </div>
-                </div>
-                <div class="pv-field pv-slider-field">
-                    <label>重叠大小</label>
-                    <div class="pv-slider-row">
-                        <input type="range" id="pv-overlap" min="20" max="200" step="10" value="50" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()">
-                        <span class="pv-slider-val">50</span>
-                    </div>
-                </div>
-                <div class="pv-actions">
-                    <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
-                    <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">确认入库</button>
+            <div class="pv-field pv-slider-field">
+                <label>分块大小</label>
+                <div class="pv-slider-row">
+                    <input id="pv-chunk-size" max="2000" min="200" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="50" type="range"
+                           value="500">
+                    <span class="pv-slider-val">500</span>
                 </div>
             </div>
-            <div id="pv-index-progress" style="display:none;margin-bottom:12px;padding:10px 16px;background:#eff6ff;border-radius:8px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <span style="font-size:13px;font-weight:500;color:var(--primary)" id="pv-index-label">入库中...</span>
-                    <span style="font-size:13px;font-weight:600;color:var(--primary)" id="pv-index-percent">0%</span>
+            <div class="pv-field pv-slider-field">
+                <label>重叠大小</label>
+                <div class="pv-slider-row">
+                    <input id="pv-overlap" max="200" min="20" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="10" type="range"
+                           value="50">
+                    <span class="pv-slider-val">50</span>
                 </div>
-                <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden">
-                    <div id="pv-index-bar" style="background:linear-gradient(90deg,var(--primary),#3b82f6);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
-                </div>
-                <div style="font-size:11px;color:var(--text-light);margin-top:4px" id="pv-index-detail">准备中...</div>
             </div>
-            <div id="pv-modal-warn"></div>
-            <div id="pv-modal-summary" class="preview-info-bar"></div>
-            <div class="preview-tabs">
-                <div class="preview-tab active" onclick="switchModalTab('pages',this)">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
-                <div class="preview-tab" onclick="switchModalTab('chunks',this)">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
-            </div>
-            <div id="pv-m-body-pages" class="preview-tab-body active">
-                <div class="pv-toolbar">
-                    <button class="btn-xs" onclick="pvToggleAllModal('pages',true)">全部展开</button>
-                    <button class="btn-xs" onclick="pvToggleAllModal('pages',false)">全部折叠</button>
-                </div>
-                <div id="pv-modal-pages"></div>
-            </div>
-            <div id="pv-m-body-chunks" class="preview-tab-body">
-                <div class="pv-toolbar">
-                    <button class="btn-xs" onclick="pvToggleAllModal('chunks',true)">全部展开</button>
-                    <button class="btn-xs" onclick="pvToggleAllModal('chunks',false)">全部折叠</button>
-                    <span style="font-size:11px;color:var(--text-light);margin-left:auto" id="pv-m-chunk-stats"></span>
-                </div>
-                <div id="pv-modal-chunks"></div>
+            <div class="pv-actions">
+                <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
+                <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">
+                    确认入库
+                </button>
             </div>
         </div>
-    </div>
-
-    <!-- Confirm Dialog -->
-    <div class="confirm-overlay" id="confirm-overlay">
-        <div class="confirm-box">
-            <div class="confirm-icon" id="confirm-icon">&#9888;</div>
-            <div class="confirm-msg" id="confirm-msg"></div>
-            <div class="confirm-btns">
-                <button class="btn btn-outline" id="confirm-cancel-btn">取消</button>
-                <button class="btn btn-danger" id="confirm-ok-btn">确认</button>
+        <div id="pv-index-progress"
+             style="display:none;margin-bottom:12px;padding:10px 16px;background:#eff6ff;border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span id="pv-index-label" style="font-size:13px;font-weight:500;color:var(--primary)">入库中...</span>
+                <span id="pv-index-percent" style="font-size:13px;font-weight:600;color:var(--primary)">0%</span>
+            </div>
+            <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden">
+                <div id="pv-index-bar"
+                     style="background:linear-gradient(90deg,var(--primary),#3b82f6);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
+            </div>
+            <div id="pv-index-detail" style="font-size:11px;color:var(--text-light);margin-top:4px">准备中...</div>
+        </div>
+        <div id="pv-modal-warn"></div>
+        <div class="preview-info-bar" id="pv-modal-summary"></div>
+        <div class="preview-tabs">
+            <div class="preview-tab active" onclick="switchModalTab('pages',this)">页面/段落<span class="tab-count"
+                                                                                                  id="pv-m-tab-pages">0</span>
+            </div>
+            <div class="preview-tab" onclick="switchModalTab('chunks',this)">分块<span class="tab-count"
+                                                                                       id="pv-m-tab-chunks">0</span>
             </div>
         </div>
+        <div class="preview-tab-body active" id="pv-m-body-pages">
+            <div class="pv-toolbar">
+                <button class="btn-xs" onclick="pvToggleAllModal('pages',true)">全部展开</button>
+                <button class="btn-xs" onclick="pvToggleAllModal('pages',false)">全部折叠</button>
+            </div>
+            <div id="pv-modal-pages"></div>
+        </div>
+        <div class="preview-tab-body" id="pv-m-body-chunks">
+            <div class="pv-toolbar">
+                <button class="btn-xs" onclick="pvToggleAllModal('chunks',true)">全部展开</button>
+                <button class="btn-xs" onclick="pvToggleAllModal('chunks',false)">全部折叠</button>
+                <span id="pv-m-chunk-stats" style="font-size:11px;color:var(--text-light);margin-left:auto"></span>
+            </div>
+            <div id="pv-modal-chunks"></div>
+        </div>
     </div>
+</div>
 
-    <script>
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+        <div class="confirm-icon" id="confirm-icon">&#9888;</div>
+        <div class="confirm-msg" id="confirm-msg"></div>
+        <div class="confirm-btns">
+            <button class="btn btn-outline" id="confirm-cancel-btn">取消</button>
+            <button class="btn btn-danger" id="confirm-ok-btn">确认</button>
+        </div>
+    </div>
+</div>
+
+<script>
     const API = '';
     let selectedFile = null;
     let uploadQueue = [];       // [{file, id, status, progress, uploadId, totalChunks, uploadedChunks}]
@@ -4084,95 +4243,107 @@
 
     // Init
     loadDashboard();
-    </script>
+</script>
 
-    <!-- Node Detail Modal -->
-    <div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()">
-        <div class="node-modal">
-            <div class="node-modal-header">
-                <div class="node-modal-title">
-                    <span id="node-modal-name"></span>
-                    <span class="node-modal-badge pending" id="node-modal-badge"></span>
-                </div>
-                <button class="node-modal-close" onclick="closeNodeModal()">✕</button>
+<!-- Node Detail Modal -->
+<div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()">
+    <div class="node-modal">
+        <div class="node-modal-header">
+            <div class="node-modal-title">
+                <span id="node-modal-name"></span>
+                <span class="node-modal-badge pending" id="node-modal-badge"></span>
             </div>
-            <div class="node-modal-body">
-                <div class="node-time-row">
-                    <div class="node-time-card">
-                        <div class="node-time-label">开始时间</div>
-                        <div class="node-time-value" id="node-modal-start">-</div>
-                    </div>
-                    <div class="node-time-card">
-                        <div class="node-time-label">结束时间</div>
-                        <div class="node-time-value" id="node-modal-end">-</div>
-                    </div>
-                    <div class="node-time-card">
-                        <div class="node-time-label">耗时</div>
-                        <div class="node-time-value" id="node-modal-elapsed">-</div>
-                    </div>
+            <button class="node-modal-close" onclick="closeNodeModal()">✕</button>
+        </div>
+        <div class="node-modal-body">
+            <div class="node-time-row">
+                <div class="node-time-card">
+                    <div class="node-time-label">开始时间</div>
+                    <div class="node-time-value" id="node-modal-start">-</div>
                 </div>
-                <div class="node-detail-section" id="node-modal-input-section">
-                    <div class="node-detail-title input">输入物料</div>
-                    <div class="node-detail-content" id="node-modal-input">等待数据...</div>
+                <div class="node-time-card">
+                    <div class="node-time-label">结束时间</div>
+                    <div class="node-time-value" id="node-modal-end">-</div>
                 </div>
-                <div class="node-detail-section" id="node-modal-thinking-section">
-                    <div class="node-detail-title thinking">思考与分析</div>
-                    <div class="node-detail-content" id="node-modal-thinking">等待数据...</div>
+                <div class="node-time-card">
+                    <div class="node-time-label">耗时</div>
+                    <div class="node-time-value" id="node-modal-elapsed">-</div>
                 </div>
-                <div class="node-detail-section" id="node-modal-output-section">
-                    <div class="node-detail-title output">输出结果</div>
-                    <div class="node-detail-content" id="node-modal-output">等待数据...</div>
-                </div>
+            </div>
+            <div class="node-detail-section" id="node-modal-input-section">
+                <div class="node-detail-title input">输入物料</div>
+                <div class="node-detail-content" id="node-modal-input">等待数据...</div>
+            </div>
+            <div class="node-detail-section" id="node-modal-thinking-section">
+                <div class="node-detail-title thinking">思考与分析</div>
+                <div class="node-detail-content" id="node-modal-thinking">等待数据...</div>
+            </div>
+            <div class="node-detail-section" id="node-modal-output-section">
+                <div class="node-detail-title output">输出结果</div>
+                <div class="node-detail-content" id="node-modal-output">等待数据...</div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Exam Review Detail Modal -->
-    <div id="review-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:20px 0" onclick="if(event.target===this)closeReviewModal()">
-        <div style="background:#fff;border-radius:12px;width:960px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
-            <!-- Modal Header -->
-            <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#f8fafc,#fff);border-radius:12px 12px 0 0">
-                <div>
-                    <h3 style="font-size:18px;font-weight:700;margin:0">成绩复核详情</h3>
-                    <p id="review-modal-subtitle" style="font-size:12px;color:var(--text-light);margin-top:2px"></p>
-                </div>
-                <button onclick="closeReviewModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">&times;</button>
+<!-- Exam Review Detail Modal -->
+<div id="review-modal-overlay"
+     onclick="if(event.target===this)closeReviewModal()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:20px 0">
+    <div style="background:#fff;border-radius:12px;width:960px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <!-- Modal Header -->
+        <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#f8fafc,#fff);border-radius:12px 12px 0 0">
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin:0">成绩复核详情</h3>
+                <p id="review-modal-subtitle" style="font-size:12px;color:var(--text-light);margin-top:2px"></p>
             </div>
+            <button onclick="closeReviewModal()"
+                    onmouseout="this.style.background='none'"
+                    onmouseover="this.style.background='#f1f5f9'" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center">&times;
+            </button>
+        </div>
 
-            <div style="padding:24px 28px">
-                <!-- Session Info -->
-                <div id="review-session-info" style="margin-bottom:24px"></div>
+        <div style="padding:24px 28px">
+            <!-- Session Info -->
+            <div id="review-session-info" style="margin-bottom:24px"></div>
 
-                <!-- Answers List -->
-                <div id="review-answers-list" style="display:flex;flex-direction:column;gap:12px">
-                    <div class="loading">加载中...</div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#f8fafc;border-radius:0 0 12px 12px">
-                <button class="btn btn-secondary" onclick="closeReviewModal()">关闭</button>
-                <button class="btn btn-primary" id="review-publish-btn" onclick="publishExamScore(currentReviewSessionId)" style="padding:10px 28px">发布成绩</button>
+            <!-- Answers List -->
+            <div id="review-answers-list" style="display:flex;flex-direction:column;gap:12px">
+                <div class="loading">加载中...</div>
             </div>
         </div>
-    </div>
 
-    <!-- Error Book AI Summary Modal -->
-    <div id="wb-summary-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:30px 0" onclick="if(event.target===this)closeWbSummaryModal()">
-        <div style="background:#fff;border-radius:12px;width:800px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
-            <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#e3f2fd,#fff);border-radius:12px 12px 0 0">
-                <div>
-                    <h3 style="font-size:18px;font-weight:700;margin:0">AI 错题分析总结</h3>
-                    <p style="font-size:12px;color:var(--text-light);margin-top:2px">基于错题数据的智能分析</p>
-                </div>
-                <button onclick="closeWbSummaryModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">&times;</button>
-            </div>
-            <div id="wb-summary-content" style="padding:24px 28px;font-size:14px;line-height:1.8;min-height:200px">
-            </div>
-            <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;background:#f8fafc;border-radius:0 0 12px 12px">
-                <button class="btn btn-secondary" onclick="closeWbSummaryModal()">关闭</button>
-            </div>
+        <!-- Footer -->
+        <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#f8fafc;border-radius:0 0 12px 12px">
+            <button class="btn btn-secondary" onclick="closeReviewModal()">关闭</button>
+            <button class="btn btn-primary" id="review-publish-btn" onclick="publishExamScore(currentReviewSessionId)"
+                    style="padding:10px 28px">发布成绩
+            </button>
         </div>
     </div>
+</div>
+
+<!-- Error Book AI Summary Modal -->
+<div id="wb-summary-modal"
+     onclick="if(event.target===this)closeWbSummaryModal()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:30px 0">
+    <div style="background:#fff;border-radius:12px;width:800px;max-width:95vw;margin:0 auto;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <div style="padding:20px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#e3f2fd,#fff);border-radius:12px 12px 0 0">
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin:0">AI 错题分析总结</h3>
+                <p style="font-size:12px;color:var(--text-light);margin-top:2px">基于错题数据的智能分析</p>
+            </div>
+            <button onclick="closeWbSummaryModal()"
+                    onmouseout="this.style.background='none'"
+                    onmouseover="this.style.background='#f1f5f9'" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center">&times;
+            </button>
+        </div>
+        <div id="wb-summary-content" style="padding:24px 28px;font-size:14px;line-height:1.8;min-height:200px">
+        </div>
+        <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;background:#f8fafc;border-radius:0 0 12px 12px">
+            <button class="btn btn-secondary" onclick="closeWbSummaryModal()">关闭</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
