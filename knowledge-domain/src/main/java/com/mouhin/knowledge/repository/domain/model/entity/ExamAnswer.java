@@ -69,6 +69,16 @@ public class ExamAnswer {
     private String aiFeedback;
 
     /**
+     * AI 评分输入（发送给模型的完整 Prompt）
+     */
+    private String aiInput;
+
+    /**
+     * AI 评分原始输出（模型返回的未解析文本，或客观题的比对依据）
+     */
+    private String aiRawOutput;
+
+    /**
      * 人工复核分数
      */
     private Integer reviewScore;
@@ -188,6 +198,22 @@ public class ExamAnswer {
 
     public void setAiFeedback(String aiFeedback) {
         this.aiFeedback = aiFeedback;
+    }
+
+    public String getAiInput() {
+        return aiInput;
+    }
+
+    public void setAiInput(String aiInput) {
+        this.aiInput = aiInput;
+    }
+
+    public String getAiRawOutput() {
+        return aiRawOutput;
+    }
+
+    public void setAiRawOutput(String aiRawOutput) {
+        this.aiRawOutput = aiRawOutput;
     }
 
     public Integer getReviewScore() {

@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,7 +38,7 @@ import java.util.concurrent.Executors;
  *     <li>同步模式（generateExam）：单次 LLM 调用生成试卷，用于 Word 导出</li>
  *     <li>异步模式（generateExamAsync）：7 步 Agent 流水线（含并行），支持 SSE 实时进度</li>
  * </ul>
- * 异步流水线：(知识检索 ∥ 分值分配) → 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
+ * 异步流水线：(知识检索 ∥ 分值校验与评估) → 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
  * </p>
  *
  * @author Knowledge-Repository
@@ -112,7 +114,7 @@ public class ExamGenerationApplicationService {
      * @param progressCallback 进度回调
      * @param sessionId        会话 ID
      * @param schoolLevel      学段（PRIMARY / JUNIOR / SENIOR，可空由主题识别）
-     * @param plan             页面确认的题型分布方案（可空；为空则由分值分配 Agent 依据规则自动生成）
+     * @param plan             页面确认的题型分布方案（可空；为空则由分值校验 Agent 依据规则生成兜底方案后再校验）
      */
     public void generateExamAsync(String topic, String difficulty, String questionConfig,
                                   Permission permission, BlackboardProgressCallback progressCallback,
@@ -180,10 +182,10 @@ public class ExamGenerationApplicationService {
                 }
             }
 
-            // 2. 出卷研究员 Agent ∥ 分值分配 Agent（无数据依赖，并行执行）
+            // 2. 出卷研究员 Agent ∥ 分值校验与评估 Agent（无数据依赖，并行执行）
             if (callback != null) {
                 callback.onProgress(BlackboardProgressEvent.phaseChanged(
-                        BlackboardPhase.RESEARCH, "正在检索知识库并计算分值分配..."));
+                        BlackboardPhase.RESEARCH, "正在检索知识库并校验分值方案..."));
             }
             CompletableFuture<Void> researchFuture = CompletableFuture.runAsync(
                     () -> examResearcherAgent.execute(blackboard, callback), agentExecutor);
@@ -241,17 +243,43 @@ public class ExamGenerationApplicationService {
                     category, results.size(), null);
 
         } catch (Exception e) {
-            logger.error("试卷生成失败 [session={}]", sessionId, e);
-            blackboard.markFailed(e.getMessage());
+            String friendly = unwrapErrorMessage(e);
+            logger.error("试卷生成失败 [session={}, msg={}]", sessionId, friendly, e);
+            blackboard.markFailed(friendly);
 
             // 保存失败记录
             saveHistory(sessionId, topic, difficulty, questionConfig, blackboard, permission,
-                    category, 0, e.getMessage());
+                    category, 0, friendly);
 
             if (callback != null) {
-                callback.onProgress(BlackboardProgressEvent.error(e.getMessage()));
+                callback.onProgress(BlackboardProgressEvent.error(friendly));
             }
         }
+    }
+
+    /**
+     * 拆解并行 Agent 抛出的包装异常，返回面向用户的最内层原因消息。
+     * <p>{@code CompletableFuture.join()} 会把内部的 {@code RuntimeException}
+     * 包成 {@code CompletionException}（{@code get()} 则包成 {@code ExecutionException}），
+     * 直接用 {@code e.getMessage()} 会把整段栈类名送到前端，因此沿 cause 链向下找一条非空消息。</p>
+     *
+     * @param e 顶层异常
+     * @return 最内层可读消息（若无则回退到顶层 message / toString）
+     */
+    private static String unwrapErrorMessage(Throwable e) {
+        Throwable cur = e;
+        String last = null;
+        while (cur != null) {
+            String msg = cur.getMessage();
+            if (msg != null && !msg.isBlank()) {
+                last = msg;
+            }
+            if (cur.getCause() == cur) {
+                break;
+            }
+            cur = cur.getCause();
+        }
+        return last != null ? last : e.toString();
     }
 
     /**

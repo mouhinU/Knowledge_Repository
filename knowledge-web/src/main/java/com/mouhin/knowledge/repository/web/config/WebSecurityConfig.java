@@ -31,6 +31,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/", "/admin.html", "/exam.html", "/index.html",
+                                "/admin/**",
                                 "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 );

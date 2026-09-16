@@ -31,6 +31,8 @@ public final class ExamAnswerConverter {
         domain.setCorrect(doObj.getCorrect());
         domain.setAiScore(doObj.getAiScore());
         domain.setAiFeedback(doObj.getAiFeedback());
+        domain.setAiInput(doObj.getAiInput());
+        domain.setAiRawOutput(doObj.getAiRawOutput());
         domain.setReviewScore(doObj.getReviewScore());
         domain.setReviewFeedback(doObj.getReviewFeedback());
         domain.setReviewedBy(doObj.getReviewedBy());
@@ -57,6 +59,8 @@ public final class ExamAnswerConverter {
         doObj.setCorrect(domain.getCorrect());
         doObj.setAiScore(domain.getAiScore());
         doObj.setAiFeedback(domain.getAiFeedback());
+        doObj.setAiInput(domain.getAiInput());
+        doObj.setAiRawOutput(domain.getAiRawOutput());
         doObj.setReviewScore(domain.getReviewScore());
         doObj.setReviewFeedback(domain.getReviewFeedback());
         doObj.setReviewedBy(domain.getReviewedBy());

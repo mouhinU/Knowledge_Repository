@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>错题本 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>错题本</h2>
+            <p>收集考生错题，支持筛选、分页与 AI 总结</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">筛选条件</div>
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:0 0 200px">
+                    <label class="form-label">考生</label>
+                    <select class="form-input" id="wb-student"><option value="">全部考生</option></select>
+                </div>
+                <div style="flex:1;min-width:160px">
+                    <label class="form-label">主题关键词</label>
+                    <input class="form-input" id="wb-topic" placeholder="搜索考试主题..." type="text">
+                </div>
+                <div style="flex:0 0 140px">
+                    <label class="form-label">题型</label>
+                    <select class="form-input" id="wb-type">
+                        <option value="">全部题型</option>
+                        <option value="SINGLE_CHOICE">单选题</option>
+                        <option value="MULTI_CHOICE">多选题</option>
+                        <option value="TRUE_FALSE">判断题</option>
+                        <option value="FILL_BLANK">填空题</option>
+                        <option value="SHORT_ANSWER">简答题</option>
+                        <option value="ESSAY">论述题</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="loadWrongAnswers(0)" style="height:38px">查询</button>
+                <button class="btn btn-outline" onclick="generateAiSummary()" style="height:38px">AI 总结</button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="wb-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
+
+        <div id="wb-list"><div class="empty-state">加载错题数据...</div></div>
+        <div id="wb-pager"></div>
+    </div>
+</div>
+
+<!-- AI 错题分析总结弹窗 -->
+<div class="wb-modal-overlay" id="wb-summary-modal" onclick="if(event.target===this)closeWbSummaryModal()">
+    <div class="wb-modal">
+        <div class="wb-modal-header">
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin:0">AI 错题分析总结</h3>
+                <p style="font-size:12px;color:var(--text-light);margin-top:2px">基于错题数据的智能分析</p>
+            </div>
+            <button class="wb-modal-close" onclick="closeWbSummaryModal()">&times;</button>
+        </div>
+        <div id="wb-summary-content" class="wb-modal-body" style="font-size:14px;line-height:1.8;min-height:200px"></div>
+        <div class="wb-modal-footer">
+            <button class="btn btn-outline" onclick="closeWbSummaryModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('wrong-answers');
+
+    let wbData = [];
+    let wbStudentLoaded = false;
+    const WB_SIZE = 10;
+    let wbPage = 0;
+    let wbTotal = 0;
+
+    const QUESTION_TYPE_LABELS = {
+        'SINGLE_CHOICE': '单选', 'MULTI_CHOICE': '多选', 'TRUE_FALSE': '判断',
+        'FILL_BLANK': '填空', 'SHORT_ANSWER': '简答', 'ESSAY': '论述'
+    };
+    const DIFFICULTY_LABELS = { 'EASY': '简单', 'MEDIUM': '中等', 'HARD': '困难' };
+
+    async function loadStudentOptions() {
+        if (wbStudentLoaded) return;
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers/students');
+            if (!res.ok) return;
+            const data = await res.json();
+            const sel = document.getElementById('wb-student');
+            const students = Array.isArray(data) ? data : (data.records || []);
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = (s.displayName || s.username) + (s.studentNo ? ' (' + s.studentNo + ')' : '');
+                sel.appendChild(opt);
+            });
+            wbStudentLoaded = true;
+        } catch (e) {
+            console.error('Failed to load students for error book', e);
+        }
+    }
+
+    function goWbPage(p) { loadWrongAnswers(p); }
+
+    async function loadWrongAnswers(page) {
+        if (page == null) page = wbPage;
+        wbPage = page;
+        const studentId = document.getElementById('wb-student').value;
+        const topic = document.getElementById('wb-topic').value.trim();
+        const questionType = document.getElementById('wb-type').value;
+
+        const params = new URLSearchParams();
+        if (studentId) params.set('studentId', studentId);
+        if (topic) params.set('topic', topic);
+        if (questionType) params.set('questionType', questionType);
+        params.set('page', page);
+        params.set('size', WB_SIZE);
+
+        document.getElementById('wb-list').innerHTML = '<div class="empty-state">加载错题数据...</div>';
+        document.getElementById('wb-stats').innerHTML = '';
+        document.getElementById('wb-pager').innerHTML = '';
+
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers?' + params.toString());
+            if (!res.ok) throw new Error('查询失败');
+            const data = await res.json();
+            wbData = data.records || [];
+            wbTotal = data.total || 0;
+            renderWrongAnswerStats(data.stats || {});
+            renderWrongAnswerList(wbData);
+            renderPager('wb-pager', page, WB_SIZE, wbTotal, 'goWbPage');
+        } catch (e) {
+            document.getElementById('wb-list').innerHTML = '<div class="empty-state" style="color:var(--danger)">' + esc(e.message) + '</div>';
+        }
+    }
+
+    function renderWrongAnswerStats(stats) {
+        const statsEl = document.getElementById('wb-stats');
+        const totalCount = stats.totalCount || 0;
+        if (totalCount === 0) { statsEl.innerHTML = ''; return; }
+        const topType = stats.topType ? (QUESTION_TYPE_LABELS[stats.topType] || stats.topType) : '-';
+        const avgScoreRate = stats.avgScoreRate || 0;
+        statsEl.innerHTML = '<div class="stat-card"><div class="stat-value" style="color:var(--danger)">' + totalCount + '</div><div class="stat-label">错题总数</div></div>'
+            + '<div class="stat-card"><div class="stat-value">' + (stats.topicCount || 0) + '</div><div class="stat-label">涉及主题</div></div>'
+            + '<div class="stat-card"><div class="stat-value">' + (stats.studentCount || 0) + '</div><div class="stat-label">涉及考生</div></div>'
+            + '<div class="stat-card"><div class="stat-value" style="color:var(--warning)">' + topType + '</div><div class="stat-label">最多错题题型</div></div>'
+            + '<div class="stat-card"><div class="stat-value" style="color:' + (avgScoreRate < 0.3 ? 'var(--danger)' : 'var(--warning)') + '">' + Math.round(avgScoreRate * 100) + '%</div><div class="stat-label">平均得分率</div></div>';
+    }
+
+    function renderWrongAnswerList(items) {
+        const listEl = document.getElementById('wb-list');
+        if (items.length === 0) {
+            listEl.innerHTML = '<div class="empty-state">暂无错题数据，请调整筛选条件</div>';
+            return;
+        }
+        let html = '';
+        items.forEach((item) => {
+            const typeLabel = QUESTION_TYPE_LABELS[item.questionType] || item.questionType;
+            const diffLabel = DIFFICULTY_LABELS[item.difficulty] || item.difficulty;
+            const isObjective = ['SINGLE_CHOICE', 'MULTI_CHOICE', 'TRUE_FALSE'].includes(item.questionType);
+            const scoreColor = item.effectiveScore === 0 ? 'var(--danger)' : 'var(--warning)';
+            const scorePercent = item.maxScore > 0 ? Math.round(item.effectiveScore / item.maxScore * 100) : 0;
+
+            let optionsHtml = '';
+            if (item.optionsJson && isObjective) {
+                try {
+                    const options = JSON.parse(item.optionsJson);
+                    if (Array.isArray(options)) {
+                        optionsHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:13px">';
+                        options.forEach(opt => {
+                            const optKey = opt.key != null ? opt.key : opt.label;
+                            const optText = opt.value != null ? opt.value : opt.text;
+                            const isCorrect = item.correctAnswer && optKey === item.correctAnswer;
+                            const isStudentPick = item.studentAnswer && optKey === item.studentAnswer;
+                            let cls = 'wb-opt';
+                            if (isCorrect) cls += ' correct';
+                            else if (isStudentPick) cls += ' wrong';
+                            optionsHtml += '<span class="' + cls + '">' + esc(optKey) + '. ' + esc(optText) + '</span>';
+                        });
+                        optionsHtml += '</div>';
+                    }
+                } catch (e) { /* ignore parse error */ }
+            }
+
+            html += '<div class="wb-card" style="border-left:4px solid ' + scoreColor + '">'
+                + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
+                + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+                + '<span style="background:' + scoreColor + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">' + typeLabel + '</span>'
+                + '<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:4px;font-size:12px">' + esc(item.topic) + '</span>'
+                + '<span style="background:#f3e5f5;color:#7b1fa2;padding:2px 8px;border-radius:4px;font-size:12px">' + diffLabel + '</span>'
+                + '<span style="font-size:12px;color:var(--text-secondary)">第 ' + item.questionIndex + ' 题</span>'
+                + '</div>'
+                + '<div style="text-align:right"><span style="font-size:18px;font-weight:700;color:' + scoreColor + '">' + item.effectiveScore + '</span>'
+                + '<span style="font-size:13px;color:var(--text-secondary)"> / ' + item.maxScore + '分</span>'
+                + '<div style="font-size:11px;color:var(--text-light)">得分率 ' + scorePercent + '%</div></div>'
+                + '</div>'
+                + '<div style="font-size:14px;line-height:1.6;margin-bottom:10px">' + esc(item.questionContent) + '</div>'
+                + optionsHtml
+                + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">'
+                + '<div class="wb-answer-box" style="background:#fff3e0"><div style="font-size:12px;color:#e65100;font-weight:600;margin-bottom:4px">学生答案</div><div style="font-size:13px">' + esc(item.studentAnswer || '（未作答）') + '</div></div>'
+                + '<div class="wb-answer-box" style="background:#e8f5e9"><div style="font-size:12px;color:#2e7d32;font-weight:600;margin-bottom:4px">正确答案</div><div style="font-size:13px">' + esc(item.correctAnswer || '（无标准答案）') + '</div></div>'
+                + '</div>';
+            if (item.analysis || item.scoringCriteria) {
+                html += '<details style="background:#f0f7ff;border:1px solid #d6e9ff;border-radius:8px;padding:8px 10px;margin-bottom:10px">'
+                    + '<summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);user-select:none">解析与评分标准</summary>';
+                if (item.analysis) html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:8px 0 2px">解析</div><div style="font-size:13px;line-height:1.6;white-space:pre-line">' + esc(item.analysis) + '</div>';
+                if (item.scoringCriteria) html += '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:8px 0 2px">评分标准</div><div style="font-size:13px;line-height:1.6;white-space:pre-line">' + esc(item.scoringCriteria) + '</div>';
+                html += '</details>';
+            }
+            if (item.aiFeedback) html += '<div style="padding:10px;background:#f5f5f5;border-radius:8px;font-size:13px;color:var(--text-secondary)"><span style="font-weight:600;color:var(--text)">AI 反馈：</span>' + esc(item.aiFeedback) + '</div>';
+            html += '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-light)">'
+                + '<span>考生：' + esc(item.studentName) + '</span>'
+                + '<span>' + (item.submitTime ? String(item.submitTime).replace('T', ' ').substring(0, 16) : '') + '</span></div>';
+            html += '</div>';
+        });
+        listEl.innerHTML = html;
+    }
+
+    async function generateAiSummary() {
+        if (wbTotal === 0) { toast('暂无错题数据可分析', 'error'); return; }
+        const studentId = document.getElementById('wb-student').value;
+        const topic = document.getElementById('wb-topic').value.trim();
+        const questionType = document.getElementById('wb-type').value;
+        document.getElementById('wb-summary-modal').classList.add('active');
+        document.getElementById('wb-summary-content').innerHTML = '<div class="empty-state">AI 正在分析错题数据，请稍候...</div>';
+        try {
+            const res = await fetch(API + '/api/admin/wrong-answers/summary', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId: studentId ? parseInt(studentId) : null,
+                    topic: topic || null,
+                    questionType: questionType || null
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            document.getElementById('wb-summary-content').innerHTML = renderMarkdown(data.summary || '暂无分析结果');
+        } catch (e) {
+            document.getElementById('wb-summary-content').innerHTML = '<div style="color:var(--danger)">分析失败：' + esc(e.message) + '</div>';
+        }
+    }
+    function closeWbSummaryModal() { document.getElementById('wb-summary-modal').classList.remove('active'); }
+
+    loadStudentOptions();
+    loadWrongAnswers(0);
+</script>
+</body>
+</html>

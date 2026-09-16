@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>系统配置 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>系统配置</h2>
+            <p>Embedding 模型、向量数据库与知识库参数</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card" style="margin-bottom:0">
+                <div class="card-title">Embedding 模型</div>
+                <div class="kv-list" id="sys-embedding"><span class="loading">加载中...</span></div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+                <div class="card-title">Milvus 向量库</div>
+                <div class="kv-list" id="sys-milvus"><span class="loading">加载中...</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">知识库统计</div>
+            <div class="table-wrap">
+                <table>
+                    <tbody id="sys-params">
+                    <tr><td class="loading" colspan="2">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('system');
+
+    function kv(label, value) {
+        return '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px">'
+            + '<span style="color:var(--text-light)">' + label + '</span>'
+            + '<span style="font-weight:600;color:var(--text)">' + value + '</span></div>';
+    }
+
+    async function loadSystemStatus() {
+        try {
+            const res = await fetch(API + '/api/admin/system/status');
+            const data = await res.json();
+
+            const emb = data.embedding || {};
+            document.getElementById('sys-embedding').innerHTML =
+                kv('提供商', esc(emb.provider || '-')) + kv('模型类', esc(emb.modelClass || '-'));
+
+            const mil = data.milvus || {};
+            const connected = mil.status && String(mil.status).startsWith('connected');
+            document.getElementById('sys-milvus').innerHTML =
+                kv('状态', '<span class="status-dot ' + (connected ? 'green' : 'red') + '"></span>' + esc(mil.status || 'unknown'))
+                + kv('地址', esc((mil.host || '') + ':' + (mil.port || '')))
+                + kv('集合', esc(mil.collection || '-'));
+
+            const kb = data.knowledgeBase || {};
+            document.getElementById('sys-params').innerHTML =
+                '<tr><td style="font-weight:500">文档总数</td><td>' + (kb.totalDocuments || 0) + '</td></tr>'
+                + '<tr><td style="font-weight:500">已索引</td><td>' + (kb.indexedDocuments || 0) + '</td></tr>'
+                + '<tr><td style="font-weight:500">处理中</td><td>' + (kb.processingDocuments || 0) + '</td></tr>'
+                + '<tr><td style="font-weight:500">失败</td><td>' + (kb.failedDocuments || 0) + '</td></tr>';
+        } catch (e) {
+            console.error(e);
+            toast('加载系统状态失败', 'error');
+        }
+    }
+
+    loadSystemStatus();
+</script>
+</body>
+</html>

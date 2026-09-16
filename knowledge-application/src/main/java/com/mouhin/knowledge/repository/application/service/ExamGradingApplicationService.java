@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.repository.ExamAnswerRepository;
 import com.mouhin.knowledge.repository.domain.repository.ExamSessionRepository;
+import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -96,19 +97,57 @@ public class ExamGradingApplicationService {
     /**
      * 评分一场考试（客观题自动评分 + 主观题 AI 评分）
      * <p>
-     * 由 ExamTakingApplicationService.submitExam() 调用。
+     * 由 ExamTakingApplicationService.submitExam() 调用（同步，无进度回调）。
      * </p>
      *
      * @param sessionId 考试场次 ID
      */
     @Transactional
     public void gradeExam(Long sessionId) {
+        gradeExamInternal(sessionId, null);
+    }
+
+    /**
+     * 异步评分：在虚拟线程中执行，通过回调上报每题输入 / 原始输出 / 得分。
+     * <p>本方法立即返回，实际评分在后台线程完成。</p>
+     *
+     * @param sessionId 考试场次 ID
+     * @param callback  进度回调，可为 null
+     */
+    public void gradeExamAsync(Long sessionId, ExamGradingProgressCallback callback) {
+        agentExecutor.submit(() -> {
+            try {
+                gradeExamInternal(sessionId, callback);
+            } catch (Exception e) {
+                logger.error("异步评分异常 [session={}]", sessionId, e);
+                if (callback != null) {
+                    try {
+                        callback.onError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                    } catch (Exception ignored) {
+                        // 回调内部异常吞掉
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * 评分核心实现：可选地按每题上报进度并落库 trace。
+     *
+     * @param sessionId 考试场次 ID
+     * @param callback  进度回调，null 表示静默模式
+     */
+    @Transactional
+    public void gradeExamInternal(Long sessionId, ExamGradingProgressCallback callback) {
         ExamSession session = examSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
 
         List<ExamAnswer> answers = examAnswerRepository.listBySessionId(sessionId);
         if (answers.isEmpty()) {
             logger.warn("考试场次无答题记录 [session={}]", sessionId);
+            if (callback != null) {
+                callback.onComplete(0, 0);
+            }
             return;
         }
 
@@ -121,17 +160,35 @@ public class ExamGradingApplicationService {
                     answer.setCorrectAnswer(correctAnswer);
                 }
             }
+            // 重跑评分时清空历史 trace，避免残留
+            answer.setAiInput(null);
+            answer.setAiRawOutput(null);
         }
 
         int totalAiScore = 0;
-
         for (ExamAnswer answer : answers) {
-            if (answer.isObjective()) {
-                // 客观题自动评分
-                gradeObjective(answer);
-            } else {
-                // 主观题 AI 评分
-                gradeSubjectiveWithAi(answer, session);
+            long start = System.currentTimeMillis();
+            int questionIndex = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
+            try {
+                if (answer.isObjective()) {
+                    gradeObjective(answer, callback);
+                } else {
+                    gradeSubjectiveWithAi(answer, session, callback);
+                }
+                long elapsed = System.currentTimeMillis() - start;
+                if (callback != null && answer.getAiInput() != null && answer.getAiRawOutput() != null) {
+                    callback.onQuestionDone(questionIndex,
+                            answer.getAiRawOutput(),
+                            answer.getAiScore() != null ? answer.getAiScore() : 0,
+                            answer.getMaxScore() != null ? answer.getMaxScore() : 0,
+                            answer.getAiFeedback(),
+                            elapsed);
+                }
+            } catch (Exception e) {
+                if (callback != null) {
+                    callback.onQuestionError(questionIndex, e.getMessage());
+                }
+                throw e;
             }
             totalAiScore += answer.getEffectiveScore();
             examAnswerRepository.update(answer);
@@ -142,6 +199,10 @@ public class ExamGradingApplicationService {
         session.setTotalScore(answers.stream().mapToInt(ExamAnswer::getMaxScore).sum());
         session.setUpdateTime(LocalDateTime.now());
         examSessionRepository.update(session);
+
+        if (callback != null) {
+            callback.onComplete(answers.size(), totalAiScore);
+        }
 
         logger.info("评分完成 [session={}, aiScore={}, total={}]",
                 sessionId, totalAiScore, session.getTotalScore());
@@ -218,6 +279,31 @@ public class ExamGradingApplicationService {
     }
 
     /**
+     * 异步触发 AI 评分：立即返回，评分过程通过回调上报每题输入 / 原始输出。
+     *
+     * @param sessionId 考试场次 ID
+     * @param callback  进度回调
+     */
+    public void triggerGradingAsync(Long sessionId, ExamGradingProgressCallback callback) {
+        try {
+            ExamSession session = examSessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
+            if (!"SUBMITTED".equals(session.getStatus())) {
+                if (callback != null) {
+                    callback.onError("仅已交卷的考试可以触发评分，当前状态: " + session.getStatus());
+                }
+                return;
+            }
+        } catch (Exception e) {
+            if (callback != null) {
+                callback.onError(e.getMessage());
+            }
+            return;
+        }
+        gradeExamAsync(sessionId, callback);
+    }
+
+    /**
      * 批量触发所有待评分考试的 AI 评分
      *
      * @return 触发评分的场次数量
@@ -235,6 +321,21 @@ public class ExamGradingApplicationService {
         }
         logger.info("批量评分完成，共处理 {} 场考试", count);
         return count;
+    }
+
+    /**
+     * 异步批量评分：为每场待评分考试的每题按 sessionKey 分别推事件。
+     * <p>
+     * 由 Web 层负责遍历 sessionId 并逐场调用 {@link #gradeExamAsync(Long, ExamGradingProgressCallback)}，
+     * 保证每场可绑定独立 SSE 通道或复用共享通道 + sessionId 标签。
+     * </p>
+     *
+     * @return 待评分场次 ID 列表（最多 100）
+     */
+    public List<Long> listPendingGradingSessionIds() {
+        return examSessionRepository.listPendingGrading(100).stream()
+                .map(ExamSession::getId)
+                .toList();
     }
 
     /**
@@ -285,15 +386,23 @@ public class ExamGradingApplicationService {
     /**
      * 客观题自动评分：比对标准答案
      */
-    private void gradeObjective(ExamAnswer answer) {
+    private void gradeObjective(ExamAnswer answer, ExamGradingProgressCallback callback) {
         String correct = normalizeAnswer(answer.getCorrectAnswer());
         String student = normalizeAnswer(answer.getStudentAnswer());
+        int qIdx = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
+        String input = buildObjectiveInput(answer);
+
+        if (callback != null) {
+            callback.onQuestionStart(qIdx, answer.getQuestionType(), input);
+        }
+        answer.setAiInput(input);
 
         if (correct == null || correct.isBlank()) {
             // 没有标准答案，给满分（可能是题目问题）
             answer.setCorrect(true);
             answer.setAiScore(answer.getMaxScore());
             answer.setAiFeedback("未设置标准答案，默认给满分");
+            answer.setAiRawOutput("客观题自动比对：未设置参考答案 → 默认满分");
             return;
         }
 
@@ -301,19 +410,45 @@ public class ExamGradingApplicationService {
         answer.setCorrect(isCorrect);
         answer.setAiScore(isCorrect ? answer.getMaxScore() : 0);
         answer.setAiFeedback(isCorrect ? "回答正确" : "回答错误，正确答案：" + answer.getCorrectAnswer());
+        answer.setAiRawOutput("客观题自动比对：期望[" + answer.getCorrectAnswer() + "] 实际["
+                + (answer.getStudentAnswer() == null ? "" : answer.getStudentAnswer()) + "] → "
+                + (isCorrect ? "匹配" : "不匹配"));
+    }
+
+    /**
+     * 组装客观题的 trace 输入（题目 / 期望 / 实际）
+     */
+    private String buildObjectiveInput(ExamAnswer answer) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[客观题自动比对 · 无需 LLM]\n");
+        sb.append("题型：").append(answer.getQuestionType()).append("\n");
+        sb.append("题目（第").append(answer.getQuestionIndex()).append("题）：\n")
+                .append(answer.getQuestionContent()).append("\n\n");
+        sb.append("满分：").append(answer.getMaxScore()).append("分\n");
+        sb.append("参考答案：").append(answer.getCorrectAnswer() == null ? "-" : answer.getCorrectAnswer()).append("\n");
+        sb.append("学生答案：").append(answer.getStudentAnswer() == null ? "" : answer.getStudentAnswer()).append("\n");
+        return sb.toString();
     }
 
     /**
      * 主观题 AI 评分
      */
-    private void gradeSubjectiveWithAi(ExamAnswer answer, ExamSession session) {
-        if (answer.getStudentAnswer() == null || answer.getStudentAnswer().isBlank()) {
-            answer.setAiScore(0);
-            answer.setAiFeedback("学生未作答");
-            return;
+    private void gradeSubjectiveWithAi(ExamAnswer answer, ExamSession session, ExamGradingProgressCallback callback) {
+        int qIdx = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
+        String userPrompt = buildGradingPrompt(answer, session);
+        String fullInput = "[System]\n" + AI_GRADING_SYSTEM_PROMPT + "\n\n[User]\n" + userPrompt;
+        answer.setAiInput(fullInput);
+
+        if (callback != null) {
+            callback.onQuestionStart(qIdx, answer.getQuestionType(), fullInput);
         }
 
-        String userPrompt = buildGradingPrompt(answer, session);
+        if (answer.getStudentAnswer() == null || answer.getStudentAnswer().isBlank()) {
+            answer.setAiScore(0);
+            answer.setAiFeedback("学生未作答，跳过 AI 评分");
+            answer.setAiRawOutput("[SKIP] 学生答案为空 → 直接 0 分");
+            return;
+        }
 
         try {
             ChatRequest request = ChatRequest.builder()
@@ -330,6 +465,7 @@ public class ExamGradingApplicationService {
                 logger.warn("AI 评分返回空 [question={}]", answer.getQuestionIndex());
                 answer.setAiScore(0);
                 answer.setAiFeedback("AI 评分失败，请人工复核");
+                answer.setAiRawOutput("[EMPTY] 模型返回空内容");
                 return;
             }
 
@@ -339,6 +475,7 @@ public class ExamGradingApplicationService {
 
             answer.setAiScore(score);
             answer.setAiFeedback(reason);
+            answer.setAiRawOutput(output);
 
             logger.debug("AI 评分完成 [question={}, score={}/{}]",
                     answer.getQuestionIndex(), score, answer.getMaxScore());
@@ -347,6 +484,7 @@ public class ExamGradingApplicationService {
             logger.error("AI 评分异常 [question={}]", answer.getQuestionIndex(), e);
             answer.setAiScore(0);
             answer.setAiFeedback("AI 评分异常：" + e.getMessage());
+            answer.setAiRawOutput("[ERROR] " + (e.getMessage() != null ? e.getMessage() : e.getClass().getName()));
         }
     }
 

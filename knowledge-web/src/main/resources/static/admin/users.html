@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>用户管理 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>用户管理</h2>
+            <p>管理系统用户与访问权限</p>
+        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title" style="margin:0">用户列表</div>
+                <button class="btn btn-primary btn-sm" onclick="showCreateUserModal()">+ 新增</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>用户名</th><th>部门</th><th>角色</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="user-list">
+                    <tr><td class="loading" colspan="4">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('users');
+
+    async function loadUsers() {
+        try {
+            const res = await fetch(API + '/api/admin/user');
+            const users = await res.json();
+            const tbody = document.getElementById('user-list');
+            if (!users.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无用户</td></tr>'; return; }
+            tbody.innerHTML = users.map(u => '<tr>'
+                + '<td>' + esc(u.username) + '</td>'
+                + '<td>' + esc(u.departmentId || '-') + '</td>'
+                + '<td>' + (u.admin ? '<span class="badge badge-warning">管理员</span>' : '<span class="badge badge-info">普通</span>') + '</td>'
+                + '<td><button class="btn btn-outline btn-sm" onclick="showEditUserModal(\'' + esc(u.userKey) + '\',\'' + esc(u.username) + '\',\'' + esc(u.departmentId || '') + '\',' + !!u.admin + ')">编辑</button></td>'
+                + '</tr>').join('');
+        } catch (e) { console.error(e); toast('加载用户失败', 'error'); }
+    }
+
+    function userFormHtml(u) {
+        u = u || {};
+        return '<div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="modal-username" value="' + esc(u.username || '') + '"></div>'
+            + '<div class="form-group"><label class="form-label">部门</label><input class="form-input" id="modal-userdept" placeholder="dept-key" value="' + esc(u.departmentId || '') + '"></div>'
+            + '<div class="form-group"><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-secondary)"><input type="checkbox" id="modal-useradmin"' + (u.admin ? ' checked' : '') + '> 管理员</label></div>';
+    }
+
+    function showCreateUserModal() {
+        document.getElementById('modal-title').textContent = '新增用户';
+        document.getElementById('modal-body').innerHTML = userFormHtml()
+            + '<button class="btn btn-primary" onclick="createUser()">创建</button>';
+        openModal();
+    }
+    function showEditUserModal(key, name, dept, admin) {
+        document.getElementById('modal-title').textContent = '编辑用户';
+        document.getElementById('modal-body').innerHTML = userFormHtml({ username: name, departmentId: dept, admin: admin })
+            + '<button class="btn btn-primary" onclick="updateUser(\'' + key + '\')">保存</button>';
+        openModal();
+    }
+
+    async function createUser() {
+        const body = {
+            username: document.getElementById('modal-username').value,
+            departmentId: document.getElementById('modal-userdept').value,
+            admin: document.getElementById('modal-useradmin').checked
+        };
+        const res = await fetch(API + '/api/admin/user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) { toast('创建失败', 'error'); return; }
+        closeModal();
+        toast('用户已创建', 'success');
+        loadUsers();
+    }
+    async function updateUser(key) {
+        const body = {
+            username: document.getElementById('modal-username').value,
+            departmentId: document.getElementById('modal-userdept').value,
+            admin: document.getElementById('modal-useradmin').checked
+        };
+        const res = await fetch(API + '/api/admin/user/' + key, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) { toast('更新失败', 'error'); return; }
+        closeModal();
+        toast('用户已更新', 'success');
+        loadUsers();
+    }
+
+    loadUsers();
+</script>
+</body>
+</html>

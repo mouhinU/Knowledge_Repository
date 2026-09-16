@@ -4,14 +4,18 @@ import com.mouhin.knowledge.repository.application.service.ExamGradingApplicatio
 import com.mouhin.knowledge.repository.application.service.ExamTakingApplicationService;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.web.dto.ReviewRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 成绩复核控制器（管理端）
@@ -27,11 +31,14 @@ public class ExamReviewController {
 
     private final ExamGradingApplicationService gradingService;
     private final ExamTakingApplicationService examTakingService;
+    private final ExamGradingProgressStore gradingProgressStore;
 
     public ExamReviewController(ExamGradingApplicationService gradingService,
-                                ExamTakingApplicationService examTakingService) {
+                                ExamTakingApplicationService examTakingService,
+                                ExamGradingProgressStore gradingProgressStore) {
         this.gradingService = gradingService;
         this.examTakingService = examTakingService;
+        this.gradingProgressStore = gradingProgressStore;
     }
 
     /**
@@ -50,7 +57,7 @@ public class ExamReviewController {
     }
 
     /**
-     * 手动触发单场考试的 AI 评分
+     * 手动触发单场考试的 AI 评分（同步，向后兼容）
      */
     @PostMapping("/{sessionId}/trigger-grading")
     public ResponseEntity<Map<String, String>> triggerGrading(@PathVariable Long sessionId) {
@@ -63,19 +70,109 @@ public class ExamReviewController {
     }
 
     /**
-     * 批量触发所有待评分考试的 AI 评分
+     * 异步触发单场考试的 AI 评分（前端 EventSource 通道）
+     * <p>立即返回 sessionId，实际评分在虚拟线程中执行，每题通过 SSE 通道 {@code streamId} 上报。</p>
+     *
+     * @param sessionId 考试场次 ID
+     * @param streamId  前端生成的 SSE 通道 ID（与 GET /grading-stream 一致）
      */
-    @PostMapping("/batch-trigger-grading")
-    public ResponseEntity<Map<String, Object>> batchTriggerGrading() {
+    @PostMapping("/{sessionId}/trigger-grading-async")
+    public ResponseEntity<Map<String, Object>> triggerGradingAsync(
+            @PathVariable Long sessionId,
+            @RequestParam String streamId) {
         try {
-            int count = gradingService.batchTriggerGrading();
+            ExamGradingProgressCallback callback = gradingProgressStore.createCallback(streamId);
+            gradingService.triggerGradingAsync(sessionId, callback);
             return ResponseEntity.ok(Map.of(
-                    "message", "批量评分完成",
-                    "count", count
+                    "message", "AI 评分已启动",
+                    "sessionId", sessionId,
+                    "streamId", streamId
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * 批量异步触发所有待评分考试的 AI 评分（前端 EventSource 通道）
+     * <p>所有场次共用同一 SSE 通道 {@code streamId}，事件 payload 中携带 sessionId 供前端分派。</p>
+     *
+     * @param streamId 前端生成的 SSE 通道 ID
+     */
+    @PostMapping("/batch-trigger-grading-async")
+    public ResponseEntity<Map<String, Object>> batchTriggerGradingAsync(@RequestParam String streamId) {
+        List<Long> pending = gradingService.listPendingGradingSessionIds();
+        if (pending.isEmpty()) {
+            gradingProgressStore.emitBatchComplete(streamId, 0);
+            return ResponseEntity.ok(Map.of("message", "无待评分考试", "count", 0));
+        }
+        final int total = pending.size();
+        AtomicInteger remaining = new AtomicInteger(total);
+        for (Long id : pending) {
+            ExamGradingProgressCallback inner = gradingProgressStore.createCallback(streamId, id);
+            ExamGradingProgressCallback wrapped = wrapWithCounter(inner, remaining, streamId, total);
+            gradingService.gradeExamAsync(id, wrapped);
+        }
+        return ResponseEntity.ok(Map.of(
+                "message", "批量评分已启动",
+                "count", total,
+                "streamId", streamId
+        ));
+    }
+
+    /**
+     * 评分进度 SSE 通道
+     * <p>
+     * 事件类型：START / DONE / ERROR / COMPLETE / FATAL / BATCH_COMPLETE。
+     * 前端应先建立此 EventSource 再触发 async 端点，避免早期事件丢失。
+     * </p>
+     */
+    @GetMapping(value = "/grading-stream/{streamId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter gradingStream(@PathVariable String streamId) {
+        logger.debug("评分 SSE 建立 [streamId={}]", streamId);
+        return gradingProgressStore.createEmitter(streamId);
+    }
+
+    /**
+     * 包装回调：整场 COMPLETE / FATAL 后递减剩余场次；归零时统一推送 BATCH_COMPLETE 并关闭 SSE。
+     */
+    private ExamGradingProgressCallback wrapWithCounter(ExamGradingProgressCallback inner,
+                                                        AtomicInteger remaining,
+                                                        String streamId,
+                                                        int totalSessions) {
+        return new ExamGradingProgressCallback() {
+            @Override
+            public void onQuestionStart(int questionIndex, String questionType, String aiInput) {
+                inner.onQuestionStart(questionIndex, questionType, aiInput);
+            }
+
+            @Override
+            public void onQuestionDone(int questionIndex, String aiRawOutput, int aiScore, int maxScore,
+                                       String aiFeedback, long elapsedMs) {
+                inner.onQuestionDone(questionIndex, aiRawOutput, aiScore, maxScore, aiFeedback, elapsedMs);
+            }
+
+            @Override
+            public void onQuestionError(int questionIndex, String errorMessage) {
+                inner.onQuestionError(questionIndex, errorMessage);
+            }
+
+            @Override
+            public void onComplete(int totalQuestions, int totalAiScore) {
+                inner.onComplete(totalQuestions, totalAiScore);
+                if (remaining.decrementAndGet() == 0) {
+                    gradingProgressStore.emitBatchComplete(streamId, totalSessions);
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                inner.onError(errorMessage);
+                if (remaining.decrementAndGet() == 0) {
+                    gradingProgressStore.emitBatchComplete(streamId, totalSessions);
+                }
+            }
+        };
     }
 
     /**

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>成绩复核 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>成绩复核</h2>
+            <p>AI 评分、人工复核、调整分数并发布最终成绩</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="grading-pending-count" style="color:var(--primary)">-</div>
+                <div class="stat-label">待 AI 评分</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="review-pending-count" style="color:var(--warning)">-</div>
+                <div class="stat-label">待复核</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-panel="grading">待 AI 评分</div>
+            <div class="tab" data-panel="review">待复核</div>
+            <div class="tab" data-panel="duration">时长设置</div>
+        </div>
+
+        <!-- Panel: 待评分 -->
+        <div class="tab-panel active" id="panel-grading">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title" style="margin:0">待 AI 评分（已交卷）</div>
+                    <button class="btn btn-primary btn-sm" id="batch-grade-btn" onclick="batchTriggerGrading()">一键 AI 评分</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr><th>考生 ID</th><th>考试主题</th><th>难度</th><th>考试时长</th><th>总分</th><th>交卷时间</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="pending-grading-list">
+                        <tr><td class="loading" colspan="7">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: 待复核 -->
+        <div class="tab-panel" id="panel-review">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title" style="margin:0">待复核列表（AI 已评分）</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadPendingReviews()">刷新</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr><th>考生 ID</th><th>考试主题</th><th>难度</th><th>考试时长</th><th>AI 评分</th><th>总分</th><th>提交时间</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="pending-review-list">
+                        <tr><td class="loading" colspan="8">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: 时长设置 -->
+        <div class="tab-panel" id="panel-duration">
+            <div class="card">
+                <div class="card-title">设置考试时长（覆盖进行中考试的时长）</div>
+                <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+                    <div style="flex:1;min-width:220px">
+                        <label class="form-label">Session Key</label>
+                        <input class="form-input" id="duration-session-key" placeholder="输入考试场次的 Session Key" type="text">
+                    </div>
+                    <div style="width:140px">
+                        <label class="form-label">时长（分钟）</label>
+                        <input class="form-input" id="duration-minutes" max="600" min="1" placeholder="分钟" type="number">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateSessionDuration()" style="height:38px">设置</button>
+                </div>
+                <p style="font-size:12px;color:var(--text-light);margin-top:10px">留空时长或设为 0 表示不限时。仅对 IN_PROGRESS 状态的场次有效。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 评分进度浮层（SSE 实时事件流） -->
+<div id="grading-progress-panel" style="display:none;position:fixed;right:20px;bottom:20px;width:420px;max-height:60vh;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 12px 40px rgba(15,23,42,.18);z-index:1200;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);border-bottom:1px solid #e2e8f0">
+        <div>
+            <div style="font-size:14px;font-weight:700;color:#1e293b">AI 评分进行中</div>
+            <div id="grading-progress-hint" style="font-size:11px;color:#64748b;margin-top:2px">等待连接...</div>
+        </div>
+        <button onclick="closeGradingPanel()" style="border:none;background:transparent;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;padding:0 6px" title="关闭">&times;</button>
+    </div>
+    <div id="grading-progress-body" style="padding:12px 16px;max-height:calc(60vh - 60px);overflow-y:auto;display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
+<style>
+    .gq-card { border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;background:#fff }
+    .gq-card.done { border-color:#bbf7d0;background:#f0fdf4 }
+    .gq-card.error { border-color:#fecaca;background:#fef2f2 }
+    .gq-card.pending { border-color:#e2e8f0;background:#f8fafc }
+    .gq-head { display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#334155 }
+    .gq-idx { width:20px;height:20px;border-radius:4px;background:#64748b;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0 }
+    .gq-card.done .gq-idx { background:#16a34a }
+    .gq-card.error .gq-idx { background:#dc2626 }
+    .gq-card.pending .gq-idx { background:#94a3b8 }
+    .gq-meta { margin-left:auto;font-size:11px;color:#64748b;font-weight:400 }
+    .gq-trace { margin-top:6px }
+    .gq-trace details { font-size:11px;color:#475569;margin-top:4px }
+    .gq-trace summary { cursor:pointer;color:#64748b;padding:2px 0 }
+    .gq-trace pre { white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.4;padding:6px 8px;border-radius:5px;margin:4px 0 0;max-height:180px;overflow:auto }
+    .gq-trace .trace-input { background:#f8fafc;border:1px dashed #cbd5f5;color:#334155 }
+    .gq-trace .trace-think { background:#fefce8;border:1px solid #fde68a;color:#713f12 }
+    .gq-trace .trace-output { background:#f0fdf4;border:1px solid #bbf7d0;color:#14532d }
+    .trace-tag { display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:#e2e8f0;color:#475569;margin-right:4px;font-weight:600 }
+    .trace-tag-input { background:#e0e7ff;color:#3730a3 }
+    .trace-tag-think { background:#fef3c7;color:#92400e }
+    .trace-tag-output { background:#dcfce7;color:#166534 }
+</style>
+
+<!-- 复核详情弹窗 -->
+<div class="review-modal-overlay" id="review-modal-overlay" onclick="if(event.target===this)closeReviewModal()">
+    <div class="review-modal">
+        <div class="review-modal-header">
+            <div>
+                <h3 style="font-size:18px;font-weight:700;margin:0">成绩复核详情</h3>
+                <p id="review-modal-subtitle" style="font-size:12px;color:var(--text-light);margin-top:2px"></p>
+            </div>
+            <button class="review-modal-close" onclick="closeReviewModal()">&times;</button>
+        </div>
+        <div class="review-modal-body">
+            <div id="review-session-info" style="margin-bottom:24px"></div>
+            <div id="review-answers-list" style="display:flex;flex-direction:column;gap:12px">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        <div class="review-modal-footer">
+            <button class="btn btn-outline" onclick="closeReviewModal()">关闭</button>
+            <button class="btn btn-primary" id="review-publish-btn" onclick="publishExamScore(currentReviewSessionId)" style="padding:10px 28px">发布成绩</button>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('exam-review');
+
+    let currentReviewSessionId = null;
+
+    async function loadPendingGrading() {
+        const tbody = document.getElementById('pending-grading-list');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">加载中...</td></tr>';
+        try {
+            const countRes = await fetch(API + '/api/admin/exam-review/pending-grading?limit=1&offset=0');
+            const countData = await countRes.json();
+            document.getElementById('grading-pending-count').textContent = countData.total || 0;
+
+            const res = await fetch(API + '/api/admin/exam-review/pending-grading?limit=20&offset=0');
+            const data = await res.json();
+            const records = data.records || [];
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无待评分记录</td></tr>';
+                return;
+            }
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            tbody.innerHTML = records.map(function (r) {
+                const diff = difficultyMap[r.difficulty] || [r.difficulty || '-', 'badge-info'];
+                const duration = r.durationMinutes ? r.durationMinutes + '分钟' : '不限时';
+                return '<tr>'
+                    + '<td>' + esc(r.studentId) + '</td>'
+                    + '<td>' + esc(r.topic) + '</td>'
+                    + '<td><span class="badge ' + diff[1] + '">' + diff[0] + '</span></td>'
+                    + '<td>' + duration + '</td>'
+                    + '<td>' + (r.totalScore != null ? r.totalScore : '-') + '</td>'
+                    + '<td>' + esc(r.submitTime || '-') + '</td>'
+                    + '<td><button class="btn btn-primary btn-sm" onclick="triggerSingleGrading(' + (r.id) + ')">AI 评分</button></td>'
+                    + '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load pending grading', e);
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="color:var(--danger)">加载失败</td></tr>';
+        }
+    }
+
+    async function triggerSingleGrading(sessionId) {
+        const btn = event ? event.target : null;
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '评分中...';
+        }
+        openGradingPanel('单场评分 · Session ' + sessionId);
+        const streamId = generateStreamId();
+        const es = connectGradingStream(streamId, function (kind, payload) {
+            if (kind === 'COMPLETE') {
+                toast('AI 评分完成，共 ' + payload.totalQuestions + ' 题，合计 ' + payload.totalAiScore + ' 分', 'success');
+                finishGradingSession(sessionId);
+                if (btn) { btn.disabled = false; btn.textContent = 'AI 评分'; }
+            } else if (kind === 'FATAL') {
+                toast('评分失败: ' + (payload.error || '未知错误'), 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'AI 评分'; }
+            }
+        });
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/trigger-grading-async?streamId=' + encodeURIComponent(streamId), { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                toast('启动失败: ' + data.error, 'error');
+                es.close();
+                if (btn) { btn.disabled = false; btn.textContent = 'AI 评分'; }
+            } else {
+                setGradingHint('已启动，等待首题事件...');
+            }
+        } catch (e) {
+            toast('启动失败: ' + e.message, 'error');
+            es.close();
+            if (btn) { btn.disabled = false; btn.textContent = 'AI 评分'; }
+        }
+    }
+
+    async function batchTriggerGrading() {
+        const ok = await showConfirm('确定要对所有待评分考试执行 AI 评分吗？评分过程将实时展示输入 / 原始输出 / 得分。', { confirmText: '开始评分', confirmClass: 'btn-primary' });
+        if (!ok) return;
+        const btn = document.getElementById('batch-grade-btn');
+        btn.disabled = true;
+        btn.textContent = '评分中...';
+        openGradingPanel('一键批量评分');
+        const streamId = generateStreamId();
+        const es = connectGradingStream(streamId, function (kind, payload) {
+            if (kind === 'BATCH_COMPLETE') {
+                const n = payload.sessionCount || 0;
+                toast(n > 0 ? ('批量评分完成，共 ' + n + ' 场考试') : '无待评分考试', 'success');
+                loadPendingGrading();
+                loadPendingReviews();
+                btn.disabled = false;
+                btn.textContent = '一键 AI 评分';
+            }
+        });
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/batch-trigger-grading-async?streamId=' + encodeURIComponent(streamId), { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                toast('启动失败: ' + data.error, 'error');
+                es.close();
+                btn.disabled = false;
+                btn.textContent = '一键 AI 评分';
+            } else {
+                setGradingHint('已启动 ' + (data.count || 0) + ' 场考试的评分任务');
+            }
+        } catch (e) {
+            toast('启动失败: ' + e.message, 'error');
+            es.close();
+            btn.disabled = false;
+            btn.textContent = '一键 AI 评分';
+        }
+    }
+
+    // ==================== SSE 评分进度工具 ====================
+
+    /** 当前活动的 SSE 通道，切换前会关闭旧连接 */
+    let _gradingEventSource = null;
+    /** sessionId -> { total:0, done:0, failed:0 } */
+    let _gradingSessionStats = {};
+    /** 'sessionId:questionIndex' -> card element */
+    let _gradingCardMap = {};
+    /** 单场模式下 sessionId 为 null，事件不带 sessionId */
+    let _gradingSingleSessionId = null;
+
+    function generateStreamId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'st-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    function openGradingPanel(title) {
+        const panel = document.getElementById('grading-progress-panel');
+        panel.style.display = 'block';
+        document.querySelector('#grading-progress-panel > div:first-child > div > div:first-child').textContent = title;
+        document.getElementById('grading-progress-body').innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:8px 0">等待事件...</div>';
+        _gradingSessionStats = {};
+        _gradingCardMap = {};
+        _gradingSingleSessionId = null;
+        setGradingHint('正在建立 SSE 连接...');
+    }
+
+    function closeGradingPanel() {
+        const panel = document.getElementById('grading-progress-panel');
+        panel.style.display = 'none';
+        if (_gradingEventSource) {
+            try { _gradingEventSource.close(); } catch (e) { /* ignore */ }
+            _gradingEventSource = null;
+        }
+    }
+
+    function setGradingHint(text) {
+        const el = document.getElementById('grading-progress-hint');
+        if (el) el.textContent = text;
+    }
+
+    function connectGradingStream(streamId, onTerminal) {
+        if (_gradingEventSource) {
+            try { _gradingEventSource.close(); } catch (e) { /* ignore */ }
+        }
+        const es = new EventSource(API + '/api/admin/exam-review/grading-stream/' + encodeURIComponent(streamId));
+        _gradingEventSource = es;
+        es.onopen = function () { setGradingHint('SSE 已连接，等待评分事件...'); };
+        es.onerror = function () { /* EventSource 自动重连；终态事件后由服务端 close */ };
+        es.addEventListener('START', function (evt) { handleGradingEvent('START', evt, onTerminal); });
+        es.addEventListener('DONE', function (evt) { handleGradingEvent('DONE', evt, onTerminal); });
+        es.addEventListener('ERROR', function (evt) { handleGradingEvent('ERROR', evt, onTerminal); });
+        es.addEventListener('COMPLETE', function (evt) { handleGradingEvent('COMPLETE', evt, onTerminal); });
+        es.addEventListener('FATAL', function (evt) { handleGradingEvent('FATAL', evt, onTerminal); });
+        es.addEventListener('BATCH_COMPLETE', function (evt) { handleGradingEvent('BATCH_COMPLETE', evt, onTerminal); });
+        return es;
+    }
+
+    function handleGradingEvent(name, evt, onTerminal) {
+        let payload = {};
+        try { payload = JSON.parse(evt.data || '{}'); } catch (e) { payload = { raw: evt.data }; }
+        const sid = payload.sessionId != null ? String(payload.sessionId) : '_single';
+        const qIdx = payload.questionIndex;
+        const firstBody = document.querySelector('#grading-progress-body > div[style*="等待事件"]');
+        if (firstBody) firstBody.remove();
+
+        if (name === 'START') {
+            ensureSessionHeader(sid);
+            upsertQuestionCard(sid, qIdx, 'pending', payload);
+        } else if (name === 'DONE') {
+            ensureSessionHeader(sid);
+            upsertQuestionCard(sid, qIdx, 'done', payload);
+            bumpSessionStat(sid, 'done', 1);
+        } else if (name === 'ERROR') {
+            ensureSessionHeader(sid);
+            upsertQuestionCard(sid, qIdx, 'error', payload);
+            bumpSessionStat(sid, 'failed', 1);
+        } else if (name === 'COMPLETE') {
+            markSessionComplete(sid, payload);
+            if (onTerminal) onTerminal('COMPLETE', payload);
+        } else if (name === 'FATAL') {
+            markSessionFatal(sid, payload);
+            if (onTerminal) onTerminal('FATAL', payload);
+        } else if (name === 'BATCH_COMPLETE') {
+            setGradingHint('全部完成 · 共 ' + (payload.sessionCount || 0) + ' 场');
+            if (onTerminal) onTerminal('BATCH_COMPLETE', payload);
+        }
+    }
+
+    function ensureSessionHeader(sid) {
+        if (sid === '_single') return;
+        if (document.getElementById('gs-hdr-' + sid)) return;
+        const body = document.getElementById('grading-progress-body');
+        const hdr = document.createElement('div');
+        hdr.id = 'gs-hdr-' + sid;
+        hdr.setAttribute('data-sid', sid);
+        hdr.style.cssText = 'font-size:11px;font-weight:700;color:#334155;padding:6px 8px;background:#f1f5f9;border-radius:6px;margin-top:4px';
+        hdr.innerHTML = 'Session #' + esc(sid) + ' <span class="gs-stat" style="font-weight:400;color:#64748b">· 0 done · 0 failed</span>';
+        body.appendChild(hdr);
+        _gradingSessionStats[sid] = { done: 0, failed: 0 };
+    }
+
+    function bumpSessionStat(sid, field, delta) {
+        if (!_gradingSessionStats[sid]) _gradingSessionStats[sid] = { done: 0, failed: 0 };
+        _gradingSessionStats[sid][field] += delta;
+        const hdr = document.getElementById('gs-hdr-' + sid);
+        if (hdr) {
+            const stat = hdr.querySelector('.gs-stat');
+            if (stat) {
+                const s = _gradingSessionStats[sid];
+                stat.textContent = '· ' + s.done + ' done · ' + s.failed + ' failed';
+            }
+        }
+    }
+
+    function upsertQuestionCard(sid, qIdx, state, payload) {
+        const key = sid + ':' + qIdx;
+        let card = _gradingCardMap[key];
+        const body = document.getElementById('grading-progress-body');
+        if (!card) {
+            card = document.createElement('div');
+            card.className = 'gq-card pending';
+            card.innerHTML = '<div class="gq-head"><span class="gq-idx">' + (qIdx != null ? qIdx : '?') + '</span>'
+                + '<span class="gq-label">第 ' + (qIdx != null ? qIdx : '?') + ' 题</span>'
+                + '<span class="gq-meta"></span></div>'
+                + '<div class="gq-trace"></div>';
+            const lastHdr = sid !== '_single' ? document.getElementById('gs-hdr-' + sid) : null;
+            if (lastHdr) {
+                const siblings = [];
+                let node = lastHdr.nextSibling;
+                while (node) {
+                    if (node.classList && node.classList.contains('gq-card')) siblings.push(node);
+                    if (node.id && node.id.indexOf('gs-hdr-') === 0) break;
+                    node = node.nextSibling;
+                }
+                if (siblings.length > 0) body.insertBefore(card, siblings[siblings.length - 1].nextSibling);
+                else lastHdr.after(card);
+            } else {
+                body.appendChild(card);
+            }
+            _gradingCardMap[key] = card;
+        }
+        card.classList.remove('pending', 'done', 'error');
+        card.classList.add(state === 'done' ? 'done' : (state === 'error' ? 'error' : 'pending'));
+        const meta = card.querySelector('.gq-meta');
+        const label = card.querySelector('.gq-label');
+        if (state === 'pending' && payload) {
+            if (label && payload.questionType) label.textContent = '第 ' + qIdx + ' 题 · ' + payload.questionType;
+            meta.textContent = '评分中...';
+        } else if (state === 'done' && payload) {
+            meta.textContent = payload.score + ' / ' + payload.maxScore + ' 分 · ' + payload.elapsed + 'ms';
+        } else if (state === 'error' && payload) {
+            meta.textContent = '失败: ' + (payload.error || 'unknown');
+        }
+        renderQuestionTrace(card.querySelector('.gq-trace'), _lastInputOf(sid, qIdx, payload), payload);
+    }
+
+    function _lastInputOf(sid, qIdx, payload) {
+        if (payload && payload.input) return payload.input;
+        return _questionInputs[sid + ':' + qIdx] || '';
+    }
+    /** 缓存 START 事件的 input，DONE 事件时合并渲染 */
+    const _questionInputs = {};
+    if (!window._questionInputs) window._questionInputs = _questionInputs;
+
+    function renderQuestionTrace(container, input, payload) {
+        if (!container) return;
+        if (payload && payload.input) {
+            _questionInputs[(payload.sessionId != null ? payload.sessionId : '_single') + ':' + payload.questionIndex] = payload.input;
+        }
+        const rawOutput = payload && payload.rawOutput != null ? payload.rawOutput : null;
+        const feedback = payload && payload.feedback != null ? payload.feedback : null;
+        const score = payload && payload.score != null ? (payload.score + ' / ' + (payload.maxScore || 0) + ' 分') : null;
+        let html = '';
+        if (input) {
+            html += '<details open><summary><span class="trace-tag trace-tag-input">📥 输入</span>发送给模型的 Prompt</summary>'
+                + '<pre class="trace-input">' + esc(input) + '</pre></details>';
+        }
+        if (rawOutput) {
+            html += '<details open><summary><span class="trace-tag trace-tag-think">💭 思考 / 原始输出</span>模型返回全文</summary>'
+                + '<pre class="trace-think">' + esc(rawOutput) + '</pre></details>';
+        }
+        if (feedback != null || score != null) {
+            const outText = (score ? score + ' · ' : '') + (feedback || '');
+            html += '<details open><summary><span class="trace-tag trace-tag-output">📤 输出</span>解析后的评分结果</summary>'
+                + '<pre class="trace-output">' + esc(outText) + '</pre></details>';
+        }
+        container.innerHTML = html;
+    }
+
+    function markSessionComplete(sid, payload) {
+        if (sid === '_single') {
+            setGradingHint('完成 · ' + payload.totalQuestions + ' 题 · ' + payload.totalAiScore + ' 分');
+            return;
+        }
+        const hdr = document.getElementById('gs-hdr-' + sid);
+        if (hdr) {
+            const stat = hdr.querySelector('.gs-stat');
+            if (stat) stat.textContent = '· ✔ 完成 · 合计 ' + payload.totalAiScore + ' / ' + payload.totalQuestions + ' 题';
+            hdr.style.background = '#dcfce7';
+            hdr.style.color = '#166534';
+        }
+    }
+
+    function markSessionFatal(sid, payload) {
+        setGradingHint('失败：' + (payload.error || 'unknown'));
+        if (sid === '_single') return;
+        const hdr = document.getElementById('gs-hdr-' + sid);
+        if (hdr) {
+            const stat = hdr.querySelector('.gs-stat');
+            if (stat) stat.textContent = '· ✖ ' + (payload.error || '失败');
+            hdr.style.background = '#fee2e2';
+            hdr.style.color = '#991b1b';
+        }
+    }
+
+    function finishGradingSession(sessionId) {
+        loadPendingGrading();
+        loadPendingReviews();
+        // 3s 后自动关闭
+        setTimeout(function () {
+            const panel = document.getElementById('grading-progress-panel');
+            if (panel.style.display !== 'none') closeGradingPanel();
+        }, 3000);
+    }
+
+    async function loadPendingReviews() {
+        const tbody = document.getElementById('pending-review-list');
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">加载中...</td></tr>';
+        try {
+            const countRes = await fetch(API + '/api/admin/exam-review/pending?limit=1&offset=0');
+            const countData = await countRes.json();
+            document.getElementById('review-pending-count').textContent = countData.total || 0;
+
+            const res = await fetch(API + '/api/admin/exam-review/pending?limit=20&offset=0');
+            const data = await res.json();
+            const records = data.records || [];
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">暂无待复核记录</td></tr>';
+                return;
+            }
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            tbody.innerHTML = records.map(function (r) {
+                const diff = difficultyMap[r.difficulty] || [r.difficulty || '-', 'badge-info'];
+                const duration = r.durationMinutes ? r.durationMinutes + '分钟' : '不限时';
+                return '<tr>'
+                    + '<td>' + esc(r.studentId) + '</td>'
+                    + '<td>' + esc(r.topic) + '</td>'
+                    + '<td><span class="badge ' + diff[1] + '">' + diff[0] + '</span></td>'
+                    + '<td>' + duration + '</td>'
+                    + '<td>' + (r.aiScore != null ? r.aiScore : '-') + '</td>'
+                    + '<td>' + (r.totalScore != null ? r.totalScore : '-') + '</td>'
+                    + '<td>' + esc(r.submitTime || '-') + '</td>'
+                    + '<td><button class="btn btn-primary btn-sm" onclick="openReviewDetail(\'' + esc(r.id || r.sessionKey) + '\')">复核</button></td>'
+                    + '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load pending reviews', e);
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state" style="color:var(--danger)">加载失败</td></tr>';
+        }
+    }
+
+    async function openReviewDetail(sessionId) {
+        currentReviewSessionId = sessionId;
+        document.getElementById('review-modal-overlay').classList.add('active');
+        const infoEl = document.getElementById('review-session-info');
+        const listEl = document.getElementById('review-answers-list');
+        const subtitleEl = document.getElementById('review-modal-subtitle');
+        infoEl.innerHTML = '<div class="loading">加载中...</div>';
+        listEl.innerHTML = '<div class="loading">加载中...</div>';
+        subtitleEl.textContent = '';
+
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/answers');
+            const data = await res.json();
+            const session = data;
+            const answers = data.answers || [];
+            if (!answers.length) {
+                infoEl.innerHTML = '<div class="empty-state">暂无答题数据</div>';
+                listEl.innerHTML = '';
+                return;
+            }
+            subtitleEl.textContent = 'Session ID: ' + sessionId;
+
+            const difficultyMap = { EASY: ['简单', 'badge-success'], MEDIUM: ['中等', 'badge-warning'], HARD: ['困难', 'badge-danger'] };
+            const diff = difficultyMap[session.difficulty] || [session.difficulty || '-', 'badge-info'];
+            const statusMap = { SUBMITTED: ['已提交', 'badge-warning'], AI_GRADED: ['AI已评分', 'badge-info'], REVIEWED: ['已复核', 'badge-success'], PUBLISHED: ['已发布', 'badge-success'] };
+            const st = statusMap[session.status] || [session.status || '-', 'badge-info'];
+            const duration = session.durationMinutes ? session.durationMinutes + '分钟' : '不限时';
+
+            infoEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;padding:16px 20px;background:linear-gradient(135deg,#f0f9ff,#f8fafc);border-radius:10px;border:1px solid #e0f2fe">'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考试主题</div><div style="font-size:14px;font-weight:600;color:#1e293b">' + esc(session.topic || '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考生 ID</div><div style="font-size:14px;font-weight:600;color:#1e293b">' + esc(session.studentId != null ? session.studentId : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">难度</div><div><span class="badge ' + diff[1] + '">' + diff[0] + '</span></div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">考试时长</div><div style="font-size:14px;color:#1e293b">' + duration + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">AI 评分</div><div style="font-size:18px;font-weight:700;color:var(--primary)">' + (session.aiScore != null ? session.aiScore : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">最终得分</div><div style="font-size:18px;font-weight:700;color:#1e293b">' + (session.finalScore != null ? session.finalScore : (session.aiScore != null ? session.aiScore : '-')) + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">总分</div><div style="font-size:14px;color:#1e293b">' + (session.totalScore != null ? session.totalScore : '-') + '</div></div>'
+                + '<div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">状态</div><div><span class="badge ' + st[1] + '">' + st[0] + '</span></div></div>'
+                + '</div>';
+
+            const typeMap = { SINGLE_CHOICE: '单选题', MULTI_CHOICE: '多选题', TRUE_FALSE: '判断题', FILL_BLANK: '填空题', SHORT_ANSWER: '简答题', ESSAY: '论述题' };
+            const typeColorMap = { SINGLE_CHOICE: '#3b82f6', MULTI_CHOICE: '#8b5cf6', TRUE_FALSE: '#06b6d4', FILL_BLANK: '#f59e0b', SHORT_ANSWER: '#10b981', ESSAY: '#ec4899' };
+
+            listEl.innerHTML = answers.map(function (a, idx) {
+                const qType = a.questionType || '-';
+                const qTypeLabel = typeMap[qType] || qType;
+                const qTypeColor = typeColorMap[qType] || '#6b7280';
+                const reviewScoreVal = a.reviewScore != null ? a.reviewScore : '';
+                const reviewFeedbackVal = a.reviewFeedback || '';
+                let scoreColor = '#6b7280';
+                if (a.aiScore != null && a.maxScore != null) {
+                    if (a.aiScore >= a.maxScore) scoreColor = '#16a34a';
+                    else if (a.aiScore > 0) scoreColor = '#f59e0b';
+                    else scoreColor = '#dc2626';
+                }
+                const studentAnswer = a.studentAnswer || '';
+                const correctAnswer = a.correctAnswer || '';
+                const hasAnswer = studentAnswer.trim().length > 0;
+
+                let html = '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff">';
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">';
+                html += '<div style="width:28px;height:28px;border-radius:6px;background:' + qTypeColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">' + (idx + 1) + '</div>';
+                html += '<div style="flex:1;font-size:13px;font-weight:600;color:#1e293b">' + esc(qTypeLabel) + ' <span style="font-weight:400;color:#94a3b8">(' + (a.maxScore != null ? a.maxScore : 0) + '分)</span></div>';
+                if (a.aiScore != null) html += '<div style="font-size:13px;font-weight:700;color:' + scoreColor + '">' + a.aiScore + ' / ' + (a.maxScore || 0) + ' 分</div>';
+                if (a.reviewScore != null) html += '<div style="font-size:11px;background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:4px;font-weight:600">复核: ' + a.reviewScore + '</div>';
+                html += '</div>';
+                html += '<div style="padding:16px">';
+                html += '<div style="font-size:13px;color:#334155;line-height:1.7;margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid ' + qTypeColor + ';white-space:pre-wrap">' + esc(a.questionContent || '题目内容缺失') + '</div>';
+                html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">';
+                html += '<div><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">考生答案</div>'
+                    + '<div style="font-size:13px;line-height:1.6;padding:10px 12px;border-radius:8px;min-height:40px;white-space:pre-wrap;' + (hasAnswer ? 'background:#fefce8;border:1px solid #fde68a' : 'background:#fef2f2;border:1px solid #fecaca;color:#991b1b') + '">' + (hasAnswer ? esc(studentAnswer) : '<em style="color:#991b1b">未作答</em>') + '</div></div>';
+                html += '<div><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">正确答案</div>'
+                    + '<div style="font-size:13px;line-height:1.6;padding:10px 12px;border-radius:8px;min-height:40px;background:#f0fdf4;border:1px solid #bbf7d0;white-space:pre-wrap">' + (correctAnswer ? esc(correctAnswer) : '<em style="color:#94a3b8">暂无标准答案</em>') + '</div></div>';
+                html += '</div>';
+                if (a.aiFeedback) html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI 反馈</div>'
+                    + '<div style="font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">' + esc(a.aiFeedback) + '</div></div>';
+                // AI 评分过程（输入 / 原始输出 / 解析结果）— 与 SSE 面板同一视觉规范
+                if (a.aiInput || a.aiRawOutput) {
+                    html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI 评分过程</div>'
+                        + '<div class="gq-trace" style="padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
+                    if (a.aiInput) {
+                        html += '<details><summary><span class="trace-tag trace-tag-input">📥 输入</span>发送给模型的 Prompt</summary>'
+                            + '<pre class="trace-input">' + esc(a.aiInput) + '</pre></details>';
+                    }
+                    if (a.aiRawOutput) {
+                        html += '<details><summary><span class="trace-tag trace-tag-think">💭 思考 / 原始输出</span>模型返回全文（或客观题比对依据）</summary>'
+                            + '<pre class="trace-think">' + esc(a.aiRawOutput) + '</pre></details>';
+                    }
+                    const parsedLine = (a.aiScore != null ? a.aiScore + ' / ' + (a.maxScore || 0) + ' 分' : '')
+                        + (a.aiFeedback ? ' · ' + a.aiFeedback : '');
+                    if (parsedLine) {
+                        html += '<details><summary><span class="trace-tag trace-tag-output">📤 输出</span>解析后的评分结果</summary>'
+                            + '<pre class="trace-output">' + esc(parsedLine) + '</pre></details>';
+                    }
+                    html += '</div></div>';
+                }
+                html += '<div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px"><div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">'
+                    + '<div style="min-width:100px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;font-weight:600">复核分数</label>'
+                    + '<input type="number" class="form-input" id="review-score-' + a.id + '" value="' + reviewScoreVal + '" min="0" max="' + (a.maxScore || 100) + '" style="width:100px;height:34px;font-size:13px"></div>'
+                    + '<div style="flex:1;min-width:180px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;font-weight:600">复核反馈</label>'
+                    + '<textarea class="form-input" id="review-feedback-' + a.id + '" rows="1" placeholder="输入复核意见..." style="min-height:34px;font-size:13px;resize:vertical">' + esc(reviewFeedbackVal) + '</textarea></div>'
+                    + '<button class="btn btn-primary btn-sm" onclick="submitAnswerReview(\'' + esc(a.id) + '\', \'' + esc(sessionId) + '\')" style="height:34px;white-space:nowrap;font-size:12px">提交复核</button>'
+                    + '</div></div>';
+                html += '</div></div>';
+                return html;
+            }).join('');
+        } catch (e) {
+            console.error('Failed to load review detail', e);
+            infoEl.innerHTML = '';
+            listEl.innerHTML = '<div class="empty-state" style="color:var(--danger)">加载失败: ' + esc(e.message) + '</div>';
+        }
+    }
+
+    async function submitAnswerReview(answerId, sessionId) {
+        const scoreEl = document.getElementById('review-score-' + answerId);
+        const feedbackEl = document.getElementById('review-feedback-' + answerId);
+        const reviewScore = scoreEl ? scoreEl.value : '';
+        const reviewFeedback = feedbackEl ? feedbackEl.value : '';
+        if (reviewScore === '') { toast('请输入复核分数', 'error'); return; }
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/answer/' + answerId + '/review', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reviewScore: Number(reviewScore), reviewFeedback: reviewFeedback, reviewer: 'admin' })
+            });
+            if (!res.ok) { const errText = await res.text(); throw new Error(errText || '提交失败'); }
+            toast('复核提交成功', 'success');
+        } catch (e) {
+            console.error('Failed to submit answer review', e);
+            toast('提交失败: ' + e.message, 'error');
+        }
+    }
+
+    async function publishExamScore(sessionId) {
+        if (!sessionId) { toast('缺少考试会话 ID', 'error'); return; }
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + sessionId + '/publish?reviewer=admin', { method: 'POST' });
+            if (!res.ok) { const errText = await res.text(); throw new Error(errText || '发布失败'); }
+            toast('成绩已发布', 'success');
+            closeReviewModal();
+            loadPendingGrading();
+            loadPendingReviews();
+        } catch (e) {
+            console.error('Failed to publish exam score', e);
+            toast('发布失败: ' + e.message, 'error');
+        }
+    }
+
+    async function updateSessionDuration() {
+        const sessionKey = document.getElementById('duration-session-key').value.trim();
+        const minutesInput = document.getElementById('duration-minutes').value;
+        if (!sessionKey) { toast('请输入 Session Key', 'error'); return; }
+        const minutes = minutesInput ? parseInt(minutesInput) : 0;
+        if (minutes < 0 || minutes > 600) { toast('时长必须在 1-600 分钟之间', 'error'); return; }
+        try {
+            const res = await fetch(API + '/api/admin/exam-review/' + encodeURIComponent(sessionKey) + '/duration', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ durationMinutes: minutes > 0 ? minutes : null })
+            });
+            const data = await res.json();
+            if (data.error) toast('设置失败: ' + data.error, 'error');
+            else {
+                toast(data.message || '考试时长已更新为 ' + (minutes > 0 ? minutes + ' 分钟' : '不限时'), 'success');
+                document.getElementById('duration-session-key').value = '';
+                document.getElementById('duration-minutes').value = '';
+            }
+        } catch (e) {
+            console.error('Failed to update session duration', e);
+            toast('设置失败: ' + e.message, 'error');
+        }
+    }
+
+    function closeReviewModal() {
+        document.getElementById('review-modal-overlay').classList.remove('active');
+        currentReviewSessionId = null;
+    }
+
+    loadPendingGrading();
+    loadPendingReviews();
+</script>
+</body>
+</html>

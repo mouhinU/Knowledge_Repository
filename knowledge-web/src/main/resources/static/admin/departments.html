@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>部门管理 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>部门管理</h2>
+            <p>维护组织架构与部门归属</p>
+        </div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title" style="margin:0">部门结构</div>
+                <button class="btn btn-primary btn-sm" onclick="showCreateDeptModal()">+ 新增</button>
+            </div>
+            <div id="dept-tree"><div class="loading">加载中...</div></div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('departments');
+
+    async function loadDeptTree() {
+        const el = document.getElementById('dept-tree');
+        try {
+            const res = await fetch(API + '/api/admin/department/tree');
+            const tree = await res.json();
+            const html = renderTree(tree, 0);
+            el.innerHTML = html || '<div class="empty-state">暂无部门</div>';
+        } catch (e) {
+            console.error(e);
+            el.innerHTML = '<div class="empty-state" style="color:var(--danger)">加载失败</div>';
+        }
+    }
+
+    function renderTree(nodes, level) {
+        if (!nodes || !nodes.length) return '';
+        return nodes.map(n =>
+            '<div class="dept-node" style="margin-left:' + (level * 24) + 'px">'
+            + '<span class="dept-name">' + (level > 0 ? '└ ' : '') + esc(n.departmentName) + '</span>'
+            + '<span class="dept-key">' + esc(n.departmentKey || '') + '</span>'
+            + '</div>'
+            + renderTree(n.children || [], level + 1)
+        ).join('');
+    }
+
+    function showCreateDeptModal() {
+        document.getElementById('modal-title').textContent = '新增部门';
+        document.getElementById('modal-body').innerHTML =
+            '<div class="form-group"><label class="form-label">部门名称</label><input class="form-input" id="modal-deptname"></div>'
+            + '<div class="form-group"><label class="form-label">父部门 ID（留空为顶级）</label><input class="form-input" id="modal-deptparent" type="number"></div>'
+            + '<button class="btn btn-primary" onclick="createDept()">创建</button>';
+        openModal();
+    }
+
+    async function createDept() {
+        const body = {
+            departmentName: document.getElementById('modal-deptname').value,
+            parentId: document.getElementById('modal-deptparent').value || null
+        };
+        const res = await fetch(API + '/api/admin/department', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) { toast('创建失败', 'error'); return; }
+        closeModal();
+        toast('部门已创建', 'success');
+        loadDeptTree();
+    }
+
+    loadDeptTree();
+</script>
+</body>
+</html>

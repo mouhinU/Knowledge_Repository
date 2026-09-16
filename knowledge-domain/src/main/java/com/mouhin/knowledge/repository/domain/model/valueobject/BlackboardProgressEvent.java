@@ -193,6 +193,20 @@ public class BlackboardProgressEvent {
     }
 
     /**
+     * 创建 Agent 失败事件（如校验闸门未通过）
+     * <p>与普通 {@link #agentCompleted(String, String)} 的区别：前端会将对应 flow-node
+     * 标为「失败」状态并停止推进下游节点，用于流水线被硬阻断的场景。</p>
+     */
+    public static BlackboardProgressEvent agentFailed(String agentName, String output) {
+        return new Builder()
+                .type("AGENT_OUTPUT")
+                .agentName(agentName)
+                .agentStatus("failed")
+                .output(output)
+                .build();
+    }
+
+    /**
      * 创建整体完成事件
      */
     public static BlackboardProgressEvent completed(BlackboardState blackboard, int retrievedChunks) {

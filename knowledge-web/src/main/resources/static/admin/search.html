@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>知识检索 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>知识检索</h2>
+            <p>语义搜索知识库内容</p>
+        </div>
+
+        <div class="card">
+            <div class="search-box">
+                <input class="form-input" id="search-query"
+                       onkeydown="if(event.key==='Enter')doSearch()"
+                       placeholder="输入问题或关键词进行语义搜索...">
+                <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <label class="form-label" style="margin:0;white-space:nowrap">用户ID</label>
+                <input class="form-input" id="search-user" style="width:160px" value="user-admin">
+                <label class="form-label" style="margin:0;white-space:nowrap">最大结果</label>
+                <input class="form-input" id="search-max" max="50" min="1" style="width:80px" type="number" value="10">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
+                    <input checked id="search-admin" type="checkbox"> 管理员模式
+                </label>
+            </div>
+        </div>
+
+        <div class="card" id="search-results-card" style="display:none">
+            <div class="card-title">搜索结果 <span id="search-count" style="color:var(--primary)"></span></div>
+            <div id="search-results"></div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('search');
+
+    async function doSearch() {
+        const query = document.getElementById('search-query').value.trim();
+        if (!query) { toast('请输入搜索内容', 'warning'); return; }
+
+        const body = {
+            query: query,
+            userId: document.getElementById('search-user').value,
+            maxResults: parseInt(document.getElementById('search-max').value) || 10,
+            admin: document.getElementById('search-admin').checked
+        };
+
+        try {
+            const res = await fetch(API + '/api/knowledge/search', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            const card = document.getElementById('search-results-card');
+            card.style.display = 'block';
+            document.getElementById('search-count').textContent = '(' + (data.totalResults || 0) + ' 条结果)';
+
+            const container = document.getElementById('search-results');
+            if (!data.results || !data.results.length) {
+                container.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
+                return;
+            }
+            container.innerHTML = data.results.map(r => '<div class="search-result">'
+                + '<div class="search-score">相似度: ' + ((r.score || 0) * 100).toFixed(1) + '%</div>'
+                + '<div class="search-meta">' + esc(r.documentName || r.documentKey)
+                + (r.pageNumber ? ' &middot; 第' + r.pageNumber + '页' : '') + '</div>'
+                + '<div class="search-text">' + esc(r.text) + '</div>'
+                + '</div>').join('');
+        } catch (e) {
+            toast('搜索失败: ' + e.message, 'error');
+        }
+    }
+</script>
+</body>
+</html>

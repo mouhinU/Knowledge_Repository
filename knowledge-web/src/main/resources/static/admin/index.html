@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>仪表盘 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>仪表盘</h2>
+            <p>知识库概览与统计</p>
+        </div>
+
+        <div class="stats-grid" id="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">-</div>
+                <div class="stat-label">文档总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-indexed" style="color:var(--success)">-</div>
+                <div class="stat-label">已索引</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-processing" style="color:var(--warning)">-</div>
+                <div class="stat-label">处理中</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-failed" style="color:var(--danger)">-</div>
+                <div class="stat-label">失败</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">分类统计</div>
+            <div id="category-stats" style="display:flex;flex-direction:column;gap:12px;padding:4px 0">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title" style="margin:0">最近文档</div>
+                <a class="btn btn-outline btn-sm" href="documents.html">管理文档 →</a>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>文件名</th><th>状态</th><th>所有者</th><th>创建时间</th></tr>
+                    </thead>
+                    <tbody id="recent-docs">
+                    <tr><td class="loading" colspan="4">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('dashboard');
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch(API + '/api/admin/document/stats');
+            const data = await res.json();
+            document.getElementById('stat-total').textContent = data.totalDocuments || 0;
+            document.getElementById('stat-indexed').textContent = data.indexedDocuments || 0;
+            document.getElementById('stat-processing').textContent = data.processingDocuments || 0;
+            document.getElementById('stat-failed').textContent = data.failedDocuments || 0;
+        } catch (e) { console.error('Failed to load stats', e); }
+
+        try {
+            const res = await fetch(API + '/api/admin/document/category-stats');
+            const data = await res.json();
+            const container = document.getElementById('category-stats');
+            const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            if (!entries.length) {
+                container.innerHTML = '<div class="empty-state">暂无分类数据</div>';
+            } else {
+                const maxCount = Math.max(...entries.map(e => e[1]));
+                const colors = ['#4A90D9', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#8B5CF6', '#EC4899', '#06B6D4'];
+                container.innerHTML = entries.map(([cat, count], i) => {
+                    const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
+                    const color = colors[i % colors.length];
+                    return '<div class="cat-row">'
+                        + '<div class="cat-name">' + esc(cat) + '</div>'
+                        + '<div class="cat-track"><div class="cat-bar" style="width:' + pct + '%;background:' + color + '"></div></div>'
+                        + '<div class="cat-count">' + count + '</div></div>';
+                }).join('');
+            }
+        } catch (e) { console.error('Failed to load category stats', e); }
+
+        try {
+            const res = await fetch(API + '/api/admin/document/status/INDEXED');
+            const docs = await res.json();
+            const tbody = document.getElementById('recent-docs');
+            if (!docs.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无文档</td></tr>'; return; }
+            tbody.innerHTML = docs.slice(0, 10).map(d => '<tr>'
+                + '<td>' + esc(d.fileName) + '</td>'
+                + '<td><span class="badge badge-' + statusBadge(d.status) + '">' + d.status + '</span></td>'
+                + '<td>' + esc(d.ownerId) + '</td>'
+                + '<td>' + KR.fmtDateTime(d.createdTime) + '</td></tr>').join('');
+        } catch (e) { console.error('Failed to load docs', e); }
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>

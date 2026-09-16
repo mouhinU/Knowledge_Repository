@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>AI 写作 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>AI 写作</h2>
+            <p>AI 从知识库检索相关内容并生成文章</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-panel="generate">内容生成</div>
+            <div class="tab" data-panel="history">写作历史</div>
+        </div>
+
+        <!-- Panel: 生成 -->
+        <div class="tab-panel active" id="panel-generate">
+            <div class="card">
+                <div class="card-title">写作输入</div>
+                <div class="writing-input-area">
+                    <textarea class="form-input" id="writing-question"
+                              placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
+                    <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()"
+                            style="align-self:flex-end;height:42px;white-space:nowrap">生成文章
+                    </button>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                    <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                    <input class="form-input" id="writing-user" style="width:160px" value="user-admin">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
+                        <input checked id="writing-admin" type="checkbox"> 管理员模式
+                    </label>
+                    <div style="flex:1"></div>
+                    <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                    <select class="form-input" id="writing-category" style="width:120px">
+                        <option value="">全部分类</option>
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="休闲">休闲</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="writing-progress" id="writing-progress">
+                <div class="flow-container" id="writing-flow">
+                    <div class="flow-terminal start" id="flow-start">开始</div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-research">
+                        <span class="flow-dot">1</span>
+                        <span class="flow-label">知识检索</span>
+                        <span class="flow-time" id="flow-time-research"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-writing">
+                        <span class="flow-dot">2</span>
+                        <span class="flow-label">文章撰写</span>
+                        <span class="flow-time" id="flow-time-writing"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-node" id="flow-review">
+                        <span class="flow-dot">3</span>
+                        <span class="flow-label">质量审核</span>
+                        <span class="flow-time" id="flow-time-review"></span>
+                    </div>
+                    <div class="flow-connector"></div>
+                    <div class="flow-terminal end" id="flow-complete">完成</div>
+                </div>
+
+                <div class="agent-panel" id="panel-researcher">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                        <span class="agent-status pending" id="status-researcher">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-researcher" open>
+                            <summary>输入物料</summary>
+                            <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
+                        </details>
+                        <div class="agent-output-label">研究发现</div>
+                        <pre id="output-researcher">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="panel-writer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
+                        <span class="agent-status pending" id="status-writer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-writer" open>
+                            <summary>输入物料</summary>
+                            <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
+                        </details>
+                        <div class="agent-output-label">文章草稿</div>
+                        <pre id="output-writer">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="panel-reviewer">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                        <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                        <span class="agent-status pending" id="status-reviewer">等待中</span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials" id="materials-reviewer" open>
+                            <summary>输入物料</summary>
+                            <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
+                        </details>
+                        <div class="agent-output-label">审核结果</div>
+                        <pre id="output-reviewer">等待执行...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="writing-error" id="writing-error"></div>
+
+            <div class="article-result" id="article-result">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <div class="card-title" style="margin:0">生成结果</div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程</button>
+                            <button class="btn btn-primary btn-sm" onclick="copyArticle()">复制文章</button>
+                        </div>
+                    </div>
+                    <div class="article-meta" id="article-meta"></div>
+                    <div class="article-content" id="article-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: 历史 -->
+        <div class="tab-panel" id="panel-history">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title" style="margin:0">写作历史</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadWritingHistory()">刷新</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th style="width:45%">问题</th>
+                            <th>状态</th>
+                            <th>评分</th>
+                            <th>时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="writing-history-list">
+                        <tr><td class="loading" colspan="5">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 节点详情弹窗 -->
+<div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()">
+    <div class="node-modal">
+        <div class="node-modal-header">
+            <div class="node-modal-title">
+                <span id="node-modal-name"></span>
+                <span class="node-modal-badge pending" id="node-modal-badge"></span>
+            </div>
+            <button class="node-modal-close" onclick="closeNodeModal()">✕</button>
+        </div>
+        <div class="node-modal-body">
+            <div class="node-time-row">
+                <div class="node-time-card">
+                    <div class="node-time-label">开始时间</div>
+                    <div class="node-time-value" id="node-modal-start">-</div>
+                </div>
+                <div class="node-time-card">
+                    <div class="node-time-label">结束时间</div>
+                    <div class="node-time-value" id="node-modal-end">-</div>
+                </div>
+                <div class="node-time-card">
+                    <div class="node-time-label">耗时</div>
+                    <div class="node-time-value" id="node-modal-elapsed">-</div>
+                </div>
+            </div>
+            <div class="node-detail-section">
+                <div class="node-detail-title input">输入物料</div>
+                <div class="node-detail-content" id="node-modal-input">等待数据...</div>
+            </div>
+            <div class="node-detail-section">
+                <div class="node-detail-title thinking">思考与分析</div>
+                <div class="node-detail-content" id="node-modal-thinking">等待数据...</div>
+            </div>
+            <div class="node-detail-section">
+                <div class="node-detail-title output">输出结果</div>
+                <div class="node-detail-content" id="node-modal-output">等待数据...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 历史详情弹窗 -->
+<div class="history-modal-overlay" id="history-modal-overlay" onclick="if(event.target===this)closeHistoryModal()">
+    <div class="history-modal">
+        <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
+        <div id="history-detail-content"></div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('ai-writing');
+
+    /* ---------- 节点详情 ---------- */
+    const _nodeDetails = {};
+    const _nodeLabels = { research: '知识检索', writing: '文章撰写', review: '质量审核' };
+
+    function storeNodeDetail(nodeKey, field, value) {
+        if (!_nodeDetails[nodeKey]) _nodeDetails[nodeKey] = {};
+        _nodeDetails[nodeKey][field] = value;
+    }
+    function showNodeModal(nodeKey) {
+        const d = _nodeDetails[nodeKey] || {};
+        document.getElementById('node-modal-name').textContent = _nodeLabels[nodeKey] || nodeKey;
+        const badge = document.getElementById('node-modal-badge');
+        if (d.endTime) { badge.textContent = '已完成'; badge.className = 'node-modal-badge done'; }
+        else if (d.startTime) { badge.textContent = '执行中'; badge.className = 'node-modal-badge running'; }
+        else { badge.textContent = '等待中'; badge.className = 'node-modal-badge pending'; }
+        document.getElementById('node-modal-start').textContent = KR.formatTime(d.startTime);
+        document.getElementById('node-modal-end').textContent = d.endTime ? KR.formatTime(d.endTime) : '-';
+        document.getElementById('node-modal-elapsed').textContent = d.startTime ? KR.formatElapsed((d.endTime || Date.now()) - d.startTime) : '-';
+        document.getElementById('node-modal-input').textContent = d.materials || '暂无数据';
+        document.getElementById('node-modal-thinking').textContent = d.message || '暂无数据';
+        document.getElementById('node-modal-output').textContent = d.output || '暂无数据';
+        document.getElementById('node-modal-overlay').classList.add('active');
+    }
+    function closeNodeModal() { document.getElementById('node-modal-overlay').classList.remove('active'); }
+    function bindNodeClick(elementId, nodeKey) {
+        const el = document.getElementById(elementId);
+        if (el) el.addEventListener('click', () => showNodeModal(nodeKey));
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNodeModal(); });
+
+    /* ---------- 流水线计时 ---------- */
+    let _writingThinkingVisible = false;
+    let _writingAgentTimes = {};
+    let _writingTimerInterval = null;
+    let _writingActiveTimers = new Set();
+    const _writingAgentNodeMap = { researcher: 'research', writer: 'writing', reviewer: 'review' };
+
+    function startWritingLiveTimer(agent) {
+        _writingActiveTimers.add(agent);
+        if (!_writingTimerInterval) {
+            _writingTimerInterval = setInterval(() => {
+                _writingActiveTimers.forEach(a => {
+                    const node = _writingAgentNodeMap[a];
+                    if (node && _writingAgentTimes[a]) {
+                        const tEl = document.getElementById('flow-time-' + node);
+                        if (tEl) tEl.textContent = KR.formatElapsed(Date.now() - _writingAgentTimes[a]);
+                    }
+                });
+            }, 200);
+        }
+    }
+    function stopWritingTimer(agent) {
+        _writingActiveTimers.delete(agent);
+        if (_writingActiveTimers.size === 0 && _writingTimerInterval) {
+            clearInterval(_writingTimerInterval);
+            _writingTimerInterval = null;
+        }
+    }
+
+    function resetWritingUI() {
+        document.getElementById('writing-progress').classList.add('active');
+        document.getElementById('article-result').classList.remove('active');
+        document.getElementById('writing-error').classList.remove('active');
+        document.getElementById('flow-start').classList.add('done');
+        ['research', 'writing', 'review'].forEach(n => {
+            const el = document.getElementById('flow-' + n);
+            if (el) el.classList.remove('active', 'done');
+        });
+        document.getElementById('flow-complete').classList.remove('done');
+        _writingActiveTimers.clear();
+        if (_writingTimerInterval) { clearInterval(_writingTimerInterval); _writingTimerInterval = null; }
+        _writingAgentTimes = {};
+        Object.keys(_nodeDetails).forEach(k => delete _nodeDetails[k]);
+        ['research', 'writing', 'review'].forEach(n => {
+            const t = document.getElementById('flow-time-' + n);
+            if (t) t.textContent = '';
+        });
+        ['researcher', 'writer', 'reviewer'].forEach(a => {
+            const s = document.getElementById('status-' + a);
+            s.className = 'agent-status pending'; s.textContent = '等待中';
+            document.getElementById('output-' + a).textContent = '等待执行...';
+        });
+        document.getElementById('materials-content-researcher').textContent = '等待检索...';
+        document.getElementById('materials-content-writer').textContent = '等待研究员完成...';
+        document.getElementById('materials-content-reviewer').textContent = '等待写手完成...';
+        document.querySelectorAll('.agent-panel').forEach(p => p.classList.remove('open'));
+    }
+
+    function setPhase(phase) {
+        const order = ['research', 'writing', 'review'];
+        const completeEl = document.getElementById('flow-complete');
+        if (phase === 'complete') {
+            order.forEach(n => {
+                const el = document.getElementById('flow-' + n);
+                if (el) { el.classList.remove('active'); el.classList.add('done'); }
+            });
+            if (completeEl) completeEl.classList.add('done');
+            return;
+        }
+        const idx = order.indexOf(phase);
+        order.forEach((n, i) => {
+            const el = document.getElementById('flow-' + n);
+            if (!el) return;
+            el.classList.remove('active', 'done');
+            if (i < idx) el.classList.add('done');
+            else if (i === idx) el.classList.add('active');
+        });
+        if (completeEl) completeEl.classList.remove('done');
+    }
+
+    function setAgentStatus(agent, status, text) {
+        const el = document.getElementById('status-' + agent);
+        el.className = 'agent-status ' + status;
+        el.textContent = text || ({ pending: '等待中', running: '执行中...', done: '已完成' }[status]);
+    }
+
+    async function generateArticle() {
+        const question = document.getElementById('writing-question').value.trim();
+        if (!question) { toast('请输入问题或主题', 'error'); return; }
+
+        const btn = document.getElementById('writing-generate-btn');
+        btn.disabled = true;
+        btn.textContent = '连接中...';
+        resetWritingUI();
+
+        const sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
+        const eventSource = new EventSource(API + '/api/agent/article/progress/' + sessionId);
+        let sseReady = false;
+        eventSource.onopen = () => { sseReady = true; };
+
+        eventSource.addEventListener('PHASE', (e) => {
+            const data = JSON.parse(e.data);
+            const phaseMap = { 'INIT': 'research', 'RESEARCH': 'research', 'WRITING': 'writing', 'REVIEWING': 'review', 'COMPLETED': 'complete' };
+            setPhase(phaseMap[data.phase] || 'research');
+        });
+
+        eventSource.addEventListener('AGENT_OUTPUT', (e) => {
+            const data = JSON.parse(e.data);
+            const agent = data.agentName;
+            if (!agent) return;
+            if (data.agentStatus === 'running') {
+                _writingAgentTimes[agent] = Date.now();
+                startWritingLiveTimer(agent);
+                setAgentStatus(agent, 'running');
+                const wNode = _writingAgentNodeMap[agent];
+                if (wNode) {
+                    const flowEl = document.getElementById('flow-' + wNode);
+                    if (flowEl) { flowEl.classList.remove('done'); flowEl.classList.add('active'); }
+                    storeNodeDetail(wNode, 'startTime', Date.now());
+                    if (data.materials) storeNodeDetail(wNode, 'materials', data.materials);
+                    if (data.message) storeNodeDetail(wNode, 'message', data.message);
+                }
+                document.getElementById('panel-' + agent).classList.add('open');
+                _writingThinkingVisible = true;
+                if (data.message) document.getElementById('output-' + agent).textContent = data.message;
+                if (data.materials) {
+                    const mEl = document.getElementById('materials-content-' + agent);
+                    if (mEl) mEl.textContent = data.materials;
+                    const mDetails = document.getElementById('materials-' + agent);
+                    if (mDetails) mDetails.open = true;
+                }
+            } else if (data.agentStatus === 'done') {
+                setAgentStatus(agent, 'done');
+                if (data.output) document.getElementById('output-' + agent).textContent = data.output;
+                stopWritingTimer(agent);
+                const wNode = _writingAgentNodeMap[agent];
+                if (wNode) {
+                    const flowEl = document.getElementById('flow-' + wNode);
+                    if (flowEl) { flowEl.classList.remove('active'); flowEl.classList.add('done'); }
+                    if (_writingAgentTimes[agent]) {
+                        const tEl = document.getElementById('flow-time-' + wNode);
+                        if (tEl) tEl.textContent = KR.formatElapsed(Date.now() - _writingAgentTimes[agent]);
+                    }
+                    storeNodeDetail(wNode, 'endTime', Date.now());
+                    if (data.output) storeNodeDetail(wNode, 'output', data.output);
+                }
+            }
+        });
+
+        eventSource.addEventListener('COMPLETED', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            setPhase('complete');
+            loadWritingHistory();
+            if (data.finalArticle) {
+                const metaHtml = [];
+                if (data.qualityScore) {
+                    const score = data.qualityScore;
+                    const qClass = score >= 80 ? 'quality-high' : score >= 60 ? 'quality-mid' : 'quality-low';
+                    metaHtml.push('<span>质量评分: <span class="quality-badge ' + qClass + '">' + score + '</span></span>');
+                }
+                if (data.retrievedChunks) metaHtml.push('<span>检索分块: ' + data.retrievedChunks + '</span>');
+                metaHtml.push('<span>会话: ' + esc(sessionId).substring(0, 8) + '...</span>');
+                document.getElementById('article-meta').innerHTML = metaHtml.join('');
+                document.getElementById('article-content').innerHTML = renderMarkdown(data.finalArticle);
+                document.getElementById('article-result').classList.add('active');
+            } else {
+                document.getElementById('writing-error').textContent = '未生成文章内容，请检查知识库中是否有相关资料。';
+                document.getElementById('writing-error').classList.add('active');
+            }
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        });
+
+        eventSource.addEventListener('ERROR', (e) => {
+            const data = JSON.parse(e.data);
+            eventSource.close();
+            setPhase('complete');
+            ['researcher', 'writer', 'reviewer'].forEach(a => {
+                const el = document.getElementById('status-' + a);
+                if (el.textContent === '执行中...') { el.className = 'agent-status pending'; el.textContent = '已跳过'; }
+            });
+            document.getElementById('writing-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
+            document.getElementById('writing-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        });
+
+        eventSource.onerror = () => {
+            const completePhase = document.getElementById('flow-complete');
+            if (!completePhase.classList.contains('done')) {
+                eventSource.close();
+                document.getElementById('writing-error').textContent = '进度连接中断，请刷新页面重试。';
+                document.getElementById('writing-error').classList.add('active');
+                btn.disabled = false;
+                btn.textContent = '生成文章';
+            }
+        };
+
+        const waitForSse = () => new Promise((resolve) => {
+            if (sseReady) { resolve(); return; }
+            const check = () => { if (sseReady) resolve(); else setTimeout(check, 50); };
+            check();
+            setTimeout(resolve, 3000);
+        });
+
+        try {
+            btn.textContent = '生成中...';
+            await waitForSse();
+            const body = {
+                sessionId: sessionId,
+                question: question,
+                userId: document.getElementById('writing-user').value,
+                departmentId: 'dept-root',
+                roles: 'ADMIN',
+                admin: document.getElementById('writing-admin').checked,
+                category: document.getElementById('writing-category').value || null
+            };
+            const res = await fetch(API + '/api/agent/article/generate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.errorMessage || '启动生成失败');
+            }
+        } catch (e) {
+            eventSource.close();
+            document.getElementById('writing-error').textContent = '启动失败: ' + e.message;
+            document.getElementById('writing-error').classList.add('active');
+            btn.disabled = false;
+            btn.textContent = '生成文章';
+        }
+    }
+
+    function toggleThinkingPanels() {
+        _writingThinkingVisible = !_writingThinkingVisible;
+        document.querySelectorAll('.agent-panel').forEach(p => p.classList.toggle('open', _writingThinkingVisible));
+    }
+
+    function copyArticle() {
+        const content = document.getElementById('article-content');
+        if (!content) return;
+        navigator.clipboard.writeText(content.innerText).then(() => toast('文章已复制到剪贴板', 'success'));
+    }
+
+    async function loadWritingHistory() {
+        const tbody = document.getElementById('writing-history-list');
+        try {
+            const res = await fetch(API + '/api/agent/article/history?limit=50');
+            const list = await res.json();
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无写作记录</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(h => {
+                const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+                const score = h.qualityScore != null ? h.qualityScore : '-';
+                const time = KR.fmtDateTime(h.createTime);
+                const q = h.question && h.question.length > 60 ? h.question.substring(0, 60) + '...' : (h.question || '-');
+                return '<tr>'
+                    + '<td title="' + esc(h.question || '') + '">' + esc(q) + '</td>'
+                    + '<td>' + statusLabel + '</td>'
+                    + '<td>' + score + '</td>'
+                    + '<td style="white-space:nowrap">' + time + '</td>'
+                    + '<td><button class="btn btn-outline btn-sm" onclick="showHistoryDetail(\'' + esc(h.sessionId) + '\')">查看</button></td>'
+                    + '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('加载写作历史失败', e);
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">加载失败</td></tr>';
+        }
+    }
+
+    async function showHistoryDetail(sessionId) {
+        const container = document.getElementById('history-detail-content');
+        container.innerHTML = '<p class="loading">加载中...</p>';
+        document.getElementById('history-modal-overlay').classList.add('active');
+        try {
+            const res = await fetch(API + '/api/agent/article/history/' + encodeURIComponent(sessionId));
+            if (!res.ok) throw new Error('加载失败');
+            const h = await res.json();
+            const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+            const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 19) : '-';
+            let html = '<div style="margin-bottom:20px">'
+                + '<h3 style="margin:0 0 12px;font-size:18px">写作详情</h3>'
+                + '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-light)">'
+                + '<span>状态: ' + statusLabel + '</span>'
+                + '<span>评分: ' + (h.qualityScore != null ? h.qualityScore : '-') + '</span>'
+                + '<span>检索分块: ' + (h.retrievedChunks != null ? h.retrievedChunks : '-') + '</span>'
+                + '<span>时间: ' + time + '</span></div></div>';
+            html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px">问题</div>'
+                + '<div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px">' + esc(h.question || '-') + '</div></div>';
+            if (h.keyFindings) html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px">关键发现</div>'
+                + '<div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap">' + esc(h.keyFindings) + '</div></div>';
+            if (h.finalArticle) html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px">最终文章</div>'
+                + '<div class="article-content" style="font-size:14px">' + renderMarkdown(h.finalArticle) + '</div></div>';
+            else if (h.errorMessage) html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px;color:#dc2626">错误信息</div>'
+                + '<div style="background:#fef2f2;padding:12px;border-radius:6px;border:1px solid #fecaca;color:#dc2626;font-size:14px">' + esc(h.errorMessage) + '</div></div>';
+            if (h.draftArticle) html += '<details style="margin-bottom:16px"><summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">查看草稿（审核前）</summary>'
+                + '<div class="article-content" style="margin-top:8px;font-size:13px;opacity:0.85">' + renderMarkdown(h.draftArticle) + '</div></details>';
+            if (h.reviewFeedback) html += '<details style="margin-bottom:16px"><summary style="cursor:pointer;font-weight:500;font-size:14px;color:var(--text-light)">查看审核反馈</summary>'
+                + '<div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px;white-space:pre-wrap;margin-top:8px">' + esc(h.reviewFeedback) + '</div></details>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#dc2626">加载详情失败: ' + esc(e.message) + '</p>';
+        }
+    }
+    function closeHistoryModal() { document.getElementById('history-modal-overlay').classList.remove('active'); }
+
+    // 初始化：绑定流水线节点点击 + 加载历史
+    bindNodeClick('flow-research', 'research');
+    bindNodeClick('flow-writing', 'writing');
+    bindNodeClick('flow-review', 'review');
+    loadWritingHistory();
+</script>
+</body>
+</html>

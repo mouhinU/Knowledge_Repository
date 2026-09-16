@@ -56,6 +56,12 @@ public class ExamAnswerDO {
     @TableField("ai_feedback")
     private String aiFeedback;
 
+    @TableField("ai_input")
+    private String aiInput;
+
+    @TableField("ai_raw_output")
+    private String aiRawOutput;
+
     @TableField("review_score")
     private Integer reviewScore;
 

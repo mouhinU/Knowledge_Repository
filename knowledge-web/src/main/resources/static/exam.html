@@ -6,48 +6,84 @@
     <title>在线考试系统</title>
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --primary-light: #e0e7ff;
-            --primary-bg: #f8fafc;
+            /* 品牌主色 —— 对齐管理端 (blue #3b82f6) */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-dark: #2563eb;
+            --primary-light: #eff6ff;
+            --primary-soft: #eff6ff;
+            --primary-ring: rgba(59, 130, 246, .16);
+            --primary-bg: #f1f5f9;
+
+            /* 功能色 —— 对齐管理端 */
             --success: #16a34a;
+            --success-dark: #15803d;
             --success-bg: #dcfce7;
-            --warning: #ea580c;
-            --warning-bg: #fff7ed;
+            --warning: #d97706;
+            --warning-dark: #b45309;
+            --warning-bg: #fef3c7;
             --danger: #dc2626;
-            --danger-bg: #fef2f2;
+            --danger-dark: #b91c1c;
+            --danger-bg: #fee2e2;
+            --info-bg: #dbeafe;
+
+            /* 辅助色 */
             --purple: #7c3aed;
             --purple-bg: #f3e8ff;
             --blue: #2563eb;
             --blue-bg: #dbeafe;
             --green: #16a34a;
             --green-bg: #dcfce7;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
-            --radius: 8px;
-            --radius-lg: 12px;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+            /* 中性色 —— slate 灰阶，对齐管理端 */
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+
+            /* 表面 / 边框 / 文本 别名 */
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --text-light: #64748b;
+
+            /* 圆角 / 阴影 —— 对齐管理端 */
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+            --shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+            --shadow-md: 0 4px 14px rgba(15, 23, 42, .08);
+            --shadow-lg: 0 20px 50px rgba(15, 23, 42, .18);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, "Noto Sans SC", sans-serif;
             background: var(--primary-bg);
             color: var(--gray-800);
+            font-size: 15px;
             line-height: 1.6;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+
+        /* 滚动条 —— 对齐管理端 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+        ::-webkit-scrollbar-track { background: transparent; }
 
         /* ===== Timer states ===== */
         .timer-warning {
@@ -173,13 +209,13 @@
             border: 1px solid var(--gray-300);
             border-radius: var(--radius);
             font-size: 14px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
             outline: none;
         }
 
         .form-group input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         .btn {
@@ -188,19 +224,22 @@
             justify-content: center;
             padding: 10px 20px;
             border: none;
-            border-radius: var(--radius);
+            border-radius: var(--radius-sm);
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.18s;
             text-decoration: none;
             gap: 6px;
         }
+
+        .btn:active { transform: translateY(1px); }
 
         .btn-primary {
             background: var(--primary);
             color: #fff;
             width: 100%;
+            box-shadow: 0 1px 2px rgba(37, 99, 235, .3);
         }
 
         .btn-primary:hover { background: var(--primary-hover); }
@@ -217,21 +256,21 @@
             color: #fff;
         }
 
-        .btn-success:hover { background: #15803d; }
+        .btn-success:hover { background: var(--success-dark); }
 
         .btn-warning {
             background: var(--warning);
             color: #fff;
         }
 
-        .btn-warning:hover { background: #c2410c; }
+        .btn-warning:hover { background: var(--warning-dark); }
 
         .btn-danger {
             background: var(--danger);
             color: #fff;
         }
 
-        .btn-danger:hover { background: #b91c1c; }
+        .btn-danger:hover { background: var(--danger-dark); }
 
         .btn-outline {
             background: transparent;
@@ -285,6 +324,18 @@
             font-size: 18px;
             font-weight: 700;
             color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .app-header .logo::before {
+            content: '';
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, .35);
         }
 
         .app-header .user-info {
@@ -433,8 +484,8 @@
 
         .wb-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 13px; }
         .wb-option { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-200); font-size: 12px; }
-        .wb-option.correct { background: var(--green-bg); border-color: #4caf50; color: #2e7d32; font-weight: 600; }
-        .wb-option.wrong { background: var(--danger-bg); border-color: #f44336; color: #c62828; font-weight: 600; }
+        .wb-option.correct { background: var(--green-bg); border-color: #22c55e; color: #15803d; font-weight: 600; }
+        .wb-option.wrong { background: var(--danger-bg); border-color: #ef4444; color: #b91c1c; font-weight: 600; }
 
         .wb-answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
         .wb-answer { padding: 10px; border-radius: 8px; font-size: 13px; }
@@ -444,7 +495,7 @@
         .wb-answer.mine .wb-answer-label { color: var(--warning); }
         .wb-answer.right .wb-answer-label { color: var(--green); }
         .wb-feedback { background: var(--gray-50); border-radius: 8px; padding: 10px; font-size: 13px; color: var(--gray-600); margin-bottom: 8px; }
-        .wb-explain { background: #f0f7ff; border: 1px solid #d6e9ff; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+        .wb-explain { background: var(--primary-soft); border: 1px solid var(--info-bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
         .wb-explain > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary); user-select: none; }
         .wb-explain-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin: 8px 0 2px; }
         .wb-explain-body { font-size: 13px; color: var(--gray-700, #374151); line-height: 1.6; }

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>文档管理 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>文档管理</h2>
+            <p>上传、查看和管理知识库文档</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-panel="upload">上传文档</div>
+            <div class="tab" data-panel="list">文档列表<span class="tab-count" id="doc-tab-count">0</span></div>
+        </div>
+
+        <!-- Tab: 上传 -->
+        <div class="tab-panel active" id="panel-upload">
+            <div class="card">
+                <div class="card-title">批量上传</div>
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <p>点击选择文件或拖拽到此处上传</p>
+                    <p class="hint-box" style="text-align:center">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML / RTF，单文件 ≤ 200MB</p>
+                </div>
+                <div class="upload-actions">
+                    <a onclick="pickFiles()">选择文件</a>
+                    <a onclick="pickFolder()">选择目录</a>
+                </div>
+                <input id="file-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file">
+                <input id="dir-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file" webkitdirectory>
+
+                <div id="upload-form" style="display:none;margin-top:16px">
+                    <div class="upload-queue" id="upload-queue"></div>
+                    <div class="upload-summary" id="upload-summary-bar" style="display:none">
+                        <span id="upload-summary-text">共 0 个文件</span>
+                        <span id="upload-summary-size">0 B</span>
+                    </div>
+                    <div class="form-grid" style="margin-top:12px">
+                        <div class="form-group">
+                            <label class="form-label">所有者 ID</label>
+                            <input class="form-input" id="upload-owner" value="user-admin">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">部门 ID</label>
+                            <select class="form-select" id="upload-dept"></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">可见性</label>
+                            <select class="form-select" id="upload-visibility">
+                                <option value="INTERNAL">内部（同部门可见）</option>
+                                <option value="PUBLIC">公开</option>
+                                <option value="RESTRICTED">受限（指定角色）</option>
+                                <option value="PRIVATE">私有</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">允许角色（逗号分隔）</label>
+                            <input class="form-input" id="upload-roles" placeholder="ADMIN,MANAGER">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">标签</label>
+                            <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">文档分类</label>
+                            <select class="form-select" id="upload-category">
+                                <option value="工作">工作</option>
+                                <option value="学习">学习</option>
+                                <option value="休闲">休闲</option>
+                                <option selected value="其他">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传</button>
+                        <button class="btn btn-outline" onclick="cancelUpload()">清空</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: 列表 -->
+        <div class="tab-panel" id="panel-list">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title" style="margin:0">文档列表</div>
+                    <select class="form-select" id="doc-filter-status" onchange="loadDocuments()" style="width:160px">
+                        <option value="">全部状态</option>
+                        <option value="UPLOADED">待入库</option>
+                        <option value="INDEXED">已索引</option>
+                        <option value="PROCESSING">处理中</option>
+                        <option value="FAILED">失败</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr><th>文件名</th><th>状态</th><th>页数</th><th>可见性</th><th style="width:220px">操作</th></tr>
+                        </thead>
+                        <tbody id="doc-list">
+                        <tr><td class="loading" colspan="5">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview / Index Modal -->
+<div class="modal-overlay" id="preview-modal-overlay">
+    <div class="modal modal-wide">
+        <div class="modal-header">
+            <h3 id="pv-modal-title">解析预览</h3>
+            <button class="modal-close" onclick="closePreviewModal()">×</button>
+        </div>
+        <div class="pv-config-row">
+            <div class="pv-field">
+                <label>切分策略</label>
+                <select id="pv-strategy" onchange="triggerAutoPreview()">
+                    <option value="FIXED_SIZE">固定大小</option>
+                    <option value="RECURSIVE">递归切分</option>
+                    <option value="SENTENCE">按句子</option>
+                    <option value="PAGE">按页面</option>
+                    <option value="PARAGRAPH">按段落</option>
+                </select>
+            </div>
+            <div class="pv-field pv-slider-field">
+                <label>分块大小</label>
+                <div class="pv-slider-row">
+                    <input id="pv-chunk-size" max="2000" min="200" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="50" type="range" value="500">
+                    <span class="pv-slider-val">500</span>
+                </div>
+            </div>
+            <div class="pv-field pv-slider-field">
+                <label>重叠大小</label>
+                <div class="pv-slider-row">
+                    <input id="pv-overlap" max="200" min="20" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="10" type="range" value="50">
+                    <span class="pv-slider-val">50</span>
+                </div>
+            </div>
+            <div class="pv-actions">
+                <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
+                <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">确认入库</button>
+            </div>
+        </div>
+        <div id="pv-index-progress" style="display:none;margin-bottom:12px;padding:10px 16px;background:var(--primary-soft);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span id="pv-index-label" style="font-size:13px;font-weight:600;color:var(--primary)">入库中...</span>
+                <span id="pv-index-percent" style="font-size:13px;font-weight:600;color:var(--primary)">0%</span>
+            </div>
+            <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden">
+                <div id="pv-index-bar" style="background:var(--primary);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
+            </div>
+            <div id="pv-index-detail" style="font-size:11px;color:var(--text-light);margin-top:4px">准备中...</div>
+        </div>
+        <div id="pv-modal-warn"></div>
+        <div class="preview-info-bar" id="pv-modal-summary"></div>
+        <div class="tabs" data-manual>
+            <div class="tab active" data-panel="pv-pages" onclick="switchModalTab('pv-pages')">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
+            <div class="tab" data-panel="pv-chunks" onclick="switchModalTab('pv-chunks')">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
+        </div>
+        <div class="tab-panel active" id="panel-pv-pages">
+            <div class="pv-toolbar">
+                <button class="btn-xs" onclick="pvToggleAllModal('pages',true)">全部展开</button>
+                <button class="btn-xs" onclick="pvToggleAllModal('pages',false)">全部折叠</button>
+            </div>
+            <div id="pv-modal-pages"></div>
+        </div>
+        <div class="tab-panel" id="panel-pv-chunks">
+            <div class="pv-toolbar">
+                <button class="btn-xs" onclick="pvToggleAllModal('chunks',true)">全部展开</button>
+                <button class="btn-xs" onclick="pvToggleAllModal('chunks',false)">全部折叠</button>
+                <span class="spacer" id="pv-m-chunk-stats" style="font-size:11px;color:var(--text-light)"></span>
+            </div>
+            <div id="pv-modal-chunks"></div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    KR.initLayout('documents');
+
+    let selectedFile = null;
+    let uploadQueue = [];
+    let isUploading = false;
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+    const SUPPORTED_EXTS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.html', '.rtf'];
+
+    function pickFiles() { const i = document.getElementById('file-input'); i.value = ''; i.click(); }
+    function pickFolder() { const i = document.getElementById('dir-input'); i.value = ''; i.click(); }
+    function isSupportedFile(file) { const name = file.name.toLowerCase(); return SUPPORTED_EXTS.some(ext => name.endsWith(ext)); }
+    function getFileIcon(name) {
+        const ext = name.split('.').pop().toLowerCase();
+        const icons = { pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙', txt: '📄', csv: '📊', html: '🌐', rtf: '📝' };
+        return icons[ext] || '📄';
+    }
+
+    function handleFileSelect(input) {
+        if (input.files.length === 0) { toast('未选择到文件，请重新选择', 'error'); return; }
+        const files = Array.from(input.files);
+        const supported = files.filter(isSupportedFile);
+        const skipped = files.length - supported.length;
+        if (skipped > 0) toast('已跳过 ' + skipped + ' 个不支持的文件格式', 'error');
+        if (supported.length === 0) return;
+        enqueueFiles(supported);
+    }
+
+    function enqueueFiles(supported) {
+        const existingKeys = new Set(uploadQueue.map(q => q.file.name + ':' + q.file.size));
+        supported.forEach(f => {
+            const key = f.name + ':' + f.size;
+            if (!existingKeys.has(key)) {
+                uploadQueue.push({ file: f, id: generateId(), status: 'waiting', progress: 0, uploadId: null, totalChunks: 0, uploadedChunks: new Set() });
+                existingKeys.add(key);
+            }
+        });
+        document.getElementById('upload-form').style.display = 'block';
+        renderUploadQueue();
+        loadDeptOptions();
+    }
+
+    function renderUploadQueue() {
+        const container = document.getElementById('upload-queue');
+        if (uploadQueue.length === 0) {
+            container.innerHTML = '';
+            document.getElementById('upload-summary-bar').style.display = 'none';
+            return;
+        }
+        container.innerHTML = uploadQueue.map(item => {
+            const statusLabels = {
+                waiting: '<span class="uq-status waiting">等待中</span>',
+                uploading: '<span class="uq-status uploading">' + item.progress + '%</span>',
+                done: '<span class="uq-status done">完成</span>',
+                error: '<span class="uq-status error">失败</span>',
+                resuming: '<span class="uq-status resuming">续传中</span>'
+            };
+            const barClass = item.status === 'done' ? 'done' : item.status === 'error' ? 'error' : '';
+            const removable = !isUploading && (item.status === 'waiting' || item.status === 'error');
+            return '<div class="upload-queue-item" data-id="' + item.id + '">'
+                + '<span class="uq-icon">' + getFileIcon(item.file.name) + '</span>'
+                + '<div class="uq-info">'
+                + '<div class="uq-name" title="' + esc(item.file.name) + '">' + esc(item.file.name) + '</div>'
+                + '<div class="uq-meta">' + formatSize(item.file.size) + ' · ' + Math.ceil(item.file.size / CHUNK_SIZE) + ' 分片</div>'
+                + '<div class="uq-progress-wrap"><div class="uq-progress-bar ' + barClass + '" style="width:' + item.progress + '%"></div></div>'
+                + '</div>'
+                + (statusLabels[item.status] || '')
+                + (removable ? '<span class="uq-remove" onclick="removeFromQueue(\'' + item.id + '\')" title="移除">✕</span>' : '')
+                + '</div>';
+        }).join('');
+        const totalFiles = uploadQueue.length;
+        const totalSize = uploadQueue.reduce((s, q) => s + q.file.size, 0);
+        const doneCount = uploadQueue.filter(q => q.status === 'done').length;
+        document.getElementById('upload-summary-bar').style.display = 'flex';
+        document.getElementById('upload-summary-text').textContent = isUploading ? ('上传中 ' + doneCount + '/' + totalFiles) : ('共 ' + totalFiles + ' 个文件');
+        document.getElementById('upload-summary-size').textContent = formatSize(totalSize);
+    }
+
+    function updateQueueItem(id, updates) { const item = uploadQueue.find(q => q.id === id); if (item) { Object.assign(item, updates); renderUploadQueue(); } }
+
+    function removeFromQueue(id) {
+        uploadQueue = uploadQueue.filter(q => q.id !== id);
+        renderUploadQueue();
+        if (uploadQueue.length === 0) document.getElementById('upload-form').style.display = 'none';
+    }
+
+    async function loadDeptOptions() {
+        try {
+            const res = await fetch(API + '/api/admin/department');
+            const depts = await res.json();
+            const sel = document.getElementById('upload-dept');
+            sel.innerHTML = depts.map(d => '<option value="' + esc(d.departmentKey) + '">' + esc(d.departmentName) + '</option>').join('');
+        } catch (e) { console.error(e); }
+    }
+
+    async function startBatchUpload() {
+        if (isUploading) return;
+        // 恢复中断的行（上一批次异常遗留的 uploading/resuming）为可上传状态
+        uploadQueue.forEach(q => { if (q.status === 'uploading' || q.status === 'resuming') { q.status = 'waiting'; q.progress = 0; } });
+        const pending = uploadQueue.filter(q => q.status === 'waiting' || q.status === 'error');
+        if (pending.length === 0) {
+            // 区分「列表为空」与「列表全部已上传完成」，避免有文件却提示没有待上传的误导
+            if (uploadQueue.length === 0) {
+                toast('请先选择要上传的文件', 'error');
+            } else {
+                toast('所有文件已上传完成，如需继续请重新选择文件', 'info');
+            }
+            renderUploadQueue();
+            return;
+        }
+        isUploading = true;
+        const btn = document.getElementById('btn-start-upload');
+        btn.disabled = true; btn.textContent = '上传中...';
+        uploadQueue.forEach(q => { if (q.status === 'error') { q.status = 'waiting'; q.progress = 0; } });
+        renderUploadQueue();
+        for (const item of uploadQueue) { if (item.status === 'done') continue; await uploadOneFile(item); }
+        isUploading = false;
+        btn.disabled = false; btn.textContent = '开始上传';
+        const doneCount = uploadQueue.filter(q => q.status === 'done').length;
+        const errCount = uploadQueue.filter(q => q.status === 'error').length;
+        if (errCount === 0) {
+            toast('全部 ' + doneCount + ' 个文件上传成功', 'success');
+            // 全部成功后自动清理已完成行，避免列表残留造成「有文件却无待上传」的误解
+            uploadQueue = uploadQueue.filter(q => q.status !== 'done');
+            if (uploadQueue.length === 0) {
+                document.getElementById('upload-form').style.display = 'none';
+                document.getElementById('upload-summary-bar').style.display = 'none';
+                document.getElementById('upload-queue').innerHTML = '';
+            }
+        } else {
+            toast(doneCount + ' 个成功，' + errCount + ' 个失败', 'error');
+        }
+        renderUploadQueue();
+        loadDocuments();
+    }
+
+    async function uploadOneFile(item) {
+        const file = item.file;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        try {
+            updateQueueItem(item.id, { status: 'uploading', progress: 0 });
+            const initRes = await fetch(API + '/api/document/upload/init', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName: file.name, fileSize: file.size, totalChunks: totalChunks })
+            });
+            if (!initRes.ok) throw new Error('初始化上传失败');
+            const initData = await initRes.json();
+            const uploadId = initData.uploadId;
+            updateQueueItem(item.id, { uploadId, totalChunks });
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                formData.append('file', chunk, 'chunk_' + i);
+                formData.append('uploadId', uploadId);
+                formData.append('chunkIndex', String(i));
+                const chunkRes = await fetch(API + '/api/document/upload/chunk', { method: 'POST', body: formData });
+                if (!chunkRes.ok) throw new Error('分片 ' + i + ' 上传失败');
+                updateQueueItem(item.id, { progress: Math.round(((i + 1) / totalChunks) * 90) });
+            }
+            updateQueueItem(item.id, { progress: 92 });
+            const completeForm = new FormData();
+            completeForm.append('uploadId', uploadId);
+            completeForm.append('ownerId', document.getElementById('upload-owner').value);
+            completeForm.append('departmentId', document.getElementById('upload-dept').value);
+            completeForm.append('visibility', document.getElementById('upload-visibility').value);
+            completeForm.append('allowedRoles', document.getElementById('upload-roles').value);
+            completeForm.append('tags', document.getElementById('upload-tags').value);
+            completeForm.append('category', document.getElementById('upload-category').value);
+            const completeRes = await fetch(API + '/api/document/upload/complete', { method: 'POST', body: completeForm });
+            if (!completeRes.ok) { const errData = await completeRes.json().catch(() => ({})); throw new Error(errData.errorMessage || '完成上传失败'); }
+            updateQueueItem(item.id, { status: 'done', progress: 100 });
+        } catch (err) {
+            console.error('Upload failed for', file.name, err);
+            updateQueueItem(item.id, { status: 'error' });
+        }
+    }
+
+    async function resumeUpload(id) {
+        const item = uploadQueue.find(q => q.id === id);
+        if (!item || !item.uploadId) return;
+        try {
+            updateQueueItem(id, { status: 'resuming' });
+            const statusRes = await fetch(API + '/api/document/upload/status/' + item.uploadId);
+            if (!statusRes.ok) throw new Error('查询上传状态失败');
+            const statusData = await statusRes.json();
+            const uploadedSet = new Set(statusData.uploadedChunks || []);
+            updateQueueItem(id, { uploadedChunks: uploadedSet });
+            const file = item.file, totalChunks = item.totalChunks;
+            for (let i = 0; i < totalChunks; i++) {
+                if (uploadedSet.has(i)) continue;
+                const start = i * CHUNK_SIZE, end = Math.min(start + CHUNK_SIZE, file.size);
+                const formData = new FormData();
+                formData.append('file', file.slice(start, end), 'chunk_' + i);
+                formData.append('uploadId', item.uploadId);
+                formData.append('chunkIndex', String(i));
+                const chunkRes = await fetch(API + '/api/document/upload/chunk', { method: 'POST', body: formData });
+                if (!chunkRes.ok) throw new Error('分片 ' + i + ' 续传失败');
+                updateQueueItem(id, { progress: Math.round(((i + 1) / totalChunks) * 90) });
+            }
+            const completeForm = new FormData();
+            completeForm.append('uploadId', item.uploadId);
+            completeForm.append('ownerId', document.getElementById('upload-owner').value);
+            completeForm.append('departmentId', document.getElementById('upload-dept').value);
+            completeForm.append('visibility', document.getElementById('upload-visibility').value);
+            completeForm.append('allowedRoles', document.getElementById('upload-roles').value);
+            completeForm.append('tags', document.getElementById('upload-tags').value);
+            completeForm.append('category', document.getElementById('upload-category').value);
+            const completeRes = await fetch(API + '/api/document/upload/complete', { method: 'POST', body: completeForm });
+            if (!completeRes.ok) throw new Error('完成上传失败');
+            updateQueueItem(id, { status: 'done', progress: 100 });
+        } catch (err) { console.error('Resume failed for', item.file.name, err); updateQueueItem(id, { status: 'error' }); }
+    }
+
+    function cancelUpload() {
+        if (isUploading) return;
+        uploadQueue = [];
+        document.getElementById('upload-form').style.display = 'none';
+        document.getElementById('upload-summary-bar').style.display = 'none';
+        document.getElementById('file-input').value = '';
+        document.getElementById('dir-input').value = '';
+    }
+
+    async function loadDocuments() {
+        const statusFilter = document.getElementById('doc-filter-status').value;
+        const url = statusFilter ? '/api/admin/document/status/' + statusFilter : '/api/admin/document/list';
+        try {
+            const res = await fetch(API + url);
+            const docs = await res.json();
+            document.getElementById('doc-tab-count').textContent = docs.length;
+            const tbody = document.getElementById('doc-list');
+            if (!docs.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无文档</td></tr>'; return; }
+            tbody.innerHTML = docs.map(d => {
+                let actions = '';
+                if (d.status === 'UPLOADED') actions = '<button class="btn btn-primary btn-sm" onclick="openPreviewModal(\'' + d.documentKey + '\',\'' + esc(d.fileName) + '\')">解析预览</button> ';
+                else actions = '<button class="btn btn-outline btn-sm" onclick="reindexDoc(\'' + d.documentKey + '\')">重新入库</button> ';
+                actions += '<button class="btn btn-outline btn-sm" onclick="archiveDoc(\'' + d.documentKey + '\')">归档</button> ';
+                actions += '<button class="btn btn-danger btn-sm" onclick="deleteDoc(\'' + d.documentKey + '\')">删除</button>';
+                return '<tr>'
+                    + '<td>' + esc(d.fileName) + '</td>'
+                    + '<td><span class="badge badge-' + statusBadge(d.status) + '">' + (d.status === 'UPLOADED' ? '待入库' : d.status) + '</span></td>'
+                    + '<td>' + (d.totalPages > 0 ? d.totalPages : '-') + '</td>'
+                    + '<td><span class="badge badge-info">' + (d.visibility || '-') + '</span></td>'
+                    + '<td>' + actions + '</td></tr>';
+            }).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    async function reindexDoc(key) {
+        if (!await showConfirm('确认重新入库此文档？将清理旧数据并重新处理。')) return;
+        try {
+            const res = await fetch(API + '/api/admin/document/' + key + '/reindex', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'INDEXED') toast('重新入库成功', 'success');
+            else toast('重新入库完成，状态: ' + data.status, 'warning');
+        } catch (e) { toast('重新入库失败: ' + e.message, 'error'); }
+        loadDocuments();
+    }
+
+    async function archiveDoc(key) {
+        if (!await showConfirm('确认归档此文档？归档后将不再参与检索。')) return;
+        await fetch(API + '/api/admin/document/' + key + '/archive', { method: 'PUT' });
+        toast('文档已归档', 'success');
+        loadDocuments();
+    }
+
+    async function deleteDoc(key) {
+        if (!await showConfirm('确认删除此文档？此操作不可恢复。', { icon: '🗑', confirmText: '删除' })) return;
+        await fetch(API + '/api/admin/document/' + key, { method: 'DELETE' });
+        toast('文档已删除', 'success');
+        loadDocuments();
+    }
+
+    /* ---------- 解析预览弹框 ---------- */
+    let _pvDocKey = null, _pvMaxTokens = 500, _pvChunks = [], _pvChunksModified = false;
+
+    function openPreviewModal(docKey, fileName) {
+        _pvDocKey = docKey;
+        document.getElementById('pv-modal-title').textContent = '解析预览 — ' + fileName;
+        document.getElementById('pv-index-progress').style.display = 'none';
+        document.getElementById('pv-modal-warn').innerHTML = '';
+        document.getElementById('pv-modal-summary').innerHTML = '';
+        document.getElementById('pv-modal-pages').innerHTML = '';
+        document.getElementById('pv-modal-chunks').innerHTML = '';
+        document.getElementById('pv-m-tab-pages').textContent = '0';
+        document.getElementById('pv-m-tab-chunks').textContent = '0';
+        document.getElementById('pv-m-chunk-stats').textContent = '';
+        const cbtn = document.getElementById('pv-confirm-btn');
+        cbtn.style.display = 'none'; cbtn.disabled = false; cbtn.textContent = '确认入库';
+        switchModalTab('pv-pages');
+        document.querySelectorAll('#preview-modal-overlay .tab').forEach(t => t.classList.toggle('active', t.dataset.panel === 'pv-pages'));
+        document.getElementById('preview-modal-overlay').classList.add('active');
+    }
+    function closePreviewModal() {
+        document.getElementById('preview-modal-overlay').classList.remove('active');
+        _pvDocKey = null; _pvChunks = []; _pvChunksModified = false;
+    }
+    function switchModalTab(name) {
+        document.querySelectorAll('#preview-modal-overlay .tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
+        document.querySelectorAll('#preview-modal-overlay .tab-panel').forEach(b => b.classList.toggle('active', b.id === 'panel-' + name));
+    }
+    function pvToggleAllModal(group, expand) {
+        const container = group === 'pages' ? 'pv-modal-pages' : 'pv-modal-chunks';
+        document.querySelectorAll('#' + container + ' .pv-item').forEach(el => el.classList.toggle('open', expand));
+    }
+
+    let _pvAutoPreviewTimer = null;
+    function triggerAutoPreview() {
+        if (!_pvDocKey) return;
+        if (_pvAutoPreviewTimer) clearTimeout(_pvAutoPreviewTimer);
+        _pvAutoPreviewTimer = setTimeout(() => { _pvAutoPreviewTimer = null; doModalPreview(); }, 400);
+    }
+
+    async function doModalPreview() {
+        if (!_pvDocKey) return;
+        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
+        _pvMaxTokens = chunkSize;
+        document.getElementById('pv-modal-summary').innerHTML = '<div class="loading" style="grid-column:1/-1">正在解析...</div>';
+        document.getElementById('pv-modal-pages').innerHTML = '';
+        document.getElementById('pv-modal-chunks').innerHTML = '';
+        try {
+            const url = '/api/admin/document/' + _pvDocKey + '/preview?chunkSize=' + chunkSize + '&overlap=' + overlap + '&strategy=' + strategy;
+            const res = await fetch(API + url);
+            if (!res.ok) { const err = await res.json(); throw new Error(err.errorMessage || '解析失败'); }
+            const data = await res.json();
+            renderModalPreview(data);
+            document.getElementById('pv-confirm-btn').style.display = 'inline-flex';
+        } catch (e) {
+            document.getElementById('pv-modal-summary').innerHTML = '';
+            document.getElementById('pv-modal-warn').innerHTML = '<div class="pv-warn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">解析失败: ' + esc(e.message) + '</div>';
+            toast('解析失败: ' + e.message, 'error');
+        }
+    }
+
+    function renderModalPreview(data) {
+        _pvChunks = data.chunks.map(c => ({ chunkIndex: c.chunkIndex, startPage: c.startPage, endPage: c.endPage, tokenCount: c.tokenCount, charCount: c.charCount, preview: c.preview, content: c.content }));
+        _pvChunksModified = false;
+        document.getElementById('pv-modal-warn').innerHTML = data.likelyScanned ? '<div class="pv-warn">⚠ 疑似扫描件 PDF，文本提取可能不完整</div>' : '';
+        document.getElementById('pv-modal-summary').innerHTML =
+            '<div class="info-item"><div class="info-label">文件名</div><div class="info-value">' + esc(data.fileName) + '</div></div>'
+            + '<div class="info-item"><div class="info-label">格式</div><div class="info-value">' + esc(data.format) + '</div></div>'
+            + '<div class="info-item"><div class="info-label">页数</div><div class="info-value">' + data.totalPages + '</div></div>'
+            + '<div class="info-item"><div class="info-label">提取段落</div><div class="info-value">' + data.extractedSections + '</div></div>'
+            + '<div class="info-item"><div class="info-label">分块数</div><div class="info-value">' + data.totalChunks + '</div></div>'
+            + '<div class="info-item"><div class="info-label">MD5</div><div class="info-value mono">' + esc(data.checksum) + '</div></div>';
+        document.getElementById('pv-m-tab-pages').textContent = data.pages.length;
+        document.getElementById('pv-m-tab-chunks').textContent = data.chunks.length;
+        document.getElementById('pv-modal-pages').innerHTML = data.pages.map(p =>
+            '<div class="pv-item" onclick="this.classList.toggle(\'open\')">'
+            + '<div class="pv-item-header"><span class="pv-idx">第 ' + p.pageNumber + ' 页</span>'
+            + '<div class="pv-meta"><span>' + p.charCount.toLocaleString() + ' 字符</span><span class="pv-toggle">▶</span></div></div>'
+            + '<div class="pv-item-body"><pre>' + esc(p.preview || '(空)') + '</pre></div></div>').join('');
+        renderChunksList();
+    }
+
+    function renderChunksList() {
+        const totalTokens = _pvChunks.reduce((s, c) => s + c.tokenCount, 0);
+        const avgTokens = _pvChunks.length ? Math.round(totalTokens / _pvChunks.length) : 0;
+        document.getElementById('pv-m-chunk-stats').innerHTML = '共 ' + totalTokens.toLocaleString() + ' tokens / 平均 ' + avgTokens + ' tokens/块'
+            + (_pvChunksModified ? ' <span style="color:#f59e0b">(已手动调整)</span>' : '');
+        document.getElementById('pv-m-tab-chunks').textContent = _pvChunks.length;
+        document.getElementById('pv-modal-chunks').innerHTML = _pvChunks.map((c, idx) => {
+            const pct = Math.min(100, Math.round(c.tokenCount / _pvMaxTokens * 100));
+            const barClass = pct < 60 ? 'low' : pct < 90 ? 'mid' : 'high';
+            const isFirst = idx === 0, isLast = idx === _pvChunks.length - 1;
+            const content = c.content || c.preview || '';
+            const paraCount = content.split(/\n\s*\n/).filter(p => p.trim()).length;
+            return '<div class="pv-item chunk-item" data-chunk-idx="' + idx + '">'
+                + '<div class="pv-item-header" onclick="this.parentElement.classList.toggle(\'open\')">'
+                + '<span class="pv-idx">#' + idx + '</span>'
+                + '<div class="pv-meta"><span>页 ' + c.startPage + (c.endPage !== c.startPage ? '-' + c.endPage : '') + '</span>'
+                + '<div class="token-bar-wrap"><div class="token-bar"><div class="token-bar-fill ' + barClass + '" style="width:' + pct + '%"></div></div><span>' + c.tokenCount + ' tok</span></div>'
+                + '<span>' + c.charCount.toLocaleString() + ' 字符</span><span style="color:#6b7280">' + paraCount + ' 段</span><span class="pv-toggle">▶</span></div></div>'
+                + '<div class="pv-item-body"><div class="chunk-toolbar">'
+                + '<button class="chunk-action-btn" title="将末尾段落移到上一分块" ' + (isFirst ? 'disabled' : '') + ' onclick="moveLastParagraphUp(' + idx + ')">↑ 末段上移</button>'
+                + '<button class="chunk-action-btn" title="将首段移到下一分块" ' + (isLast ? 'disabled' : '') + ' onclick="moveFirstParagraphDown(' + idx + ')">↓ 首段下移</button>'
+                + '<button class="chunk-action-btn" title="与下一分块合并" ' + (isLast ? 'disabled' : '') + ' onclick="mergeWithNext(' + idx + ')">⊕ 合并下一块</button>'
+                + '<button class="chunk-action-btn" title="编辑内容" onclick="toggleChunkEdit(' + idx + ')">✎ 编辑</button></div>'
+                + '<div class="chunk-content-display" id="chunk-display-' + idx + '"><pre>' + esc(content) + '</pre></div>'
+                + '<div class="chunk-content-edit" id="chunk-edit-' + idx + '" style="display:none">'
+                + '<textarea class="chunk-editor" id="chunk-editor-' + idx + '" onchange="updateChunkContent(' + idx + ', this.value)">' + esc(content) + '</textarea>'
+                + '<div class="chunk-edit-actions"><button class="chunk-action-btn primary" onclick="saveChunkEdit(' + idx + ')">保存</button>'
+                + '<button class="chunk-action-btn" onclick="cancelChunkEdit(' + idx + ')">取消</button></div></div></div></div>';
+        }).join('');
+    }
+
+    function moveLastParagraphUp(idx) {
+        if (idx <= 0) return;
+        const paragraphs = (_pvChunks[idx].content || '').split(/\n\s*\n/).filter(p => p.trim());
+        if (paragraphs.length <= 1) { toast('该分块只有一个段落，无法移动', 'warning'); return; }
+        const lastPara = paragraphs.pop();
+        const remaining = paragraphs.join('\n\n');
+        _pvChunks[idx - 1].content = (_pvChunks[idx - 1].content || '') + '\n\n' + lastPara;
+        _pvChunks[idx - 1].charCount = _pvChunks[idx - 1].content.length;
+        _pvChunks[idx - 1].tokenCount = estimateTokens(_pvChunks[idx - 1].content);
+        _pvChunks[idx].content = remaining; _pvChunks[idx].charCount = remaining.length; _pvChunks[idx].tokenCount = estimateTokens(remaining);
+        _pvChunksModified = true; renderChunksList(); toast('已将末段移到上一分块', 'success');
+    }
+    function moveFirstParagraphDown(idx) {
+        if (idx >= _pvChunks.length - 1) return;
+        const paragraphs = (_pvChunks[idx].content || '').split(/\n\s*\n/).filter(p => p.trim());
+        if (paragraphs.length <= 1) { toast('该分块只有一个段落，无法移动', 'warning'); return; }
+        const firstPara = paragraphs.shift();
+        const remaining = paragraphs.join('\n\n');
+        _pvChunks[idx + 1].content = firstPara + '\n\n' + (_pvChunks[idx + 1].content || '');
+        _pvChunks[idx + 1].charCount = _pvChunks[idx + 1].content.length; _pvChunks[idx + 1].tokenCount = estimateTokens(_pvChunks[idx + 1].content);
+        _pvChunks[idx].content = remaining; _pvChunks[idx].charCount = remaining.length; _pvChunks[idx].tokenCount = estimateTokens(remaining);
+        _pvChunksModified = true; renderChunksList(); toast('已将首段移到下一分块', 'success');
+    }
+    async function mergeWithNext(idx) {
+        if (idx >= _pvChunks.length - 1) return;
+        if (!await showConfirm('确认将分块 #' + idx + ' 和 #' + (idx + 1) + ' 合并？')) return;
+        _pvChunks[idx].content = (_pvChunks[idx].content || '') + '\n\n' + (_pvChunks[idx + 1].content || '');
+        _pvChunks[idx].charCount = _pvChunks[idx].content.length; _pvChunks[idx].tokenCount = estimateTokens(_pvChunks[idx].content);
+        _pvChunks[idx].endPage = Math.max(_pvChunks[idx].endPage, _pvChunks[idx + 1].endPage);
+        _pvChunks.splice(idx + 1, 1);
+        _pvChunks.forEach((c, i) => c.chunkIndex = i);
+        _pvChunksModified = true; renderChunksList(); toast('分块已合并', 'success');
+    }
+    function toggleChunkEdit(idx) {
+        const display = document.getElementById('chunk-display-' + idx);
+        const edit = document.getElementById('chunk-edit-' + idx);
+        if (display.style.display === 'none') { display.style.display = 'block'; edit.style.display = 'none'; }
+        else { display.style.display = 'none'; edit.style.display = 'block'; document.getElementById('chunk-editor-' + idx).focus(); }
+    }
+    function saveChunkEdit(idx) {
+        updateChunkContent(idx, document.getElementById('chunk-editor-' + idx).value);
+        document.getElementById('chunk-display-' + idx).style.display = 'block';
+        document.getElementById('chunk-edit-' + idx).style.display = 'none';
+        _pvChunksModified = true; renderChunksList(); toast('分块内容已更新', 'success');
+    }
+    function cancelChunkEdit(idx) {
+        document.getElementById('chunk-editor-' + idx).value = _pvChunks[idx].content || '';
+        document.getElementById('chunk-display-' + idx).style.display = 'block';
+        document.getElementById('chunk-edit-' + idx).style.display = 'none';
+    }
+    function updateChunkContent(idx, newContent) {
+        _pvChunks[idx].content = newContent; _pvChunks[idx].charCount = newContent.length;
+        _pvChunks[idx].tokenCount = estimateTokens(newContent); _pvChunksModified = true;
+    }
+    function estimateTokens(text) {
+        if (!text) return 0;
+        let zh = 0, other = 0;
+        for (let c of text) { if (/[\u4e00-\u9fa5]/.test(c)) zh++; else other++; }
+        return Math.ceil(zh / 1.5) + Math.ceil(other / 4);
+    }
+
+    async function confirmIndex() {
+        if (!_pvDocKey) return;
+        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
+        let msg = _pvChunksModified ? ('确认使用手动调整后的 ' + _pvChunks.length + ' 个分块入库？') : '确认将此文档按当前配置分块并向量化入库？';
+        if (!await showConfirm(msg, { icon: '✔', confirmText: '入库', confirmClass: 'btn-primary' })) return;
+        const progressEl = document.getElementById('pv-index-progress');
+        const barEl = document.getElementById('pv-index-bar');
+        const percentEl = document.getElementById('pv-index-percent');
+        const labelEl = document.getElementById('pv-index-label');
+        const detailEl = document.getElementById('pv-index-detail');
+        progressEl.style.display = 'block'; barEl.style.width = '0%'; percentEl.textContent = '0%';
+        labelEl.textContent = '入库中...'; labelEl.style.color = ''; percentEl.style.color = '';
+        barEl.style.background = ''; detailEl.textContent = '正在连接...';
+        const cbtn = document.getElementById('pv-confirm-btn'); cbtn.disabled = true; cbtn.textContent = '入库中...';
+
+        const eventSource = new EventSource(API + '/api/admin/document/' + _pvDocKey + '/index/progress');
+        let sseOpen = false;
+        eventSource.onopen = () => { sseOpen = true; };
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'PROGRESS') {
+                barEl.style.width = data.percent + '%'; percentEl.textContent = data.percent + '%';
+                detailEl.textContent = '已向量化 ' + data.completedChunks + ' / ' + data.totalChunks + ' 个分块';
+            } else if (data.type === 'COMPLETED') {
+                barEl.style.width = '100%'; percentEl.textContent = '100%'; labelEl.textContent = '入库完成';
+                detailEl.textContent = '文档已成功入库'; barEl.style.background = 'var(--success)';
+                eventSource.close(); toast('文档已成功入库', 'success');
+                setTimeout(() => { progressEl.style.display = 'none'; barEl.style.background = ''; closePreviewModal(); loadDocuments(); }, 1200);
+            } else if (data.type === 'ERROR') {
+                labelEl.textContent = '入库失败'; labelEl.style.color = 'var(--danger)'; percentEl.textContent = '';
+                percentEl.style.color = 'var(--danger)'; detailEl.textContent = data.message || '未知错误';
+                barEl.style.background = 'var(--danger)'; barEl.style.width = '100%'; eventSource.close();
+                toast('入库失败: ' + (data.message || ''), 'error');
+                cbtn.disabled = false; cbtn.textContent = '确认入库';
+            }
+        };
+        eventSource.onerror = () => { if (!sseOpen) { labelEl.textContent = '进度连接失败'; detailEl.textContent = '入库可能仍在后台执行，请稍后刷新文档列表查看'; eventSource.close(); } };
+
+        const waitForSse = () => new Promise(resolve => { if (sseOpen) { resolve(); return; } const check = () => { if (sseOpen) resolve(); else setTimeout(check, 50); }; check(); setTimeout(resolve, 3000); });
+        try {
+            await waitForSse();
+            let url, options;
+            if (_pvChunksModified && _pvChunks.length > 0) {
+                url = '/api/admin/document/' + _pvDocKey + '/index-custom';
+                const customChunks = _pvChunks.map((c, idx) => ({ chunkIndex: idx, startPage: c.startPage, endPage: c.endPage, content: c.content }));
+                options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(customChunks) };
+            } else {
+                url = '/api/admin/document/' + _pvDocKey + '/index?chunkSize=' + chunkSize + '&overlap=' + overlap + '&strategy=' + strategy;
+                options = { method: 'POST' };
+            }
+            detailEl.textContent = '正在启动入库任务...';
+            await fetch(API + url, options);
+        } catch (e) {
+            labelEl.textContent = '入库失败'; detailEl.textContent = e.message; barEl.style.background = 'var(--danger)';
+            toast('入库失败: ' + e.message, 'error'); eventSource.close(); cbtn.disabled = false; cbtn.textContent = '确认入库';
+        }
+    }
+
+    /* ---------- 拖拽上传 ---------- */
+    const uploadArea = document.getElementById('upload-area');
+    if (uploadArea) {
+        uploadArea.addEventListener('click', pickFiles);
+        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault(); uploadArea.classList.remove('dragover');
+            const items = e.dataTransfer.items;
+            if (items && items.length) {
+                const entries = [];
+                for (let i = 0; i < items.length; i++) { const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry(); if (entry) entries.push(entry); }
+                if (entries.length > 0 && entries.some(x => x.isDirectory)) { readEntriesRecursive(entries).then(files => enqueueFiles(files.filter(isSupportedFile))); return; }
+            }
+            if (e.dataTransfer.files.length) enqueueFiles(Array.from(e.dataTransfer.files).filter(isSupportedFile));
+        });
+    }
+    async function readEntriesRecursive(entries) {
+        const files = [];
+        async function readEntry(entry, path) {
+            if (entry.isFile) {
+                const file = await new Promise(resolve => entry.file(resolve));
+                Object.defineProperty(file, 'webkitRelativePath', { value: path + file.name });
+                files.push(file);
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+                const children = await new Promise(resolve => { const es = []; (function rb() { reader.readEntries(batch => { if (batch.length === 0) { resolve(es); return; } es.push(...batch); rb(); }); })(); });
+                for (const child of children) await readEntry(child, path + entry.name + '/');
+            }
+        }
+        for (const entry of entries) await readEntry(entry, '');
+        return files;
+    }
+
+    loadDocuments();
+</script>
+</body>
+</html>
