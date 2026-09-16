@@ -1,8 +1,11 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.service.ExamGenerationApplicationService;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import com.mouhin.knowledge.repository.infrastructure.export.ExamWordExporter;
 import com.mouhin.knowledge.repository.web.dto.ExamGenerationRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,6 +40,8 @@ public class ExamController {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamController.class);
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final ExamGenerationApplicationService examGenerationService;
     private final ExamWordExporter examWordExporter;
     private final BlackboardProgressStore progressStore;
@@ -67,8 +72,11 @@ public class ExamController {
             return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
         }
 
-        if (request.getTotalCount() <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "至少需要设置一种题型及数量"));
+        ExamPlan plan = parsePlan(request.getDistribution());
+        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+
+        if (!hasPlan && request.getTotalCount() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "请先生成或选择题型分布方案"));
         }
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
@@ -80,8 +88,8 @@ public class ExamController {
                 isAdmin
         );
 
-        logger.info("收到试卷生成请求（异步）: topic='{}', difficulty='{}', total={}",
-                request.getTopic(), request.getDifficulty(), request.getTotalCount());
+        logger.info("收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
+                request.getTopic(), request.getDifficulty(), hasPlan);
 
         String requestedSessionId = request.getSessionId();
         final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
@@ -91,7 +99,7 @@ public class ExamController {
         var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
                 event -> progressStore.pushEvent(sessionId, event);
 
-        String questionConfig = buildQuestionConfig(request);
+        String questionConfig = hasPlan ? buildQuestionConfigFromPlan(plan) : buildQuestionConfig(request);
 
         examGenerationService.generateExamAsync(
                 request.getTopic(),
@@ -101,7 +109,8 @@ public class ExamController {
                 progressCallback,
                 sessionId,
                 request.getCategory(),
-                request.getSchoolLevel());
+                request.getSchoolLevel(),
+                hasPlan ? plan : null);
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
@@ -133,8 +142,11 @@ public class ExamController {
             return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
         }
 
-        if (request.getTotalCount() <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "至少需要设置一种题型及数量"));
+        ExamPlan plan = parsePlan(request.getDistribution());
+        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+
+        if (!hasPlan && request.getTotalCount() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "请先生成或选择题型分布方案"));
         }
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
@@ -146,22 +158,34 @@ public class ExamController {
                 isAdmin
         );
 
-        logger.info("收到试卷生成请求（同步）: topic='{}', difficulty='{}', total={}",
-                request.getTopic(), request.getDifficulty(), request.getTotalCount());
+        logger.info("收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
+                request.getTopic(), request.getDifficulty(), hasPlan);
 
-        String examPaper = examGenerationService.generateExam(
-                request.getTopic(),
-                request.getDifficulty(),
-                request.getSchoolLevel(),
-                request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
-                request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
-                request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
-                request.getEssayCount() != null ? request.getEssayCount() : 0,
-                permission,
-                request.getCategory()
-        );
+        String examPaper;
+        if (hasPlan) {
+            examPaper = examGenerationService.generateExam(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    request.getSchoolLevel(),
+                    plan,
+                    permission,
+                    request.getCategory()
+            );
+        } else {
+            examPaper = examGenerationService.generateExam(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    request.getSchoolLevel(),
+                    request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
+                    request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
+                    request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
+                    request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
+                    request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
+                    request.getEssayCount() != null ? request.getEssayCount() : 0,
+                    permission,
+                    request.getCategory()
+            );
+        }
 
         return ResponseEntity.ok(Map.of("examPaper", examPaper));
     }
@@ -190,25 +214,110 @@ public class ExamController {
 
         logger.info("导出试卷 Word: topic='{}'", request.getTopic());
 
-        String examPaper = examGenerationService.generateExam(
-                request.getTopic(),
-                request.getDifficulty(),
-                request.getSchoolLevel(),
-                request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
-                request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
-                request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
-                request.getEssayCount() != null ? request.getEssayCount() : 0,
-                permission,
-                request.getCategory()
-        );
+        ExamPlan plan = parsePlan(request.getDistribution());
+        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+
+        String examPaper;
+        if (hasPlan) {
+            examPaper = examGenerationService.generateExam(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    request.getSchoolLevel(),
+                    plan,
+                    permission,
+                    request.getCategory()
+            );
+        } else {
+            examPaper = examGenerationService.generateExam(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    request.getSchoolLevel(),
+                    request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
+                    request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
+                    request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
+                    request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
+                    request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
+                    request.getEssayCount() != null ? request.getEssayCount() : 0,
+                    permission,
+                    request.getCategory()
+            );
+        }
 
         String fileName = URLEncoder.encode(request.getTopic() + "_试卷.docx", StandardCharsets.UTF_8);
         response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
 
         examWordExporter.export(examPaper, response.getOutputStream());
+    }
+
+    /**
+     * 生成题型分布方案（两步式流程第一步 · 流式）。
+     * <p>
+     * 立即返回 sessionId，四阶段 Agent（题型分类 → 题量 → 每题分数 → 合理性评估）在后台执行，
+     * 每个阶段的输入/思考/输出通过已建立的 SSE 连接（/exam/progress/{sessionId}）实时推送，
+     * 完成后推送携带 ExamPlan JSON 的 COMPLETED 事件，供前端渲染可编辑表格。
+     * </p>
+     */
+    @PostMapping("/exam/distribution-stream")
+    public ResponseEntity<Map<String, String>> generateDistributionStream(
+            @RequestBody ExamGenerationRequest request) {
+
+        if (request.getTopic() == null || request.getTopic().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
+        }
+
+        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
+        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
+        Permission permission = new Permission(
+                userId,
+                request.getDepartmentId(),
+                request.getRoles(),
+                isAdmin
+        );
+
+        String requestedSessionId = request.getSessionId();
+        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
+                ? requestedSessionId
+                : "dist-" + java.util.UUID.randomUUID();
+
+        logger.info("收到题型分布方案生成请求（流式）: topic='{}', difficulty='{}', level='{}', session='{}'",
+                request.getTopic(), request.getDifficulty(), request.getSchoolLevel(), sessionId);
+
+        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                event -> progressStore.pushEvent(sessionId, event);
+
+        examGenerationService.generateDistributionAsync(
+                sessionId,
+                request.getTopic(),
+                request.getDifficulty(),
+                request.getSchoolLevel(),
+                request.getCategory(),
+                permission,
+                progressCallback);
+
+        return ResponseEntity.ok(Map.of("sessionId", sessionId));
+    }
+
+    /**
+     * 自动平衡题型分布方案分值（两步式流程 · 页面「自动平衡分值」按钮）。
+     * <p>以每题现值为权重把总分重新分配到各题，保证 Σ=满分；返回平衡后的方案与过程说明。</p>
+     */
+    @PostMapping("/exam/distribution/balance")
+    public ResponseEntity<?> balanceDistribution(
+            @RequestBody ExamGenerationRequest request) {
+
+        ExamPlan plan = parsePlan(request.getDistribution());
+        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
+        }
+
+        logger.info("收到题型分布方案自动平衡请求: types={}, fullMark={}",
+                plan.getTypes().size(), plan.getTotalFullMark());
+
+        ScoreRuleEngine.BalanceResult result = examGenerationService.balanceDistribution(plan);
+        return ResponseEntity.ok(Map.of(
+                "plan", result.plan(),
+                "trace", result.trace() != null ? result.trace() : ""));
     }
 
     /**
@@ -236,6 +345,42 @@ public class ExamController {
         }
         String result = sb.toString();
         return result.endsWith("、") ? result.substring(0, result.length() - 1) : result;
+    }
+
+    /**
+     * 解析前端回传的题型分布方案 JSON。解析失败或为空时返回 null（走旧逻辑兜底）。
+     */
+    private ExamPlan parsePlan(String distributionJson) {
+        if (distributionJson == null || distributionJson.isBlank()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.readValue(distributionJson, ExamPlan.class);
+        } catch (Exception e) {
+            logger.warn("解析题型分布方案失败，回退按题量模式: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 由已确认方案构建题型配置描述（传递给 Agent）。
+     */
+    private String buildQuestionConfigFromPlan(ExamPlan plan) {
+        StringBuilder sb = new StringBuilder();
+        for (com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan t : plan.getTypes()) {
+            if (t.getCount() <= 0) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append("、");
+            }
+            String label = t.getLabel() != null && !t.getLabel().isBlank()
+                    ? t.getLabel()
+                    : com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
+                            .chineseFromKey(t.getKey());
+            sb.append(label).append(" ").append(t.getCount()).append(" 道");
+        }
+        return sb.toString();
     }
 
     /**

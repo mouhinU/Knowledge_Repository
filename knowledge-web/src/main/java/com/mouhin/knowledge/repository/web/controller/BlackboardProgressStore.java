@@ -174,6 +174,7 @@ public class BlackboardProgressStore {
         putIfNotNull(map, "examReviewFeedback", event.getExamReviewFeedback());
         putIfNotNull(map, "difficultyAssessment", event.getDifficultyAssessment());
         putIfNotNull(map, "deduplicationReport", event.getDeduplicationReport());
+        putIfNotNull(map, "distributionPlan", event.getDistributionPlan());
         return map;
     }
 

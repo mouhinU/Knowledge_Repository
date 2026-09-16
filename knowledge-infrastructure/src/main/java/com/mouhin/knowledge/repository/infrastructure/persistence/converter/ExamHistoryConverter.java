@@ -25,6 +25,7 @@ public final class ExamHistoryConverter {
         domain.setDifficulty(doObj.getDifficulty());
         domain.setDurationMinutes(doObj.getDurationMinutes());
         domain.setQuestionConfig(doObj.getQuestionConfig());
+        domain.setExamPlan(doObj.getExamPlan());
         domain.setExamPaper(doObj.getExamPaper());
         domain.setAnswerKey(doObj.getAnswerKey());
         domain.setQualityScore(doObj.getQualityScore());
@@ -54,6 +55,7 @@ public final class ExamHistoryConverter {
         doObj.setDifficulty(domain.getDifficulty());
         doObj.setDurationMinutes(domain.getDurationMinutes());
         doObj.setQuestionConfig(domain.getQuestionConfig());
+        doObj.setExamPlan(domain.getExamPlan());
         doObj.setExamPaper(domain.getExamPaper());
         doObj.setAnswerKey(domain.getAnswerKey());
         doObj.setQualityScore(domain.getQualityScore());

@@ -101,6 +101,10 @@ public class BlackboardState {
      */
     private int examTotalScore;
     /**
+     * 题型分布方案（多阶段分布 Agent 生成、页面确认后的权威方案，可空）
+     */
+    private ExamPlan examPlan;
+    /**
      * 分值分配方案（各题型每题分值、小计、总分）
      */
     private String scoringScheme;
@@ -302,6 +306,15 @@ public class BlackboardState {
 
     public void setExamTotalScore(int examTotalScore) {
         this.examTotalScore = examTotalScore;
+        this.updatedAt = Instant.now();
+    }
+
+    public ExamPlan getExamPlan() {
+        return examPlan;
+    }
+
+    public void setExamPlan(ExamPlan examPlan) {
+        this.examPlan = examPlan;
         this.updatedAt = Instant.now();
     }
 

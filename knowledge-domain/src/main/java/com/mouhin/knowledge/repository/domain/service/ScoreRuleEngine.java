@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
+import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+
 import java.util.*;
 
 /**
@@ -477,11 +480,352 @@ public final class ScoreRuleEngine {
     public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {
     }
 
+    // ==================== 题型分布方案（ExamPlan） ====================
+
+    /** 内核题型 key → 中文规范名 */
+    public static String chineseFromKey(String key) {
+        if (key == null) {
+            return "综合题";
+        }
+        return switch (key.toUpperCase()) {
+            case "SINGLE_CHOICE" -> "单选题";
+            case "MULTI_CHOICE" -> "多选题";
+            case "TRUE_FALSE" -> "判断题";
+            case "FILL_BLANK" -> "填空题";
+            case "SHORT_ANSWER" -> "简答题";
+            case "ESSAY" -> "论述题";
+            default -> key;
+        };
+    }
+
+    /** 中文规范名（或内核 key）→ 内核题型 key */
+    public static String keyFromType(String typeOrKey) {
+        if (typeOrKey == null) {
+            return "OTHER";
+        }
+        String t = typeOrKey.trim();
+        return switch (t) {
+            case "单选题" -> "SINGLE_CHOICE";
+            case "多选题" -> "MULTI_CHOICE";
+            case "判断题" -> "TRUE_FALSE";
+            case "填空题" -> "FILL_BLANK";
+            case "简答题" -> "SHORT_ANSWER";
+            case "论述题" -> "ESSAY";
+            default -> t.toUpperCase();
+        };
+    }
+
+    /** 内核题型权重（缺省 3） */
+    public static int weightOfKind(String key) {
+        Integer w = TYPE_WEIGHTS.get(chineseFromKey(key));
+        return w != null ? w : 3;
+    }
+
+    /**
+     * 由"题型 → 数量"映射构建默认分布方案（满分按题型权重再拆到每题）。
+     *
+     * @param topic           主题（用于学段/科目/合卷识别）
+     * @param counts          题型（中文名或内核 key）→ 数量
+     * @return 分值已归一化（Σ=满分）的方案
+     */
+    public static ExamPlan buildDefaultPlan(String topic, LinkedHashMap<String, Integer> counts) {
+        SchoolLevel level = resolveLevel(topic, null);
+        int total = resolveTotalFullMark(topic, level, null);
+        LinkedHashMap<String, Integer> norm = new LinkedHashMap<>();
+        if (counts != null) {
+            for (Map.Entry<String, Integer> e : counts.entrySet()) {
+                int c = e.getValue() == null ? 0 : e.getValue();
+                if (c > 0) {
+                    norm.put(chineseFromKey(keyFromType(e.getKey())), c);
+                }
+            }
+        }
+        ScoreScheme scheme = allocate(total, norm);
+        ExamPlan plan = new ExamPlan();
+        plan.setSchoolLevel(level.name());
+        plan.setTotalFullMark(total);
+        List<Subject> subs = detectSubjects(topic);
+        plan.setCombined(subs.size() > 1);
+        for (Subject s : subs) {
+            plan.getSubjects().add(subjectLabel(s));
+        }
+        for (TypeAllocation a : scheme.allocations()) {
+            List<Integer> pq = new ArrayList<>();
+            for (int p : a.perQuestion()) {
+                pq.add(p);
+            }
+            plan.getTypes().add(new TypePlan(keyFromType(a.type()), a.type(), a.count(), pq));
+        }
+        normalizePlan(plan);
+        return plan;
+    }
+
+    /**
+     * 归一化方案：逐题数组长度对齐 count，并保证所有小题分值之和恰等于目标满分。
+     * <p>
+     * 若方案已平衡（题量匹配且 Σ=满分），保持用户逐题编辑不变；否则以各题现值为权重做
+     * 最大余额法整体重分配（目标 &lt; 题量时无法每题≥1，交由评估提示）。
+     * </p>
+     *
+     * @param plan 待归一化方案（原地修改）
+     */
+    public static void normalizePlan(ExamPlan plan) {
+        if (plan == null || plan.getTypes() == null) {
+            return;
+        }
+        int target = plan.getTotalFullMark() > 0 ? plan.getTotalFullMark() : DEFAULT_FULL_MARK;
+        plan.setTotalFullMark(target);
+
+        List<Double> weights = new ArrayList<>();
+        boolean sizesOk = true;
+        for (TypePlan t : plan.getTypes()) {
+            int c = Math.max(t.getCount(), 0);
+            List<Integer> pq = t.getPerQuestion() == null ? new ArrayList<>() : new ArrayList<>(t.getPerQuestion());
+            if (pq.size() != c) {
+                sizesOk = false;
+                pq = resizeScoreList(pq, c);
+            }
+            t.setCount(c);
+            t.setPerQuestion(pq);
+            for (Integer v : pq) {
+                weights.add((double) Math.max(v == null ? 1 : v, 1));
+            }
+        }
+
+        int n = weights.size();
+        if (n == 0) {
+            return;
+        }
+        int sum = plan.allocatedTotal();
+        if (sizesOk && sum == target) {
+            return; // 已平衡，保留用户编辑
+        }
+
+        int[] res = distributeIntegers(target, weights, n);
+        int idx = 0;
+        for (TypePlan t : plan.getTypes()) {
+            List<Integer> pq = new ArrayList<>();
+            for (int k = 0; k < t.getCount(); k++) {
+                pq.add(res[idx++]);
+            }
+            t.setPerQuestion(pq);
+        }
+    }
+
+    /**
+     * 把逐题分值列表增删到指定长度：截断尾部；不足则以现值平均（无值时按 1）补齐。
+     */
+    private static List<Integer> resizeScoreList(List<Integer> src, int size) {
+        List<Integer> out = new ArrayList<>();
+        if (size <= 0) {
+            return out;
+        }
+        int cur = src.size();
+        int fill = 1;
+        if (cur > 0) {
+            int s = 0;
+            for (Integer v : src) {
+                s += v == null ? 0 : v;
+            }
+            fill = Math.max((int) Math.round((double) s / cur), 1);
+        }
+        for (int i = 0; i < size; i++) {
+            out.add(i < cur ? src.get(i) : fill);
+        }
+        return out;
+    }
+
+    /**
+     * 依据内核题型权重，把满分分配到每一道小题（各题分值之和恰等于满分）。
+     * <p>用于方案生成初期，仅有题型与题量时给出"简答/论述分更高"的默认逐题分值。</p>
+     *
+     * @param plan 方案（原地写入各题型的 perQuestion）
+     */
+    public static void assignScoresByKindWeights(ExamPlan plan) {
+        if (plan == null || plan.getTypes() == null) {
+            return;
+        }
+        int target = plan.getTotalFullMark() > 0 ? plan.getTotalFullMark() : DEFAULT_FULL_MARK;
+        plan.setTotalFullMark(target);
+
+        List<Double> weights = new ArrayList<>();
+        for (TypePlan t : plan.getTypes()) {
+            int c = Math.max(t.getCount(), 0);
+            double w = weightOfKind(t.getKey());
+            for (int i = 0; i < c; i++) {
+                weights.add(w);
+            }
+        }
+        int n = weights.size();
+        if (n == 0) {
+            return;
+        }
+        int[] res = distributeIntegers(target, weights, n);
+        int idx = 0;
+        for (TypePlan t : plan.getTypes()) {
+            List<Integer> pq = new ArrayList<>();
+            int c = Math.max(t.getCount(), 0);
+            for (int k = 0; k < c; k++) {
+                pq.add(res[idx++]);
+            }
+            t.setCount(c);
+            t.setPerQuestion(pq);
+        }
+    }
+
+    /**
+     * 渲染分布方案为权威分值说明（供试卷编写 Agent 严格遵循：逐题分值 + 小计 + 满分）。
+     *
+     * @param plan  已归一化的方案
+     * @param topic 主题（用于合卷说明）
+     * @return Markdown 文本
+     */
+    public static String renderPlan(ExamPlan plan, String topic) {
+        SchoolLevel level = parseLevelCode(plan.getSchoolLevel());
+        StringBuilder sb = new StringBuilder();
+        sb.append("本卷满分：").append(plan.getTotalFullMark()).append(" 分（")
+                .append(levelLabel(level)).append("分数规则），共 ").append(plan.totalQuestions()).append(" 道题\n\n");
+
+        boolean allUniform = true;
+        for (TypePlan t : plan.getTypes()) {
+            List<Integer> pq = t.getPerQuestion();
+            if (pq.isEmpty()) {
+                continue;
+            }
+            int first = pq.get(0);
+            for (Integer p : pq) {
+                if (p != null && p != first) {
+                    allUniform = false;
+                    break;
+                }
+            }
+            if (!allUniform) {
+                break;
+            }
+        }
+
+        if (allUniform) {
+            sb.append("| 题型 | 题数 | 每题分值 | 小计 |\n");
+            sb.append("|------|------|----------|------|\n");
+            for (TypePlan t : plan.getTypes()) {
+                int perQ = t.getPerQuestion().isEmpty() ? 0 : t.getPerQuestion().get(0);
+                sb.append("| ").append(t.getLabel()).append(" | ").append(t.getCount())
+                        .append(" | ").append(perQ).append(" 分 | ").append(t.subtotal()).append(" 分 |\n");
+            }
+        } else {
+            sb.append("| 题型 | 题数 | 各小题分值（按顺序） | 小计 |\n");
+            sb.append("|------|------|--------------------|------|\n");
+            for (TypePlan t : plan.getTypes()) {
+                StringBuilder pq = new StringBuilder();
+                List<Integer> list = t.getPerQuestion();
+                for (int i = 0; i < list.size(); i++) {
+                    if (i > 0) {
+                        pq.append("、");
+                    }
+                    pq.append(list.get(i));
+                }
+                sb.append("| ").append(t.getLabel()).append(" | ").append(t.getCount())
+                        .append(" | ").append(pq).append(" 分 | ").append(t.subtotal()).append(" 分 |\n");
+            }
+        }
+        sb.append("| **合计** | | | **").append(plan.getTotalFullMark()).append(" 分** |\n");
+
+        String note = combinedNote(topic, level);
+        if (!note.isEmpty()) {
+            sb.append("\n").append(note).append("\n");
+        }
+        sb.append("\n出题时，每道小题的分值必须严格取自上表：把该题分值以\"（X分）\"标注在题干文字最末尾、选项之前；")
+                .append("同一题型内若分值不同，按表中\"各小题分值\"从左到右依次对应第 1、2、3… 道小题。\n");
+        return sb.toString();
+    }
+
+    /**
+     * 自动平衡：以每题当前值为权重，用最大余额法把总分重新分配到各题，保证 Σ=满分。
+     * <p>若方案已平衡则保持不变，仅返回说明。原地修改 {@code plan}。</p>
+     *
+     * @param plan 待平衡方案（含用户已编辑的分值）
+     * @return 平衡后的方案与人类可读的过程说明（Markdown）
+     */
+    public static BalanceResult balancePlan(ExamPlan plan) {
+        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+            return new BalanceResult(plan, "无可平衡的方案。");
+        }
+        int target = plan.getTotalFullMark() > 0 ? plan.getTotalFullMark() : DEFAULT_FULL_MARK;
+        plan.setTotalFullMark(target);
+
+        // 记录输入：题量/当前每题/当前小计/合计
+        StringBuilder input = new StringBuilder();
+        input.append("目标满分：").append(target).append(" 分\n");
+        int beforeSum = 0;
+        int totalQ = 0;
+        for (TypePlan t : plan.getTypes()) {
+            int c = Math.max(t.getCount(), 0);
+            List<Integer> pq = t.getPerQuestion() == null ? new ArrayList<>() : new ArrayList<>(t.getPerQuestion());
+            if (pq.size() != c) {
+                pq = resizeScoreList(pq, c);
+                t.setPerQuestion(pq);
+                t.setCount(c);
+            }
+            input.append("· ").append(t.getLabel()).append("：题量 ").append(c)
+                    .append("，每题 ").append(pq).append("，小计 ").append(t.subtotal()).append(" 分\n");
+            beforeSum += t.subtotal();
+            totalQ += c;
+        }
+        if (totalQ == 0) {
+            return new BalanceResult(plan, "题量为 0，无法平衡。\n\n输入：\n" + input);
+        }
+
+        // 已平衡则原样返回
+        if (beforeSum == target) {
+            String trace = "### 输入\n" + input
+                    + "\n### 思考\n当前合计已等于满分，保留用户逐题编辑，不做改动。\n"
+                    + "\n### 输出\n合计 " + beforeSum + " / 满分 " + target + " 分 ✓";
+            return new BalanceResult(plan, trace);
+        }
+
+        // 逐题现值（≥1）为权重
+        List<Double> weights = new ArrayList<>();
+        for (TypePlan t : plan.getTypes()) {
+            for (Integer v : t.getPerQuestion()) {
+                weights.add((double) Math.max(v == null ? 1 : v, 1));
+            }
+        }
+        int n = weights.size();
+        int[] res = distributeIntegers(target, weights, n);
+        int idx = 0;
+        for (TypePlan t : plan.getTypes()) {
+            List<Integer> pq = new ArrayList<>();
+            for (int k = 0; k < t.getCount(); k++) {
+                pq.add(res[idx++]);
+            }
+            t.setPerQuestion(pq);
+        }
+
+        StringBuilder output = new StringBuilder();
+        for (TypePlan t : plan.getTypes()) {
+            output.append("· ").append(t.getLabel()).append("：每题 ").append(t.getPerQuestion())
+                    .append("，小计 ").append(t.subtotal()).append(" 分\n");
+        }
+        output.append("合计：").append(plan.allocatedTotal()).append(" 分 / 满分 ").append(target).append(" 分");
+
+        String thinking = "当前合计 " + beforeSum + " 分与目标 " + target + " 分不一致（差 "
+                + (beforeSum - target) + "）。以每道小题的现值为权重，用最大余额法整体缩放到满分，"
+                + "既保证 Σ=满分，也尽量保留用户设定的题型内/题型间相对分值差异。";
+        String trace = "### 输入\n" + input + "\n### 思考\n" + thinking + "\n\n### 输出\n" + output;
+        return new BalanceResult(plan, trace);
+    }
+
     // ==================== 工具 ====================
 
     /**
      * 完整分值分配方案
      */
     public record ScoreScheme(int total, List<TypeAllocation> allocations) {
+    }
+
+    /**
+     * 自动平衡结果：原地更新后的方案 + 过程说明（Markdown）
+     */
+    public record BalanceResult(ExamPlan plan, String trace) {
     }
 }

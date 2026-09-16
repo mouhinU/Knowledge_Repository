@@ -48,12 +48,25 @@ public class ExamContentRenderAgent {
      * @return 渲染就绪的题目 JSON 字符串
      */
     public String render(String examPaper, String questionsJson) {
+        return render(examPaper, questionsJson, null);
+    }
+
+    /**
+     * 渲染试卷为前端可用的结构化题目 JSON（带题型分布方案）
+     *
+     * @param examPaper     试卷 Markdown
+     * @param questionsJson 已存的题目 JSON（可能为 null / "[]"）
+     * @param planJson      题型分布方案 JSON（可为 null；存在时以其为题型/分值真源）
+     * @return 渲染就绪的题目 JSON 字符串
+     */
+    public String render(String examPaper, String questionsJson, String planJson) {
         List<Map<String, Object>> questions = parseQuestions(questionsJson);
 
-        // 1. questionsJson 缺失或为空 → 从 Markdown 回退解析
+        // 1. questionsJson 缺失或为空 → 从 Markdown 回退解析（带方案则以方案为真源）
         if (questions.isEmpty() && examPaper != null && !examPaper.isBlank()) {
-            logger.info("渲染 Agent：questionsJson 为空，回退到 Markdown 解析");
-            questions = ExamPaperParser.parse(examPaper);
+            logger.info("渲染 Agent：questionsJson 为空，回退到 Markdown 解析（plan={}）",
+                    planJson != null ? "有" : "无");
+            questions = ExamPaperParser.parse(examPaper, ExamPaperParser.readPlan(planJson));
         }
 
         // 2. 逐题规范化
@@ -194,6 +207,7 @@ public class ExamContentRenderAgent {
         return content
                 .replaceAll("(?m)^\\s*[-*_]{3,}\\s*$", "")
                 .replaceAll("\\s*[-*_]{3,}\\s*$", "")
+                .replaceAll("\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*", " ")
                 .replaceAll("\\*{1,2}", "")
                 .replaceAll("\\s+$", "")
                 .trim();

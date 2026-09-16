@@ -29,6 +29,7 @@ public final class ExamSessionConverter {
         domain.setExamPaper(doObj.getExamPaper());
         domain.setAnswerKey(doObj.getAnswerKey());
         domain.setQuestionsJson(doObj.getQuestionsJson());
+        domain.setExamPlan(doObj.getExamPlan());
         domain.setTotalScore(doObj.getTotalScore());
         domain.setAiScore(doObj.getAiScore());
         domain.setFinalScore(doObj.getFinalScore());
@@ -57,6 +58,7 @@ public final class ExamSessionConverter {
         doObj.setExamPaper(domain.getExamPaper());
         doObj.setAnswerKey(domain.getAnswerKey());
         doObj.setQuestionsJson(domain.getQuestionsJson());
+        doObj.setExamPlan(domain.getExamPlan());
         doObj.setTotalScore(domain.getTotalScore());
         doObj.setAiScore(domain.getAiScore());
         doObj.setFinalScore(domain.getFinalScore());

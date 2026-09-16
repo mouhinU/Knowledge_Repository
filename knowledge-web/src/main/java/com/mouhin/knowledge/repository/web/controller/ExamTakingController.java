@@ -112,10 +112,14 @@ public class ExamTakingController {
         try {
             ExamSession session = examTakingService.getSession(sessionKey, headerToken);
 
-            // 检查 questionsJson 是否需要重新解析（修复旧数据的选项解析问题）
+            // 检查 questionsJson 是否需要重新解析（修复旧数据选项解析，或按方案补齐题型/分值）
             String questionsJson = session.getQuestionsJson();
-            if (questionsJson != null && needsReparse(questionsJson) && session.getExamPaper() != null) {
-                questionsJson = ExamPaperParser.parseToJson(session.getExamPaper());
+            String planJson = session.getExamPlan();
+            boolean planUpgradeNeeded = planJson != null && !planJson.isBlank()
+                    && (questionsJson == null || !questionsJson.contains("sectionLabel"));
+            if (session.getExamPaper() != null
+                    && ((questionsJson != null && needsReparse(questionsJson)) || planUpgradeNeeded)) {
+                questionsJson = ExamPaperParser.parseToJson(session.getExamPaper(), planJson);
                 examTakingService.updateQuestionsJson(session.getSessionKey(), headerToken, questionsJson);
                 session.setQuestionsJson(questionsJson);
             }
@@ -129,6 +133,7 @@ public class ExamTakingController {
             result.put("aiScore", session.getAiScore() != null ? session.getAiScore() : 0);
             result.put("finalScore", session.getFinalScore() != null ? session.getFinalScore() : 0);
             result.put("questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]");
+            result.put("examPlan", session.getExamPlan() != null ? session.getExamPlan() : "");
             result.put("examPaper", session.getExamPaper() != null ? session.getExamPaper() : "");
             result.put("durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0);
             result.put("startTime", session.getStartTime() != null ? session.getStartTime().toString() : "");

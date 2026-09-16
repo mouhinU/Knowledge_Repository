@@ -2180,16 +2180,19 @@
     function renderQuestionNav() {
         var grid = document.getElementById('questionNavGrid');
 
-        // 按题型分组，保持题目出现顺序
+        // 按题型分布方案的大题分组（sectionLabel），保持题目出现顺序；无标签回退内核题型
         var groups = [];
         var groupMap = {};
         currentQuestions.forEach(function(q, i) {
             var type = q.type || 'SHORT_ANSWER';
-            if (!groupMap[type]) {
-                groupMap[type] = { type: type, indices: [] };
-                groups.push(groupMap[type]);
+            var label = q.sectionLabel && q.sectionLabel.trim() ? q.sectionLabel.trim() : null;
+            var gkey = label ? ('L:' + label) : ('T:' + type);
+            if (!groupMap[gkey]) {
+                groupMap[gkey] = { type: type, label: label, indices: [], score: 0 };
+                groups.push(groupMap[gkey]);
             }
-            groupMap[type].indices.push(i);
+            groupMap[gkey].indices.push(i);
+            groupMap[gkey].score += (q.maxScore || 0);
         });
 
         var html = '';
@@ -2197,9 +2200,10 @@
             if (gi > 0) {
                 html += '<div class="nav-type-divider"></div>';
             }
+            var displayName = group.label || questionTypeLabel(group.type);
             html += '<div class="nav-type-group">';
-            html += '<div class="nav-type-label">' + questionTypeLabel(group.type)
-                + ' <span class="type-count">(' + group.indices.length + '题)</span></div>';
+            html += '<div class="nav-type-label">' + escapeHtml(displayName)
+                + ' <span class="type-count">(' + group.indices.length + '题 · ' + group.score + '分)</span></div>';
             html += '<div class="nav-type-grid">';
             group.indices.forEach(function(i) {
                 var q = currentQuestions[i];
@@ -2240,7 +2244,9 @@
         html += '<div class="question-header">';
         html += '<div class="question-number">' + (index + 1) + '</div>';
         html += '<div class="question-title-area">';
-        html += '<div class="question-type-badge">' + questionTypeLabel(type) + '</div>';
+        var badgeLabel = (q.sectionLabel && q.sectionLabel.trim())
+            ? q.sectionLabel.trim() : questionTypeLabel(type);
+        html += '<div class="question-type-badge">' + escapeHtml(badgeLabel) + '</div>';
         html += '<div class="question-content">' + escapeHtml(q.content || '') + '</div>';
         html += '</div>';
         html += '<div class="question-score">' + (q.maxScore || 0) + '分</div>';

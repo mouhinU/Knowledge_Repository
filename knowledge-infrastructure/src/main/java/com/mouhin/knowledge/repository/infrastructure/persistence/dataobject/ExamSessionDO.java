@@ -50,6 +50,9 @@ public class ExamSessionDO {
     @TableField("questions_json")
     private String questionsJson;
 
+    @TableField("exam_plan")
+    private String examPlan;
+
     @TableField("total_score")
     private Integer totalScore;
 

@@ -38,6 +38,9 @@ public class ExamHistoryDO {
     @TableField("question_config")
     private String questionConfig;
 
+    @TableField("exam_plan")
+    private String examPlan;
+
     @TableField("exam_paper")
     private String examPaper;
 

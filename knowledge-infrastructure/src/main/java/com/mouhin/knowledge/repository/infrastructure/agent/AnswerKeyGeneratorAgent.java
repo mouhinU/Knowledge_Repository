@@ -47,7 +47,8 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
             输出格式：
             - 使用 Markdown 格式
             - 按题型分节，与试卷结构对应
-            - 每题答案前标注题号
+            - 每题答案前标注题号，分值 "（X分）" 紧跟题号/答案行，不要写进选项文本里
+            - 选择题的逐选项给分只写在"评分标准"中（如：选B得3分），不要把它追加到选项标签后面
             - 主观题列出评分要点（如：提到 XX 得 2 分）
             """;
 

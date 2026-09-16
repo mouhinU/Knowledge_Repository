@@ -39,6 +39,12 @@ public class ExamHistory {
     private String questionConfig;
 
     /**
+     * 题型分布方案（ExamPlan 的 JSON 序列化），生成试卷时确认的权威方案，
+     * 供考试端按方案渲染题型与分值，保证三处（方案/试卷/渲染）强一致。
+     */
+    private String examPlan;
+
+    /**
      * 最终试卷
      */
     private String examPaper;
@@ -155,6 +161,14 @@ public class ExamHistory {
 
     public void setQuestionConfig(String questionConfig) {
         this.questionConfig = questionConfig;
+    }
+
+    public String getExamPlan() {
+        return examPlan;
+    }
+
+    public void setExamPlan(String examPlan) {
+        this.examPlan = examPlan;
     }
 
     public String getExamPaper() {

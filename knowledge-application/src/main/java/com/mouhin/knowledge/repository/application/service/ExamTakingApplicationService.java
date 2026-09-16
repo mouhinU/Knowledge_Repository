@@ -86,10 +86,11 @@ public class ExamTakingApplicationService {
         session.setDifficulty(history.getDifficulty());
         session.setExamPaper(history.getExamPaper());
         session.setAnswerKey(history.getAnswerKey());
-        String rendered = contentRenderAgent.render(history.getExamPaper(), null);
+        session.setExamPlan(history.getExamPlan());
+        String rendered = contentRenderAgent.render(history.getExamPaper(), null, history.getExamPlan());
         validateOrThrow(rendered);
         session.setQuestionsJson(rendered);
-        session.setTotalScore(100);
+        session.setTotalScore(sumMaxScore(rendered));
         session.setDurationMinutes(history.getDurationMinutes());
         session.setStatus("IN_PROGRESS");
         session.setStartTime(LocalDateTime.now());
@@ -127,7 +128,7 @@ public class ExamTakingApplicationService {
         String rendered = contentRenderAgent.render(examPaper, null);
         validateOrThrow(rendered);
         session.setQuestionsJson(rendered);
-        session.setTotalScore(100);
+        session.setTotalScore(sumMaxScore(rendered));
         session.setDurationMinutes(ExamPaperParser.parseDuration(examPaper));
         session.setStatus("IN_PROGRESS");
         session.setStartTime(LocalDateTime.now());
@@ -159,6 +160,29 @@ public class ExamTakingApplicationService {
             String detail = String.join("；", report.errors());
             logger.warn("试卷内容校验未通过，阻止开考：{}", detail);
             throw new IllegalArgumentException("试卷内容校验未通过：" + detail);
+        }
+    }
+
+    /**
+     * 依据渲染后的题目列表累加各题 maxScore，得到与试卷/方案一致的卷面总分；解析失败或为 0 回退 100。
+     */
+    private int sumMaxScore(String questionsJson) {
+        try {
+            List<Map<String, Object>> qs = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(questionsJson,
+                            new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {
+                            });
+            int sum = 0;
+            for (Map<String, Object> q : qs) {
+                Object ms = q.get("maxScore");
+                if (ms instanceof Number num) {
+                    sum += num.intValue();
+                }
+            }
+            return sum > 0 ? sum : 100;
+        } catch (Exception e) {
+            logger.warn("累加题目总分失败，回退为 100：{}", e.getMessage());
+            return 100;
         }
     }
 

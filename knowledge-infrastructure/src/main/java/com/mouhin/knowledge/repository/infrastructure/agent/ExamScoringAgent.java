@@ -44,6 +44,20 @@ public class ExamScoringAgent implements BlackboardAgent {
         String questionConfig = blackboard.getExamQuestionConfig();
         String topic = blackboard.getQuestion();
 
+        // 优先采用页面确认的题型分布方案（含逐题分值）
+        com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan plan = blackboard.getExamPlan();
+        if (plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty()) {
+            logger.info("[ExamScoring] 采用已确认的题型分布方案，主题：{}，满分：{}", topic, plan.getTotalFullMark());
+            blackboard.advanceTo(BlackboardPhase.SCORING);
+            ScoreRuleEngine.normalizePlan(plan);
+            blackboard.setExamTotalScore(plan.getTotalFullMark());
+            String schemeText = ScoreRuleEngine.renderPlan(plan, topic);
+            blackboard.setScoringScheme(schemeText);
+            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-scoring", schemeText));
+            logger.info("[ExamScoring] 分值分配完成（采用方案，满分 {} 分）", plan.getTotalFullMark());
+            return;
+        }
+
         logger.info("[ExamScoring] 开始计算分值分配，主题：{}，学段：{}，题型配置：{}",
                 topic, blackboard.getExamSchoolLevel(), questionConfig);
 

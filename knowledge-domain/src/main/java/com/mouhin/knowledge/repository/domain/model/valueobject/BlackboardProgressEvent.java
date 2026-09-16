@@ -110,6 +110,11 @@ public class BlackboardProgressEvent {
     private final String deduplicationReport;
 
     /**
+     * 题型分布方案 JSON（仅分布 COMPLETED 事件）
+     */
+    private final String distributionPlan;
+
+    /**
      * 事件时间戳
      */
     private final Instant timestamp;
@@ -134,6 +139,7 @@ public class BlackboardProgressEvent {
         this.examReviewFeedback = builder.examReviewFeedback;
         this.difficultyAssessment = builder.difficultyAssessment;
         this.deduplicationReport = builder.deduplicationReport;
+        this.distributionPlan = builder.distributionPlan;
         this.timestamp = Instant.now();
     }
 
@@ -216,6 +222,17 @@ public class BlackboardProgressEvent {
                 .deduplicationReport(blackboard.getDeduplicationReport())
                 .qualityScore(blackboard.getQualityScore())
                 .retrievedChunks(retrievedChunks)
+                .build();
+    }
+
+    /**
+     * 创建题型分布方案完成事件（两步式流程第一步产出）
+     */
+    public static BlackboardProgressEvent distributionCompleted(String planJson) {
+        return new Builder()
+                .type("COMPLETED")
+                .phase(BlackboardPhase.COMPLETED)
+                .distributionPlan(planJson)
                 .build();
     }
 
@@ -308,6 +325,10 @@ public class BlackboardProgressEvent {
         return deduplicationReport;
     }
 
+    public String getDistributionPlan() {
+        return distributionPlan;
+    }
+
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -335,6 +356,7 @@ public class BlackboardProgressEvent {
         private String examReviewFeedback;
         private String difficultyAssessment;
         private String deduplicationReport;
+        private String distributionPlan;
 
         public Builder type(String type) {
             this.type = type;
@@ -428,6 +450,11 @@ public class BlackboardProgressEvent {
 
         public Builder deduplicationReport(String deduplicationReport) {
             this.deduplicationReport = deduplicationReport;
+            return this;
+        }
+
+        public Builder distributionPlan(String distributionPlan) {
+            this.distributionPlan = distributionPlan;
             return this;
         }
 

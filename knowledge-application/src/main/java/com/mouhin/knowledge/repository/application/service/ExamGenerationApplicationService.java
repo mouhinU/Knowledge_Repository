@@ -1,11 +1,14 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.repository.ExamHistoryRepository;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
+import com.mouhin.knowledge.repository.infrastructure.agent.ExamDistributionAgent;
 import com.mouhin.knowledge.repository.infrastructure.milvus.MilvusVectorStoreService;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -49,6 +52,8 @@ public class ExamGenerationApplicationService {
     private static final int QUALITY_SCORE_THRESHOLD = 80;
     private static final int MAX_REVIEW_RETRIES = 5;
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     private final BlackboardAgent examResearcherAgent;
     private final BlackboardAgent examScoringAgent;
     private final BlackboardAgent examWriterAgent;
@@ -56,6 +61,7 @@ public class ExamGenerationApplicationService {
     private final BlackboardAgent examReviewerAgent;
     private final BlackboardAgent examCalibratorAgent;
     private final BlackboardAgent examDeduplicatorAgent;
+    private final ExamDistributionAgent examDistributionAgent;
     private final MilvusVectorStoreService vectorStoreService;
     private final PermissionDomainService permissionDomainService;
     private final ChatModel chatModel;
@@ -77,6 +83,7 @@ public class ExamGenerationApplicationService {
             @Qualifier("examReviewerAgent") BlackboardAgent examReviewerAgent,
             @Qualifier("examCalibratorAgent") BlackboardAgent examCalibratorAgent,
             @Qualifier("examDeduplicatorAgent") BlackboardAgent examDeduplicatorAgent,
+            ExamDistributionAgent examDistributionAgent,
             MilvusVectorStoreService vectorStoreService,
             PermissionDomainService permissionDomainService,
             ChatModel chatModel,
@@ -88,6 +95,7 @@ public class ExamGenerationApplicationService {
         this.examReviewerAgent = examReviewerAgent;
         this.examCalibratorAgent = examCalibratorAgent;
         this.examDeduplicatorAgent = examDeduplicatorAgent;
+        this.examDistributionAgent = examDistributionAgent;
         this.vectorStoreService = vectorStoreService;
         this.permissionDomainService = permissionDomainService;
         this.chatModel = chatModel;
@@ -104,12 +112,13 @@ public class ExamGenerationApplicationService {
      * @param progressCallback 进度回调
      * @param sessionId        会话 ID
      * @param schoolLevel      学段（PRIMARY / JUNIOR / SENIOR，可空由主题识别）
+     * @param plan             页面确认的题型分布方案（可空；为空则由分值分配 Agent 依据规则自动生成）
      */
     public void generateExamAsync(String topic, String difficulty, String questionConfig,
                                   Permission permission, BlackboardProgressCallback progressCallback,
-                                  String sessionId, String category, String schoolLevel) {
-        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}']",
-                sessionId, topic, difficulty, category, schoolLevel);
+                                  String sessionId, String category, String schoolLevel, ExamPlan plan) {
+        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}', hasPlan={}]",
+                sessionId, topic, difficulty, category, schoolLevel, plan != null);
 
         if (progressCallback != null) {
             progressCallback.onProgress(
@@ -118,7 +127,7 @@ public class ExamGenerationApplicationService {
 
         CompletableFuture.runAsync(
                 () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission,
-                        progressCallback, category, schoolLevel),
+                        progressCallback, category, schoolLevel, plan),
                 agentExecutor);
     }
 
@@ -128,7 +137,7 @@ public class ExamGenerationApplicationService {
     private void executeExamPipeline(String sessionId, String topic, String difficulty,
                                      String questionConfig, Permission permission,
                                      BlackboardProgressCallback callback, String category,
-                                     String schoolLevel) {
+                                     String schoolLevel, ExamPlan plan) {
         BlackboardState blackboard = new BlackboardState(sessionId, topic);
         blackboard.setUserId(permission.getUserId());
         blackboard.setDepartmentId(permission.getDepartmentId());
@@ -137,6 +146,9 @@ public class ExamGenerationApplicationService {
         blackboard.setExamDifficulty(difficulty);
         blackboard.setExamQuestionConfig(questionConfig);
         blackboard.setExamSchoolLevel(schoolLevel);
+        if (plan != null) {
+            blackboard.setExamPlan(plan);
+        }
 
         try {
             // 1. 知识库检索
@@ -315,6 +327,157 @@ public class ExamGenerationApplicationService {
     }
 
     /**
+     * 生成题型分布方案（多阶段 Agent：题型分类 → 题量 → 每题分数 → 合理性评估）。
+     *
+     * @param topic       考试主题/科目
+     * @param difficulty  难度
+     * @param schoolLevel 学段（可空自动识别）
+     * @param category    知识库分类（可空）
+     * @param permission  权限上下文（用于知识检索过滤）
+     * @return 归一化后的题型分布方案
+     */
+    public ExamPlan generateDistribution(String topic, String difficulty, String schoolLevel,
+                                         String category, Permission permission) {
+        String knowledgeHint = null;
+        try {
+            String filterExpr = permissionDomainService.buildFilterExpression(permission);
+            int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+            double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
+            List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+            if (!results.isEmpty()) {
+                knowledgeHint = buildKnowledgeContext(results);
+            }
+        } catch (Exception e) {
+            logger.warn("[Distribution] 生成前检索知识点失败（忽略，继续出题）: {}", e.getMessage());
+        }
+        return examDistributionAgent.generate(topic, difficulty, schoolLevel, knowledgeHint);
+    }
+
+    /**
+     * 异步生成题型分布方案（流式）：立即返回，通过回调推送每个阶段的输入/思考/输出，
+     * 最终推送 {@code distributionCompleted} 事件（携带方案 JSON）。
+     *
+     * @param sessionId        会话 ID（供 SSE 关联）
+     * @param topic            考试主题/科目
+     * @param difficulty       难度
+     * @param schoolLevel      学段（可空自动识别）
+     * @param category         知识库分类（可空）
+     * @param permission       权限上下文
+     * @param progressCallback SSE 进度回调
+     */
+    public void generateDistributionAsync(String sessionId, String topic, String difficulty,
+                                          String schoolLevel, String category,
+                                          Permission permission,
+                                          BlackboardProgressCallback progressCallback) {
+        logger.info("启动题型分布方案生成 [session={}, topic='{}', difficulty='{}', level='{}']",
+                sessionId, topic, difficulty, schoolLevel);
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (progressCallback != null) {
+                    progressCallback.onProgress(BlackboardProgressEvent.phaseChanged(
+                            BlackboardPhase.INIT, "正在准备题型分布方案生成..."));
+                }
+                String knowledgeHint = null;
+                try {
+                    String filterExpr = permissionDomainService.buildFilterExpression(permission);
+                    int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+                    double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
+                    List<SearchResult> results = vectorStoreService.search(
+                            topic, maxResults, minScore, filterExpr, category);
+                    if (!results.isEmpty()) {
+                        knowledgeHint = buildKnowledgeContext(results);
+                    }
+                } catch (Exception e) {
+                    logger.warn("[Distribution] 检索知识点失败（忽略）: {}", e.getMessage());
+                }
+                ExamPlan plan = examDistributionAgent.generate(
+                        topic, difficulty, schoolLevel, knowledgeHint, progressCallback);
+                String planJson = objectMapper.writeValueAsString(plan);
+                if (progressCallback != null) {
+                    progressCallback.onProgress(BlackboardProgressEvent.distributionCompleted(planJson));
+                }
+                logger.info("[Distribution] 方案生成完成 [session={}, types={}, questions={}, fullMark={}]",
+                        sessionId, plan.getTypes().size(), plan.totalQuestions(), plan.getTotalFullMark());
+            } catch (Exception e) {
+                logger.error("[Distribution] 方案生成失败 [session={}]", sessionId, e);
+                if (progressCallback != null) {
+                    progressCallback.onProgress(BlackboardProgressEvent.error(
+                            e.getMessage() != null ? e.getMessage() : "方案生成失败"));
+                }
+            }
+        }, agentExecutor);
+    }
+
+    /**
+     * 依据当前方案自动平衡分值，返回平衡后的方案 + 过程说明。
+     */
+    public ScoreRuleEngine.BalanceResult balanceDistribution(ExamPlan plan) {
+        return ScoreRuleEngine.balancePlan(plan);
+    }
+
+    /**
+     * 依据已确认的题型分布方案同步生成试卷（单次 LLM 调用，用于同步出卷 / Word 导出）。
+     */
+    public String generateExam(String topic, String difficulty, String schoolLevel, ExamPlan plan,
+                               Permission permission, String category) {
+        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+            return "# 试卷生成失败\n\n缺少题型分布方案。";
+        }
+        com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine.normalizePlan(plan);
+        int total = plan.getTotalFullMark();
+        String schemeText = com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine.renderPlan(plan, topic);
+
+        String filterExpr = permissionDomainService.buildFilterExpression(permission);
+        int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+        double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
+        List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+        String knowledgeContext = buildKnowledgeContext(results);
+
+        String userPrompt = buildUserPromptFromPlan(topic, difficulty, plan, knowledgeContext, total, schemeText);
+        ChatRequest request = ChatRequest.builder()
+                .messages(SystemMessage.from(buildSystemPrompt()), UserMessage.from(userPrompt))
+                .build();
+        ChatResponse response = chatModel.chat(request);
+        String examPaper = response.aiMessage().text();
+        if (examPaper == null || examPaper.isBlank()) {
+            logger.error("[Exam/Plan] LLM 返回空结果 [topic='{}']", topic);
+            return "# 试卷生成失败\n\n大模型返回了空结果，请重试。";
+        }
+        logger.info("[Exam/Plan] 依据方案生成试卷完成，长度 {} 字符 [topic='{}']", examPaper.length(), topic);
+        return examPaper;
+    }
+
+    /**
+     * 依据题型分布方案构造用户提示词（同步出卷 / 导出用）。
+     */
+    private String buildUserPromptFromPlan(String topic, String difficulty, ExamPlan plan,
+                                           String knowledgeContext, int total, String schemeText) {
+        String difficultyLabel = switch (difficulty != null ? difficulty : "MEDIUM") {
+            case "EASY" -> "简单（基础概念为主）";
+            case "HARD" -> "困难（深入理解、综合分析）";
+            default -> "中等（理解与应用）";
+        };
+        StringBuilder typeDesc = new StringBuilder();
+        for (TypePlan t : plan.getTypes()) {
+            typeDesc.append("- ").append(t.getLabel()).append("：").append(t.getCount()).append(" 道\n");
+        }
+        return String.format("""
+                请根据以下知识库内容，生成一份考试试卷。
+                
+                **考试主题：** %s
+                **难度要求：** %s
+                **题型分布：**
+                %s
+                **目标满分：** %d 分
+                **【分值分配方案（严格遵守）】**
+                %s
+                **知识库参考内容：**
+                
+                %s
+                """, topic, difficultyLabel, typeDesc, total, schemeText, knowledgeContext);
+    }
+
+    /**
      * 知识库无召回结果时，调用大模型补充相关资料
      */
     private String callLlmForSupplement(String topic) {
@@ -356,6 +519,7 @@ public class ExamGenerationApplicationService {
                 5. 每道题目都要有明确的参考答案
                 6. 使用 Markdown 格式输出
                 7. 分值必须严格遵循用户提供的【分值分配方案】：卷面总分等于方案给定的本卷满分，每题分值等于方案给定的小题分值，各题分值之和必须等于总分
+                8. 每题分值用中文括号 "（X分）" 标注，且必须紧跟在该题题干文字的最末尾、所有选项（A./B./C./D.）之前；严禁把分值放在选项之后或写进选项文本里（如 "D. 选项（3分）" 是错误的）
                 
                 输出格式（严格遵守）：
                 
@@ -367,7 +531,7 @@ public class ExamGenerationApplicationService {
                 
                 ## 一、单选题（每题 X 分，共 X 分）
                 
-                **1.** 题目内容
+                **1.** 题目内容（X分）
                 - A. 选项A
                 - B. 选项B
                 - C. 选项C
@@ -375,7 +539,7 @@ public class ExamGenerationApplicationService {
                 
                 ## 二、多选题（每题 X 分，共 X 分）
                 
-                **X.** 题目内容
+                **X.** 题目内容（X分）
                 - A. 选项A
                 - B. 选项B
                 - C. 选项C
@@ -383,19 +547,19 @@ public class ExamGenerationApplicationService {
                 
                 ## 三、判断题（每题 X 分，共 X 分）
                 
-                **X.** 题目内容（    ）
+                **X.** 题目内容（    ）（X分）
                 
                 ## 四、填空题（每题 X 分，共 X 分）
                 
-                **X.** 题目内容，空白处用 ______ 表示。
+                **X.** 题目内容，空白处用 ______ 表示。（X分）
                 
                 ## 五、简答题（每题 X 分，共 X 分）
                 
-                **X.** 题目内容
+                **X.** 题目内容（X分）
                 
                 ## 六、论述题（每题 X 分，共 X 分）
                 
-                **X.** 题目内容
+                **X.** 题目内容（X分）
                 
                 ---
                 
@@ -502,6 +666,14 @@ public class ExamGenerationApplicationService {
             history.setTopic(topic);
             history.setDifficulty(difficulty);
             history.setQuestionConfig(questionConfig);
+            ExamPlan plan = blackboard.getExamPlan();
+            if (plan != null) {
+                try {
+                    history.setExamPlan(objectMapper.writeValueAsString(plan));
+                } catch (Exception pe) {
+                    logger.warn("序列化题型分布方案失败，考试端将回退到试卷解析: {}", pe.getMessage());
+                }
+            }
             history.setExamPaper(blackboard.getExamPaper());
             history.setAnswerKey(blackboard.getAnswerKey());
             history.setDurationMinutes(

@@ -83,6 +83,12 @@ public class ExamGenerationRequest {
      */
     private String schoolLevel;
 
+    /**
+     * 页面确认的题型分布方案（ExamPlan 的 JSON 序列化结果）。
+     * 两步式流程：先由后端 Agent 生成方案，用户在页面调整后回传此字段用于出卷。
+     */
+    private String distribution;
+
     public String getSessionId() {
         return sessionId;
     }
@@ -201,6 +207,14 @@ public class ExamGenerationRequest {
 
     public void setSchoolLevel(String schoolLevel) {
         this.schoolLevel = schoolLevel;
+    }
+
+    public String getDistribution() {
+        return distribution;
+    }
+
+    public void setDistribution(String distribution) {
+        this.distribution = distribution;
     }
 
     /**

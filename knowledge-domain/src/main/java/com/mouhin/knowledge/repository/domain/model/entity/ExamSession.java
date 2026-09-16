@@ -59,6 +59,11 @@ public class ExamSession {
     private String questionsJson;
 
     /**
+     * 题型分布方案（ExamPlan JSON，从出卷历史继承），考试端据此按方案渲染题型与分值
+     */
+    private String examPlan;
+
+    /**
      * 总分
      */
     private Integer totalScore;
@@ -182,6 +187,14 @@ public class ExamSession {
 
     public void setQuestionsJson(String questionsJson) {
         this.questionsJson = questionsJson;
+    }
+
+    public String getExamPlan() {
+        return examPlan;
+    }
+
+    public void setExamPlan(String examPlan) {
+        this.examPlan = examPlan;
     }
 
     public Integer getTotalScore() {
