@@ -40,18 +40,18 @@ public class WrongAnswerController {
     }
 
     /**
-     * 查询错题列表（支持按考生 / 主题 / 题型过滤）
+     * 查询错题列表（支持按考生 / 主题 / 题型过滤 + 分页）
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> listWrongAnswers(
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) String topic,
-            @RequestParam(required = false) String questionType) {
-        List<Map<String, Object>> records = wrongAnswerService.listWrongAnswers(studentId, topic, questionType);
-        return ResponseEntity.ok(Map.of(
-                "records", records,
-                "total", records.size()
-        ));
+            @RequestParam(required = false) String questionType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Map<String, Object> result = wrongAnswerService.pageWrongAnswers(
+                studentId, topic, questionType, page, size);
+        return ResponseEntity.ok(result);
     }
 
     /**

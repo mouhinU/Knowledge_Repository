@@ -22,7 +22,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -105,12 +107,13 @@ public class ExamGenerationApplicationService {
      * @param permission       用户权限上下文
      * @param progressCallback 进度回调
      * @param sessionId        会话 ID
+     * @param schoolLevel      学段（PRIMARY / JUNIOR / SENIOR，可空由主题识别）
      */
     public void generateExamAsync(String topic, String difficulty, String questionConfig,
                                   Permission permission, BlackboardProgressCallback progressCallback,
-                                  String sessionId, String category) {
-        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}']",
-                sessionId, topic, difficulty, category);
+                                  String sessionId, String category, String schoolLevel) {
+        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}']",
+                sessionId, topic, difficulty, category, schoolLevel);
 
         if (progressCallback != null) {
             progressCallback.onProgress(
@@ -118,7 +121,8 @@ public class ExamGenerationApplicationService {
         }
 
         CompletableFuture.runAsync(
-                () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission, progressCallback, category),
+                () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission,
+                        progressCallback, category, schoolLevel),
                 agentExecutor);
     }
 
@@ -127,7 +131,8 @@ public class ExamGenerationApplicationService {
      */
     private void executeExamPipeline(String sessionId, String topic, String difficulty,
                                      String questionConfig, Permission permission,
-                                     BlackboardProgressCallback callback, String category) {
+                                     BlackboardProgressCallback callback, String category,
+                                     String schoolLevel) {
         BlackboardState blackboard = new BlackboardState(sessionId, topic);
         blackboard.setUserId(permission.getUserId());
         blackboard.setDepartmentId(permission.getDepartmentId());
@@ -135,6 +140,7 @@ public class ExamGenerationApplicationService {
         blackboard.setAdmin(permission.isAdmin());
         blackboard.setExamDifficulty(difficulty);
         blackboard.setExamQuestionConfig(questionConfig);
+        blackboard.setExamSchoolLevel(schoolLevel);
 
         try {
             // 1. 知识库检索
@@ -243,13 +249,43 @@ public class ExamGenerationApplicationService {
     /**
      * 同步生成试卷（单次 LLM 调用，用于 Word 导出）
      */
-    public String generateExam(String topic, String difficulty,
+    public String generateExam(String topic, String difficulty, String schoolLevel,
                                int singleChoice, int multiChoice, int trueFalse,
                                int fillBlank, int shortAnswer, int essay,
                                Permission permission, String category) {
 
-        logger.info("同步生成试卷 [topic='{}', difficulty='{}', total={}]",
-                topic, difficulty, singleChoice + multiChoice + trueFalse + fillBlank + shortAnswer + essay);
+        logger.info("同步生成试卷 [topic='{}', difficulty='{}', level='{}', total={}]",
+                topic, difficulty, schoolLevel,
+                singleChoice + multiChoice + trueFalse + fillBlank + shortAnswer + essay);
+
+        java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+        if (singleChoice > 0) {
+            counts.put("单选题", singleChoice);
+        }
+        if (multiChoice > 0) {
+            counts.put("多选题", multiChoice);
+        }
+        if (trueFalse > 0) {
+            counts.put("判断题", trueFalse);
+        }
+        if (fillBlank > 0) {
+            counts.put("填空题", fillBlank);
+        }
+        if (shortAnswer > 0) {
+            counts.put("简答题", shortAnswer);
+        }
+        if (essay > 0) {
+            counts.put("论述题", essay);
+        }
+
+        com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine.SchoolLevel level =
+                com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine.resolveLevel(topic, schoolLevel);
+        int total = com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
+                .resolveTotalFullMark(topic, level, schoolLevel);
+        String schemeText = com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
+                .renderScheme(
+                        com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine.allocate(total, counts),
+                        topic, level);
 
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
@@ -261,7 +297,7 @@ public class ExamGenerationApplicationService {
         String knowledgeContext = buildKnowledgeContext(results);
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(topic, difficulty, singleChoice, multiChoice,
-                trueFalse, fillBlank, shortAnswer, essay, knowledgeContext);
+                trueFalse, fillBlank, shortAnswer, essay, knowledgeContext, total, schemeText);
 
         ChatRequest request = ChatRequest.builder()
                 .messages(
@@ -323,12 +359,13 @@ public class ExamGenerationApplicationService {
                 4. 难度要符合用户要求
                 5. 每道题目都要有明确的参考答案
                 6. 使用 Markdown 格式输出
+                7. 分值必须严格遵循用户提供的【分值分配方案】：卷面总分等于方案给定的本卷满分，每题分值等于方案给定的小题分值，各题分值之和必须等于总分
 
                 输出格式（严格遵守）：
 
                 # [主题] 考试试卷
 
-                **科目：** [主题]  **难度：** [难度]  **总分：** [自动计算] 分
+                **科目：** [主题]  **难度：** [难度]  **总分：** [取自分值分配方案的本卷满分] 分
 
                 ---
 
@@ -384,14 +421,14 @@ public class ExamGenerationApplicationService {
                 注意：
                 - 只输出用户要求的题型，不要求的题型不要输出
                 - 每种题型的题目数量必须严格匹配用户要求
-                - 分值分配合理，选择题每题2-5分，判断题每题2分，填空题每题2-3分，简答题每题5-10分，论述题每题10-20分
+                - 分值分配合理：每题分值、大题小计与卷面总分必须严格取自【分值分配方案】，各题分值之和等于总分；若方案含合卷说明，按科目分节组织大题
                 """;
     }
 
     private String buildUserPrompt(String topic, String difficulty,
                                    int singleChoice, int multiChoice, int trueFalse,
                                    int fillBlank, int shortAnswer, int essay,
-                                   String knowledgeContext) {
+                                   String knowledgeContext, int total, String schemeText) {
 
         String difficultyLabel = switch (difficulty != null ? difficulty : "MEDIUM") {
             case "EASY" -> "简单（基础概念为主）";
@@ -426,10 +463,13 @@ public class ExamGenerationApplicationService {
                 **难度要求：** %s
                 **题型分布：**
                 %s
+                **目标满分：** %d 分
+                **【分值分配方案（严格遵守）】**
+                %s
                 **知识库参考内容：**
 
                 %s
-                """, topic, difficultyLabel, typeDesc, knowledgeContext);
+                """, topic, difficultyLabel, typeDesc, total, schemeText, knowledgeContext);
     }
 
     private String buildKnowledgeContext(List<SearchResult> results) {
@@ -499,6 +539,27 @@ public class ExamGenerationApplicationService {
      */
     public List<ExamHistory> listHistory(int limit) {
         return examHistoryRepository.listRecent(limit > 0 ? limit : 20);
+    }
+
+    /**
+     * 分页查询出卷历史
+     *
+     * @param page 页码（从 0 开始）
+     * @param size 每页数量
+     * @return 分页结果（records / total / page / size）
+     */
+    public Map<String, Object> pageHistory(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = size > 0 ? size : 10;
+        int offset = safePage * safeSize;
+        List<ExamHistory> records = examHistoryRepository.listPage(safeSize, offset);
+        long total = examHistoryRepository.countAll();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("records", records);
+        result.put("total", total);
+        result.put("page", safePage);
+        result.put("size", safeSize);
+        return result;
     }
 
     /**

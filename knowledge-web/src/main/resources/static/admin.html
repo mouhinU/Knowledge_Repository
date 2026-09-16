@@ -392,9 +392,6 @@
             <div class="nav-item" onclick="showSection('exam-review')">
                 <span class="nav-icon">&#128221;</span> 成绩复核
             </div>
-            <div class="nav-item" onclick="showSection('error-book')">
-                <span class="nav-icon">&#10060;</span> 错题本
-            </div>
             <div class="nav-item" onclick="showSection('users')">
                 <span class="nav-icon">&#9679;</span> 用户权限
             </div>
@@ -690,6 +687,15 @@
                                 <option value="HARD">困难（综合分析）</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="form-label">学段（满分规则）</label>
+                            <select class="form-input" id="exam-school-level">
+                                <option value="" selected>自动识别</option>
+                                <option value="PRIMARY">小学（各科 100 分）</option>
+                                <option value="JUNIOR">初中（语数外 120 等）</option>
+                                <option value="SENIOR">高中（语数外 150 等）</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div style="margin-top:16px">
@@ -944,6 +950,51 @@
                             <tr><td colspan="6" style="text-align:center;color:var(--text-light)">加载中...</td></tr>
                         </tbody>
                     </table>
+                    <div id="exam-history-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
+                </div>
+
+                <!-- 错题库 -->
+                <div class="card" style="margin-top:20px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <div class="card-title" style="margin:0">错题库</div>
+                        <div style="font-size:12px;color:var(--text-light)">收集考生错题，支持筛选、分页与 AI 总结</div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+                        <div style="flex:0 0 180px">
+                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">考生</label>
+                            <select id="wb-student" class="form-input"><option value="">全部考生</option></select>
+                        </div>
+                        <div style="flex:1;min-width:160px">
+                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">主题关键词</label>
+                            <input type="text" id="wb-topic" class="form-input" placeholder="搜索考试主题...">
+                        </div>
+                        <div style="flex:0 0 140px">
+                            <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">题型</label>
+                            <select id="wb-type" class="form-input">
+                                <option value="">全部题型</option>
+                                <option value="SINGLE_CHOICE">单选题</option>
+                                <option value="MULTI_CHOICE">多选题</option>
+                                <option value="TRUE_FALSE">判断题</option>
+                                <option value="FILL_BLANK">填空题</option>
+                                <option value="SHORT_ANSWER">简答题</option>
+                                <option value="ESSAY">论述题</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="loadWrongAnswers(0)" style="height:36px">&#128269; 查询</button>
+                        <button class="btn btn-outline btn-sm" onclick="generateAiSummary()" style="height:36px">&#9889; AI 总结</button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div id="wb-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+                    </div>
+
+                    <!-- Wrong Answers List -->
+                    <div id="wb-list">
+                        <div style="text-align:center;color:var(--text-light);padding:32px">加载错题数据...</div>
+                    </div>
+                    <div id="wb-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px"></div>
                 </div>
             </div>
             <div id="history-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;justify-content:center;align-items:center" onclick="if(event.target===this)closeHistoryModal()">
@@ -1031,50 +1082,6 @@
                     <button class="btn btn-primary btn-sm" onclick="updateSessionDuration()">设置</button>
                 </div>
                 <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">留空时长或设为 0 表示不限时。仅对 IN_PROGRESS 状态的场次有效。</p>
-            </div>
-        </div>
-
-        <!-- Error Book (错题本) -->
-        <div id="section-error-book" class="section">
-            <div class="page-header">
-                <h2>错题本</h2><p>收集和分析考生错题，AI 智能总结薄弱环节</p>
-            </div>
-
-            <!-- Filter Bar -->
-            <div class="card" style="margin-bottom:16px">
-                <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-                    <div style="flex:0 0 180px">
-                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">考生</label>
-                        <select id="wb-student" class="input"><option value="">全部考生</option></select>
-                    </div>
-                    <div style="flex:1;min-width:160px">
-                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">主题关键词</label>
-                        <input type="text" id="wb-topic" class="input" placeholder="搜索考试主题...">
-                    </div>
-                    <div style="flex:0 0 140px">
-                        <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px">题型</label>
-                        <select id="wb-type" class="input">
-                            <option value="">全部题型</option>
-                            <option value="SINGLE_CHOICE">单选题</option>
-                            <option value="MULTI_CHOICE">多选题</option>
-                            <option value="TRUE_FALSE">判断题</option>
-                            <option value="FILL_BLANK">填空题</option>
-                            <option value="SHORT_ANSWER">简答题</option>
-                            <option value="ESSAY">论述题</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary btn-sm" onclick="loadWrongAnswers()" style="height:36px">&#128269; 查询</button>
-                    <button class="btn btn-secondary btn-sm" onclick="generateAiSummary()" style="height:36px">&#9889; AI 总结</button>
-                </div>
-            </div>
-
-            <!-- Stats Cards -->
-            <div id="wb-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
-            </div>
-
-            <!-- Wrong Answers List -->
-            <div id="wb-list">
-                <div style="text-align:center;color:var(--text-light);padding:40px">选择筛选条件后点击"查询"加载错题</div>
             </div>
         </div>
 
@@ -1558,7 +1565,6 @@
         if (name === 'system') loadSystemStatus();
         if (name === 'ai-lab') { loadWritingHistory(); loadExamHistory(); }
         if (name === 'exam-review') showExamReview();
-        if (name === 'error-book') initErrorBook();
     }
 
     function switchLabTab(tabName) {
@@ -1573,6 +1579,8 @@
         } else if (tabName === 'exam') {
             tabs[1].classList.add('active');
             document.getElementById('lab-panel-exam').classList.add('active');
+            loadExamHistory();
+            initErrorBook();
         }
     }
 
@@ -2819,13 +2827,54 @@
 
     // ==================== Exam History ====================
 
-    async function loadExamHistory() {
+    /**
+     * 通用分页器渲染
+     * @param containerId 容器元素 id
+     * @param page        当前页（从 0 开始）
+     * @param size        每页数量
+     * @param total       总记录数
+     * @param gotoFnName  翻页调用的全局函数名，签名为 fn(page)
+     */
+    function renderPager(containerId, page, size, total, gotoFnName) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        const totalPages = Math.max(1, Math.ceil(total / size));
+        const cur = Math.min(page, totalPages - 1);
+        const from = total === 0 ? 0 : cur * size + 1;
+        const to = Math.min(total, (cur + 1) * size);
+        const btnStyle = 'padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:13px';
+        const disStyle = btnStyle + ';opacity:.45;cursor:not-allowed';
+        el.innerHTML =
+            '<span style="font-size:12px;color:var(--text-light)">共 ' + total + ' 条 · 第 ' + (cur + 1) + '/' + totalPages + ' 页' +
+            (total > 0 ? '（' + from + '-' + to + '）' : '') + '</span>' +
+            '<span style="display:flex;gap:8px">' +
+            '<button style="' + (cur <= 0 ? disStyle : btnStyle) + '" ' +
+            (cur <= 0 ? 'disabled' : 'onclick="' + gotoFnName + '(' + (cur - 1) + ')"') + '>上一页</button>' +
+            '<button style="' + (cur >= totalPages - 1 ? disStyle : btnStyle) + '" ' +
+            (cur >= totalPages - 1 ? 'disabled' : 'onclick="' + gotoFnName + '(' + (cur + 1) + ')"') + '>下一页</button>' +
+            '</span>';
+    }
+
+    const EXAM_HISTORY_SIZE = 10;
+    let examHistoryPage = 0;
+
+    function goExamHistoryPage(p) {
+        loadExamHistory(p);
+    }
+
+    async function loadExamHistory(page) {
+        if (page == null) page = examHistoryPage;
+        examHistoryPage = page;
         const tbody = document.getElementById('exam-history-list');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:24px">加载中...</td></tr>';
         try {
-            const res = await fetch(API + '/api/agent/exam/history?limit=50');
-            const list = await res.json();
+            const res = await fetch(API + '/api/agent/exam/history/page?page=' + page + '&size=' + EXAM_HISTORY_SIZE);
+            const data = await res.json();
+            const list = data.records || [];
+            const total = data.total || 0;
             if (!list.length) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:24px">暂无出卷记录</td></tr>';
+                renderPager('exam-history-pager', page, EXAM_HISTORY_SIZE, total, 'goExamHistoryPage');
                 return;
             }
             const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
@@ -2848,6 +2897,7 @@
                     </td>
                 </tr>`;
             }).join('');
+            renderPager('exam-history-pager', page, EXAM_HISTORY_SIZE, total, 'goExamHistoryPage');
         } catch (e) {
             console.error('加载出卷历史失败', e);
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light)">加载失败</td></tr>';
@@ -3109,6 +3159,7 @@
         _lastExamRequest = {
             topic: topic,
             difficulty: document.getElementById('exam-difficulty').value,
+            schoolLevel: document.getElementById('exam-school-level').value || null,
             singleChoiceCount: singleChoice,
             multiChoiceCount: multiChoice,
             trueFalseCount: trueFalse,
@@ -3248,7 +3299,7 @@
             btn.disabled = false;
             btn.textContent = '生成试卷';
             toast('试卷生成完成', 'success');
-            loadExamHistory();
+            loadExamHistory(0);
         });
 
         // ERROR 事件
@@ -3816,10 +3867,13 @@
         currentReviewSessionId = null;
     }
 
-    // ==================== Error Book (错题本) ====================
+    // ==================== 错题库（AI 出卷 Tab 内） ====================
 
     let wbData = [];
     let wbStudentLoaded = false;
+    const WB_SIZE = 10;
+    let wbPage = 0;
+    let wbTotal = 0;
 
     const QUESTION_TYPE_LABELS = {
         'SINGLE_CHOICE': '单选', 'MULTI_CHOICE': '多选', 'TRUE_FALSE': '判断',
@@ -3832,7 +3886,7 @@
             loadStudentOptions();
             wbStudentLoaded = true;
         }
-        loadWrongAnswers();
+        loadWrongAnswers(0);
     }
 
     async function loadStudentOptions() {
@@ -3853,7 +3907,13 @@
         }
     }
 
-    async function loadWrongAnswers() {
+    function goWbPage(p) {
+        loadWrongAnswers(p);
+    }
+
+    async function loadWrongAnswers(page) {
+        if (page == null) page = wbPage;
+        wbPage = page;
         const studentId = document.getElementById('wb-student').value;
         const topic = document.getElementById('wb-topic').value.trim();
         const questionType = document.getElementById('wb-type').value;
@@ -3862,45 +3922,42 @@
         if (studentId) params.set('studentId', studentId);
         if (topic) params.set('topic', topic);
         if (questionType) params.set('questionType', questionType);
+        params.set('page', page);
+        params.set('size', WB_SIZE);
 
-        document.getElementById('wb-list').innerHTML = '<div class="loading">加载错题数据...</div>';
+        document.getElementById('wb-list').innerHTML = '<div class="loading" style="text-align:center;padding:32px">加载错题数据...</div>';
         document.getElementById('wb-stats').innerHTML = '';
+        document.getElementById('wb-pager').innerHTML = '';
 
         try {
             const res = await fetch(API + '/api/admin/wrong-answers?' + params.toString());
             if (!res.ok) throw new Error('查询失败');
             const data = await res.json();
             wbData = data.records || [];
-            renderWrongAnswerStats(wbData);
+            wbTotal = data.total || 0;
+            renderWrongAnswerStats(data.stats || {});
             renderWrongAnswerList(wbData);
+            renderPager('wb-pager', page, WB_SIZE, wbTotal, 'goWbPage');
         } catch (e) {
             document.getElementById('wb-list').innerHTML = '<div style="text-align:center;color:var(--danger);padding:40px">' + esc(e.message) + '</div>';
         }
     }
 
-    function renderWrongAnswerStats(items) {
+    function renderWrongAnswerStats(stats) {
         const statsEl = document.getElementById('wb-stats');
-        if (items.length === 0) {
+        const totalCount = stats.totalCount || 0;
+        if (totalCount === 0) {
             statsEl.innerHTML = '';
             return;
         }
-
-        const totalCount = items.length;
-        const topics = new Set(items.map(i => i.topic));
-        const students = new Set(items.map(i => i.studentId));
-        const typeCounts = {};
-        items.forEach(i => { typeCounts[i.questionType] = (typeCounts[i.questionType] || 0) + 1; });
-        const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
-
-        const avgScoreRate = items.reduce((sum, i) => {
-            return sum + (i.maxScore > 0 ? i.effectiveScore / i.maxScore : 0);
-        }, 0) / totalCount;
+        const topType = stats.topType ? (QUESTION_TYPE_LABELS[stats.topType] || stats.topType) : '-';
+        const avgScoreRate = stats.avgScoreRate || 0;
 
         statsEl.innerHTML = `
             <div class="stat-card"><div class="stat-value" style="color:var(--danger)">${totalCount}</div><div class="stat-label">错题总数</div></div>
-            <div class="stat-card"><div class="stat-value">${topics.size}</div><div class="stat-label">涉及主题</div></div>
-            <div class="stat-card"><div class="stat-value">${students.size}</div><div class="stat-label">涉及考生</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">${topType ? QUESTION_TYPE_LABELS[topType[0]] || topType[0] : '-'}</div><div class="stat-label">最多错题题型</div></div>
+            <div class="stat-card"><div class="stat-value">${stats.topicCount || 0}</div><div class="stat-label">涉及主题</div></div>
+            <div class="stat-card"><div class="stat-value">${stats.studentCount || 0}</div><div class="stat-label">涉及考生</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">${topType}</div><div class="stat-label">最多错题题型</div></div>
             <div class="stat-card"><div class="stat-value" style="color:${avgScoreRate < 0.3 ? 'var(--danger)' : 'var(--warning)'}">${Math.round(avgScoreRate * 100)}%</div><div class="stat-label">平均得分率</div></div>
         `;
     }
@@ -3927,12 +3984,14 @@
                     if (Array.isArray(options)) {
                         optionsHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;font-size:13px">';
                         options.forEach(opt => {
-                            const isCorrect = item.correctAnswer && opt.label === item.correctAnswer;
-                            const isStudentPick = item.studentAnswer && opt.label === item.studentAnswer;
+                            const optKey = opt.key != null ? opt.key : opt.label;
+                            const optText = opt.value != null ? opt.value : opt.text;
+                            const isCorrect = item.correctAnswer && optKey === item.correctAnswer;
+                            const isStudentPick = item.studentAnswer && optKey === item.studentAnswer;
                             let style = 'padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px';
                             if (isCorrect) style += ';background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:600';
                             else if (isStudentPick) style += ';background:#ffebee;border-color:#f44336;color:#c62828;font-weight:600';
-                            optionsHtml += `<span style="${style}">${esc(opt.label)}. ${esc(opt.text)}</span>`;
+                            optionsHtml += `<span style="${style}">${esc(optKey)}. ${esc(optText)}</span>`;
                         });
                         optionsHtml += '</div>';
                     }
@@ -3966,6 +4025,12 @@
                         <div style="font-size:13px">${esc(item.correctAnswer || '（无标准答案）')}</div>
                     </div>
                 </div>
+                ${(item.analysis || item.scoringCriteria) ? `
+                <details style="background:#f0f7ff;border:1px solid #d6e9ff;border-radius:8px;padding:8px 10px;margin-bottom:10px">
+                    <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);user-select:none">解析与评分标准</summary>
+                    ${item.analysis ? `<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:8px 0 2px">解析</div><div style="font-size:13px;line-height:1.6;white-space:pre-line;color:var(--text-primary)">${esc(item.analysis)}</div>` : ''}
+                    ${item.scoringCriteria ? `<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:8px 0 2px">评分标准</div><div style="font-size:13px;line-height:1.6;white-space:pre-line;color:var(--text-primary)">${esc(item.scoringCriteria)}</div>` : ''}
+                </details>` : ''}
                 ${item.aiFeedback ? `<div style="padding:10px;background:#f5f5f5;border-radius:8px;font-size:13px;color:var(--text-secondary)"><span style="font-weight:600;color:var(--text-primary)">AI 反馈：</span>${esc(item.aiFeedback)}</div>` : ''}
                 <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-light)">
                     <span>考生：${esc(item.studentName)}</span>
@@ -3978,8 +4043,8 @@
     }
 
     async function generateAiSummary() {
-        if (wbData.length === 0) {
-            toast('请先查询错题数据', 'error');
+        if (wbTotal === 0) {
+            toast('暂无错题数据可分析', 'error');
             return;
         }
 
@@ -4015,23 +4080,6 @@
 
     function closeWbSummaryModal() {
         document.getElementById('wb-summary-modal').style.display = 'none';
-    }
-
-    function renderMarkdown(text) {
-        if (!text) return '';
-        let html = esc(text);
-        // Headers
-        html = html.replace(/^### (.+)$/gm, '<h4 style="margin:12px 0 6px">$1</h4>');
-        html = html.replace(/^## (.+)$/gm, '<h3 style="margin:16px 0 8px">$1</h3>');
-        html = html.replace(/^# (.+)$/gm, '<h2 style="margin:20px 0 10px">$1</h2>');
-        // Bold
-        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        // Lists
-        html = html.replace(/^\d+\. (.+)$/gm, '<div style="padding:2px 0 2px 16px">$1</div>');
-        html = html.replace(/^- (.+)$/gm, '<div style="padding:2px 0 2px 16px">&#8226; $1</div>');
-        // Line breaks
-        html = html.replace(/\n/g, '<br>');
-        return html;
     }
 
     // Init

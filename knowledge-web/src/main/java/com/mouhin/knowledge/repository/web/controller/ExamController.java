@@ -107,7 +107,8 @@ public class ExamController {
                 permission,
                 progressCallback,
                 sessionId,
-                request.getCategory());
+                request.getCategory(),
+                request.getSchoolLevel());
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
@@ -158,6 +159,7 @@ public class ExamController {
         String examPaper = examGenerationService.generateExam(
                 request.getTopic(),
                 request.getDifficulty(),
+                request.getSchoolLevel(),
                 request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
                 request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
                 request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
@@ -198,6 +200,7 @@ public class ExamController {
         String examPaper = examGenerationService.generateExam(
                 request.getTopic(),
                 request.getDifficulty(),
+                request.getSchoolLevel(),
                 request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
                 request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
                 request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
@@ -253,6 +256,20 @@ public class ExamController {
             @RequestParam(defaultValue = "20") int limit) {
         List<ExamHistory> history = examGenerationService.listHistory(limit);
         return ResponseEntity.ok(history);
+    }
+
+    /**
+     * 分页查询出卷历史列表
+     *
+     * @param page 页码（从 0 开始），默认 0
+     * @param size 每页数量，默认 10
+     * @return 分页结果（records / total / page / size）
+     */
+    @GetMapping("/exam/history/page")
+    public ResponseEntity<Map<String, Object>> pageExamHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(examGenerationService.pageHistory(page, size));
     }
 
     /**

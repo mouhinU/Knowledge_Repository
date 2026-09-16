@@ -383,21 +383,27 @@ public class ExamGradingApplicationService {
                 .toUpperCase();
     }
 
+    /** 题号标记（行首）：**1. 或 1. 或 1、 */
+    private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})[.、．]\\s*");
+
+    /** 题号标记（标题）：第1题 / 第 1 题 */
+    private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
+
+    /** 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容 */
+    private static final Pattern ANSWER_LINE = Pattern.compile(
+            "(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
+
     /**
-     * 从标准答案 Markdown 中解析每道题的正确答案
+     * 从标准答案 Markdown 中解析每道题的正确答案。
      * <p>
-     * 答案格式示例：
-     * <pre>
-     * **1. 答案：B**
-     * **解析** ...
-     *
-     * **6. 答案：AC**
-     *
-     * **9. 答案：正确**
-     *
-     * **14. 答案：**
-     * （1）3×7=**21**
-     * </pre>
+     * 兼容两种主流格式：
+     * <ul>
+     *     <li>行内格式：{@code **1. 答案：B**}</li>
+     *     <li>分块格式：{@code ### 第1题 ... **标准答案：B**}</li>
+     * </ul>
+     * 对于填空 / 论述题，若 {@code 答案：} 后为空，则向下收集内容行直到遇到
+     * {@code 解析} 或下一题。
+     * </p>
      *
      * @param answerKey 标准答案 Markdown
      * @return 题号 → 答案 的映射
@@ -408,36 +414,41 @@ public class ExamGradingApplicationService {
             return result;
         }
 
-        // 匹配题号：**1. 或 **1. 答案：...
-        Pattern questionPattern = Pattern.compile(
-                "\\*{0,2}(\\d+)[.、．]\\s*");
-
         String[] lines = answerKey.split("\\n");
-        List<int[]> questionPositions = new java.util.ArrayList<>();
+        Integer currentQ = null;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
-            Matcher m = questionPattern.matcher(line);
-            if (m.find() && m.start() < 5) {
-                int qNum = Integer.parseInt(m.group(1));
-                questionPositions.add(new int[]{i, qNum});
-            }
-        }
-
-        for (int i = 0; i < questionPositions.size(); i++) {
-            int lineIdx = questionPositions.get(i)[0];
-            int qNum = questionPositions.get(i)[1];
-            int endLine = (i + 1 < questionPositions.size())
-                    ? questionPositions.get(i + 1)[0] : lines.length;
-
-            StringBuilder block = new StringBuilder();
-            for (int j = lineIdx; j < endLine; j++) {
-                block.append(lines[j]).append("\n");
+            if (line.isEmpty()) {
+                continue;
             }
 
-            String extracted = extractAnswerFromBlock(block.toString(), lines[lineIdx]);
-            if (extracted != null && !extracted.isBlank()) {
-                result.put(qNum, extracted.trim());
+            // 1. 识别题号：优先行内 **N.，其次标题 第N题
+            Integer detected = null;
+            Matcher inline = QNUM_INLINE.matcher(line);
+            if (inline.find()) {
+                detected = Integer.parseInt(inline.group(1));
+            } else {
+                Matcher header = QNUM_HEADER.matcher(line);
+                if (header.find()) {
+                    detected = Integer.parseInt(header.group(1));
+                }
+            }
+            if (detected != null) {
+                currentQ = detected;
+            }
+
+            // 2. 识别答案行
+            Matcher am = ANSWER_LINE.matcher(line);
+            if (am.find() && currentQ != null && !result.containsKey(currentQ)) {
+                String value = am.group(1).replaceAll("\\*+", "").trim();
+                // 行内没有答案内容（如填空/论述题），向下收集内容行
+                if (value.isEmpty()) {
+                    value = collectAnswerBody(lines, i + 1);
+                }
+                if (!value.isEmpty()) {
+                    result.put(currentQ, value);
+                }
             }
         }
 
@@ -446,47 +457,26 @@ public class ExamGradingApplicationService {
     }
 
     /**
-     * 从题目答案块中提取答案内容
+     * 从给定行开始向下收集答案正文，直到遇到"解析"或下一题标记。
      */
-    private String extractAnswerFromBlock(String block, String firstLine) {
-        // 尝试从第一行提取 **N. 答案：X** 格式
-        Pattern inlinePattern = Pattern.compile(
-                "答案[：:]\\s*([A-Da-d正确错误]+)\\s*\\*{0,2}");
-        Matcher m = inlinePattern.matcher(firstLine);
-        if (m.find()) {
-            return m.group(1).trim();
-        }
-
-        // 尝试匹配 **答案** 行
-        String[] lines = block.split("\\n");
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].replaceAll("\\*{1,2}", "").trim();
-            if (line.startsWith("答案") && (line.contains("：") || line.contains(":"))) {
-                String afterColon = line.replaceFirst("答案[：:]", "").trim();
-                if (!afterColon.isEmpty()) {
-                    return afterColon;
-                }
-                // 答案在第一行冒号后为空，取后续内容
-                StringBuilder sb = new StringBuilder();
-                for (int j = i + 1; j < lines.length; j++) {
-                    String nextLine = lines[j].trim();
-                    if (nextLine.replaceAll("\\*{1,2}", "").trim().startsWith("解析")) {
-                        break;
-                    }
-                    if (nextLine.isEmpty()) {
-                        continue;
-                    }
-                    if (sb.length() > 0) {
-                        sb.append("\n");
-                    }
-                    sb.append(nextLine);
-                }
-                if (sb.length() > 0) {
-                    return sb.toString().trim();
-                }
+    private String collectAnswerBody(String[] lines, int start) {
+        StringBuilder sb = new StringBuilder();
+        for (int j = start; j < lines.length; j++) {
+            String line = lines[j].trim();
+            if (line.isEmpty()) {
+                continue;
             }
+            String clean = line.replaceAll("\\*+", "").trim();
+            if (clean.startsWith("解析") || clean.startsWith("评分标准")
+                    || QNUM_HEADER.matcher(clean).find()
+                    || QNUM_INLINE.matcher(clean).find()) {
+                break;
+            }
+            if (sb.length() > 0) {
+                sb.append(" ");
+            }
+            sb.append(clean);
         }
-
-        return null;
+        return sb.toString().trim();
     }
 }

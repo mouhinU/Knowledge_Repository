@@ -65,6 +65,7 @@ public class ExamTakingController {
                     "questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]",
                     "totalScore", session.getTotalScore(),
                     "durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0,
+                    "validation", examTakingService.validateReport(session.getQuestionsJson()).toMap(),
                     "startTime", session.getStartTime().toString()
             ));
         } catch (IllegalArgumentException e) {

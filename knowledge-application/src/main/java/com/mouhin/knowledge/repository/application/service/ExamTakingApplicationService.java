@@ -1,6 +1,9 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.mouhin.knowledge.repository.application.agent.ExamContentRenderAgent;
+import com.mouhin.knowledge.repository.application.agent.ExamContentValidatorAgent;
+import com.mouhin.knowledge.repository.application.agent.PaperValidationReport;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
@@ -40,15 +43,21 @@ public class ExamTakingApplicationService {
     private final ExamAnswerRepository examAnswerRepository;
     private final ExamHistoryRepository examHistoryRepository;
     private final StudentRepository studentRepository;
+    private final ExamContentRenderAgent contentRenderAgent;
+    private final ExamContentValidatorAgent contentValidatorAgent;
 
     public ExamTakingApplicationService(ExamSessionRepository examSessionRepository,
                                         ExamAnswerRepository examAnswerRepository,
                                         ExamHistoryRepository examHistoryRepository,
-                                        StudentRepository studentRepository) {
+                                        StudentRepository studentRepository,
+                                        ExamContentRenderAgent contentRenderAgent,
+                                        ExamContentValidatorAgent contentValidatorAgent) {
         this.examSessionRepository = examSessionRepository;
         this.examAnswerRepository = examAnswerRepository;
         this.examHistoryRepository = examHistoryRepository;
         this.studentRepository = studentRepository;
+        this.contentRenderAgent = contentRenderAgent;
+        this.contentValidatorAgent = contentValidatorAgent;
     }
 
     /**
@@ -77,7 +86,9 @@ public class ExamTakingApplicationService {
         session.setDifficulty(history.getDifficulty());
         session.setExamPaper(history.getExamPaper());
         session.setAnswerKey(history.getAnswerKey());
-        session.setQuestionsJson(ExamPaperParser.parseToJson(history.getExamPaper()));
+        String rendered = contentRenderAgent.render(history.getExamPaper(), null);
+        validateOrThrow(rendered);
+        session.setQuestionsJson(rendered);
         session.setTotalScore(100);
         session.setDurationMinutes(history.getDurationMinutes());
         session.setStatus("IN_PROGRESS");
@@ -113,7 +124,9 @@ public class ExamTakingApplicationService {
         session.setDifficulty(difficulty);
         session.setExamPaper(examPaper);
         session.setAnswerKey(answerKey);
-        session.setQuestionsJson(ExamPaperParser.parseToJson(examPaper));
+        String rendered = contentRenderAgent.render(examPaper, null);
+        validateOrThrow(rendered);
+        session.setQuestionsJson(rendered);
         session.setTotalScore(100);
         session.setDurationMinutes(ExamPaperParser.parseDuration(examPaper));
         session.setStatus("IN_PROGRESS");
@@ -125,6 +138,28 @@ public class ExamTakingApplicationService {
         logger.info("考生开始考试（即时试卷）[student={}, session={}]",
                 student.getId(), session.getSessionKey());
         return session;
+    }
+
+    /**
+     * 校验已渲染的题目 JSON，返回校验报告（供前端展示非阻断性提示）
+     *
+     * @param questionsJson 渲染后的题目 JSON
+     * @return 校验报告
+     */
+    public PaperValidationReport validateReport(String questionsJson) {
+        return contentValidatorAgent.validate(questionsJson);
+    }
+
+    /**
+     * 渲染后立即校验，存在阻断性错误时抛出异常阻止开考
+     */
+    private void validateOrThrow(String questionsJson) {
+        PaperValidationReport report = contentValidatorAgent.validate(questionsJson);
+        if (!report.pass()) {
+            String detail = String.join("；", report.errors());
+            logger.warn("试卷内容校验未通过，阻止开考：{}", detail);
+            throw new IllegalArgumentException("试卷内容校验未通过：" + detail);
+        }
     }
 
     /**

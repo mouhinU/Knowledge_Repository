@@ -73,6 +73,12 @@ public class BlackboardState {
     /** 题型配置描述（JSON 格式：各题型数量） */
     private String examQuestionConfig;
 
+    /** 学段编码（PRIMARY / JUNIOR / SENIOR，用于分数规则） */
+    private String examSchoolLevel;
+
+    /** 目标满分（按学段+科目分数规则计算） */
+    private int examTotalScore;
+
     /** 分值分配方案（各题型每题分值、小计、总分） */
     private String scoringScheme;
 
@@ -251,6 +257,24 @@ public class BlackboardState {
 
     public void setExamQuestionConfig(String examQuestionConfig) {
         this.examQuestionConfig = examQuestionConfig;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getExamSchoolLevel() {
+        return examSchoolLevel;
+    }
+
+    public void setExamSchoolLevel(String examSchoolLevel) {
+        this.examSchoolLevel = examSchoolLevel;
+        this.updatedAt = Instant.now();
+    }
+
+    public int getExamTotalScore() {
+        return examTotalScore;
+    }
+
+    public void setExamTotalScore(int examTotalScore) {
+        this.examTotalScore = examTotalScore;
         this.updatedAt = Instant.now();
     }
 

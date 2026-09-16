@@ -161,6 +161,12 @@ public final class ExamPaperParser {
                         break;
                     }
 
+                    // 遇到水平分隔线（--- / *** / ___），视为题目边界，停止收集
+                    if (isHorizontalRule(nextLine)) {
+                        i++;
+                        break;
+                    }
+
                     // 检测是否是选项行（以 A/B/C/D 开头）
                     if (startsOption(nextLine)) {
                         inOptions = true;
@@ -197,6 +203,13 @@ public final class ExamPaperParser {
      */
     private static boolean isQuestionStart(String line) {
         return line.matches("^\\*{0,2}\\d+[.、．]\\s*.+");
+    }
+
+    /**
+     * 判断一行是否为水平分隔线（--- / *** / ___）
+     */
+    private static boolean isHorizontalRule(String line) {
+        return line != null && line.trim().matches("^[-*_]{3,}$");
     }
 
     /**

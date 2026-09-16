@@ -325,6 +325,181 @@ body {
     font-size: 22px;
 }
 
+/* ===== Exam Home Page Menu (Tabs) ===== */
+.page-menu {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--gray-200);
+    margin-bottom: 24px;
+}
+
+.page-menu-item {
+    appearance: none;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gray-500);
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.page-menu-item:hover { color: var(--primary); }
+
+.page-menu-item.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+.page-menu-item .menu-count {
+    background: var(--gray-100);
+    color: var(--gray-600);
+    border-radius: 999px;
+    font-size: 12px;
+    padding: 1px 8px;
+    font-weight: 600;
+}
+
+.page-menu-item.active .menu-count {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.page-panel { display: none; }
+.page-panel.active { display: block; }
+
+/* ===== Student Error Book ===== */
+.wb-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.wb-stat-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    text-align: center;
+}
+
+.wb-stat-value { font-size: 24px; font-weight: 700; color: var(--gray-800); }
+.wb-stat-label { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+
+.wb-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-left: 4px solid var(--warning);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+}
+
+.wb-card .wb-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.wb-card .wb-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.wb-badge {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.wb-badge.type { background: var(--warning-bg); color: var(--warning); }
+.wb-badge.topic { background: var(--blue-bg); color: var(--blue); }
+.wb-badge.diff { background: var(--purple-bg); color: var(--purple); }
+
+.wb-score { text-align: right; font-weight: 700; }
+.wb-question { font-size: 14px; line-height: 1.6; color: var(--gray-700); margin-bottom: 12px; white-space: pre-wrap; }
+
+.wb-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 13px; }
+.wb-option { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-200); font-size: 12px; }
+.wb-option.correct { background: var(--green-bg); border-color: #4caf50; color: #2e7d32; font-weight: 600; }
+.wb-option.wrong { background: var(--danger-bg); border-color: #f44336; color: #c62828; font-weight: 600; }
+
+.wb-answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+.wb-answer { padding: 10px; border-radius: 8px; font-size: 13px; }
+.wb-answer.mine { background: var(--warning-bg); }
+.wb-answer.right { background: var(--green-bg); }
+.wb-answer .wb-answer-label { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.wb-answer.mine .wb-answer-label { color: var(--warning); }
+.wb-answer.right .wb-answer-label { color: var(--green); }
+.wb-feedback { background: var(--gray-50); border-radius: 8px; padding: 10px; font-size: 13px; color: var(--gray-600); margin-bottom: 8px; }
+.wb-explain { background: #f0f7ff; border: 1px solid #d6e9ff; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.wb-explain > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary); user-select: none; }
+.wb-explain-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin: 8px 0 2px; }
+.wb-explain-body { font-size: 13px; color: var(--gray-700, #374151); line-height: 1.6; }
+.wb-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--gray-400); }
+
+/* ===== Pager ===== */
+.pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.pager-info { font-size: 13px; color: var(--gray-500); }
+.pager-btns { display: flex; gap: 8px; }
+.pager-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--gray-700);
+    transition: background 0.15s, border-color 0.15s;
+}
+.pager-btn:hover:not(:disabled) { background: var(--gray-50); border-color: var(--primary-light); }
+.pager-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ===== Paper Prepare Agent Steps ===== */
+.agent-steps {
+    max-width: 460px;
+    margin: 40px auto;
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    box-shadow: var(--shadow);
+}
+.agent-steps .agent-steps-title { font-size: 15px; font-weight: 600; color: var(--gray-700); margin-bottom: 16px; text-align: center; }
+.agent-step { display: flex; align-items: center; gap: 12px; padding: 10px 0; color: var(--gray-400); font-size: 14px; }
+.agent-step .agent-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+    border: 2px solid var(--gray-300);
+}
+.agent-step.active { color: var(--gray-800); font-weight: 500; }
+.agent-step.active .agent-dot { border-color: var(--primary); border-top-color: transparent; animation: agentSpin 0.7s linear infinite; }
+.agent-step.done { color: var(--success); }
+.agent-step.done .agent-dot { background: var(--success); border-color: var(--success); color: #fff; }
+.agent-step .agent-desc { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+@keyframes agentSpin { to { transform: rotate(360deg); } }
+
 /* ===== Exam Cards Grid ===== */
 .exam-grid {
     display: grid;
@@ -1154,11 +1329,21 @@ body {
     </header>
 
     <div class="app-content" id="examListPage">
-        <!-- Available Exams -->
-        <div class="section">
-            <div class="section-title">
-                <span class="icon">&#128218;</span> 可用考试
-            </div>
+        <!-- Page Menu -->
+        <div class="page-menu">
+            <button class="page-menu-item active" data-tab="exams" onclick="switchExamTab('exams')">
+                <span>&#128218;</span> 可用考试
+            </button>
+            <button class="page-menu-item" data-tab="sessions" onclick="switchExamTab('sessions')">
+                <span>&#128203;</span> 我的考试记录
+            </button>
+            <button class="page-menu-item" data-tab="wrongbook" onclick="switchExamTab('wrongbook')">
+                <span>&#10060;</span> 我的错题本
+            </button>
+        </div>
+
+        <!-- Panel: 可用考试 -->
+        <div class="page-panel active" id="panel-exams">
             <div class="exam-grid" id="examGrid">
                 <div class="empty-state">
                     <div class="empty-icon"><div class="loading-spinner"></div></div>
@@ -1167,17 +1352,45 @@ body {
             </div>
         </div>
 
-        <!-- My Exam Sessions -->
-        <div class="section">
-            <div class="section-title">
-                <span class="icon">&#128203;</span> 我的考试记录
-            </div>
+        <!-- Panel: 我的考试记录 -->
+        <div class="page-panel" id="panel-sessions">
             <div class="session-list" id="sessionList">
                 <div class="empty-state">
                     <div class="empty-icon"><div class="loading-spinner"></div></div>
                     <p>加载中...</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Panel: 我的错题本 -->
+        <div class="page-panel" id="panel-wrongbook">
+            <div class="section" style="margin-bottom:16px">
+                <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+                    <div style="flex:1;min-width:160px">
+                        <label style="font-size:13px;color:var(--gray-500);display:block;margin-bottom:4px">主题关键词</label>
+                        <input type="text" id="wbStudentTopic" placeholder="搜索考试主题..."
+                               style="width:100%;padding:8px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit">
+                    </div>
+                    <div style="flex:0 0 150px">
+                        <label style="font-size:13px;color:var(--gray-500);display:block;margin-bottom:4px">题型</label>
+                        <select id="wbStudentType" style="width:100%;padding:8px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit;background:#fff">
+                            <option value="">全部题型</option>
+                            <option value="SINGLE_CHOICE">单选题</option>
+                            <option value="MULTI_CHOICE">多选题</option>
+                            <option value="TRUE_FALSE">判断题</option>
+                            <option value="FILL_BLANK">填空题</option>
+                            <option value="SHORT_ANSWER">简答题</option>
+                            <option value="ESSAY">论述题</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="loadMyWrongAnswers(0)" style="height:38px">&#128269; 查询</button>
+                </div>
+            </div>
+            <div class="wb-stats" id="wbStats"></div>
+            <div id="wbList">
+                <div class="empty-state"><p>加载错题数据...</p></div>
+            </div>
+            <div class="pager" id="wbPager"></div>
         </div>
     </div>
 </div>
@@ -1266,6 +1479,12 @@ let autoSaveInterval = null;
 let autoSubmitTimer = null;
 let currentQuestionIndex = 0;
 let examDurationMinutes = 0;
+
+/* ===== Student Error Book State ===== */
+let wbSize = 10;
+let wbPage = 0;
+let wbTotal = 0;
+let wbLoaded = false;
 
 /* ===== Utility ===== */
 function showToast(message, type) {
@@ -1453,6 +1672,8 @@ function enterApp() {
     document.getElementById('examTakingPage').style.display = 'none';
     document.getElementById('resultsPage').style.display = 'none';
     document.getElementById('headerUserName').textContent = currentUser.displayName || currentUser.username;
+    wbLoaded = false;
+    showExamTab('exams');
     loadExamList();
     loadMySessions();
 }
@@ -1469,8 +1690,34 @@ function backToList() {
     document.getElementById('examTakingPage').style.display = 'none';
     document.getElementById('resultsPage').style.display = 'none';
     document.getElementById('appContainer').style.display = 'block';
+    wbLoaded = false;
+    showExamTab('exams');
     loadExamList();
     loadMySessions();
+}
+
+/* ===== Exam Home Page Menu ===== */
+function switchExamTab(tab) {
+    showExamTab(tab);
+    if (tab === 'exams') {
+        loadExamList();
+    } else if (tab === 'sessions') {
+        loadMySessions();
+    } else if (tab === 'wrongbook') {
+        if (!wbLoaded) {
+            loadMyWrongAnswers(0);
+            wbLoaded = true;
+        }
+    }
+}
+
+function showExamTab(tab) {
+    document.querySelectorAll('.page-menu-item').forEach(function(el) {
+        el.classList.toggle('active', el.getAttribute('data-tab') === tab);
+    });
+    document.querySelectorAll('.page-panel').forEach(function(el) {
+        el.classList.toggle('active', el.id === 'panel-' + tab);
+    });
 }
 
 /* ===== Load Exam List ===== */
@@ -1560,36 +1807,214 @@ function renderSessionList() {
     list.innerHTML = html;
 }
 
+/* ===== Student Error Book ===== */
+var WB_TYPE_LABELS = {
+    'SINGLE_CHOICE': '单选题', 'MULTI_CHOICE': '多选题', 'TRUE_FALSE': '判断题',
+    'FILL_BLANK': '填空题', 'SHORT_ANSWER': '简答题', 'ESSAY': '论述题'
+};
+var WB_DIFF_LABELS = { 'EASY': '简单', 'MEDIUM': '中等', 'HARD': '困难' };
+
+function loadMyWrongAnswers(page) {
+    if (page == null) page = wbPage;
+    wbPage = page;
+    var topicEl = document.getElementById('wbStudentTopic');
+    var typeEl = document.getElementById('wbStudentType');
+    var params = new URLSearchParams();
+    if (topicEl && topicEl.value.trim()) params.set('topic', topicEl.value.trim());
+    if (typeEl && typeEl.value) params.set('questionType', typeEl.value);
+    params.set('page', page);
+    params.set('size', wbSize);
+
+    var listEl = document.getElementById('wbList');
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-icon"><div class="loading-spinner"></div></div><p>加载中...</p></div>';
+    document.getElementById('wbStats').innerHTML = '';
+    document.getElementById('wbPager').innerHTML = '';
+
+    apiRequest('/api/student/wrong-answers?' + params.toString())
+        .then(function(data) {
+            var records = data.records || [];
+            wbTotal = data.total || 0;
+            renderWbStats(data.stats || {});
+            renderWbList(records);
+            renderWbPager(page, wbTotal);
+        })
+        .catch(function(err) {
+            listEl.innerHTML = '<div class="empty-state"><p>加载失败: ' + escapeHtml(err.message) + '</p></div>';
+        });
+}
+
+function goStudentWbPage(p) {
+    loadMyWrongAnswers(p);
+}
+
+function renderWbStats(stats) {
+    var el = document.getElementById('wbStats');
+    var total = stats.totalCount || 0;
+    if (total === 0) { el.innerHTML = ''; return; }
+    var avgRate = Math.round((stats.avgScoreRate || 0) * 100);
+    var topics = stats.topicCount || 0;
+    el.innerHTML =
+        '<div class="wb-stat-card"><div class="wb-stat-value" style="color:var(--danger)">' + total + '</div><div class="wb-stat-label">错题总数</div></div>' +
+        '<div class="wb-stat-card"><div class="wb-stat-value">' + topics + '</div><div class="wb-stat-label">涉及主题</div></div>' +
+        '<div class="wb-stat-card"><div class="wb-stat-value" style="color:' + (avgRate < 30 ? 'var(--danger)' : 'var(--warning)') + '">' + avgRate + '%</div><div class="wb-stat-label">平均得分率</div></div>';
+}
+
+function renderWbList(records) {
+    var listEl = document.getElementById('wbList');
+    if (!records || records.length === 0) {
+        listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9989;</div><p>太棒了，暂无错题</p></div>';
+        return;
+    }
+    var html = '';
+    records.forEach(function(item) {
+        var typeLabel = WB_TYPE_LABELS[item.questionType] || item.questionType || '-';
+        var diffLabel = WB_DIFF_LABELS[item.difficulty] || item.difficulty || '';
+        var isObjective = ['SINGLE_CHOICE', 'MULTI_CHOICE', 'TRUE_FALSE'].indexOf(item.questionType) >= 0;
+        var scoreColor = item.effectiveScore === 0 ? 'var(--danger)' : 'var(--warning)';
+        var scorePercent = item.maxScore > 0 ? Math.round(item.effectiveScore / item.maxScore * 100) : 0;
+        var optionsHtml = '';
+        if (item.optionsJson && isObjective) {
+            try {
+                var options = JSON.parse(item.optionsJson);
+                if (Array.isArray(options) && options.length) {
+                    optionsHtml = '<div class="wb-options">';
+                    options.forEach(function(opt) {
+                        var key = opt.key != null ? opt.key : opt.label;
+                        var val = opt.value != null ? opt.value : opt.text;
+                        var isCorrect = item.correctAnswer && key === item.correctAnswer;
+                        var isMyPick = item.studentAnswer && key === item.studentAnswer && !isCorrect;
+                        var cls = 'wb-option' + (isCorrect ? ' correct' : (isMyPick ? ' wrong' : ''));
+                        optionsHtml += '<span class="' + cls + '">' + escapeHtml(key) + '. ' + escapeHtml(val) + '</span>';
+                    });
+                    optionsHtml += '</div>';
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        var explainHtml = '';
+        if (item.analysis || item.scoringCriteria) {
+            explainHtml += '<details class="wb-explain"' + (item.analysis ? ' open' : '') + '>'
+                + '<summary>解析与评分标准</summary>';
+            if (item.analysis) {
+                explainHtml += '<div class="wb-explain-title">解析</div>'
+                    + '<div class="wb-explain-body" style="white-space:pre-line">' + escapeHtml(item.analysis) + '</div>';
+            }
+            if (item.scoringCriteria) {
+                explainHtml += '<div class="wb-explain-title">评分标准</div>'
+                    + '<div class="wb-explain-body" style="white-space:pre-line">' + escapeHtml(item.scoringCriteria) + '</div>';
+            }
+            explainHtml += '</details>';
+        }
+
+        html += '<div class="wb-card" style="border-left-color:' + scoreColor + '">'
+            + '<div class="wb-head">'
+            + '<div class="wb-tags">'
+            + '<span class="wb-badge type">' + escapeHtml(typeLabel) + '</span>'
+            + '<span class="wb-badge topic">' + escapeHtml(item.topic || '') + '</span>'
+            + (diffLabel ? '<span class="wb-badge diff">' + escapeHtml(diffLabel) + '</span>' : '')
+            + '<span style="font-size:12px;color:var(--gray-500)">第 ' + (item.questionIndex || '-') + ' 题</span>'
+            + '</div>'
+            + '<div class="wb-score" style="color:' + scoreColor + '">' + item.effectiveScore + ' <span style="font-size:13px;color:var(--gray-500);font-weight:400">/ ' + item.maxScore + '分 · 得分率 ' + scorePercent + '%</span></div>'
+            + '</div>'
+            + '<div class="wb-question">' + escapeHtml(item.questionContent || '') + '</div>'
+            + optionsHtml
+            + '<div class="wb-answer-grid">'
+            + '<div class="wb-answer mine"><div class="wb-answer-label">我的答案</div>' + escapeHtml(item.studentAnswer || '（未作答）') + '</div>'
+            + '<div class="wb-answer right"><div class="wb-answer-label">正确答案</div>' + escapeHtml(item.correctAnswer || '（无标准答案）') + '</div>'
+            + '</div>'
+            + (item.aiFeedback ? '<div class="wb-feedback"><strong>AI 反馈：</strong>' + escapeHtml(item.aiFeedback) + '</div>' : '')
+            + explainHtml
+            + '<div class="wb-foot"><span>继续练习，攻克薄弱知识点</span><span>' + formatDateTime(item.submitTime) + '</span></div>'
+            + '</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+function renderWbPager(page, total) {
+    var el = document.getElementById('wbPager');
+    if (!total || total <= wbSize) { el.innerHTML = ''; return; }
+    var totalPages = Math.ceil(total / wbSize);
+    var cur = Math.min(page, totalPages - 1);
+    var from = cur * wbSize + 1;
+    var to = Math.min(total, (cur + 1) * wbSize);
+    el.innerHTML =
+        '<span class="pager-info">共 ' + total + ' 道错题 · 第 ' + (cur + 1) + '/' + totalPages + ' 页（' + from + '-' + to + '）</span>' +
+        '<span class="pager-btns">' +
+        '<button class="pager-btn" ' + (cur <= 0 ? 'disabled' : 'onclick="goStudentWbPage(' + (cur - 1) + ')"') + '>上一页</button>' +
+        '<button class="pager-btn" ' + (cur >= totalPages - 1 ? 'disabled' : 'onclick="goStudentWbPage(' + (cur + 1) + ')"') + '>下一页</button>' +
+        '</span>';
+}
+
 /* ===== Start Exam ===== */
+function renderPrepareSteps(active) {
+    function state(name) {
+        if (active === 'done') return 'done';
+        if (active === 'validate' && name === 'render') return 'done';
+        if (active === name) return 'active';
+        return '';
+    }
+    function dot(s) { return s === 'done' ? '&#10003;' : ''; }
+    var r = state('render'), v = state('validate');
+    return '<div class="agent-steps">'
+        + '<div class="agent-steps-title">正在准备试卷</div>'
+        + '<div class="agent-step ' + r + '"><span class="agent-dot">' + dot(r) + '</span>'
+        + '<div>试卷内容渲染 Agent<div class="agent-desc">结构化解析题目、补齐题号与选项、修复渲染格式</div></div></div>'
+        + '<div class="agent-step ' + v + '"><span class="agent-dot">' + dot(v) + '</span>'
+        + '<div>试卷内容校验 Agent<div class="agent-desc">校验题干完整性、选项数量、题号连续性与分值</div></div></div>'
+        + '</div>';
+}
+
 function startExam(historySessionId) {
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('examTakingPage').style.display = 'block';
-    document.getElementById('examTakingTitle').textContent = '加载中...';
-    document.getElementById('questionArea').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><p>正在加载试卷...</p></div>';
+    document.getElementById('examTakingTitle').textContent = '准备试卷中...';
+    document.getElementById('questionArea').innerHTML = renderPrepareSteps('render');
     document.getElementById('questionNavGrid').innerHTML = '';
 
     apiRequest('/api/exam/start', {
         method: 'POST',
         body: JSON.stringify({ token: token, historySessionId: historySessionId })
     }).then(function(data) {
-        currentSession = data;
-        currentQuestionIndex = 0;
-        currentAnswers = {};
-        document.getElementById('examTakingTitle').textContent = data.topic || '考试进行中';
+        // 渲染完成，进入校验步骤
+        document.getElementById('questionArea').innerHTML = renderPrepareSteps('validate');
 
-        var questions = [];
-        if (data.questionsJson) {
-            if (typeof data.questionsJson === 'string') {
-                questions = JSON.parse(data.questionsJson);
-            } else {
-                questions = data.questionsJson;
+        setTimeout(function() {
+            document.getElementById('questionArea').innerHTML = renderPrepareSteps('done');
+
+            currentSession = data;
+            currentQuestionIndex = 0;
+            currentAnswers = {};
+            document.getElementById('examTakingTitle').textContent = data.topic || '考试进行中';
+
+            var questions = [];
+            if (data.questionsJson) {
+                if (typeof data.questionsJson === 'string') {
+                    questions = JSON.parse(data.questionsJson);
+                } else {
+                    questions = data.questionsJson;
+                }
             }
-        }
-        currentQuestions = questions;
-        renderQuestionNav();
-        renderQuestion(0);
-        startTimer(data.startTime, data.durationMinutes);
-        startAutoSave();
+            currentQuestions = questions;
+
+            // 展示校验结果
+            var val = data.validation;
+            if (val && val.pass === false) {
+                showToast('试卷校验未通过：' + (val.errors || []).join('；'), 'error');
+                backToList();
+                return;
+            }
+            if (val) {
+                showToast('试卷校验通过 · 共 ' + val.questionCount + ' 题 · 总分 ' + val.totalMaxScore, 'success');
+                if (val.warnings && val.warnings.length) {
+                    showToast('提示：' + val.warnings.join('；'), 'info');
+                }
+            }
+
+            renderQuestionNav();
+            renderQuestion(0);
+            startTimer(data.startTime, data.durationMinutes);
+            startAutoSave();
+        }, 600);
     }).catch(function(err) {
         showToast('开始考试失败: ' + err.message, 'error');
         backToList();
@@ -2156,8 +2581,9 @@ function saveAnswers(silent) {
         });
     });
 
-    if (answersList.length === 0 && !silent) {
-        showToast('暂无答案需要保存', 'info');
+    // 空答案列表直接跳过：后端 save 是先删后插，空列表会导致已保存答案被清空
+    if (answersList.length === 0) {
+        if (!silent) showToast('暂无答案需要保存', 'info');
         return;
     }
 

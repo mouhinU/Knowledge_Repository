@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.application.util.AnswerKeyParser;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
@@ -104,6 +105,13 @@ public class WrongAnswerApplicationService {
         Map<Long, ExamSession> sessionMap = sessions.stream()
                 .collect(Collectors.toMap(ExamSession::getId, s -> s));
 
+        // 5.1 预解析各场次的「标准答案与评分标准」，缓存到 sessionId → (题号 → QuestionKey)
+        Map<Long, Map<Integer, AnswerKeyParser.QuestionKey>> answerKeyBySession = new HashMap<>();
+        for (ExamSession session : sessions) {
+            answerKeyBySession.put(session.getId(),
+                    AnswerKeyParser.parse(session.getAnswerKey()));
+        }
+
         // 6. 解析考生名称
         Map<Long, String> studentNames = resolveStudentNames(
                 sessions.stream().map(ExamSession::getStudentId).distinct().toList());
@@ -115,7 +123,10 @@ public class WrongAnswerApplicationService {
             if (session == null) {
                 continue;
             }
-            result.add(buildWrongAnswerMap(answer, session, studentNames));
+            Map<Integer, AnswerKeyParser.QuestionKey> keyMap =
+                    answerKeyBySession.getOrDefault(answer.getSessionId(), Map.of());
+            AnswerKeyParser.QuestionKey key = keyMap.get(answer.getQuestionIndex());
+            result.add(buildWrongAnswerMap(answer, session, studentNames, key));
         }
 
         result.sort(Comparator.comparing(
@@ -127,6 +138,97 @@ public class WrongAnswerApplicationService {
                 studentId, topic, questionType, result.size());
 
         return result;
+    }
+
+    /**
+     * 分页查询错题列表（管理端）
+     *
+     * @param studentId    考生 ID（可选）
+     * @param topic        主题关键词（可选）
+     * @param questionType 题型（可选）
+     * @param page         页码（从 0 开始）
+     * @param size         每页数量
+     * @return 分页结果（records / total / page / size）
+     */
+    public Map<String, Object> pageWrongAnswers(Long studentId, String topic, String questionType,
+                                                 int page, int size) {
+        List<Map<String, Object>> all = listWrongAnswers(studentId, topic, questionType);
+        int safePage = Math.max(page, 0);
+        int safeSize = size > 0 ? size : 10;
+        int from = Math.min(safePage * safeSize, all.size());
+        int to = Math.min(from + safeSize, all.size());
+        List<Map<String, Object>> records = new ArrayList<>(all.subList(from, to));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("records", records);
+        result.put("total", all.size());
+        result.put("page", safePage);
+        result.put("size", safeSize);
+        result.put("stats", buildStats(all));
+        return result;
+    }
+
+    /**
+     * 基于全量错题构建统计概览（错题总数 / 涉及主题 / 涉及考生 / 最多错题题型 / 平均得分率）
+     */
+    private Map<String, Object> buildStats(List<Map<String, Object>> all) {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalCount", all.size());
+        if (all.isEmpty()) {
+            stats.put("topicCount", 0);
+            stats.put("studentCount", 0);
+            stats.put("topType", null);
+            stats.put("avgScoreRate", 0.0);
+            return stats;
+        }
+
+        long topicCount = all.stream()
+                .map(m -> m.get("topic"))
+                .filter(java.util.Objects::nonNull)
+                .distinct().count();
+        long studentCount = all.stream()
+                .map(m -> m.get("studentId"))
+                .filter(java.util.Objects::nonNull)
+                .distinct().count();
+
+        Map<String, Long> typeCounts = new HashMap<>();
+        double rateSum = 0;
+        int rateCount = 0;
+        for (Map<String, Object> m : all) {
+            String type = m.get("questionType") != null ? m.get("questionType").toString() : "UNKNOWN";
+            typeCounts.merge(type, 1L, Long::sum);
+            int maxScore = toInt(m.get("maxScore"), 0);
+            int effScore = toInt(m.get("effectiveScore"), 0);
+            if (maxScore > 0) {
+                rateSum += (double) effScore / maxScore;
+                rateCount++;
+            }
+        }
+        String topType = typeCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+        double avgScoreRate = rateCount > 0 ? rateSum / rateCount : 0;
+
+        stats.put("topicCount", topicCount);
+        stats.put("studentCount", studentCount);
+        stats.put("topType", topType);
+        stats.put("avgScoreRate", Math.round(avgScoreRate * 10000.0) / 10000.0);
+        return stats;
+    }
+
+    private int toInt(Object value, int fallback) {
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        if (value instanceof String s) {
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     /**
@@ -239,7 +341,8 @@ public class WrongAnswerApplicationService {
      * 组装单条错题的返回数据
      */
     private Map<String, Object> buildWrongAnswerMap(ExamAnswer answer, ExamSession session,
-                                                     Map<Long, String> studentNames) {
+                                                     Map<Long, String> studentNames,
+                                                     AnswerKeyParser.QuestionKey key) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("answerId", answer.getId());
         map.put("sessionId", answer.getSessionId());
@@ -254,9 +357,15 @@ public class WrongAnswerApplicationService {
         map.put("optionsJson", answer.getOptionsJson());
         map.put("maxScore", answer.getMaxScore());
         map.put("effectiveScore", answer.getEffectiveScore());
-        map.put("correctAnswer", answer.getCorrectAnswer());
+        String correctAnswer = answer.getCorrectAnswer();
+        if ((correctAnswer == null || correctAnswer.isBlank()) && key != null && key.answer() != null) {
+            correctAnswer = key.answer();
+        }
+        map.put("correctAnswer", correctAnswer);
         map.put("studentAnswer", answer.getStudentAnswer());
         map.put("aiFeedback", answer.getAiFeedback());
+        map.put("analysis", key != null ? key.analysis() : null);
+        map.put("scoringCriteria", key != null ? key.scoringCriteria() : null);
         map.put("correct", answer.getCorrect());
         map.put("submitTime", session.getSubmitTime() != null ? session.getSubmitTime().toString() : null);
         return map;

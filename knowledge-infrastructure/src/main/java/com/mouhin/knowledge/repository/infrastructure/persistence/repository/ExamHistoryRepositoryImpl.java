@@ -64,6 +64,23 @@ public class ExamHistoryRepositoryImpl implements ExamHistoryRepository {
     }
 
     @Override
+    public List<ExamHistory> listPage(int limit, int offset) {
+        int safeLimit = limit > 0 ? limit : 20;
+        int safeOffset = Math.max(offset, 0);
+        LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
+                .last("LIMIT " + safeLimit + " OFFSET " + safeOffset);
+        return examHistoryMapper.selectList(wrapper).stream()
+                .map(ExamHistoryConverter::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countAll() {
+        return examHistoryMapper.selectCount(null);
+    }
+
+    @Override
     public void deleteBySessionId(String sessionId) {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getSessionId, sessionId);

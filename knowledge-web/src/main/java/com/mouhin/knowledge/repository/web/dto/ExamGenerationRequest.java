@@ -50,6 +50,9 @@ public class ExamGenerationRequest {
     /** 知识库分类过滤 */
     private String category;
 
+    /** 学段：PRIMARY（小学）/ JUNIOR（初中）/ SENIOR（高中），留空则自动识别 */
+    private String schoolLevel;
+
     public String getSessionId() { return sessionId; }
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
 
@@ -91,6 +94,9 @@ public class ExamGenerationRequest {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getSchoolLevel() { return schoolLevel; }
+    public void setSchoolLevel(String schoolLevel) { this.schoolLevel = schoolLevel; }
 
     /**
      * 计算总题目数
