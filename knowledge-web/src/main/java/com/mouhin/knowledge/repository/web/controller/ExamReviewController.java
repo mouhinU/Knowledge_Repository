@@ -1,11 +1,13 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.ExamGradingApplicationService;
-import com.mouhin.knowledge.repository.application.service.ExamTakingApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import com.mouhin.knowledge.repository.application.executor.examgrading.GradeExamAsyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examgrading.TriggerGradingAsyncCmdExe;
+import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
+import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
+import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
+import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
-import com.mouhin.knowledge.repository.web.dto.ReviewRequest;
+import com.mouhin.knowledge.repository.client.dto.ReviewRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -29,16 +31,22 @@ public class ExamReviewController {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamReviewController.class);
 
-    private final ExamGradingApplicationService gradingService;
-    private final ExamTakingApplicationService examTakingService;
+    private final ExamGradingServiceI gradingService;
+    private final ExamTakingServiceI examTakingService;
     private final ExamGradingProgressStore gradingProgressStore;
+    private final GradeExamAsyncCmdExe gradeExamAsyncCmdExe;
+    private final TriggerGradingAsyncCmdExe triggerGradingAsyncCmdExe;
 
-    public ExamReviewController(ExamGradingApplicationService gradingService,
-                                ExamTakingApplicationService examTakingService,
-                                ExamGradingProgressStore gradingProgressStore) {
+    public ExamReviewController(ExamGradingServiceI gradingService,
+                                ExamTakingServiceI examTakingService,
+                                ExamGradingProgressStore gradingProgressStore,
+                                GradeExamAsyncCmdExe gradeExamAsyncCmdExe,
+                                TriggerGradingAsyncCmdExe triggerGradingAsyncCmdExe) {
         this.gradingService = gradingService;
         this.examTakingService = examTakingService;
         this.gradingProgressStore = gradingProgressStore;
+        this.gradeExamAsyncCmdExe = gradeExamAsyncCmdExe;
+        this.triggerGradingAsyncCmdExe = triggerGradingAsyncCmdExe;
     }
 
     /**
@@ -48,7 +56,7 @@ public class ExamReviewController {
     public ResponseEntity<Map<String, Object>> listPendingGrading(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        List<ExamSession> sessions = gradingService.listPendingGradingSessions(limit, offset);
+        List<ExamSessionDTO> sessions = gradingService.listPendingGradingSessions(limit, offset);
         long total = gradingService.countPendingGrading();
         return ResponseEntity.ok(Map.of(
                 "records", sessions,
@@ -82,7 +90,7 @@ public class ExamReviewController {
             @RequestParam String streamId) {
         try {
             ExamGradingProgressCallback callback = gradingProgressStore.createCallback(streamId);
-            gradingService.triggerGradingAsync(sessionId, callback);
+            triggerGradingAsyncCmdExe.execute(sessionId, callback);
             return ResponseEntity.ok(Map.of(
                     "message", "AI 评分已启动",
                     "sessionId", sessionId,
@@ -111,7 +119,7 @@ public class ExamReviewController {
         for (Long id : pending) {
             ExamGradingProgressCallback inner = gradingProgressStore.createCallback(streamId, id);
             ExamGradingProgressCallback wrapped = wrapWithCounter(inner, remaining, streamId, total);
-            gradingService.gradeExamAsync(id, wrapped);
+            gradeExamAsyncCmdExe.execute(id, wrapped);
         }
         return ResponseEntity.ok(Map.of(
                 "message", "批量评分已启动",
@@ -182,7 +190,7 @@ public class ExamReviewController {
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        List<ExamSession> sessions = gradingService.listPendingReview(limit, offset);
+        List<ExamSessionDTO> sessions = gradingService.listPendingReview(limit, offset);
         long total = gradingService.countPendingReview();
         return ResponseEntity.ok(Map.of(
                 "records", sessions,
@@ -198,8 +206,8 @@ public class ExamReviewController {
      */
     @GetMapping("/{sessionId}/answers")
     public ResponseEntity<Map<String, Object>> getAnswers(@PathVariable Long sessionId) {
-        ExamSession session = gradingService.getSessionById(sessionId);
-        List<ExamAnswer> answers = gradingService.listAnswersWithGrading(sessionId);
+        ExamSessionDTO session = gradingService.getSessionById(sessionId);
+        List<ExamAnswerDTO> answers = gradingService.listAnswersWithGrading(sessionId);
 
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("topic", session.getTopic());

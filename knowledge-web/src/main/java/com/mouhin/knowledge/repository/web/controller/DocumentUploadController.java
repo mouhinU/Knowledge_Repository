@@ -1,11 +1,12 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService;
-import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
+import com.mouhin.knowledge.repository.application.executor.docingestion.UploadFromFileCmdExe;
+import com.mouhin.knowledge.repository.application.executor.docingestion.UploadOnlyCmdExe;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.infrastructure.upload.UploadSessionManager;
-import com.mouhin.knowledge.repository.web.dto.ChunkUploadRequest;
-import com.mouhin.knowledge.repository.web.dto.DocumentUploadRequest;
+import com.mouhin.knowledge.repository.client.dto.ChunkUploadRequest;
+import com.mouhin.knowledge.repository.client.dto.DocumentUploadRequest;
+import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -32,12 +33,15 @@ public class DocumentUploadController {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentUploadController.class);
 
-    private final DocumentIngestionApplicationService ingestionService;
+    private final UploadOnlyCmdExe uploadOnlyCmdExe;
+    private final UploadFromFileCmdExe uploadFromFileCmdExe;
     private final UploadSessionManager uploadSessionManager;
 
-    public DocumentUploadController(DocumentIngestionApplicationService ingestionService,
+    public DocumentUploadController(UploadOnlyCmdExe uploadOnlyCmdExe,
+                                    UploadFromFileCmdExe uploadFromFileCmdExe,
                                     UploadSessionManager uploadSessionManager) {
-        this.ingestionService = ingestionService;
+        this.uploadOnlyCmdExe = uploadOnlyCmdExe;
+        this.uploadFromFileCmdExe = uploadFromFileCmdExe;
         this.uploadSessionManager = uploadSessionManager;
     }
 
@@ -95,14 +99,14 @@ public class DocumentUploadController {
             ));
         }
 
-        Document document = ingestionService.uploadOnly(
+        DocumentVO document = uploadOnlyCmdExe.execute(
                 file, ownerId, departmentId, vis, request.getAllowedRoles(),
                 request.getTags(), request.getCategory());
 
         return ResponseEntity.ok(Map.of(
                 "documentKey", document.getDocumentKey(),
                 "fileName", document.getFileName(),
-                "status", document.getStatus().name(),
+                "status", document.getStatus(),
                 "message", "Document uploaded. Please preview and confirm indexing."
         ));
     }
@@ -200,14 +204,14 @@ public class DocumentUploadController {
             }
 
             // 从已组装文件创建文档
-            Document document = ingestionService.uploadFromFile(
+            DocumentVO document = uploadFromFileCmdExe.execute(
                     assembledFile, fileName, ownerId, departmentId, vis,
                     request.getAllowedRoles(), request.getTags(), request.getCategory());
 
             return ResponseEntity.ok(Map.of(
                     "documentKey", document.getDocumentKey(),
                     "fileName", document.getFileName(),
-                    "status", document.getStatus().name(),
+                    "status", document.getStatus(),
                     "message", "Document uploaded. Please preview and confirm indexing."
             ));
         } catch (Exception e) {

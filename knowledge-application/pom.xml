@@ -15,16 +15,16 @@
     <description>Application layer: use case orchestration, transaction management, DTO conversion</description>
 
     <dependencies>
+        <!-- Client module (external contract: ServiceI interfaces + Cmd/Qry/Response DTOs) -->
+        <dependency>
+            <groupId>com.mouhin.knowledge</groupId>
+            <artifactId>knowledge-client</artifactId>
+        </dependency>
+
         <!-- Domain module -->
         <dependency>
             <groupId>com.mouhin.knowledge</groupId>
             <artifactId>knowledge-domain</artifactId>
-        </dependency>
-
-        <!-- Infrastructure module (for repository implementations) -->
-        <dependency>
-            <groupId>com.mouhin.knowledge</groupId>
-            <artifactId>knowledge-infrastructure</artifactId>
         </dependency>
 
         <!-- Spring Boot -->

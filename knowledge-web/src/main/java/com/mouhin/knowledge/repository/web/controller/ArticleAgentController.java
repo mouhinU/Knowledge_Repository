@@ -1,9 +1,10 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.ArticleGenerationApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
+import com.mouhin.knowledge.repository.application.executor.articlegeneration.GenerateArticleAsyncCmdExe;
+import com.mouhin.knowledge.repository.client.api.ArticleGenerationServiceI;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.web.dto.ArticleGenerationRequest;
+import com.mouhin.knowledge.repository.client.dto.ArticleGenerationRequest;
+import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -35,12 +36,15 @@ public class ArticleAgentController {
 
     private static final Logger logger = LoggerFactory.getLogger(ArticleAgentController.class);
 
-    private final ArticleGenerationApplicationService articleGenerationService;
+    private final ArticleGenerationServiceI articleGenerationService;
+    private final GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe;
     private final BlackboardProgressStore progressStore;
 
-    public ArticleAgentController(ArticleGenerationApplicationService articleGenerationService,
+    public ArticleAgentController(ArticleGenerationServiceI articleGenerationService,
+                                  GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe,
                                   BlackboardProgressStore progressStore) {
         this.articleGenerationService = articleGenerationService;
+        this.generateArticleAsyncCmdExe = generateArticleAsyncCmdExe;
         this.progressStore = progressStore;
     }
 
@@ -85,7 +89,7 @@ public class ArticleAgentController {
                 event -> progressStore.pushEvent(sessionId, event);
 
         // 启动异步生成
-        articleGenerationService.generateArticleAsync(
+        generateArticleAsyncCmdExe.execute(
                 request.getQuestion(), permission, progressCallback, sessionId, request.getCategory());
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
@@ -114,9 +118,9 @@ public class ArticleAgentController {
      * @return 历史记录列表（按时间倒序）
      */
     @GetMapping("/article/history")
-    public ResponseEntity<List<WritingHistory>> listHistory(
+    public ResponseEntity<List<WritingHistoryDTO>> listHistory(
             @RequestParam(defaultValue = "20") int limit) {
-        List<WritingHistory> history = articleGenerationService.listHistory(limit);
+        List<WritingHistoryDTO> history = articleGenerationService.listHistory(limit);
         return ResponseEntity.ok(history);
     }
 
@@ -127,8 +131,8 @@ public class ArticleAgentController {
      * @return 历史记录详情
      */
     @GetMapping("/article/history/{sessionId}")
-    public ResponseEntity<WritingHistory> getHistoryDetail(@PathVariable String sessionId) {
-        WritingHistory history = articleGenerationService.getHistoryBySessionId(sessionId);
+    public ResponseEntity<WritingHistoryDTO> getHistoryDetail(@PathVariable String sessionId) {
+        WritingHistoryDTO history = articleGenerationService.getHistoryBySessionId(sessionId);
         if (history == null) {
             return ResponseEntity.notFound().build();
         }

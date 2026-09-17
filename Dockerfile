@@ -7,6 +7,7 @@ WORKDIR /build
 
 # 先复制 pom 文件，利用 Docker 层缓存加速依赖下载
 COPY pom.xml .
+COPY knowledge-client/pom.xml knowledge-client/
 COPY knowledge-domain/pom.xml knowledge-domain/
 COPY knowledge-infrastructure/pom.xml knowledge-infrastructure/
 COPY knowledge-application/pom.xml knowledge-application/
@@ -16,6 +17,7 @@ COPY knowledge-web/pom.xml knowledge-web/
 RUN mvn dependency:go-offline -B -q 2>/dev/null || true
 
 # 复制源码并构建
+COPY knowledge-client/src knowledge-client/src
 COPY knowledge-domain/src knowledge-domain/src
 COPY knowledge-infrastructure/src knowledge-infrastructure/src
 COPY knowledge-application/src knowledge-application/src

@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.pdf;
 
+import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -44,7 +46,7 @@ import java.util.List;
  * @date 2026-09-02
  */
 @Service
-public class DocumentExtractionService {
+public class DocumentExtractionService implements DocumentExtractionGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentExtractionService.class);
 
@@ -76,6 +78,7 @@ public class DocumentExtractionService {
     /**
      * 校验文件
      */
+    @Override
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null || !Files.exists(filePath)) {
             throw new IllegalArgumentException("File does not exist");
@@ -106,6 +109,7 @@ public class DocumentExtractionService {
      * @param fileName 文件名
      * @return 提取结果
      */
+    @Override
     public ExtractionResult extractText(Path filePath, long fileSize, String fileName) throws IOException {
         validateFile(filePath, fileSize, fileName);
         String checksum = calculateChecksum(filePath);
@@ -129,6 +133,7 @@ public class DocumentExtractionService {
     /**
      * 从文件路径提取（简化版）
      */
+    @Override
     public ExtractionResult extractFromPath(Path filePath) throws IOException {
         long fileSize = Files.size(filePath);
         String fileName = filePath.getFileName() != null ? filePath.getFileName().toString() : null;
@@ -374,6 +379,7 @@ public class DocumentExtractionService {
     /**
      * 计算文件 MD5 校验和
      */
+    @Override
     public String calculateChecksum(Path filePath) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -386,28 +392,6 @@ public class DocumentExtractionService {
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("MD5 algorithm not available", e);
-        }
-    }
-
-    /**
-     * 文档提取结果
-     */
-    public record ExtractionResult(
-            List<String> pageTexts,
-            int totalPages,
-            boolean likelyScanned,
-            String checksum,
-            String detectedFormat,
-            List<String> warnings,
-            boolean encrypted,
-            String title,
-            String author
-    ) {
-        // 向后兼容的简化构造器
-        public ExtractionResult(List<String> pageTexts, int totalPages, boolean likelyScanned,
-                                String checksum, String detectedFormat) {
-            this(pageTexts, totalPages, likelyScanned, checksum, detectedFormat,
-                    List.of(), false, null, null);
         }
     }
 }

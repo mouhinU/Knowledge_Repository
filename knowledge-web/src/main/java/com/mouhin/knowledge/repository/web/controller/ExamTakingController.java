@@ -1,11 +1,10 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.ExamTakingApplicationService;
-import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import com.mouhin.knowledge.repository.web.dto.SaveAnswersRequest;
-import com.mouhin.knowledge.repository.web.dto.StartExamRequest;
+import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
+import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
+import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.mouhin.knowledge.repository.client.dto.SaveAnswersRequest;
+import com.mouhin.knowledge.repository.client.dto.StartExamRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +26,9 @@ public class ExamTakingController {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamTakingController.class);
 
-    private final ExamTakingApplicationService examTakingService;
+    private final ExamTakingServiceI examTakingService;
 
-    public ExamTakingController(ExamTakingApplicationService examTakingService) {
+    public ExamTakingController(ExamTakingServiceI examTakingService) {
         this.examTakingService = examTakingService;
     }
 
@@ -39,7 +38,7 @@ public class ExamTakingController {
     @PostMapping("/start")
     public ResponseEntity<Map<String, Object>> startExam(@RequestBody StartExamRequest request) {
         try {
-            ExamSession session;
+            ExamSessionDTO session;
             if (request.getHistorySessionId() != null && !request.getHistorySessionId().isBlank()) {
                 session = examTakingService.startFromHistory(request.getToken(), request.getHistorySessionId());
             } else if (request.getExamPaper() != null && !request.getExamPaper().isBlank()) {
@@ -59,7 +58,7 @@ public class ExamTakingController {
                     "questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]",
                     "totalScore", session.getTotalScore(),
                     "durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0,
-                    "validation", examTakingService.validateReport(session.getQuestionsJson()).toMap(),
+                    "validation", examTakingService.validateReport(session.getQuestionsJson()),
                     "startTime", session.getStartTime().toString()
             ));
         } catch (IllegalArgumentException e) {
@@ -110,19 +109,7 @@ public class ExamTakingController {
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            ExamSession session = examTakingService.getSession(sessionKey, headerToken);
-
-            // 检查 questionsJson 是否需要重新解析（修复旧数据选项解析，或按方案补齐题型/分值）
-            String questionsJson = session.getQuestionsJson();
-            String planJson = session.getExamPlan();
-            boolean planUpgradeNeeded = planJson != null && !planJson.isBlank()
-                    && (questionsJson == null || !questionsJson.contains("sectionLabel"));
-            if (session.getExamPaper() != null
-                    && ((questionsJson != null && needsReparse(questionsJson)) || planUpgradeNeeded)) {
-                questionsJson = ExamPaperParser.parseToJson(session.getExamPaper(), planJson);
-                examTakingService.updateQuestionsJson(session.getSessionKey(), headerToken, questionsJson);
-                session.setQuestionsJson(questionsJson);
-            }
+            ExamSessionDTO session = examTakingService.getSession(sessionKey, headerToken);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("sessionKey", session.getSessionKey());
@@ -148,11 +135,11 @@ public class ExamTakingController {
      * 获取答题记录（含评分）
      */
     @GetMapping("/{sessionKey}/answers")
-    public ResponseEntity<List<ExamAnswer>> getAnswers(
+    public ResponseEntity<List<ExamAnswerDTO>> getAnswers(
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamAnswer> answers = examTakingService.getAnswers(sessionKey, headerToken);
+            List<ExamAnswerDTO> answers = examTakingService.getAnswers(sessionKey, headerToken);
             return ResponseEntity.ok(answers);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -163,39 +150,13 @@ public class ExamTakingController {
      * 查询我的考试历史
      */
     @GetMapping("/my-sessions")
-    public ResponseEntity<List<ExamSession>> mySessions(
+    public ResponseEntity<List<ExamSessionDTO>> mySessions(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamSession> sessions = examTakingService.listMySessions(headerToken);
+            List<ExamSessionDTO> sessions = examTakingService.listMySessions(headerToken);
             return ResponseEntity.ok(sessions);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
-    }
-
-    /**
-     * 判断 questionsJson 中的选择题选项是否存在解析异常
-     * <p>
-     * 如果选择题的 options 数量少于 2 个，说明选项解析失败，需要重新解析。
-     * </p>
-     */
-    @SuppressWarnings("unchecked")
-    private boolean needsReparse(String questionsJson) {
-        try {
-            List<Map<String, Object>> questions = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readValue(questionsJson, List.class);
-            for (Map<String, Object> q : questions) {
-                String type = (String) q.get("type");
-                if ("SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type)) {
-                    Object options = q.get("options");
-                    if (options instanceof List<?> optList && optList.size() < 2) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("检查 questionsJson 是否需要重新解析时出错: {}", e.getMessage());
-        }
-        return false;
     }
 }

@@ -1,7 +1,9 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.UserManagementApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
+import com.mouhin.knowledge.repository.client.api.UserServiceI;
+import com.mouhin.knowledge.repository.client.dto.UserCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.UserUpdateCmd;
+import com.mouhin.knowledge.repository.client.dto.UserVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 用户管理控制器
+ * 用户管理控制器（adapter 层）
  *
  * @author Knowledge-Repository
  * @date 2026-09-02
@@ -22,58 +24,47 @@ public class UserAdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAdminController.class);
 
-    private final UserManagementApplicationService userService;
+    private final UserServiceI userService;
 
-    public UserAdminController(UserManagementApplicationService userService) {
+    public UserAdminController(UserServiceI userService) {
         this.userService = userService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> list() {
-        List<User> users = userService.listAll();
-        return ResponseEntity.ok(users.stream().map(this::toResponse).toList());
+    public ResponseEntity<List<UserVO>> list() {
+        return ResponseEntity.ok(userService.listUsers());
     }
 
     @GetMapping("/{userKey}")
-    public ResponseEntity<Map<String, Object>> get(@PathVariable String userKey) {
-        User user = userService.getByKey(userKey);
-        return ResponseEntity.ok(toResponse(user));
+    public ResponseEntity<UserVO> get(@PathVariable String userKey) {
+        return ResponseEntity.ok(userService.getUser(userKey));
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
-        String username = (String) body.get("username");
-        String departmentId = (String) body.get("departmentId");
-        Boolean admin = body.get("admin") != null && (Boolean) body.get("admin");
+    public ResponseEntity<UserVO> create(@RequestBody Map<String, Object> body) {
+        UserCreateCmd cmd = new UserCreateCmd();
+        cmd.setUsername((String) body.get("username"));
+        cmd.setDepartmentId((String) body.get("departmentId"));
+        cmd.setAdmin(body.get("admin") != null && (Boolean) body.get("admin"));
 
-        User user = userService.create(username, departmentId, admin);
-        return ResponseEntity.ok(toResponse(user));
+        return ResponseEntity.ok(userService.createUser(cmd));
     }
 
     @PutMapping("/{userKey}")
-    public ResponseEntity<Map<String, Object>> update(@PathVariable String userKey,
-                                                      @RequestBody Map<String, Object> body) {
-        String username = (String) body.get("username");
-        String departmentId = (String) body.get("departmentId");
-        Boolean admin = body.get("admin") != null ? (Boolean) body.get("admin") : null;
+    public ResponseEntity<UserVO> update(@PathVariable String userKey,
+                                         @RequestBody Map<String, Object> body) {
+        UserUpdateCmd cmd = new UserUpdateCmd();
+        cmd.setUserKey(userKey);
+        cmd.setUsername((String) body.get("username"));
+        cmd.setDepartmentId((String) body.get("departmentId"));
+        cmd.setAdmin(body.get("admin") != null ? (Boolean) body.get("admin") : null);
 
-        User user = userService.update(userKey, username, departmentId, admin);
-        return ResponseEntity.ok(toResponse(user));
+        return ResponseEntity.ok(userService.updateUser(cmd));
     }
 
     @DeleteMapping("/{userKey}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String userKey) {
-        userService.delete(userKey);
+        userService.deleteUser(userKey);
         return ResponseEntity.ok(Map.of("message", "User deleted: " + userKey));
-    }
-
-    private Map<String, Object> toResponse(User user) {
-        return Map.of(
-                "userKey", user.getUserKey(),
-                "username", user.getUsername(),
-                "departmentId", user.getDepartmentId() != null ? user.getDepartmentId() : "",
-                "admin", user.getAdmin() != null ? user.getAdmin() : false,
-                "createdTime", user.getCreatedTime() != null ? user.getCreatedTime().toString() : ""
-        );
     }
 }

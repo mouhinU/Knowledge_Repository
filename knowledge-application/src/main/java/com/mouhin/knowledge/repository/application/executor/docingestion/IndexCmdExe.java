@@ -1,0 +1,57 @@
+package com.mouhin.knowledge.repository.application.executor.docingestion;
+
+import com.mouhin.knowledge.repository.application.converter.DocumentConverter;
+import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
+import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
+import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 确认入库用例执行器（app 层，同步：分块 → 向量化 → 存储）。
+ * <p>
+ * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.indexDocument}。当前线上走异步 SSE 入口，
+ * 同步入口作为完整用例保留。
+ * </p>
+ *
+ * @author Knowledge-Repository
+ * @date 2026-09-17
+ */
+@Component
+public class IndexCmdExe {
+
+    private final DocumentIngestionSupport support;
+    private final ExtractionCacheHolder extractionCache;
+    private final DocumentGateway documentGateway;
+
+    public IndexCmdExe(DocumentIngestionSupport support,
+                       ExtractionCacheHolder extractionCache,
+                       DocumentGateway documentGateway) {
+        this.support = support;
+        this.extractionCache = extractionCache;
+        this.documentGateway = documentGateway;
+    }
+
+    @Transactional
+    public DocumentVO execute(String documentKey, int chunkSize, int overlap, String strategy) {
+        Document document = documentGateway.findByDocumentKey(documentKey)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
+
+        if (document.getStatus() == DocumentStatusEnum.INDEXED) {
+            throw new IllegalStateException("Document is already indexed. Use reindex to re-process.");
+        }
+
+        ChunkingConfig config = support.buildConfig(chunkSize, overlap, support.resolveStrategy(strategy));
+        document.setChunkingConfig(config);
+
+        ExtractionResult extraction = extractionCache.getOrReextract(document);
+        support.processDocument(document, extraction);
+
+        extractionCache.remove(documentKey);
+
+        return DocumentConverter.toVO(document);
+    }
+}

@@ -1,13 +1,15 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService;
-import com.mouhin.knowledge.repository.application.service.DocumentIngestionApplicationService.PreviewResult;
-import com.mouhin.knowledge.repository.application.service.DocumentManagementApplicationService;
-import com.mouhin.knowledge.repository.application.service.DocumentManagementApplicationService.KnowledgeStats;
-import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
+import com.mouhin.knowledge.repository.application.executor.docingestion.IndexAsyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.docingestion.IndexCustomChunksAsyncCmdExe;
+import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
+import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
+import com.mouhin.knowledge.repository.client.dto.ChunkingRequest;
+import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
+import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
+import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.web.dto.ChunkingRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -29,15 +31,21 @@ public class DocumentAdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentAdminController.class);
 
-    private final DocumentManagementApplicationService managementService;
-    private final DocumentIngestionApplicationService ingestionService;
+    private final DocumentServiceI documentService;
+    private final DocumentIngestionServiceI ingestionService;
+    private final IndexAsyncCmdExe indexAsyncCmdExe;
+    private final IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe;
     private final IndexProgressStore indexProgressStore;
 
-    public DocumentAdminController(DocumentManagementApplicationService managementService,
-                                   DocumentIngestionApplicationService ingestionService,
+    public DocumentAdminController(DocumentServiceI documentService,
+                                   DocumentIngestionServiceI ingestionService,
+                                   IndexAsyncCmdExe indexAsyncCmdExe,
+                                   IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe,
                                    IndexProgressStore indexProgressStore) {
-        this.managementService = managementService;
+        this.documentService = documentService;
         this.ingestionService = ingestionService;
+        this.indexAsyncCmdExe = indexAsyncCmdExe;
+        this.indexCustomChunksAsyncCmdExe = indexCustomChunksAsyncCmdExe;
         this.indexProgressStore = indexProgressStore;
     }
 
@@ -45,71 +53,60 @@ public class DocumentAdminController {
      * 获取文档详情
      */
     @GetMapping("/{documentKey}")
-    public ResponseEntity<Map<String, Object>> getDocument(@PathVariable String documentKey) {
-        Document doc = managementService.getByKey(documentKey);
-        return ResponseEntity.ok(buildDocumentResponse(doc));
+    public ResponseEntity<DocumentVO> getDocument(@PathVariable String documentKey) {
+        return ResponseEntity.ok(documentService.getDocument(documentKey));
     }
 
     /**
      * 按所有者查询文档列表
      */
     @GetMapping("/owner/{ownerId}")
-    public ResponseEntity<List<Map<String, Object>>> listByOwner(
+    public ResponseEntity<List<DocumentVO>> listByOwner(
             @PathVariable String ownerId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<Document> docs = managementService.listByOwner(ownerId, page, size);
-        return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
+        return ResponseEntity.ok(documentService.listByOwner(ownerId, page, size));
     }
 
     /**
      * 按部门查询文档列表
      */
     @GetMapping("/department/{departmentId}")
-    public ResponseEntity<List<Map<String, Object>>> listByDepartment(
+    public ResponseEntity<List<DocumentVO>> listByDepartment(
             @PathVariable String departmentId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<Document> docs = managementService.listByDepartment(departmentId, page, size);
-        return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
+        return ResponseEntity.ok(documentService.listByDepartment(departmentId, page, size));
     }
 
     /**
      * 查询全部文档列表
      */
     @GetMapping("/list")
-    public ResponseEntity<List<Map<String, Object>>> listAll() {
-        List<Document> docs = managementService.listAll();
-        return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
+    public ResponseEntity<List<DocumentVO>> listAll() {
+        return ResponseEntity.ok(documentService.listDocuments());
     }
 
     /**
      * 按状态查询文档列表
      */
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<Map<String, Object>>> listByStatus(@PathVariable String status) {
+    public ResponseEntity<List<DocumentVO>> listByStatus(@PathVariable String status) {
         DocumentStatusEnum statusEnum;
         try {
             statusEnum = DocumentStatusEnum.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
-        List<Document> docs = managementService.listByStatus(statusEnum);
-        return ResponseEntity.ok(docs.stream().map(this::buildDocumentResponse).toList());
+        return ResponseEntity.ok(documentService.listByStatus(statusEnum.name()));
     }
 
     /**
      * 获取知识库统计
      */
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getStats() {
-        KnowledgeStats stats = managementService.getStats();
-        return ResponseEntity.ok(Map.of(
-                "totalDocuments", stats.totalDocuments(),
-                "indexedDocuments", stats.indexedDocuments(),
-                "processingDocuments", stats.processingDocuments(),
-                "failedDocuments", stats.failedDocuments()
-        ));
+    public ResponseEntity<KnowledgeStatsVO> getStats() {
+        return ResponseEntity.ok(documentService.getStats());
     }
 
     /**
@@ -117,7 +114,7 @@ public class DocumentAdminController {
      */
     @GetMapping("/category-stats")
     public ResponseEntity<Map<String, Long>> getCategoryStats() {
-        return ResponseEntity.ok(managementService.getCategoryStats());
+        return ResponseEntity.ok(documentService.getCategoryStats());
     }
 
     /**
@@ -125,7 +122,7 @@ public class DocumentAdminController {
      */
     @PutMapping("/{documentKey}/archive")
     public ResponseEntity<Map<String, String>> archive(@PathVariable String documentKey) {
-        managementService.archive(documentKey);
+        documentService.archive(documentKey);
         return ResponseEntity.ok(Map.of("message", "Document archived: " + documentKey));
     }
 
@@ -134,11 +131,11 @@ public class DocumentAdminController {
      */
     @PostMapping("/{documentKey}/reindex")
     public ResponseEntity<Map<String, Object>> reindex(@PathVariable String documentKey) {
-        Document document = ingestionService.reindex(documentKey);
+        DocumentVO document = ingestionService.reindex(documentKey);
         return ResponseEntity.ok(Map.of(
                 "documentKey", document.getDocumentKey(),
                 "fileName", document.getFileName(),
-                "status", document.getStatus().name(),
+                "status", document.getStatus(),
                 "message", "Document reindexed: " + documentKey
         ));
     }
@@ -151,12 +148,11 @@ public class DocumentAdminController {
             @PathVariable String documentKey,
             ChunkingRequest chunkingRequest) {
 
-        ChunkingStrategyEnum strategyEnum = resolveStrategy(chunkingRequest.getStrategy());
-
         logger.info("Preview document {}: chunkSize={}, strategy={}", documentKey,
-                chunkingRequest.getChunkSize(), strategyEnum);
+                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
         PreviewResult result = ingestionService.previewFromDocument(
-                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(), strategyEnum);
+                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
+                chunkingRequest.getStrategy());
         return ResponseEntity.ok(result);
     }
 
@@ -168,15 +164,13 @@ public class DocumentAdminController {
             @PathVariable String documentKey,
             ChunkingRequest chunkingRequest) {
 
-        ChunkingStrategyEnum strategyEnum = resolveStrategy(chunkingRequest.getStrategy());
-
         logger.info("Async indexing document {}: chunkSize={}, strategy={}", documentKey,
-                chunkingRequest.getChunkSize(), strategyEnum);
+                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
 
         var callback = indexProgressStore.createCallback(documentKey);
-        ingestionService.indexDocumentAsync(
+        indexAsyncCmdExe.execute(
                 documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
-                strategyEnum, callback);
+                chunkingRequest.getStrategy(), callback);
 
         return ResponseEntity.ok(Map.of(
                 "documentKey", documentKey,
@@ -191,13 +185,13 @@ public class DocumentAdminController {
     @PostMapping("/{documentKey}/index-custom")
     public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
             @PathVariable String documentKey,
-            @RequestBody List<DocumentIngestionApplicationService.CustomChunkInput> customChunks) {
+            @RequestBody List<CustomChunkInput> customChunks) {
 
         logger.info("Async indexing document {} with {} custom chunks", documentKey,
                 customChunks != null ? customChunks.size() : 0);
 
         var callback = indexProgressStore.createCallback(documentKey);
-        ingestionService.indexWithCustomChunksAsync(documentKey, customChunks, callback);
+        indexCustomChunksAsyncCmdExe.execute(documentKey, customChunks, callback);
 
         return ResponseEntity.ok(Map.of(
                 "documentKey", documentKey,
@@ -219,36 +213,7 @@ public class DocumentAdminController {
      */
     @DeleteMapping("/{documentKey}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String documentKey) {
-        managementService.delete(documentKey);
+        documentService.delete(documentKey);
         return ResponseEntity.ok(Map.of("message", "Document deleted: " + documentKey));
-    }
-
-    /**
-     * 解析分块策略枚举，无效值回退为 FIXED_SIZE
-     */
-    private ChunkingStrategyEnum resolveStrategy(String strategy) {
-        if (strategy == null || strategy.isBlank()) {
-            return ChunkingStrategyEnum.FIXED_SIZE;
-        }
-        try {
-            return ChunkingStrategyEnum.valueOf(strategy.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ChunkingStrategyEnum.FIXED_SIZE;
-        }
-    }
-
-    private Map<String, Object> buildDocumentResponse(Document doc) {
-        return Map.of(
-                "documentKey", doc.getDocumentKey(),
-                "fileName", doc.getFileName(),
-                "fileSize", doc.getFileSize() != null ? doc.getFileSize() : 0,
-                "totalPages", doc.getTotalPages() != null ? doc.getTotalPages() : 0,
-                "status", doc.getStatus().name(),
-                "visibility", doc.getVisibility() != null ? doc.getVisibility().name() : "",
-                "ownerId", doc.getOwnerId(),
-                "departmentId", doc.getDepartmentId(),
-                "tags", doc.getTags() != null ? doc.getTags() : "",
-                "createdTime", doc.getCreatedTime() != null ? doc.getCreatedTime().toString() : ""
-        );
     }
 }

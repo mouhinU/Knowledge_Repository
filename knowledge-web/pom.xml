@@ -15,10 +15,22 @@
     <description>Web layer: REST controllers, security, global exception handling</description>
 
     <dependencies>
+        <!-- Client module (external contract DTOs consumed by controllers) -->
+        <dependency>
+            <groupId>com.mouhin.knowledge</groupId>
+            <artifactId>knowledge-client</artifactId>
+        </dependency>
+
         <!-- Application module -->
         <dependency>
             <groupId>com.mouhin.knowledge</groupId>
             <artifactId>knowledge-application</artifactId>
+        </dependency>
+
+        <!-- Infrastructure module (gateway implementations, loaded at runtime by the deployable) -->
+        <dependency>
+            <groupId>com.mouhin.knowledge</groupId>
+            <artifactId>knowledge-infrastructure</artifactId>
         </dependency>
 
         <!-- Spring Boot Web -->

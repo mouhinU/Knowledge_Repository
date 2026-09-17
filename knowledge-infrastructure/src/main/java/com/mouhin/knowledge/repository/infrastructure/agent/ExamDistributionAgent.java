@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
@@ -36,7 +37,7 @@ import java.util.List;
  * @date 2026-09-16
  */
 @Component("examDistributionAgent")
-public class ExamDistributionAgent {
+public class ExamDistributionAgent implements ExamDistributionGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamDistributionAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -60,6 +61,7 @@ public class ExamDistributionAgent {
      * @param knowledgeHint   知识点摘要（用于让分类更贴合内容，可空）
      * @return 已归一化（Σ=满分）的分布方案
      */
+    @Override
     public ExamPlan generate(String topic, String difficulty, String schoolLevelCode, String knowledgeHint) {
         return generate(topic, difficulty, schoolLevelCode, knowledgeHint, null);
     }
@@ -74,6 +76,7 @@ public class ExamDistributionAgent {
      * @param callback        进度回调（可空；非空时逐阶段推送输入/思考/输出）
      * @return 已归一化（Σ=满分）的分布方案
      */
+    @Override
     public ExamPlan generate(String topic, String difficulty, String schoolLevelCode,
                              String knowledgeHint, BlackboardProgressCallback callback) {
         ScoreRuleEngine.SchoolLevel level = ScoreRuleEngine.resolveLevel(topic, schoolLevelCode);

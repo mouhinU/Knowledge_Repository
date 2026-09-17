@@ -1,13 +1,18 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.knowledge.repository.application.service.ExamGenerationApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.BalanceDistributionQryExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateDistributionAsyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamAsyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamSyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ValidatePlanAsyncCmdExe;
+import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
+import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import com.mouhin.knowledge.repository.infrastructure.export.ExamWordExporter;
-import com.mouhin.knowledge.repository.web.dto.ExamGenerationRequest;
+import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +31,10 @@ import java.util.Map;
  * <p>
  * 提供两种模式：
  * <ul>
- *     <li>异步模式（SSE）：generate-stream + progress → 6 步 Agent 流水线，实时推送进度</li>
+ *     <li>异步模式（SSE）：generate-stream + progress → 7 步 Agent 流水线，实时推送进度</li>
  *     <li>同步模式：generate / export-word → 单次 LLM 调用，用于 Word 导出</li>
  * </ul>
+ * 生成 / 方案 / 校验等含领域类型的路径由 app 层生成执行器承载；出卷历史读写走 client 契约。
  * </p>
  *
  * @author Knowledge-Repository
@@ -42,20 +48,35 @@ public class ExamController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final ExamGenerationApplicationService examGenerationService;
+    private final ExamGenerationServiceI examGenerationService;
+    private final GenerateExamAsyncCmdExe generateExamAsyncCmdExe;
+    private final GenerateExamSyncCmdExe generateExamSyncCmdExe;
+    private final GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe;
+    private final BalanceDistributionQryExe balanceDistributionQryExe;
+    private final ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe;
     private final ExamWordExporter examWordExporter;
     private final BlackboardProgressStore progressStore;
 
-    public ExamController(ExamGenerationApplicationService examGenerationService,
+    public ExamController(ExamGenerationServiceI examGenerationService,
+                          GenerateExamAsyncCmdExe generateExamAsyncCmdExe,
+                          GenerateExamSyncCmdExe generateExamSyncCmdExe,
+                          GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe,
+                          BalanceDistributionQryExe balanceDistributionQryExe,
+                          ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe,
                           ExamWordExporter examWordExporter,
                           BlackboardProgressStore progressStore) {
         this.examGenerationService = examGenerationService;
+        this.generateExamAsyncCmdExe = generateExamAsyncCmdExe;
+        this.generateExamSyncCmdExe = generateExamSyncCmdExe;
+        this.generateDistributionAsyncCmdExe = generateDistributionAsyncCmdExe;
+        this.balanceDistributionQryExe = balanceDistributionQryExe;
+        this.validatePlanAsyncCmdExe = validatePlanAsyncCmdExe;
         this.examWordExporter = examWordExporter;
         this.progressStore = progressStore;
     }
 
     /**
-     * 启动试卷生成（异步，6 步 Agent 流水线）
+     * 启动试卷生成（异步，7 步 Agent 流水线）
      * <p>
      * 立即返回 sessionId，生成过程在后台执行。
      * 进度事件通过已建立的 SSE 连接实时推送。
@@ -103,7 +124,7 @@ public class ExamController {
         boolean skipScoringValidation = request.getSkipScoringValidation() != null
                 && request.getSkipScoringValidation();
 
-        examGenerationService.generateExamAsync(
+        generateExamAsyncCmdExe.execute(
                 request.getTopic(),
                 request.getDifficulty(),
                 questionConfig,
@@ -166,7 +187,7 @@ public class ExamController {
 
         String examPaper;
         if (hasPlan) {
-            examPaper = examGenerationService.generateExam(
+            examPaper = generateExamSyncCmdExe.executeWithPlan(
                     request.getTopic(),
                     request.getDifficulty(),
                     request.getSchoolLevel(),
@@ -175,7 +196,7 @@ public class ExamController {
                     request.getCategory()
             );
         } else {
-            examPaper = examGenerationService.generateExam(
+            examPaper = generateExamSyncCmdExe.executeByCounts(
                     request.getTopic(),
                     request.getDifficulty(),
                     request.getSchoolLevel(),
@@ -222,7 +243,7 @@ public class ExamController {
 
         String examPaper;
         if (hasPlan) {
-            examPaper = examGenerationService.generateExam(
+            examPaper = generateExamSyncCmdExe.executeWithPlan(
                     request.getTopic(),
                     request.getDifficulty(),
                     request.getSchoolLevel(),
@@ -231,7 +252,7 @@ public class ExamController {
                     request.getCategory()
             );
         } else {
-            examPaper = examGenerationService.generateExam(
+            examPaper = generateExamSyncCmdExe.executeByCounts(
                     request.getTopic(),
                     request.getDifficulty(),
                     request.getSchoolLevel(),
@@ -289,7 +310,7 @@ public class ExamController {
         var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
                 event -> progressStore.pushEvent(sessionId, event);
 
-        examGenerationService.generateDistributionAsync(
+        generateDistributionAsyncCmdExe.execute(
                 sessionId,
                 request.getTopic(),
                 request.getDifficulty(),
@@ -317,7 +338,7 @@ public class ExamController {
         logger.info("收到题型分布方案自动平衡请求: types={}, fullMark={}",
                 plan.getTypes().size(), plan.getTotalFullMark());
 
-        ScoreRuleEngine.BalanceResult result = examGenerationService.balanceDistribution(plan);
+        ScoreRuleEngine.BalanceResult result = balanceDistributionQryExe.execute(plan);
         return ResponseEntity.ok(Map.of(
                 "plan", result.plan(),
                 "trace", result.trace() != null ? result.trace() : ""));
@@ -350,7 +371,7 @@ public class ExamController {
         var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
                 event -> progressStore.pushEvent(sessionId, event);
 
-        examGenerationService.validatePlanAsync(sessionId, plan, progressCallback);
+        validatePlanAsyncCmdExe.execute(sessionId, plan, progressCallback);
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
@@ -425,9 +446,9 @@ public class ExamController {
      * @return 历史记录列表（按时间倒序）
      */
     @GetMapping("/exam/history")
-    public ResponseEntity<List<ExamHistory>> listExamHistory(
+    public ResponseEntity<List<ExamHistoryDTO>> listExamHistory(
             @RequestParam(defaultValue = "20") int limit) {
-        List<ExamHistory> history = examGenerationService.listHistory(limit);
+        List<ExamHistoryDTO> history = examGenerationService.listHistory(limit);
         return ResponseEntity.ok(history);
     }
 
@@ -452,8 +473,8 @@ public class ExamController {
      * @return 历史记录详情
      */
     @GetMapping("/exam/history/{sessionId}")
-    public ResponseEntity<ExamHistory> getExamHistoryDetail(@PathVariable String sessionId) {
-        ExamHistory history = examGenerationService.getHistoryBySessionId(sessionId);
+    public ResponseEntity<ExamHistoryDTO> getExamHistoryDetail(@PathVariable String sessionId) {
+        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId);
         if (history == null) {
             return ResponseEntity.notFound().build();
         }
@@ -481,7 +502,7 @@ public class ExamController {
     @PostMapping("/exam/history/{sessionId}/export-word")
     public void exportHistoryWord(@PathVariable String sessionId,
                                   HttpServletResponse response) {
-        ExamHistory history = examGenerationService.getHistoryBySessionId(sessionId);
+        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId);
         if (history == null || history.getExamPaper() == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;

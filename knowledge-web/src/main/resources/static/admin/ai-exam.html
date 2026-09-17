@@ -17,8 +17,15 @@
             <p>工作台中依次完成「题型分布方案 → 生成试卷」，方案校验通过后自动解锁试卷生成</p>
         </div>
 
-        <!-- 配置表单（常驻顶部） -->
-        <div class="card">
+        <div class="tabs">
+            <div class="tab active" data-panel="work">① 出卷工作台</div>
+            <div class="tab" data-panel="history">② 出卷历史</div>
+        </div>
+
+        <!-- Panel: 出卷工作台（试卷配置 + 题型分布方案 + 分值校验 + 生成试卷 一体化） -->
+        <div class="tab-panel active" id="panel-work">
+            <!-- 试卷配置（工作台内的顶部配置区） -->
+            <div class="card">
             <div class="card-title">试卷配置</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
                 <div>
@@ -60,87 +67,87 @@
             </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" data-panel="work">① 出卷工作台</div>
-            <div class="tab" data-panel="history">② 出卷历史</div>
-        </div>
+            <!-- 出卷向导：纵向三步（左侧步骤节点 · 右侧对应区块） -->
+            <div class="wizard">
 
-        <!-- Panel: 出卷工作台（题型分布方案 + 生成试卷 一体化） -->
-        <div class="tab-panel active" id="panel-work">
-            <!-- 流程指示器：方案 → 校验 → 试卷，与下方三张卡片的当前阶段联动 -->
-            <div class="card" style="padding:14px 20px;margin-bottom:14px">
-                <div class="flow-container" id="exam-stepper" style="margin:0;padding:6px 0">
-                    <div class="flow-node active" id="exam-step-1" style="cursor:default">
-                        <span class="flow-dot">1</span><span class="flow-label">题型分布方案</span>
-                        <span class="flow-time" id="exam-step-1-hint">生成 · 调整</span>
+                <!-- Step 1: 题型分布方案 -->
+                <div class="wizard-row">
+                    <div class="wizard-rail">
+                        <div class="wizard-node active" id="exam-step-1">1</div>
+                        <div class="wizard-line" id="exam-step-connector-1"></div>
                     </div>
-                    <div class="flow-connector" id="exam-step-connector-1"></div>
-                    <div class="flow-node" id="exam-step-2" style="cursor:default">
-                        <span class="flow-dot">2</span><span class="flow-label">分值校验与平衡</span>
-                        <span class="flow-time" id="exam-step-2-hint">需先完成方案</span>
-                    </div>
-                    <div class="flow-connector" id="exam-step-connector-2"></div>
-                    <div class="flow-node" id="exam-step-3" style="cursor:default">
-                        <span class="flow-dot">3</span><span class="flow-label">生成试卷</span>
-                        <span class="flow-time" id="exam-step-3-hint">需先通过校验</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 1: 题型分布方案 -->
-            <div class="card">
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-                    <div class="card-title" style="margin:0">题型分布方案</div>
-                    <button class="btn btn-sm" id="exam-plan-generate-btn" onclick="generateExamPlan()"
-                            style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;white-space:nowrap">
-                        生成题型分布方案
-                    </button>
-                    <span id="exam-plan-summary" style="font-size:13px;color:var(--text-light)"></span>
-                </div>
-                <details id="exam-plan-trace-box" open style="display:none;margin-bottom:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
-                    <summary style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
-                        ▸ Agent 生成过程（输入 · 思考 · 输出）
-                    </summary>
-                    <div id="exam-plan-trace" style="padding:4px 12px 12px"></div>
-                </details>
-                <div id="exam-plan-wrap"></div>
-                <div id="exam-plan-hint" style="font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5">
-                    点击「生成题型分布方案」，Agent 会依据主题/难度/学段自动分四阶段产出题型、题量、每题分数与合理性建议；
-                    随后可在表格中逐题调整分值。方案就绪后点击下方「校验方案」进入下一步。
-                </div>
-            </div>
-
-            <div style="height:14px"></div>
-
-            <!-- Step 2: 分值校验与平衡 -->
-            <div class="card" id="exam-validate-card">
-                <div class="card-head">
-                    <div class="card-title" style="margin:0">分值校验与平衡</div>
-                    <div style="display:flex;gap:8px;align-items:center">
-                        <button class="btn btn-sm" id="exam-validate-btn" onclick="validatePlan()"
-                                style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;white-space:nowrap"
-                                disabled title="请先生成题型分布方案">校验方案</button>
-                        <button class="btn btn-sm" id="exam-balance-btn" onclick="balanceAndRevalidate()"
-                                style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;white-space:nowrap"
-                                disabled title="校验未通过时可点此自动平衡并重新校验">自动平衡</button>
+                    <div class="wizard-main">
+                        <div class="card">
+                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+                                <div class="card-title" style="margin:0">题型分布方案</div>
+                                <span class="wizard-hint" id="exam-step-1-hint">生成 · 调整</span>
+                                <button class="btn btn-sm" id="exam-plan-generate-btn" onclick="generateExamPlan()"
+                                        style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe;white-space:nowrap">
+                                    生成题型分布方案
+                                </button>
+                                <span id="exam-plan-summary" style="font-size:13px;color:var(--text-light)"></span>
+                            </div>
+                            <details id="exam-plan-trace-box" open style="display:none;margin-bottom:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
+                                <summary style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
+                                    ▸ Agent 生成过程（输入 · 思考 · 输出）
+                                </summary>
+                                <div id="exam-plan-trace" style="padding:4px 12px 12px"></div>
+                            </details>
+                            <div id="exam-plan-wrap"></div>
+                            <div id="exam-plan-hint" style="font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5">
+                                点击「生成题型分布方案」，Agent 会依据主题/难度/学段自动分四阶段产出题型、题量、每题分数与合理性建议；
+                                随后可在表格中逐题调整分值。方案就绪后点击下方「校验方案」进入下一步。
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div id="exam-validate-result" style="display:none;margin-top:10px;padding:12px;border-radius:8px;font-size:13px;line-height:1.6"></div>
-                <div id="exam-validate-hint" style="font-size:12px;color:var(--text-light);margin-top:8px;line-height:1.5">
-                    校验方案的总分、题量、分值分布是否合理。通过后方可生成试卷；未通过时可点击「自动平衡」调整分值后重新校验。
-                </div>
-            </div>
 
-            <div style="height:14px"></div>
-
-            <!-- Step 3: 生成试卷 -->
-            <div class="card" id="exam-generate-card">
-                <div class="card-head">
-                    <div class="card-title" style="margin:0">生成试卷</div>
-                    <button class="btn btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()"
-                            style="white-space:nowrap" disabled title="请先通过分值校验">生成试卷</button>
+                <!-- Step 2: 分值校验与平衡 -->
+                <div class="wizard-row">
+                    <div class="wizard-rail">
+                        <div class="wizard-node" id="exam-step-2">2</div>
+                        <div class="wizard-line" id="exam-step-connector-2"></div>
+                    </div>
+                    <div class="wizard-main">
+                        <div class="card" id="exam-validate-card">
+                            <div class="card-head">
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                    <div class="card-title" style="margin:0">分值校验与平衡</div>
+                                    <span class="wizard-hint" id="exam-step-2-hint">需先完成方案</span>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <button class="btn btn-sm" id="exam-validate-btn" onclick="validatePlan()"
+                                            style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;white-space:nowrap"
+                                            disabled title="请先生成题型分布方案">校验方案</button>
+                                    <button class="btn btn-sm" id="exam-balance-btn" onclick="balanceAndRevalidate()"
+                                            style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;white-space:nowrap"
+                                            disabled title="校验未通过时可点此自动平衡并重新校验">自动平衡</button>
+                                </div>
+                            </div>
+                            <div id="exam-validate-result" style="display:none;margin-top:10px;padding:12px;border-radius:8px;font-size:13px;line-height:1.6"></div>
+                            <div id="exam-validate-hint" style="font-size:12px;color:var(--text-light);margin-top:8px;line-height:1.5">
+                                校验方案的总分、题量、分值分布是否合理。通过后方可生成试卷；未通过时可点击「自动平衡」调整分值后重新校验。
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Step 3: 生成试卷（进度与结果并入本步右侧区块） -->
+                <div class="wizard-row">
+                    <div class="wizard-rail">
+                        <div class="wizard-node" id="exam-step-3">3</div>
+                    </div>
+                    <div class="wizard-main">
+                        <div class="card" id="exam-generate-card">
+                            <div class="card-head">
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                    <div class="card-title" style="margin:0">生成试卷</div>
+                                    <span class="wizard-hint" id="exam-step-3-hint">需先通过校验</span>
+                                </div>
+                                <button class="btn btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()"
+                                        style="white-space:nowrap" disabled title="请先通过分值校验">生成试卷</button>
+                            </div>
+                        </div>
 
             <div class="writing-progress" id="exam-progress">
                 <div class="flow-container" id="exam-flow">
@@ -297,6 +304,9 @@
                             </summary>
                             <div class="article-content" id="exam-answer-content" style="margin-top:8px"></div>
                         </details>
+                    </div>
+                </div>
+            </div>
                     </div>
                 </div>
             </div>

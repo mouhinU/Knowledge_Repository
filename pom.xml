@@ -19,6 +19,7 @@
     <description>RAG Knowledge Base with LangChain4j + Milvus</description>
 
     <modules>
+        <module>knowledge-client</module>
         <module>knowledge-domain</module>
         <module>knowledge-infrastructure</module>
         <module>knowledge-application</module>
@@ -51,6 +52,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- Project Modules -->
+            <dependency>
+                <groupId>com.mouhin.knowledge</groupId>
+                <artifactId>knowledge-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.mouhin.knowledge</groupId>
                 <artifactId>knowledge-domain</artifactId>

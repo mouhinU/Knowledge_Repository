@@ -1,7 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import com.mouhin.knowledge.repository.domain.repository.ExamSessionRepository;
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,15 +27,15 @@ public class ExamGradingScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamGradingScheduler.class);
 
-    private final ExamSessionRepository examSessionRepository;
-    private final ExamGradingApplicationService gradingService;
+    private final ExamSessionGateway examSessionGateway;
+    private final ExamGradingServiceI gradingService;
 
     @Value("${knowledge.exam.grading-delay-minutes:30}")
     private int gradingDelayMinutes;
 
-    public ExamGradingScheduler(ExamSessionRepository examSessionRepository,
-                                ExamGradingApplicationService gradingService) {
-        this.examSessionRepository = examSessionRepository;
+    public ExamGradingScheduler(ExamSessionGateway examSessionGateway,
+                                ExamGradingServiceI gradingService) {
+        this.examSessionGateway = examSessionGateway;
         this.gradingService = gradingService;
     }
 
@@ -46,7 +47,7 @@ public class ExamGradingScheduler {
      */
     @Scheduled(fixedRate = 300000)
     public void scheduleAutoGrading() {
-        List<ExamSession> pending = examSessionRepository.listPendingGrading(50);
+        List<ExamSession> pending = examSessionGateway.listPendingGrading(50);
         if (pending.isEmpty()) {
             return;
         }

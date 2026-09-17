@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.milvus;
 
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
+import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -30,7 +31,7 @@ import java.util.List;
  * @date 2026-09-02
  */
 @Service
-public class MilvusVectorStoreService {
+public class MilvusVectorStoreService implements VectorStoreGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(MilvusVectorStoreService.class);
     /**
@@ -51,6 +52,7 @@ public class MilvusVectorStoreService {
      *
      * @param chunks 文档分块列表
      */
+    @Override
     public void storeChunks(List<DocumentChunk> chunks) {
         storeChunks(chunks, null);
     }
@@ -61,6 +63,7 @@ public class MilvusVectorStoreService {
      * @param chunks   文档分块列表
      * @param callback 进度回调（可为 null）
      */
+    @Override
     public void storeChunks(List<DocumentChunk> chunks, IndexProgressCallback callback) {
         if (chunks == null || chunks.isEmpty()) {
             return;
@@ -119,6 +122,7 @@ public class MilvusVectorStoreService {
      * @param category   文档分类过滤，null 或空表示不过滤
      * @return 检索结果列表
      */
+    @Override
     public List<SearchResult> search(String query, int maxResults, double minScore,
                                      String filterExpr, String category) {
         Embedding queryEmbedding = embeddingModel.embed(query).content();
@@ -159,6 +163,7 @@ public class MilvusVectorStoreService {
     /**
      * 语义检索（无分类过滤，向后兼容）
      */
+    @Override
     public List<SearchResult> search(String query, int maxResults, double minScore, String filterExpr) {
         return search(query, maxResults, minScore, filterExpr, null);
     }
@@ -178,6 +183,7 @@ public class MilvusVectorStoreService {
      *
      * @param documentKey 文档唯一标识
      */
+    @Override
     public void deleteByDocumentKey(String documentKey) {
         Filter filter = new IsEqualTo("document_key", documentKey);
         embeddingStore.removeAll(filter);

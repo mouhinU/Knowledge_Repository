@@ -1,0 +1,24 @@
+package com.mouhin.knowledge.repository.application.executor.examgrading;
+
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import org.springframework.stereotype.Component;
+
+/**
+ * 统计待评分考试数量执行器
+ *
+ * @author Knowledge-Repository
+ * @date 2026-09-17
+ */
+@Component
+public class CountPendingGradingQryExe {
+
+    private final ExamSessionGateway examSessionGateway;
+
+    public CountPendingGradingQryExe(ExamSessionGateway examSessionGateway) {
+        this.examSessionGateway = examSessionGateway;
+    }
+
+    public long execute() {
+        return examSessionGateway.countByStatus("SUBMITTED");
+    }
+}

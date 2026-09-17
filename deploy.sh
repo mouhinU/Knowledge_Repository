@@ -43,9 +43,9 @@ generate_version() {
         done <<< "$existing_tags"
     fi
 
-    # 递增序号，格式化为两位
+    # 递增序号，格式化为两位（强制十进制，避免 08/09 被当作八进制）
     local next_seq
-    next_seq=$(printf "%02d" $((max_seq + 1)))
+    next_seq=$(printf "%02d" $((10#$max_seq + 1)))
 
     echo "${date_prefix}${next_seq}"
 }
