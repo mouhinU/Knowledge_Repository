@@ -100,6 +100,8 @@ public class ExamController {
                 event -> progressStore.pushEvent(sessionId, event);
 
         String questionConfig = hasPlan ? buildQuestionConfigFromPlan(plan) : buildQuestionConfig(request);
+        boolean skipScoringValidation = request.getSkipScoringValidation() != null
+                && request.getSkipScoringValidation();
 
         examGenerationService.generateExamAsync(
                 request.getTopic(),
@@ -110,7 +112,8 @@ public class ExamController {
                 sessionId,
                 request.getCategory(),
                 request.getSchoolLevel(),
-                hasPlan ? plan : null);
+                hasPlan ? plan : null,
+                skipScoringValidation);
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
@@ -318,6 +321,38 @@ public class ExamController {
         return ResponseEntity.ok(Map.of(
                 "plan", result.plan(),
                 "trace", result.trace() != null ? result.trace() : ""));
+    }
+
+    /**
+     * 异步校验题型分布方案（Node 2：分值检验和平衡）
+     * <p>前端通过 SSE 接收校验结果：AGENT_OUTPUT (running/done/failed) + COMPLETED/ERROR。</p>
+     *
+     * @param request 包含 distribution (ExamPlan JSON) 和 sessionId
+     * @return 包含 sessionId 的响应
+     */
+    @PostMapping("/exam/plan/validate-stream")
+    public ResponseEntity<Map<String, String>> validatePlanStream(
+            @RequestBody ExamGenerationRequest request) {
+
+        ExamPlan plan = parsePlan(request.getDistribution());
+        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
+        }
+
+        String requestedSessionId = request.getSessionId();
+        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
+                ? requestedSessionId
+                : "validate-" + java.util.UUID.randomUUID();
+
+        logger.info("收到方案校验请求（流式）: types={}, fullMark={}, session={}",
+                plan.getTypes().size(), plan.getTotalFullMark(), sessionId);
+
+        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                event -> progressStore.pushEvent(sessionId, event);
+
+        examGenerationService.validatePlanAsync(sessionId, plan, progressCallback);
+
+        return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
 
     /**

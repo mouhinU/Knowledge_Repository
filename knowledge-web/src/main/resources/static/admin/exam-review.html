@@ -186,7 +186,7 @@
                     + '<td>' + duration + '</td>'
                     + '<td>' + (r.totalScore != null ? r.totalScore : '-') + '</td>'
                     + '<td>' + esc(r.submitTime || '-') + '</td>'
-                    + '<td><button class="btn btn-primary btn-sm" onclick="triggerSingleGrading(' + (r.id) + ')">AI 评分</button></td>'
+                    + '<td><button class="btn btn-primary btn-sm" onclick="triggerSingleGrading(event, ' + (r.id) + ')">AI 评分</button></td>'
                     + '</tr>';
             }).join('');
         } catch (e) {
@@ -195,7 +195,7 @@
         }
     }
 
-    async function triggerSingleGrading(sessionId) {
+    async function triggerSingleGrading(event, sessionId) {
         const btn = event ? event.target : null;
         if (btn) {
             btn.disabled = true;

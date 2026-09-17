@@ -112,15 +112,17 @@ public class ExamGenerationApplicationService {
      * @param questionConfig   题型配置描述
      * @param permission       用户权限上下文
      * @param progressCallback 进度回调
-     * @param sessionId        会话 ID
-     * @param schoolLevel      学段（PRIMARY / JUNIOR / SENIOR，可空由主题识别）
-     * @param plan             页面确认的题型分布方案（可空；为空则由分值校验 Agent 依据规则生成兜底方案后再校验）
+     * @param sessionId              会话 ID
+     * @param schoolLevel            学段（PRIMARY / JUNIOR / SENIOR，可空由主题识别）
+     * @param plan                   页面确认的题型分布方案（可空；为空则由分值校验 Agent 依据规则生成兜底方案后再校验）
+     * @param skipScoringValidation  是否跳过分值校验（Node 2 已校验通过时传 true）
      */
     public void generateExamAsync(String topic, String difficulty, String questionConfig,
                                   Permission permission, BlackboardProgressCallback progressCallback,
-                                  String sessionId, String category, String schoolLevel, ExamPlan plan) {
-        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}', hasPlan={}]",
-                sessionId, topic, difficulty, category, schoolLevel, plan != null);
+                                  String sessionId, String category, String schoolLevel, ExamPlan plan,
+                                  boolean skipScoringValidation) {
+        logger.info("启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}', hasPlan={}, skipValidation={}]",
+                sessionId, topic, difficulty, category, schoolLevel, plan != null, skipScoringValidation);
 
         if (progressCallback != null) {
             progressCallback.onProgress(
@@ -129,7 +131,7 @@ public class ExamGenerationApplicationService {
 
         CompletableFuture.runAsync(
                 () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission,
-                        progressCallback, category, schoolLevel, plan),
+                        progressCallback, category, schoolLevel, plan, skipScoringValidation),
                 agentExecutor);
     }
 
@@ -139,7 +141,7 @@ public class ExamGenerationApplicationService {
     private void executeExamPipeline(String sessionId, String topic, String difficulty,
                                      String questionConfig, Permission permission,
                                      BlackboardProgressCallback callback, String category,
-                                     String schoolLevel, ExamPlan plan) {
+                                     String schoolLevel, ExamPlan plan, boolean skipScoringValidation) {
         BlackboardState blackboard = new BlackboardState(sessionId, topic);
         blackboard.setUserId(permission.getUserId());
         blackboard.setDepartmentId(permission.getDepartmentId());
@@ -148,6 +150,7 @@ public class ExamGenerationApplicationService {
         blackboard.setExamDifficulty(difficulty);
         blackboard.setExamQuestionConfig(questionConfig);
         blackboard.setExamSchoolLevel(schoolLevel);
+        blackboard.setSkipScoringValidation(skipScoringValidation);
         if (plan != null) {
             blackboard.setExamPlan(plan);
         }
@@ -441,6 +444,69 @@ public class ExamGenerationApplicationService {
      */
     public ScoreRuleEngine.BalanceResult balanceDistribution(ExamPlan plan) {
         return ScoreRuleEngine.balancePlan(plan);
+    }
+
+    /**
+     * 异步校验题型分布方案（Node 2：分值检验和平衡）
+     * <p>运行 ScorePlanValidator 并通过回调推送校验报告，前端据此决定是否继续生成试卷。</p>
+     *
+     * @param sessionId        会话 ID（用于 SSE 通道）
+     * @param plan             待校验的方案
+     * @param progressCallback 进度回调
+     */
+    public void validatePlanAsync(String sessionId, ExamPlan plan,
+                                  BlackboardProgressCallback progressCallback) {
+        logger.info("启动方案校验 [session={}, types={}, fullMark={}]",
+                sessionId,
+                plan != null && plan.getTypes() != null ? plan.getTypes().size() : 0,
+                plan != null ? plan.getTotalFullMark() : 0);
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (progressCallback != null) {
+                    progressCallback.onProgress(BlackboardProgressEvent.agentStartedWithMaterials(
+                            "exam-plan-validator",
+                            "正在校验题型分布方案的总分与分值分布...",
+                            "方案含 " + (plan != null && plan.getTypes() != null ? plan.getTypes().size() : 0)
+                                    + " 种题型，满分 " + (plan != null ? plan.getTotalFullMark() : 0) + " 分"));
+                }
+                if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+                    String report = "### 结论\n\n❌ 方案为空，无法校验";
+                    if (progressCallback != null) {
+                        progressCallback.onProgress(BlackboardProgressEvent.agentFailed(
+                                "exam-plan-validator", report));
+                        progressCallback.onProgress(BlackboardProgressEvent.error("方案为空，请先生成方案"));
+                    }
+                    return;
+                }
+                com.mouhin.knowledge.repository.domain.service.ScorePlanValidator.Result result =
+                        com.mouhin.knowledge.repository.domain.service.ScorePlanValidator.validate(plan);
+                String report = com.mouhin.knowledge.repository.domain.service.ScorePlanValidator
+                        .renderReport(plan, result);
+                if (result.pass()) {
+                    if (progressCallback != null) {
+                        progressCallback.onProgress(BlackboardProgressEvent.agentCompleted(
+                                "exam-plan-validator", report));
+                    }
+                    logger.info("[PlanValidate] 校验通过 [session={}, fullMark={}]",
+                            sessionId, plan.getTotalFullMark());
+                } else {
+                    if (progressCallback != null) {
+                        progressCallback.onProgress(BlackboardProgressEvent.agentFailed(
+                                "exam-plan-validator", report));
+                        progressCallback.onProgress(BlackboardProgressEvent.error(
+                                "分值校验未通过，共 " + result.issues().size() + " 项硬性错误"));
+                    }
+                    logger.warn("[PlanValidate] 校验未通过 [session={}, issues={}]",
+                            sessionId, result.issues());
+                }
+            } catch (Exception e) {
+                logger.error("[PlanValidate] 校验失败 [session={}]", sessionId, e);
+                if (progressCallback != null) {
+                    progressCallback.onProgress(BlackboardProgressEvent.error(
+                            e.getMessage() != null ? e.getMessage() : "校验过程异常"));
+                }
+            }
+        }, agentExecutor);
     }
 
     /**

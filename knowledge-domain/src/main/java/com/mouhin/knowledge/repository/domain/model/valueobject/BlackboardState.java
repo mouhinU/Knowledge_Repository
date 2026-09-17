@@ -109,6 +109,10 @@ public class BlackboardState {
      */
     private String scoringScheme;
     /**
+     * 是否跳过分值校验（Node 2 已校验通过时设为 true，Node 3 的 Scoring Agent 仅写入 scheme 不再校验）
+     */
+    private boolean skipScoringValidation;
+    /**
      * 生成的试卷内容（Markdown）
      */
     private String examPaper;
@@ -325,6 +329,14 @@ public class BlackboardState {
     public void setScoringScheme(String scoringScheme) {
         this.scoringScheme = scoringScheme;
         this.updatedAt = Instant.now();
+    }
+
+    public boolean isSkipScoringValidation() {
+        return skipScoringValidation;
+    }
+
+    public void setSkipScoringValidation(boolean skipScoringValidation) {
+        this.skipScoringValidation = skipScoringValidation;
     }
 
     public String getExamPaper() {

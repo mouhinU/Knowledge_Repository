@@ -89,6 +89,11 @@ public class ExamGenerationRequest {
      */
     private String distribution;
 
+    /**
+     * 是否跳过分值校验（Node 2 已校验通过时传 true，Node 3 的 Scoring Agent 仅写入 scheme 不再校验）
+     */
+    private Boolean skipScoringValidation;
+
     public String getSessionId() {
         return sessionId;
     }
@@ -215,6 +220,14 @@ public class ExamGenerationRequest {
 
     public void setDistribution(String distribution) {
         this.distribution = distribution;
+    }
+
+    public Boolean getSkipScoringValidation() {
+        return skipScoringValidation;
+    }
+
+    public void setSkipScoringValidation(Boolean skipScoringValidation) {
+        this.skipScoringValidation = skipScoringValidation;
     }
 
     /**

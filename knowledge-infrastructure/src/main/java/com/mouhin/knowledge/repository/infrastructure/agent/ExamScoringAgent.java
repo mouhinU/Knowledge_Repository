@@ -51,14 +51,18 @@ public class ExamScoringAgent implements BlackboardAgent {
         String topic = blackboard.getQuestion();
         String questionConfig = blackboard.getExamQuestionConfig();
         ExamPlan plan = blackboard.getExamPlan();
+        boolean skipValidation = blackboard.isSkipScoringValidation();
 
         blackboard.advanceTo(BlackboardPhase.SCORING);
 
         String materials = describeInput(plan, questionConfig);
+        String startMessage = skipValidation
+                ? "正在写入分值方案（Node 2 已校验通过）..."
+                : "正在校验题型分布方案的总分与分值分布...";
         emitProgress(progressCallback, BlackboardProgressEvent.agentStartedWithMaterials(
-                "exam-scoring", "正在校验题型分布方案的总分与分值分布...", materials));
-        logger.info("[ExamScoring] 开始校验评估，主题：{}，学段：{}，题型配置：{}",
-                topic, blackboard.getExamSchoolLevel(), questionConfig);
+                "exam-scoring", startMessage, materials));
+        logger.info("[ExamScoring] 开始执行，主题：{}，学段：{}，题型配置：{}，skipValidation={}",
+                topic, blackboard.getExamSchoolLevel(), questionConfig, skipValidation);
 
         // 兜底：无方案时基于 questionConfig 生成默认方案（保持旧行为）
         if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
@@ -73,6 +77,19 @@ public class ExamScoringAgent implements BlackboardAgent {
             logger.info("[ExamScoring] 未收到方案，基于 questionConfig 构建默认方案继续校验");
         }
 
+        // Node 2 已校验通过：跳过校验，直接写入 scheme
+        if (skipValidation) {
+            blackboard.setExamTotalScore(plan.getTotalFullMark());
+            String schemeText = ScoreRuleEngine.renderPlan(plan, topic);
+            blackboard.setScoringScheme(schemeText);
+            String output = "### 分值方案（Node 2 已校验，直接写入）\n\n" + schemeText;
+            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-scoring", output));
+            logger.info("[ExamScoring] 跳过校验（Node 2 已通过），直接写入 scheme [topic='{}', fullMark={}]",
+                    topic, plan.getTotalFullMark());
+            return;
+        }
+
+        // Node 2 未校验：执行完整校验逻辑
         ScorePlanValidator.Result result = ScorePlanValidator.validate(plan);
         String report = ScorePlanValidator.renderReport(plan, result);
 

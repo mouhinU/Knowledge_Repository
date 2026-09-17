@@ -24,6 +24,8 @@
         answer: 'answer', reviewer: 'review', calibrator: 'calibrate', deduplicator: 'dedup'
     };
     let currentExamPlan = null;
+    let _validationPassed = false;  // Node 2 校验是否已通过
+    let _validationSessionId = null;  // 当前校验 SSE 会话 ID
 
     /* ---------- 节点详情弹窗 ---------- */
     const _nodeDetails = {};
@@ -120,6 +122,7 @@
             try { plan = JSON.parse(d.distributionPlan); } catch (_) { plan = null; }
             if (plan) {
                 currentExamPlan = plan;
+                _validationPassed = false;  // 新方案需要重新校验
                 collectPlan();
                 renderExamPlan(currentExamPlan);
                 toast('题型分布方案已生成，可在表格中调整', 'success');
@@ -397,10 +400,10 @@
 
     /* ---------- 出卷工作流：两步节点与门控（方案校验通过才允许进入「生成试卷」） ---------- */
     /**
-     * 校验当前方案是否可作为「生成试卷」的输入。返回 null 表示通过；否则返回不通过原因。
+     * 快速检查当前方案是否可作为下一步的输入。返回 null 表示通过；否则返回不通过原因。
      * 校验维度：方案存在、有题型、题量之和 > 0、满分 > 0、每题分数之和 > 0 且严格等于满分。
      */
-    function validatePlan() {
+    function checkPlanReady() {
         if (!currentExamPlan) return '尚未生成题型分布方案';
         if (!currentExamPlan.types || !currentExamPlan.types.length) return '方案缺少题型';
         const totalCount = currentExamPlan.types.reduce((s, t) => s + Math.max(0, t.count || 0), 0);
@@ -411,6 +414,143 @@
         if (allocated <= 0) return '分值合计为 0';
         if (allocated !== target) return '分值合计 ' + allocated + ' ≠ 满分 ' + target + '，请点自动平衡或手工调整';
         return null;
+    }
+
+    /**
+     * Node 2：调用后端校验方案（异步 SSE），展示校验结果。
+     */
+    async function validatePlan() {
+        const reason = checkPlanReady();
+        if (reason) { toast('方案未就绪: ' + reason, 'error'); refreshStepGate(); return; }
+        collectPlan();
+
+        const btn = document.getElementById('exam-validate-btn');
+        const resultEl = document.getElementById('exam-validate-result');
+        btn.disabled = true;
+        btn.textContent = '校验中...';
+        resultEl.style.display = 'block';
+        resultEl.style.background = '#fef3c7';
+        resultEl.style.color = '#92400e';
+        resultEl.innerHTML = '<span style="opacity:.7">正在校验方案…</span>';
+        setStepState(2, 'active', '校验中…');
+
+        _validationSessionId = 'validate-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
+        const eventSource = new EventSource(API + '/api/agent/exam/progress/' + _validationSessionId);
+        let sseReady = false;
+        eventSource.onopen = () => { sseReady = true; };
+
+        eventSource.addEventListener('AGENT_OUTPUT', (e) => {
+            const data = JSON.parse(e.data);
+            if (data.agentStatus === 'done') {
+                _validationPassed = true;
+                resultEl.style.background = '#dcfce7';
+                resultEl.style.color = '#166534';
+                resultEl.innerHTML = renderMarkdown(data.output || '校验通过');
+                setStepState(2, 'done', '校验已通过');
+                refreshStepGate();
+                eventSource.close();
+                btn.disabled = false;
+                btn.textContent = '校验方案';
+            } else if (data.agentStatus === 'failed') {
+                _validationPassed = false;
+                resultEl.style.background = '#fee2e2';
+                resultEl.style.color = '#991b1b';
+                resultEl.innerHTML = renderMarkdown(data.output || '校验未通过');
+                setStepState(2, 'active', '校验未通过');
+                const balanceBtn = document.getElementById('exam-balance-btn');
+                if (balanceBtn) balanceBtn.disabled = false;
+                refreshStepGate();
+                eventSource.close();
+                btn.disabled = false;
+                btn.textContent = '校验方案';
+            } else if (data.agentStatus === 'running') {
+                if (data.message) {
+                    resultEl.innerHTML = '<span style="opacity:.7">' + esc(data.message) + '</span>';
+                }
+            }
+        });
+
+        eventSource.addEventListener('ERROR', (e) => {
+            eventSource.close();
+            btn.disabled = false;
+            btn.textContent = '校验方案';
+            _validationPassed = false;
+            const data = JSON.parse(e.data);
+            resultEl.style.background = '#fee2e2';
+            resultEl.style.color = '#991b1b';
+            resultEl.innerHTML = '<strong>校验失败：</strong>' + esc(data.errorMessage || '未知错误');
+            setStepState(2, 'active', '校验失败');
+            refreshStepGate();
+        });
+
+        const waitForSse = () => new Promise((resolve) => {
+            if (sseReady) { resolve(); return; }
+            const check = () => { if (sseReady) resolve(); else setTimeout(check, 50); };
+            check();
+            setTimeout(resolve, 3000);
+        });
+
+        try {
+            await waitForSse();
+            const res = await fetch(API + '/api/agent/exam/plan/validate-stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: _validationSessionId,
+                    distribution: JSON.stringify(currentExamPlan)
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || '启动校验失败');
+            }
+        } catch (e) {
+            eventSource.close();
+            btn.disabled = false;
+            btn.textContent = '校验方案';
+            toast('校验失败: ' + e.message, 'error');
+            resultEl.style.display = 'none';
+            refreshStepGate();
+        }
+    }
+
+    /**
+     * Node 2：自动平衡分值并重新校验。
+     */
+    async function balanceAndRevalidate() {
+        const reason = checkPlanReady();
+        if (reason) { toast('方案未就绪: ' + reason, 'error'); refreshStepGate(); return; }
+        collectPlan();
+
+        const btn = document.getElementById('exam-balance-btn');
+        btn.disabled = true;
+        btn.textContent = '平衡中...';
+        toast('正在自动平衡分值…', 'info');
+
+        try {
+            const res = await fetch(API + '/api/agent/exam/distribution/balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ distribution: JSON.stringify(currentExamPlan) })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || '平衡失败');
+            }
+            const data = await res.json();
+            currentExamPlan = data.plan;
+            renderExamPlan(currentExamPlan);
+            updatePlanSummary();
+            toast('分值已平衡，正在重新校验…', 'success');
+            btn.disabled = false;
+            btn.textContent = '自动平衡';
+            // 重新校验
+            await validatePlan();
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = '自动平衡';
+            toast('平衡失败: ' + e.message, 'error');
+        }
     }
 
     /**
@@ -427,42 +567,53 @@
     }
 
     /**
-     * 根据当前方案刷新两步节点 + 「生成试卷」按钮门控。
+     * 根据当前方案刷新三步节点 + 按钮门控。
      */
     function refreshStepGate() {
-        const reason = validatePlan();
-        const btn = document.getElementById('exam-generate-btn');
-        const conn = document.getElementById('exam-step-connector');
+        const reason = checkPlanReady();
+        const validateBtn = document.getElementById('exam-validate-btn');
+        const balanceBtn = document.getElementById('exam-balance-btn');
+        const generateBtn = document.getElementById('exam-generate-btn');
+        const conn1 = document.getElementById('exam-step-connector-1');
+        const conn2 = document.getElementById('exam-step-connector-2');
+
         if (reason) {
-            setStepState(1, 'active', '生成 · 调整 · 平衡');
+            // Node 1 未就绪
+            setStepState(1, 'active', '生成 · 调整');
             setStepState(2, 'pending', '需先完成方案');
-            if (conn) conn.classList.remove('done');
-            if (btn) {
-                btn.disabled = true;
-                btn.title = reason;
-                if (btn.textContent !== '生成试卷' && btn.textContent !== '连接中...' && btn.textContent !== '生成中...') {
-                    btn.textContent = '生成试卷';
-                }
-            }
+            setStepState(3, 'pending', '需先通过校验');
+            if (conn1) conn1.classList.remove('done');
+            if (conn2) conn2.classList.remove('done');
+            if (validateBtn) validateBtn.disabled = true;
+            if (balanceBtn) balanceBtn.disabled = true;
+            if (generateBtn) { generateBtn.disabled = true; generateBtn.title = reason; }
         } else {
+            // Node 1 已就绪
             setStepState(1, 'done', '方案已就绪');
-            // 保留 step-2 已 done 的状态（试卷已生成），否则提示可开始
-            const step2 = document.getElementById('exam-step-2');
-            if (step2 && step2.classList.contains('done')) {
-                // 已生成过，保持
+            if (conn1) conn1.classList.add('done');
+
+            // Node 2 状态由 _validationPassed 控制
+            if (_validationPassed) {
+                setStepState(2, 'done', '校验已通过');
+                if (conn2) conn2.classList.add('done');
+                setStepState(3, 'active', '可以开始生成');
+                if (generateBtn) { generateBtn.disabled = false; generateBtn.title = '按当前方案生成试卷'; }
             } else {
-                setStepState(2, 'active', '可以开始生成');
+                setStepState(2, 'active', '请点击校验方案');
+                if (conn2) conn2.classList.remove('done');
+                setStepState(3, 'pending', '需先通过校验');
+                if (generateBtn) { generateBtn.disabled = true; generateBtn.title = '请先通过分值校验'; }
             }
-            if (conn) conn.classList.add('done');
-            if (btn) {
-                if (btn.textContent === '生成试卷') { btn.disabled = false; btn.title = '按当前方案生成试卷'; }
-                // 生成中/连接中保持 disabled
-            }
+
+            if (validateBtn) validateBtn.disabled = false;
+            if (balanceBtn) balanceBtn.disabled = false;
         }
     }
     function updatePlanSummary() {
         readPlanFromDom();
         if (!currentExamPlan) return;
+        // 用户编辑方案后，Node 2 校验结果失效，须重新校验
+        _validationPassed = false;
         currentExamPlan.types.forEach((t, ti) => {
             const el = document.getElementById('plan-sub-' + ti);
             if (el) el.textContent = typeSubtotal(t);
@@ -519,35 +670,6 @@
             if (t.count > 0) t.perQuestion = distributeInt(Math.max(1, subtotals[i]), t.count);
         });
         renderExamPlan(currentExamPlan);
-    }
-
-    async function balanceExamPlan() {
-        collectPlan();
-        if (!currentExamPlan) { toast('请先生成题型分布方案', 'error'); return; }
-        const btn = document.getElementById('exam-plan-balance-btn');
-        const orig = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = '平衡中...';
-        try {
-            const res = await fetch(API + '/api/agent/exam/distribution/balance', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ distribution: JSON.stringify(currentExamPlan) })
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.error || '自动平衡失败');
-            }
-            const data = await res.json();
-            if (data.plan) { currentExamPlan = data.plan; renderExamPlan(data.plan); }
-            appendBalanceTrace(data.trace || '已按每题现值重新分配到满分。');
-            refreshStepGate();
-            toast('分值已平衡', 'success');
-        } catch (e) {
-            toast('自动平衡失败: ' + e.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = orig;
-        }
     }
 
     /* ---------- 出卷流水线（第二步） ---------- */
@@ -632,15 +754,17 @@
     async function generateExamWithAgents() {
         const topic = document.getElementById('exam-topic').value.trim();
         if (!topic) { toast('请输入考试主题', 'error'); return; }
-        const invalidReason = validatePlan();
-        if (invalidReason) { toast('方案校验未通过: ' + invalidReason, 'error'); refreshStepGate(); return; }
+        const invalidReason = checkPlanReady();
+        if (invalidReason) { toast('方案未就绪: ' + invalidReason, 'error'); refreshStepGate(); return; }
+        if (!_validationPassed) { toast('请先通过分值校验', 'error'); refreshStepGate(); return; }
         collectPlan();
         const planTotal = currentExamPlan.types.reduce((s, t) => s + Math.max(0, t.count || 0), 0);
         if (planTotal <= 0) { toast('题量为 0，请调整方案', 'error'); return; }
         if (!currentExamPlan.totalFullMark) { toast('满分未设置，无法生成', 'error'); return; }
 
         setStepState(1, 'done');
-        setStepState(2, 'active', '流水线执行中…');
+        setStepState(2, 'done');
+        setStepState(3, 'active', '流水线执行中…');
         const btn = document.getElementById('exam-generate-btn');
         btn.disabled = true;
         btn.textContent = '连接中...';
@@ -655,7 +779,8 @@
             departmentId: 'dept-root',
             roles: 'ADMIN',
             admin: document.getElementById('exam-admin').checked,
-            category: document.getElementById('exam-category').value || null
+            category: document.getElementById('exam-category').value || null,
+            skipScoringValidation: true  // Node 2 已校验通过，Node 3 跳过校验
         };
 
         const sessionId = 'exam-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
@@ -975,7 +1100,7 @@
 
     /* ---------- 暴露给内联 onclick 的全局函数 ---------- */
     Object.assign(window, {
-        generateExamPlan, balanceExamPlan, onPlanCountChange, evenSpreadType, evenSpreadAll,
+        generateExamPlan, validatePlan, balanceAndRevalidate, onPlanCountChange, evenSpreadType, evenSpreadAll,
         updatePlanSummary, generateExamWithAgents, toggleExamPanels, copyExamPaper, exportExamWord,
         loadExamHistory, goExamHistoryPage, showExamHistoryDetail, deleteExamHistory,
         exportHistoryWord, closeHistoryModal, closeNodeModal, showNodeModal
