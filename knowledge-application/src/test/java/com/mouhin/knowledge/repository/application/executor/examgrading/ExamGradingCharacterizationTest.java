@@ -207,4 +207,48 @@ class ExamGradingCharacterizationTest {
             assertThat(answer.needsReview()).isTrue();
         }
     }
+
+    // ==================== 脏标准答案（含内联解释，判断题契约修复回归） ====================
+
+    @Nested
+    @DisplayName("脏标准答案（结论+内联解释）")
+    class DirtyAnswerKey {
+
+        @Test
+        @DisplayName("判断题「正确。理由：…」遇学生 √ → 命中满分")
+        void trueFalseWithReason() {
+            ExamAnswer answer = objectiveAnswer("TRUE_FALSE", "正确。理由：光合作用的产物包括氧气。", "√", 2);
+            support.gradeObjective(answer, null);
+            assertThat(answer.getAiScore()).isEqualTo(2);
+            assertThat(answer.getCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("判断题「错误。理由：…」遇学生 × → 命中满分")
+        void falseWithReason() {
+            ExamAnswer answer = objectiveAnswer("TRUE_FALSE", "错误。理由：该说法以偏概全。", "×", 2);
+            support.gradeObjective(answer, null);
+            assertThat(answer.getAiScore()).isEqualTo(2);
+            assertThat(answer.getCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("单选「B【解析】C 项…」不因解释字母误判 → 命中满分")
+        void singleChoiceWithInlineAnalysis() {
+            ExamAnswer answer = objectiveAnswer("SINGLE_CHOICE", "B【解析】C 项表述过于绝对，故排除。", "B", 3);
+            support.gradeObjective(answer, null);
+            assertThat(answer.getAiScore()).isEqualTo(3);
+            assertThat(answer.getCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("多选「AC（解析：B错D错）」不因解释字母判为少选 → 全对满分")
+        void multiChoiceWithInlineAnalysis() {
+            ExamAnswer answer = objectiveAnswer("MULTI_CHOICE", "AC（解析：B 项错误，D 项以偏概全）", "AC", 4);
+            support.gradeObjective(answer, null);
+            assertThat(answer.getAiScore()).isEqualTo(4);
+            assertThat(answer.getCorrect()).isTrue();
+            assertThat(answer.getAiFeedback()).isEqualTo("回答正确（全对）");
+        }
+    }
 }

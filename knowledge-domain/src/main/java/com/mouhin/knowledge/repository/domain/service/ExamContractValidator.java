@@ -21,7 +21,8 @@ import java.util.Set;
  *     <li>分值合计 == 方案满分；</li>
  *     <li>印刷题号非空且唯一（权威编号）；</li>
  *     <li>每题标准答案非空；</li>
- *     <li>答案规范：单选 ∈ {A,B,C,D}；多选 ⊆ {A,B,C,D} 且 ≥ 2 项；判断 ∈ {正确, 错误}；</li>
+ *     <li>答案规范（先经 {@link ExamAnswerNormalizer} 剥离内联解释再判定）：单选恰 1 个 A~D 字母；
+ *         多选 ≥ 2 个 A~D 字母；判断为 正确 / 错误 等判词头部；</li>
  *     <li>选择题（单选 / 多选）选项非空（判断题为隐式二选一，不校验选项）。</li>
  * </ol>
  *
@@ -98,24 +99,25 @@ public final class ExamContractValidator {
             String answer = q.getCorrectAnswer();
             if (answer == null || answer.isBlank()) {
                 issues.add(tag + " 缺少标准答案");
+                continue;
             }
             String type = q.getQuestionType() == null ? "" : q.getQuestionType().toUpperCase();
             switch (type) {
                 case "SINGLE_CHOICE" -> {
-                    if (!isSingleChoiceLegal(answer)) {
+                    if (ExamAnswerNormalizer.choiceLetters(answer).length() != 1) {
                         issues.add(tag + " 单选答案非法（应为 A~D 单个字母）：" + answer);
                     }
                     requireOptions(q, tag, issues);
                 }
                 case "MULTI_CHOICE" -> {
-                    if (!isMultiChoiceLegal(answer)) {
-                        issues.add(tag + " 多选答案非法（应为 A~D 两个及以上字母、无分隔）：" + answer);
+                    if (ExamAnswerNormalizer.choiceLetters(answer).length() < 2) {
+                        issues.add(tag + " 多选答案非法（应为 A~D 两个及以上字母）：" + answer);
                     }
                     requireOptions(q, tag, issues);
                 }
                 case "TRUE_FALSE" -> {
-                    if (!isTrueFalseLegal(answer)) {
-                        issues.add(tag + " 判断答案非法（应为 正确/错误）：" + answer);
+                    if (ExamAnswerNormalizer.trueFalseToken(answer) == null) {
+                        issues.add(tag + " 判断答案非法（应为 正确/错误 等判词）：" + answer);
                     }
                     // 判断题为隐式二选一（正确/错误），试卷切分不产出 options_json，故不校验选项
                 }
@@ -144,49 +146,7 @@ public final class ExamContractValidator {
         return sb.toString();
     }
 
-    // ==================== 答案合法性 ====================
-
-    private static boolean isSingleChoiceLegal(String answer) {
-        String letters = extractChoiceLetters(answer);
-        return letters.length() == 1;
-    }
-
-    private static boolean isMultiChoiceLegal(String answer) {
-        String letters = extractChoiceLetters(answer);
-        Set<Character> distinct = new HashSet<>();
-        for (char c : letters.toCharArray()) {
-            distinct.add(c);
-        }
-        return distinct.size() >= 2;
-    }
-
-    private static boolean isTrueFalseLegal(String answer) {
-        if (answer == null) {
-            return false;
-        }
-        String norm = answer.replaceAll("[\\s。.，,；;、*]", "").toUpperCase();
-        return switch (norm) {
-            case "正确", "对", "是", "√", "✓", "T", "TRUE", "YES", "Y" -> true;
-            case "错误", "错", "否", "×", "✗", "✕", "F", "FALSE", "NO", "N" -> true;
-            default -> false;
-        };
-    }
-
-    /**
-     * 从答案串中提取 A~D 选项字母（大写、去重顺序保留）。
-     */
-    private static String extractChoiceLetters(String answer) {
-        if (answer == null) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (char c : answer.toUpperCase().toCharArray()) {
-            if (c >= 'A' && c <= 'D') {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
+    // ==================== 工具 ====================
 
     private static void requireOptions(ExamQuestion q, String tag, List<String> issues) {
         String optionsJson = q.getOptionsJson();

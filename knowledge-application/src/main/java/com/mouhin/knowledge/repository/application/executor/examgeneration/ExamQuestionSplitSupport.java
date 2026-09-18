@@ -6,6 +6,7 @@ import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
+import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +44,11 @@ public class ExamQuestionSplitSupport {
      * 填空题空位：连续 2 个及以上半角 / 全角下划线，或空括号
      */
     private static final Pattern BLANK_PATTERN = Pattern.compile("(_{2,}|＿{2,}|\\(\\s*\\)|（\\s*）)");
+
+    /**
+     * 客观题题型：答案存在「结论 + 内联解释」整串风险，切分时需拆出纯净答案头部
+     */
+    private static final Set<String> OBJECTIVE_TYPES = Set.of("SINGLE_CHOICE", "MULTI_CHOICE", "TRUE_FALSE");
 
     private final ExamQuestionGateway examQuestionGateway;
 
@@ -86,8 +93,7 @@ public class ExamQuestionSplitSupport {
             Integer positionalIndex = readInt(q.get("index"));
             AnswerKeyParser.QuestionKey key = positionalIndex != null ? keyMap.get(positionalIndex) : null;
             if (key != null) {
-                question.setCorrectAnswer(key.answer());
-                question.setAnalysis(key.analysis());
+                bindAnswerAndAnalysis(question, key, type);
             }
 
             question.setCreateTime(now);
@@ -123,6 +129,36 @@ public class ExamQuestionSplitSupport {
     }
 
     // ==================== 工具 ====================
+
+    /**
+     * 绑定标准答案与解析（按题型区分处理）。
+     * <p>
+     * 客观题（单选 / 多选 / 判断）若答案键把「结论 + 解释」写在同一行（如 {@code 正确。理由：…}、
+     * {@code B【解析】…}），拆出答案头部作为 {@code correct_answer}，并在解析字段为空时把解释正文并入
+     * {@code analysis}，使落库答案纯净、便于展示与校对；主观题（填空 / 简答 / 论述）答案本身即正文，
+     * 原样绑定，避免误截。
+     * </p>
+     *
+     * @param question 目标题目行
+     * @param key      答案键解析结果（非空）
+     * @param type     题型 key
+     */
+    private void bindAnswerAndAnalysis(ExamQuestion question, AnswerKeyParser.QuestionKey key, String type) {
+        String rawAnswer = key.answer();
+        boolean objective = type != null && OBJECTIVE_TYPES.contains(type.toUpperCase());
+        if (!objective) {
+            question.setCorrectAnswer(rawAnswer);
+            question.setAnalysis(key.analysis());
+            return;
+        }
+        String head = ExamAnswerNormalizer.answerHead(rawAnswer);
+        question.setCorrectAnswer(head != null && !head.isBlank() ? head : rawAnswer);
+        String analysis = key.analysis();
+        if (analysis == null || analysis.isBlank()) {
+            analysis = ExamAnswerNormalizer.explanationTail(rawAnswer);
+        }
+        question.setAnalysis(analysis);
+    }
 
     private String serializeOptions(Object optionsObj, String type) {
         if (!"SINGLE_CHOICE".equals(type) && !"MULTI_CHOICE".equals(type) && !"TRUE_FALSE".equals(type)) {

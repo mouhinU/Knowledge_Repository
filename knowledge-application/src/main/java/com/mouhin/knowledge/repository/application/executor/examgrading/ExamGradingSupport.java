@@ -12,6 +12,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import org.slf4j.Logger;
@@ -516,11 +517,12 @@ public class ExamGradingSupport {
     // ==================== 答案规范化工具（按题型分派） ====================
 
     /**
-     * 按题型规范化答案字符串，用于客观题等值比较。
+     * 按题型规范化答案字符串，用于客观题等值比较（统一委托 {@link ExamAnswerNormalizer}）。
      * <ul>
-     *     <li>多选题：拆字母 → 去重 → 排序 → 拼接（使 "A,C"=="AC"=="C,A"）</li>
-     *     <li>判断题：符号字典折叠 → "TRUE" / "FALSE"（正确=√=T=对=是=Y → TRUE）</li>
-     *     <li>其他（单选等）：trim + 全半角 + 去空白 + 大写</li>
+     *     <li>单选 / 多选：先剥离内联解释（{@code answerHead}），再取答案头部的 A-D 字母去重排序
+     *         （使 "A,C"=="AC"=="C,A"，且 {@code "B【解析】C…"} 只保留 "B"）</li>
+     *     <li>判断题：符号字典折叠 → "TRUE" / "FALSE"（正确=√=T=对=是=Y → TRUE），无法识别时回退原串</li>
+     *     <li>其他：trim + 全半角 + 去空白 + 大写</li>
      * </ul>
      *
      * @param raw           原始答案字符串
@@ -531,14 +533,15 @@ public class ExamGradingSupport {
         if (raw == null) {
             return null;
         }
-        String base = toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();
-        if ("MULTI_CHOICE".equals(questionType)) {
-            return normalizeChoiceSet(base);
-        }
         if ("TRUE_FALSE".equals(questionType)) {
-            return normalizeTrueFalse(base);
+            String token = ExamAnswerNormalizer.trueFalseToken(raw);
+            return token != null ? token : toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();
         }
-        return base;
+        if ("SINGLE_CHOICE".equals(questionType) || "MULTI_CHOICE".equals(questionType)) {
+            String head = ExamAnswerNormalizer.answerHead(raw);
+            return normalizeChoiceSet(toHalfWidth(head).toUpperCase());
+        }
+        return toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();
     }
 
     /**
@@ -567,28 +570,6 @@ public class ExamGradingSupport {
             }
         }
         return set;
-    }
-
-    /**
-     * 判断题符号字典：所有"对"的变体 → TRUE，所有"错"的变体 → FALSE。
-     */
-    private String normalizeTrueFalse(String s) {
-        if (s == null || s.isEmpty()) {
-            return "";
-        }
-        // 正向集
-        if ("正确".equals(s) || "√".equals(s) || "T".equals(s) || "TRUE".equals(s)
-                || "对".equals(s) || "Y".equals(s) || "是".equals(s) || "✓".equals(s)
-                || "TRUE".equals(s) || "对".equals(s) || "YES".equals(s)) {
-            return "TRUE";
-        }
-        // 负向集
-        if ("错误".equals(s) || "×".equals(s) || "X".equals(s) || "FALSE".equals(s)
-                || "错".equals(s) || "N".equals(s) || "否".equals(s) || "✗".equals(s)
-                || "✕".equals(s) || "NO".equals(s)) {
-            return "FALSE";
-        }
-        return s;
     }
 
     /**
