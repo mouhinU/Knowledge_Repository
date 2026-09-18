@@ -35,7 +35,7 @@ public class StudentAuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody StudentRegisterCmd cmd) {
         try {
-            StudentVO student = studentService.register(cmd);
+            StudentVO student = studentService.register(cmd).getData();
             return ResponseEntity.ok(Map.of(
                     "message", "注册成功",
                     "studentId", student.getStudentId(),
@@ -51,7 +51,7 @@ public class StudentAuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody StudentLoginCmd cmd) {
         try {
-            String token = studentService.login(cmd);
+            String token = studentService.login(cmd).getData();
             return ResponseEntity.ok(Map.of(
                     "message", "登录成功",
                     "token", token));
@@ -86,13 +86,15 @@ public class StudentAuthController {
         if (headerToken == null) {
             return ResponseEntity.status(401).body(Map.of("error", "未登录"));
         }
-        return studentService.validateToken(headerToken)
-                .map(student -> ResponseEntity.ok(Map.<String, Object>of(
-                        "studentId", student.getStudentId(),
-                        "username", student.getUsername(),
-                        "displayName", student.getDisplayName(),
-                        "studentNo", student.getStudentNo()
-                )))
-                .orElse(ResponseEntity.status(401).body(Map.of("error", "登录已过期")));
+        StudentVO student = studentService.validateToken(headerToken).getData();
+        if (student == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "登录已过期"));
+        }
+        return ResponseEntity.ok(Map.<String, Object>of(
+                "studentId", student.getStudentId(),
+                "username", student.getUsername(),
+                "displayName", student.getDisplayName(),
+                "studentNo", student.getStudentNo()
+        ));
     }
 }

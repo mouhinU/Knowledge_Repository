@@ -48,7 +48,7 @@ public class StudentWrongAnswerController {
         if (token == null) {
             return ResponseEntity.status(401).body(Map.of("error", "未登录"));
         }
-        StudentVO student = studentService.validateToken(token).orElse(null);
+        StudentVO student = studentService.validateToken(token).getData();
         if (student == null) {
             return ResponseEntity.status(401).body(Map.of("error", "登录已过期"));
         }

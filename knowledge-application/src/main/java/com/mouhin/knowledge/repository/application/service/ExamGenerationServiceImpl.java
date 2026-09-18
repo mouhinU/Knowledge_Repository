@@ -6,6 +6,10 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.ListH
 import com.mouhin.knowledge.repository.application.executor.examgeneration.PageHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.PageResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,23 +42,49 @@ public class ExamGenerationServiceImpl implements ExamGenerationServiceI {
         this.deleteHistoryCmdExe = deleteHistoryCmdExe;
     }
 
+    /** 分页结果 Map 中记录集合的键（与 {@link PageHistoryQryExe} 输出契约一致） */
+    private static final String KEY_RECORDS = "records";
+    /** 分页结果 Map 中总记录数的键 */
+    private static final String KEY_TOTAL = "total";
+    /** 分页结果 Map 中页码的键 */
+    private static final String KEY_PAGE = "page";
+    /** 分页结果 Map 中每页数量的键 */
+    private static final String KEY_SIZE = "size";
+
     @Override
-    public List<ExamHistoryDTO> listHistory(int limit) {
-        return listHistoryQryExe.execute(limit);
+    public MultiResponse<ExamHistoryDTO> listHistory(int limit) {
+        return MultiResponse.of(listHistoryQryExe.execute(limit));
     }
 
     @Override
-    public Map<String, Object> pageHistory(int page, int size) {
-        return pageHistoryQryExe.execute(page, size);
+    @SuppressWarnings("unchecked")
+    public PageResponse<ExamHistoryDTO> pageHistory(int page, int size) {
+        Map<String, Object> raw = pageHistoryQryExe.execute(page, size);
+        List<ExamHistoryDTO> records = (List<ExamHistoryDTO>) raw.get(KEY_RECORDS);
+        int totalCount = toInt(raw.get(KEY_TOTAL));
+        int pageIndex = toInt(raw.get(KEY_PAGE));
+        int pageSize = toInt(raw.get(KEY_SIZE));
+        return PageResponse.of(records, totalCount, pageSize, pageIndex);
     }
 
     @Override
-    public ExamHistoryDTO getHistoryBySessionId(String sessionId) {
-        return getHistoryBySessionIdQryExe.execute(sessionId);
+    public SingleResponse<ExamHistoryDTO> getHistoryBySessionId(String sessionId) {
+        return SingleResponse.of(getHistoryBySessionIdQryExe.execute(sessionId));
     }
 
     @Override
-    public void deleteHistory(String sessionId) {
+    public Response deleteHistory(String sessionId) {
         deleteHistoryCmdExe.execute(sessionId);
+        return Response.buildSuccess();
+    }
+
+    /**
+     * 将分页 Map 中的数值字段安全转换为 int。
+     *
+     * @param value Map 中读取的原始值（可能为 Number 或 null）
+     * @return int 值；null 时返回 0
+     */
+    private static int toInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 }

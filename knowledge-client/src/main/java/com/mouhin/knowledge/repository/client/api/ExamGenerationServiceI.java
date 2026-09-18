@@ -1,14 +1,18 @@
 package com.mouhin.knowledge.repository.client.api;
 
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.PageResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * AI 试卷生成应用服务契约（client 层）
  *
- * <p>仅承载传输无关的出卷历史读写用例，返回 DTO。
+ * <p>仅承载传输无关的出卷历史读写用例，返回值统一采用 COLA 契约类型
+ * （{@link SingleResponse} / {@link MultiResponse} / {@link PageResponse} / {@link Response}），
+ * 适配层负责还原为前端所需 JSON 形状（分页还原为 records / total / page / size；
+ * 详情未命中时 data 为 null，由适配层映射为 404）。
  * 试卷 / 方案的生成流程（同步出卷、题型分布、分值平衡、方案校验、异步流水线）依赖领域类型
  * {@code Permission}、{@code ExamPlan}、{@code BlackboardProgressCallback}、
  * {@code ScoreRuleEngine.BalanceResult}，刻意不纳入本契约，由 app 层执行器承载并供适配层直接调用，
@@ -19,11 +23,11 @@ import java.util.Map;
  */
 public interface ExamGenerationServiceI {
 
-    List<ExamHistoryDTO> listHistory(int limit);
+    MultiResponse<ExamHistoryDTO> listHistory(int limit);
 
-    Map<String, Object> pageHistory(int page, int size);
+    PageResponse<ExamHistoryDTO> pageHistory(int page, int size);
 
-    ExamHistoryDTO getHistoryBySessionId(String sessionId);
+    SingleResponse<ExamHistoryDTO> getHistoryBySessionId(String sessionId);
 
-    void deleteHistory(String sessionId);
+    Response deleteHistory(String sessionId);
 }

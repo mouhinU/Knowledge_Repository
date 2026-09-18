@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.cola.dto.PageResponse;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.BalanceDistributionQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateDistributionAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamAsyncCmdExe;
@@ -24,6 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -467,7 +469,13 @@ public class ExamController {
     public ResponseEntity<Map<String, Object>> pageExamHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(examGenerationService.pageHistory(page, size));
+        PageResponse<ExamHistoryDTO> resp = examGenerationService.pageHistory(page, size);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("records", resp.getData());
+        result.put("total", (long) resp.getTotalCount());
+        result.put("page", resp.getPageIndex());
+        result.put("size", resp.getPageSize());
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -478,7 +486,7 @@ public class ExamController {
      */
     @GetMapping("/exam/history/{sessionId}")
     public ResponseEntity<ExamHistoryDTO> getExamHistoryDetail(@PathVariable String sessionId) {
-        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId);
+        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId).getData();
         if (history == null) {
             return ResponseEntity.notFound().build();
         }
@@ -506,7 +514,7 @@ public class ExamController {
     @PostMapping("/exam/history/{sessionId}/export-word")
     public void exportHistoryWord(@PathVariable String sessionId,
                                   HttpServletResponse response) {
-        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId);
+        ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId).getData();
         if (history == null || history.getExamPaper() == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;

@@ -56,8 +56,8 @@ public class ExamReviewController {
     public ResponseEntity<Map<String, Object>> listPendingGrading(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        List<ExamSessionDTO> sessions = gradingService.listPendingGradingSessions(limit, offset);
-        long total = gradingService.countPendingGrading();
+        List<ExamSessionDTO> sessions = gradingService.listPendingGradingSessions(limit, offset).getData();
+        long total = gradingService.countPendingGrading().getData();
         return ResponseEntity.ok(Map.of(
                 "records", sessions,
                 "total", total
@@ -109,7 +109,7 @@ public class ExamReviewController {
      */
     @PostMapping("/batch-trigger-grading-async")
     public ResponseEntity<Map<String, Object>> batchTriggerGradingAsync(@RequestParam String streamId) {
-        List<Long> pending = gradingService.listPendingGradingSessionIds();
+        List<Long> pending = gradingService.listPendingGradingSessionIds().getData();
         if (pending.isEmpty()) {
             gradingProgressStore.emitBatchComplete(streamId, 0);
             return ResponseEntity.ok(Map.of("message", "无待评分考试", "count", 0));
@@ -195,8 +195,8 @@ public class ExamReviewController {
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        List<ExamSessionDTO> sessions = gradingService.listPendingReview(limit, offset);
-        long total = gradingService.countPendingReview();
+        List<ExamSessionDTO> sessions = gradingService.listPendingReview(limit, offset).getData();
+        long total = gradingService.countPendingReview().getData();
         return ResponseEntity.ok(Map.of(
                 "records", sessions,
                 "total", total
@@ -211,8 +211,8 @@ public class ExamReviewController {
      */
     @GetMapping("/{sessionId}/answers")
     public ResponseEntity<Map<String, Object>> getAnswers(@PathVariable Long sessionId) {
-        ExamSessionDTO session = gradingService.getSessionById(sessionId);
-        List<ExamAnswerDTO> answers = gradingService.listAnswersWithGrading(sessionId);
+        ExamSessionDTO session = gradingService.getSessionById(sessionId).getData();
+        List<ExamAnswerDTO> answers = gradingService.listAnswersWithGrading(sessionId).getData();
 
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("topic", session.getTopic());

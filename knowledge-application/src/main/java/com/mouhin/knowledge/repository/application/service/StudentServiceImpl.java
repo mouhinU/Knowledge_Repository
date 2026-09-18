@@ -10,10 +10,10 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * 考生认证应用服务实现（app 层，仅分发到 Executor）
@@ -46,32 +46,33 @@ public class StudentServiceImpl implements StudentServiceI {
     }
 
     @Override
-    public StudentVO register(StudentRegisterCmd cmd) {
-        return studentRegisterCmdExe.execute(cmd);
+    public SingleResponse<StudentVO> register(StudentRegisterCmd cmd) {
+        return SingleResponse.of(studentRegisterCmdExe.execute(cmd));
     }
 
     @Override
-    public String login(StudentLoginCmd cmd) {
-        return studentLoginCmdExe.execute(cmd);
+    public SingleResponse<String> login(StudentLoginCmd cmd) {
+        return SingleResponse.of(studentLoginCmdExe.execute(cmd));
     }
 
     @Override
-    public void logout(String token) {
+    public Response logout(String token) {
         studentLogoutCmdExe.execute(token);
+        return Response.buildSuccess();
     }
 
     @Override
-    public Optional<StudentVO> validateToken(String token) {
-        return studentValidateTokenQryExe.execute(token);
+    public SingleResponse<StudentVO> validateToken(String token) {
+        return SingleResponse.of(studentValidateTokenQryExe.execute(token).orElse(null));
     }
 
     @Override
-    public Optional<StudentVO> getStudentById(Long id) {
-        return studentGetByIdQryExe.execute(id);
+    public SingleResponse<StudentVO> getStudentById(Long id) {
+        return SingleResponse.of(studentGetByIdQryExe.execute(id).orElse(null));
     }
 
     @Override
-    public List<StudentVO> listStudents() {
-        return studentListQryExe.execute();
+    public MultiResponse<StudentVO> listStudents() {
+        return MultiResponse.of(studentListQryExe.execute());
     }
 }

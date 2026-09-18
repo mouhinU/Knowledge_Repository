@@ -13,9 +13,10 @@ import com.mouhin.knowledge.repository.application.executor.examgrading.TriggerG
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * 考试评分应用服务实现（app 层，仅分发到执行器）
@@ -63,52 +64,55 @@ public class ExamGradingServiceImpl implements ExamGradingServiceI {
     }
 
     @Override
-    public List<ExamSessionDTO> listPendingGradingSessions(int limit, int offset) {
-        return listPendingGradingSessionsQryExe.execute(limit, offset);
+    public MultiResponse<ExamSessionDTO> listPendingGradingSessions(int limit, int offset) {
+        return MultiResponse.of(listPendingGradingSessionsQryExe.execute(limit, offset));
     }
 
     @Override
-    public long countPendingGrading() {
-        return countPendingGradingQryExe.execute();
+    public SingleResponse<Long> countPendingGrading() {
+        return SingleResponse.of(countPendingGradingQryExe.execute());
     }
 
     @Override
-    public List<Long> listPendingGradingSessionIds() {
-        return listPendingGradingSessionIdsQryExe.execute();
+    public MultiResponse<Long> listPendingGradingSessionIds() {
+        return MultiResponse.of(listPendingGradingSessionIdsQryExe.execute());
     }
 
     @Override
-    public List<ExamSessionDTO> listPendingReview(int limit, int offset) {
-        return listPendingReviewQryExe.execute(limit, offset);
+    public MultiResponse<ExamSessionDTO> listPendingReview(int limit, int offset) {
+        return MultiResponse.of(listPendingReviewQryExe.execute(limit, offset));
     }
 
     @Override
-    public long countPendingReview() {
-        return countPendingReviewQryExe.execute();
+    public SingleResponse<Long> countPendingReview() {
+        return SingleResponse.of(countPendingReviewQryExe.execute());
     }
 
     @Override
-    public ExamSessionDTO getSessionById(Long sessionId) {
-        return getSessionByIdQryExe.execute(sessionId);
+    public SingleResponse<ExamSessionDTO> getSessionById(Long sessionId) {
+        return SingleResponse.of(getSessionByIdQryExe.execute(sessionId));
     }
 
     @Override
-    public List<ExamAnswerDTO> listAnswersWithGrading(Long sessionId) {
-        return listAnswersWithGradingQryExe.execute(sessionId);
+    public MultiResponse<ExamAnswerDTO> listAnswersWithGrading(Long sessionId) {
+        return MultiResponse.of(listAnswersWithGradingQryExe.execute(sessionId));
     }
 
     @Override
-    public void triggerGrading(Long sessionId) {
+    public Response triggerGrading(Long sessionId) {
         triggerGradingCmdExe.execute(sessionId);
+        return Response.buildSuccess();
     }
 
     @Override
-    public void reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback, String reviewer) {
+    public Response reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback, String reviewer) {
         reviewAnswerCmdExe.execute(answerId, reviewScore, reviewFeedback, reviewer);
+        return Response.buildSuccess();
     }
 
     @Override
-    public void publishScore(Long sessionId, String reviewer) {
+    public Response publishScore(Long sessionId, String reviewer) {
         publishScoreCmdExe.execute(sessionId, reviewer);
+        return Response.buildSuccess();
     }
 }

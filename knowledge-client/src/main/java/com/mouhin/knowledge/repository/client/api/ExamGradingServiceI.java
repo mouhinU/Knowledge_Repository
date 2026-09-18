@@ -1,15 +1,18 @@
 package com.mouhin.knowledge.repository.client.api;
 
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
-
-import java.util.List;
 
 /**
  * 考试评分应用服务契约（client 层）
  *
  * <p>仅承载传输无关的读 / 写用例：待评分与待复核列表、场次与答题详情查询、
- * 同步触发评分、人工复核与成绩发布。返回 DTO，键集合与原领域实体序列化结果一致。</p>
+ * 同步触发评分、人工复核与成绩发布。返回值统一采用 COLA 契约类型
+ * （{@link SingleResponse} / {@link MultiResponse} / {@link Response}），适配层负责还原为前端 JSON 形状；
+ * 校验失败仍以 {@link IllegalArgumentException} / {@link IllegalStateException} 抛出。</p>
  *
  * <p>依赖领域回调 {@code ExamGradingProgressCallback} 的异步 / SSE 评分路径
  * （{@code gradeExamAsync} / {@code triggerGradingAsync}）刻意不纳入本契约，
@@ -20,23 +23,23 @@ import java.util.List;
  */
 public interface ExamGradingServiceI {
 
-    List<ExamSessionDTO> listPendingGradingSessions(int limit, int offset);
+    MultiResponse<ExamSessionDTO> listPendingGradingSessions(int limit, int offset);
 
-    long countPendingGrading();
+    SingleResponse<Long> countPendingGrading();
 
-    List<Long> listPendingGradingSessionIds();
+    MultiResponse<Long> listPendingGradingSessionIds();
 
-    List<ExamSessionDTO> listPendingReview(int limit, int offset);
+    MultiResponse<ExamSessionDTO> listPendingReview(int limit, int offset);
 
-    long countPendingReview();
+    SingleResponse<Long> countPendingReview();
 
-    ExamSessionDTO getSessionById(Long sessionId);
+    SingleResponse<ExamSessionDTO> getSessionById(Long sessionId);
 
-    List<ExamAnswerDTO> listAnswersWithGrading(Long sessionId);
+    MultiResponse<ExamAnswerDTO> listAnswersWithGrading(Long sessionId);
 
-    void triggerGrading(Long sessionId);
+    Response triggerGrading(Long sessionId);
 
-    void reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback, String reviewer);
+    Response reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback, String reviewer);
 
-    void publishScore(Long sessionId, String reviewer);
+    Response publishScore(Long sessionId, String reviewer);
 }

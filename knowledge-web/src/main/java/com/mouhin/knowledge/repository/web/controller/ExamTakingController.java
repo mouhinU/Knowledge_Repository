@@ -40,14 +40,14 @@ public class ExamTakingController {
         try {
             ExamSessionDTO session;
             if (request.getHistorySessionId() != null && !request.getHistorySessionId().isBlank()) {
-                session = examTakingService.startFromHistory(request.getToken(), request.getHistorySessionId());
+                session = examTakingService.startFromHistory(request.getToken(), request.getHistorySessionId()).getData();
             } else if (request.getExamPaper() != null && !request.getExamPaper().isBlank()) {
                 session = examTakingService.startWithPaper(
                         request.getToken(),
                         request.getExamPaper(),
                         request.getAnswerKey(),
                         request.getTopic(),
-                        request.getDifficulty());
+                        request.getDifficulty()).getData();
             } else {
                 return ResponseEntity.badRequest().body(Map.of("error", "请指定试卷来源"));
             }
@@ -58,7 +58,7 @@ public class ExamTakingController {
                     "questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]",
                     "totalScore", session.getTotalScore(),
                     "durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0,
-                    "validation", examTakingService.validateReport(session.getQuestionsJson()),
+                    "validation", examTakingService.validateReport(session.getQuestionsJson()).getData(),
                     "startTime", session.getStartTime().toString()
             ));
         } catch (IllegalArgumentException e) {
@@ -109,7 +109,7 @@ public class ExamTakingController {
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            ExamSessionDTO session = examTakingService.getSession(sessionKey, headerToken);
+            ExamSessionDTO session = examTakingService.getSession(sessionKey, headerToken).getData();
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("sessionKey", session.getSessionKey());
@@ -139,7 +139,7 @@ public class ExamTakingController {
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamAnswerDTO> answers = examTakingService.getAnswers(sessionKey, headerToken);
+            List<ExamAnswerDTO> answers = examTakingService.getAnswers(sessionKey, headerToken).getData();
             return ResponseEntity.ok(answers);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -153,7 +153,7 @@ public class ExamTakingController {
     public ResponseEntity<List<ExamSessionDTO>> mySessions(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamSessionDTO> sessions = examTakingService.listMySessions(headerToken);
+            List<ExamSessionDTO> sessions = examTakingService.listMySessions(headerToken).getData();
             return ResponseEntity.ok(sessions);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

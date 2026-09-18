@@ -26,5 +26,12 @@
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
+
+        <!-- COLA unified response contract (Response / SingleResponse / MultiResponse / PageResponse) -->
+        <dependency>
+            <groupId>com.alibaba.cola</groupId>
+            <artifactId>cola-component-dto</artifactId>
+            <version>5.0.0</version>
+        </dependency>
     </dependencies>
 </project>

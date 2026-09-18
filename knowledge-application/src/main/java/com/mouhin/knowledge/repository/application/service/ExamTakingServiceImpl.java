@@ -13,6 +13,9 @@ import com.mouhin.knowledge.repository.application.executor.examtaking.ExamValid
 import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -61,53 +64,57 @@ public class ExamTakingServiceImpl implements ExamTakingServiceI {
     }
 
     @Override
-    public ExamSessionDTO startFromHistory(String studentToken, String historySessionId) {
-        return startFromHistoryCmdExe.execute(studentToken, historySessionId);
+    public SingleResponse<ExamSessionDTO> startFromHistory(String studentToken, String historySessionId) {
+        return SingleResponse.of(startFromHistoryCmdExe.execute(studentToken, historySessionId));
     }
 
     @Override
-    public ExamSessionDTO startWithPaper(String studentToken, String examPaper, String answerKey,
-                                         String topic, String difficulty) {
-        return startWithPaperCmdExe.execute(studentToken, examPaper, answerKey, topic, difficulty);
+    public SingleResponse<ExamSessionDTO> startWithPaper(String studentToken, String examPaper, String answerKey,
+                                                         String topic, String difficulty) {
+        return SingleResponse.of(startWithPaperCmdExe.execute(studentToken, examPaper, answerKey, topic, difficulty));
     }
 
     @Override
-    public Map<String, Object> validateReport(String questionsJson) {
-        return validateReportQryExe.execute(questionsJson);
+    public SingleResponse<Map<String, Object>> validateReport(String questionsJson) {
+        return SingleResponse.of(validateReportQryExe.execute(questionsJson));
     }
 
     @Override
-    public void saveAnswers(String sessionKey, String studentToken, List<Map<String, String>> answers) {
+    public Response saveAnswers(String sessionKey, String studentToken, List<Map<String, String>> answers) {
         saveAnswersCmdExe.execute(sessionKey, studentToken, answers);
+        return Response.buildSuccess();
     }
 
     @Override
-    public void submitExam(String sessionKey, String studentToken) {
+    public Response submitExam(String sessionKey, String studentToken) {
         submitCmdExe.execute(sessionKey, studentToken);
+        return Response.buildSuccess();
     }
 
     @Override
-    public ExamSessionDTO getSession(String sessionKey, String studentToken) {
-        return getSessionQryExe.execute(sessionKey, studentToken);
+    public SingleResponse<ExamSessionDTO> getSession(String sessionKey, String studentToken) {
+        return SingleResponse.of(getSessionQryExe.execute(sessionKey, studentToken));
     }
 
     @Override
-    public List<ExamAnswerDTO> getAnswers(String sessionKey, String studentToken) {
-        return getAnswersQryExe.execute(sessionKey, studentToken);
+    public MultiResponse<ExamAnswerDTO> getAnswers(String sessionKey, String studentToken) {
+        return MultiResponse.of(getAnswersQryExe.execute(sessionKey, studentToken));
     }
 
     @Override
-    public List<ExamSessionDTO> listMySessions(String studentToken) {
-        return mySessionsQryExe.execute(studentToken);
+    public MultiResponse<ExamSessionDTO> listMySessions(String studentToken) {
+        return MultiResponse.of(mySessionsQryExe.execute(studentToken));
     }
 
     @Override
-    public void updateQuestionsJson(String sessionKey, String studentToken, String questionsJson) {
+    public Response updateQuestionsJson(String sessionKey, String studentToken, String questionsJson) {
         updateQuestionsJsonCmdExe.execute(sessionKey, studentToken, questionsJson);
+        return Response.buildSuccess();
     }
 
     @Override
-    public void updateDuration(String sessionKey, Integer durationMinutes) {
+    public Response updateDuration(String sessionKey, Integer durationMinutes) {
         updateDurationCmdExe.execute(sessionKey, durationMinutes);
+        return Response.buildSuccess();
     }
 }
