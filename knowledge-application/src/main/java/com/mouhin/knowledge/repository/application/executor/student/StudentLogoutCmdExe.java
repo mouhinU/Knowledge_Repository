@@ -1,13 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.student;
 
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 /**
  * 考生退出登录命令执行器（app 层用例，事务边界）
@@ -29,10 +26,8 @@ public class StudentLogoutCmdExe {
     @Transactional
     public void execute(String token) {
         studentGateway.findBySessionToken(token).ifPresent(student -> {
-            student.setSessionToken(null);
-            student.setTokenExpiry(null);
-            student.setUpdateTime(LocalDateTime.now());
-            studentGateway.update(student);
+            // 令牌置空须走专用方法：通用 update 在 NOT_NULL 策略下不会把 session_token 写回 null
+            studentGateway.clearSessionToken(student.getId());
             logger.info("考生退出登录: id={}", student.getId());
         });
     }

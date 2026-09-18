@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.StudentConverter;
@@ -8,6 +9,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Stu
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.StudentMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +39,16 @@ public class StudentGatewayImpl implements StudentGateway {
     public void update(Student student) {
         StudentDO doObj = StudentConverter.toDO(student);
         studentMapper.updateById(doObj);
+    }
+
+    @Override
+    public void clearSessionToken(Long id) {
+        LambdaUpdateWrapper<StudentDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(StudentDO::getId, id)
+                .set(StudentDO::getSessionToken, null)
+                .set(StudentDO::getTokenExpiry, null)
+                .set(StudentDO::getUpdateTime, LocalDateTime.now());
+        studentMapper.update(null, wrapper);
     }
 
     @Override
