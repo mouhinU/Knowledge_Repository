@@ -6,11 +6,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -50,10 +45,10 @@ public class ExamResearcherAgent implements BlackboardAgent {
             输出格式：使用 Markdown 格式，按知识领域分节组织。
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamResearcherAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamResearcherAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -100,15 +95,7 @@ public class ExamResearcherAgent implements BlackboardAgent {
                 请提取和组织与考试主题相关的关键知识点，为出题提供知识基础。
                 """, blackboard.getQuestion(), contextBuilder);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String findings = response.aiMessage().text();
+        String findings = agentStreamer.stream("exam-researcher", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (findings == null || findings.isBlank()) {
             logger.warn("[ExamResearcher] LLM 返回空结果，回退使用原始知识片段");

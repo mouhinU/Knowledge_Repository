@@ -33,6 +33,9 @@ public class ExamPlan {
     /** 合理性评估建议（第④阶段产出，仅提示不自动改写） */
     private List<String> evaluationNotes = new ArrayList<>();
 
+    /** 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定） */
+    private boolean manualAdjusted;
+
     public ExamPlan() {
     }
 
@@ -108,5 +111,13 @@ public class ExamPlan {
 
     public void setEvaluationNotes(List<String> evaluationNotes) {
         this.evaluationNotes = evaluationNotes != null ? evaluationNotes : new ArrayList<>();
+    }
+
+    public boolean isManualAdjusted() {
+        return manualAdjusted;
+    }
+
+    public void setManualAdjusted(boolean manualAdjusted) {
+        this.manualAdjusted = manualAdjusted;
     }
 }

@@ -50,6 +50,9 @@ public class ExamHistoryDO {
     @TableField("quality_score")
     private Integer qualityScore;
 
+    @TableField("score_detail")
+    private String scoreDetail;
+
     @TableField("retrieved_chunks")
     private Integer retrievedChunks;
 

@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -47,10 +42,10 @@ public class ReviewerAgent implements BlackboardAgent {
             如果文章质量已经足够好（80分以上），最终文章可以保持原样或做微调。
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ReviewerAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ReviewerAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -103,15 +98,7 @@ public class ReviewerAgent implements BlackboardAgent {
                 blackboard.getKeyFindings(),
                 draft);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String reviewOutput = response.aiMessage().text();
+        String reviewOutput = agentStreamer.stream("reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         // 解析审核结果
         blackboard.setReviewFeedback(extractSection(reviewOutput, "审核意见"));

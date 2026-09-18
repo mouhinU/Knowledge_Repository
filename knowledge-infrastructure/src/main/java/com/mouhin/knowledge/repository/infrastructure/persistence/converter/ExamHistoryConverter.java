@@ -29,6 +29,7 @@ public final class ExamHistoryConverter {
         domain.setExamPaper(doObj.getExamPaper());
         domain.setAnswerKey(doObj.getAnswerKey());
         domain.setQualityScore(doObj.getQualityScore());
+        domain.setScoreDetail(doObj.getScoreDetail());
         domain.setRetrievedChunks(doObj.getRetrievedChunks());
         domain.setKeyFindings(doObj.getKeyFindings());
         domain.setReviewFeedback(doObj.getReviewFeedback());
@@ -59,6 +60,7 @@ public final class ExamHistoryConverter {
         doObj.setExamPaper(domain.getExamPaper());
         doObj.setAnswerKey(domain.getAnswerKey());
         doObj.setQualityScore(domain.getQualityScore());
+        doObj.setScoreDetail(domain.getScoreDetail());
         doObj.setRetrievedChunks(domain.getRetrievedChunks());
         doObj.setKeyFindings(domain.getKeyFindings());
         doObj.setReviewFeedback(domain.getReviewFeedback());

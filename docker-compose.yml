@@ -35,7 +35,7 @@ services:
       # LLM 对话模型（DeepSeek 云端）
       LLM_PROVIDER: deepseek
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-      DEEPSEEK_CHAT_MODEL: deepseek-chat
+      DEEPSEEK_CHAT_MODEL: deepseek-flash
       LLM_TEMPERATURE: "0.7"
       LLM_MAX_TOKENS: "4096"
       # Spring Security 管理员凭据

@@ -17,6 +17,7 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
+import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -56,7 +57,9 @@ public class ExamGenerationSupport {
     private static final int DEFAULT_MAX_RESULTS = 20;
     private static final double DEFAULT_MIN_SCORE = 0.3;
     private static final int QUALITY_SCORE_THRESHOLD = 80;
-    private static final int MAX_REVIEW_RETRIES = 5;
+    private static final int MAX_REVIEW_RETRIES = 2;
+    /** 手动调整方案下，连续两轮评分差 ≤ 该值即视为已收敛，提前结束改进循环 */
+    private static final int SCORE_CONVERGENCE_DELTA = 3;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -71,6 +74,7 @@ public class ExamGenerationSupport {
     private final VectorStoreGateway vectorStoreService;
     private final PermissionDomainService permissionDomainService;
     private final ChatModel chatModel;
+    private final StreamingChatGateway streamingChatGateway;
     private final ExamHistoryGateway examHistoryGateway;
 
     private final ExecutorService agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
@@ -93,6 +97,7 @@ public class ExamGenerationSupport {
             VectorStoreGateway vectorStoreService,
             PermissionDomainService permissionDomainService,
             ChatModel chatModel,
+            StreamingChatGateway streamingChatGateway,
             ExamHistoryGateway examHistoryGateway) {
         this.examResearcherAgent = examResearcherAgent;
         this.examScoringAgent = examScoringAgent;
@@ -105,6 +110,7 @@ public class ExamGenerationSupport {
         this.vectorStoreService = vectorStoreService;
         this.permissionDomainService = permissionDomainService;
         this.chatModel = chatModel;
+        this.streamingChatGateway = streamingChatGateway;
         this.examHistoryGateway = examHistoryGateway;
     }
 
@@ -191,7 +197,10 @@ public class ExamGenerationSupport {
             CompletableFuture.allOf(researchFuture, scoringFuture).join();
 
             // 3-5. 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
-            // 低分自动重试，最多 MAX_REVIEW_RETRIES 次
+            // 低分自动重试，最多 MAX_REVIEW_RETRIES 次；
+            // 手动调整方案时若第 2 次评分与首轮相差 ≤ SCORE_CONVERGENCE_DELTA 视为收敛，提前通过。
+            boolean manualPlan = plan != null && plan.isManualAdjusted();
+            int firstAttemptScore = -1;
             for (int attempt = 0; attempt <= MAX_REVIEW_RETRIES; attempt++) {
                 // 3. 试卷编写 Agent（重试时会读取审核反馈进行改进）
                 examWriterAgent.execute(blackboard, callback);
@@ -211,9 +220,31 @@ public class ExamGenerationSupport {
                 CompletableFuture.allOf(reviewFuture, dedupFuture).join();
 
                 int score = blackboard.getQualityScore();
-                if (score >= QUALITY_SCORE_THRESHOLD || attempt == MAX_REVIEW_RETRIES) {
-                    logger.info("[ExamPipeline] 审核完成 [session={}, attempt={}, score={}, threshold={}]",
-                            sessionId, attempt + 1, score, QUALITY_SCORE_THRESHOLD);
+                if (firstAttemptScore < 0) {
+                    firstAttemptScore = score;
+                }
+
+                // 手动方案下的收敛早停：第 2 轮起，若与首轮分差 ≤ 阈值则视为已收敛
+                boolean converged = manualPlan && attempt >= 1
+                        && Math.abs(score - firstAttemptScore) <= SCORE_CONVERGENCE_DELTA;
+                if (converged) {
+                    if (score < QUALITY_SCORE_THRESHOLD) {
+                        blackboard.setQualityScore(QUALITY_SCORE_THRESHOLD);
+                        score = QUALITY_SCORE_THRESHOLD;
+                    }
+                    logger.info("[ExamPipeline] 手动方案评分收敛（首轮 {}，本轮 {}，差值 ≤ {}），提前结束改进 [session={}, attempt={}]",
+                            firstAttemptScore, score, SCORE_CONVERGENCE_DELTA, sessionId, attempt + 1);
+                    if (callback != null) {
+                        callback.onProgress(BlackboardProgressEvent.phaseChanged(
+                                BlackboardPhase.WRITING,
+                                String.format("手动方案：评分已收敛（%d → %d，差值 ≤ %d），停止改进。",
+                                        firstAttemptScore, score, SCORE_CONVERGENCE_DELTA)));
+                    }
+                }
+
+                if (score >= QUALITY_SCORE_THRESHOLD || attempt == MAX_REVIEW_RETRIES || converged) {
+                    logger.info("[ExamPipeline] 审核完成 [session={}, attempt={}, score={}, threshold={}, manual={}, converged={}]",
+                            sessionId, attempt + 1, score, QUALITY_SCORE_THRESHOLD, manualPlan, converged);
                     break;
                 }
 
@@ -445,6 +476,14 @@ public class ExamGenerationSupport {
                         com.mouhin.knowledge.repository.domain.service.ScorePlanValidator.validate(plan);
                 String report = com.mouhin.knowledge.repository.domain.service.ScorePlanValidator
                         .renderReport(plan, result);
+
+                // 附加：以真流式让模型解读该方案（思考链 + 结果逐字推送到前端"校验过程"卡片）；
+                // 模型异常不影响门禁，done 快照仍以规则报告为准。
+                String aiAnalysis = streamValidationAnalysis(plan, report, progressCallback);
+                if (aiAnalysis != null) {
+                    logger.debug("[PlanValidate] 模型解读输出长度 {} 字符 [session={}]", aiAnalysis.length(), sessionId);
+                }
+
                 if (result.pass()) {
                     if (progressCallback != null) {
                         progressCallback.onProgress(BlackboardProgressEvent.agentCompleted(
@@ -470,6 +509,54 @@ public class ExamGenerationSupport {
                 }
             }
         }, agentExecutor);
+    }
+
+    /**
+     * 以真流式方式让大模型解读题型分布方案的合理性（思考链与结果逐 token 推送）。
+     * <p>仅为增强可读性，<b>不</b>参与门禁判定；模型异常时返回 {@code null}，
+     * 校验结论仍由 {@link com.mouhin.knowledge.repository.domain.service.ScorePlanValidator} 决定。</p>
+     */
+    private String streamValidationAnalysis(ExamPlan plan, String report,
+                                            BlackboardProgressCallback progressCallback) {
+        if (progressCallback == null) {
+            return null;
+        }
+        try {
+            StringBuilder planText = new StringBuilder();
+            for (TypePlan t : plan.getTypes()) {
+                planText.append("- ").append(t.getLabel()).append("（").append(t.getKey()).append("）：")
+                        .append(t.getCount()).append(" 道，每题分值 ").append(t.getPerQuestion())
+                        .append("，小计 ").append(t.subtotal()).append(" 分\n");
+            }
+            String systemPrompt = """
+                    你是资深命题质检专家，正在复核一份试卷的"题型分布与分值方案"。
+                    请结合学科与学段常识，判断题型搭配、题量、分值占比、难度梯度是否合理，
+                    并给出简洁的中文点评与优化建议（2~5 条）。
+                    注意：系统已有确定性规则给出硬性校验结论，你无需复述其数字，只做专业解读即可。
+                    """;
+            String userPrompt = String.format("""
+                    本卷满分：%d 分，共 %d 题。
+                    题型分布：
+                    %s
+                    规则校验结果摘要：
+                    %s
+
+                    请给出你对该方案合理性的专业解读与优化建议。
+                    """, plan.getTotalFullMark(), plan.totalQuestions(), planText, trimText(report, 800));
+            return streamingChatGateway.streamCompletion(systemPrompt, userPrompt,
+                    (kind, delta) -> progressCallback.onProgress(
+                            BlackboardProgressEvent.tokenDelta("exam-plan-validator", kind, delta)));
+        } catch (Exception e) {
+            logger.warn("[PlanValidate] 模型解读失败（忽略，仅用规则结果）: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private static String trimText(String s, int max) {
+        if (s == null) {
+            return "";
+        }
+        return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 
     /**
@@ -732,6 +819,7 @@ public class ExamGenerationSupport {
             history.setAnswerKey(blackboard.getAnswerKey());
             history.setDurationMinutes(ExamPaperParser.parseDuration(blackboard.getExamPaper()));
             history.setQualityScore(blackboard.getQualityScore());
+            history.setScoreDetail(blackboard.getExamScoreDetail());
             history.setRetrievedChunks(retrievedChunks);
             history.setKeyFindings(blackboard.getKeyFindings());
             history.setReviewFeedback(blackboard.getExamReviewFeedback());

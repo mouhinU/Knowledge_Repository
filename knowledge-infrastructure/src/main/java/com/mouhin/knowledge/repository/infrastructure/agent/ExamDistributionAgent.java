@@ -8,11 +8,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,10 +41,10 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
     private static final List<String> ALLOWED_KEYS = List.of(
             "SINGLE_CHOICE", "MULTI_CHOICE", "TRUE_FALSE", "FILL_BLANK", "SHORT_ANSWER", "ESSAY");
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamDistributionAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamDistributionAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     /**
@@ -88,14 +83,21 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         String levelLabel = ScoreRuleEngine.levelLabel(level);
         String diffLabel = difficultyLabel(difficulty);
 
-        // 阶段①②：题型分类 + 题量（一次结构化调用）
-        List<TypePlan> structure = classifyAndCount(topic, difficulty, level, fullMark, knowledgeHint);
+        // —— 阶段①② 题型分类 + 题量：一次结构化 LLM 调用（真流式思考与输出）——
+        String input1 = String.format("主题：%s｜学段：%s｜难度：%s｜满分：%d 分",
+                topic, levelLabel, diffLabel, fullMark)
+                + ((knowledgeHint != null && !knowledgeHint.isBlank())
+                    ? "\n参考知识点：" + trim(knowledgeHint, 300) : "");
+        String think1 = "作为命题专家，依据学科常规结构与学段，在 6 类内核题型中挑选贴合的题型组合并为每种题型命名（显示名可按科目定制）。";
+        emitRunning(callback, "dist-classify", input1, think1);
+
+        List<TypePlan> structure = classifyAndCount(topic, difficulty, level, fullMark, knowledgeHint, callback);
         boolean fallback = structure.isEmpty();
         if (fallback) {
             structure = defaultStructure();
         }
 
-        // —— 阶段① 题型分类：输出选中的题型集合 ——
+        // 汇总选中的题型集合与各题型题量（供 dist-classify / dist-count 的 done 快照展示）
         StringBuilder typeNames = new StringBuilder();
         StringBuilder countDetail = new StringBuilder();
         for (TypePlan t : structure) {
@@ -109,15 +111,9 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
             }
             countDetail.append("\n");
         }
-        String input1 = String.format("主题：%s｜学段：%s｜难度：%s｜满分：%d 分",
-                topic, levelLabel, diffLabel, fullMark)
-                + ((knowledgeHint != null && !knowledgeHint.isBlank())
-                    ? "\n参考知识点：" + trim(knowledgeHint, 300) : "");
-        String think1 = fallback
-                ? "模型未返回有效结构，已启用学科通用兜底题型集合。"
-                : "作为命题专家，依据学科常规结构与学段，在 6 类内核题型中挑选贴合的题型组合并为每种题型命名（显示名可按科目定制）。";
-        emitRunning(callback, "dist-classify", input1, think1);
-        emitDone(callback, "dist-classify", "选定题型：" + typeNames);
+        String classifyOutput = "选定题型：" + typeNames
+                + (fallback ? "\n（模型未返回有效结构，已启用学科通用兜底题型集合）" : "");
+        emitDone(callback, "dist-classify", classifyOutput);
 
         // —— 阶段② 题型数量：输出各题型题量与依据 ——
         String input2 = "在上一步选定的 " + structure.size() + " 类题型基础上，结合难度与满分分配题量";
@@ -157,7 +153,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         String think4 = "关注题型是否贴合学科与学段、难度梯度、题量与分值占比是否均衡、满分是否被合理利用；"
                 + "仅标注改进建议，不自动改写方案。";
         emitRunning(callback, "dist-evaluate", input4, think4);
-        plan.setEvaluationNotes(evaluate(topic, difficulty, level, plan));
+        plan.setEvaluationNotes(evaluate(topic, difficulty, level, plan, callback));
         StringBuilder noteText = new StringBuilder();
         if (plan.getEvaluationNotes() == null || plan.getEvaluationNotes().isEmpty()) {
             noteText.append("题型分布合理，可直接出题");
@@ -197,7 +193,8 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
     // ==================== 阶段①②：题型分类 + 题量 ====================
 
     private List<TypePlan> classifyAndCount(String topic, String difficulty,
-                                            ScoreRuleEngine.SchoolLevel level, int fullMark, String knowledgeHint) {
+                                            ScoreRuleEngine.SchoolLevel level, int fullMark,
+                                            String knowledgeHint, BlackboardProgressCallback callback) {
         String systemPrompt = """
                 你是资深命题专家，负责为一份考试确定"题型构成"和"每种题型题量"。
                 内核题型只有 6 类，key 必须严格取自：
@@ -222,7 +219,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                 - 只输出上述 JSON。
                 """, topic, ScoreRuleEngine.levelLabel(level), difficultyLabel(difficulty), fullMark, hint);
 
-        JsonNode root = askJson(systemPrompt, userPrompt);
+        JsonNode root = streamJson("dist-classify", systemPrompt, userPrompt, callback);
         List<TypePlan> plans = new ArrayList<>();
         if (root == null || !root.has("types")) {
             return plans;
@@ -250,7 +247,8 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
     // ==================== 阶段④：合理性评估 ====================
 
-    private List<String> evaluate(String topic, String difficulty, ScoreRuleEngine.SchoolLevel level, ExamPlan plan) {
+    private List<String> evaluate(String topic, String difficulty, ScoreRuleEngine.SchoolLevel level,
+                                  ExamPlan plan, BlackboardProgressCallback callback) {
         StringBuilder schemeText = new StringBuilder();
         for (TypePlan t : plan.getTypes()) {
             schemeText.append(String.format("- %s（%s）：%d 道，小计 %d 分，逐题分值 %s\n",
@@ -272,7 +270,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                 """, topic, ScoreRuleEngine.levelLabel(level), difficultyLabel(difficulty),
                 plan.getTotalFullMark(), schemeText);
 
-        JsonNode root = askJson(systemPrompt, userPrompt);
+        JsonNode root = streamJson("dist-evaluate", systemPrompt, userPrompt, callback);
         List<String> notes = new ArrayList<>();
         if (root != null && root.has("notes") && root.get("notes").isArray()) {
             for (JsonNode n : root.get("notes")) {
@@ -311,16 +309,13 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
     // ==================== LLM 调用与 JSON 解析 ====================
 
-    private JsonNode askJson(String systemPrompt, String userPrompt) {
+    private JsonNode streamJson(String agentName, String systemPrompt, String userPrompt,
+                                BlackboardProgressCallback callback) {
         try {
-            ChatRequest request = ChatRequest.builder()
-                    .messages(SystemMessage.from(systemPrompt), UserMessage.from(userPrompt))
-                    .build();
-            ChatResponse response = chatModel.chat(request);
-            String text = response.aiMessage().text();
+            String text = agentStreamer.stream(agentName, systemPrompt, userPrompt, callback);
             return extractJson(text);
         } catch (Exception e) {
-            logger.warn("[Distribution] LLM 调用/解析失败: {}", e.getMessage());
+            logger.warn("[Distribution] 流式 LLM 调用/解析失败: {}", e.getMessage());
             return null;
         }
     }

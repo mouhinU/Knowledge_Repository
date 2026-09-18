@@ -44,7 +44,7 @@ public final class AnswerKeyParser {
      * 解析标记
      */
     private static final Pattern ANALYSIS_MARK = Pattern.compile(
-            "\\*{0,2}(?:解析|分析|说明)\\s*[：:]\\s*(.*)$");
+            "\\*{0,2}(?:解析|分析|说明|理由)\\s*[：:]\\s*(.*)$");
 
     /**
      * 评分标准标记
@@ -62,6 +62,17 @@ public final class AnswerKeyParser {
      */
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s");
 
+    /**
+     * 行首「分值」括注（含"分"字），用于从行内答案中剥离，如 （2分） / （共35分）
+     */
+    private static final Pattern INLINE_SCORE_PAREN = Pattern.compile("^[（(【][^）)】]*分[^）)】]*[）)】]\\s*");
+
+    /**
+     * 行内答案前可能残留的「答案：」类标签，剥离后只留答案本体
+     */
+    private static final Pattern ANSWER_LABEL_PREFIX = Pattern.compile(
+            "^(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*");
+
     private AnswerKeyParser() {
     }
 
@@ -78,7 +89,8 @@ public final class AnswerKeyParser {
         }
 
         String[] lines = answerKey.split("\\n");
-        Integer currentQ = null;
+        int seq = 0;                 // 全局题序计数器（与试卷题目 questionIndex 对齐）
+        Integer currentSeq = null;   // 当前正在收集的全局题序，null 表示尚未进入任何题
         Section section = Section.NONE;
 
         StringBuilder analysisBuf = new StringBuilder();
@@ -91,38 +103,45 @@ public final class AnswerKeyParser {
                 continue;
             }
 
-            // 标题行：重新定位题号并结束当前收集
-            if (HEADING.matcher(line).find()) {
+            // 判断本行是否开启一道新题，并（若行内带答案）提取行内答案本体
+            boolean newQuestion = false;
+            String inlineAnswer = null;
+            boolean isHeading = HEADING.matcher(line).find();
+
+            if (isHeading) {
+                // 标题行：仅 "第N题" 形式的标题才算一道题；大题标题（一、选择题）不计
                 Matcher hq = QNUM_HEADER.matcher(line);
                 if (hq.find()) {
-                    flush(result, currentQ, answerValue, analysisBuf, criteriaBuf);
-                    currentQ = Integer.parseInt(hq.group(1));
-                    answerValue = null;
-                    analysisBuf.setLength(0);
-                    criteriaBuf.setLength(0);
+                    newQuestion = true;
                 }
+            } else {
+                Matcher inlineQ = QNUM_INLINE.matcher(line);
+                if (inlineQ.find()) {
+                    newQuestion = true;
+                    inlineAnswer = extractInlineAnswer(line.substring(inlineQ.end()));
+                }
+            }
+
+            if (newQuestion) {
+                flush(result, currentSeq, answerValue, analysisBuf, criteriaBuf);
+                currentSeq = ++seq;
+                answerValue = (inlineAnswer != null && !inlineAnswer.isEmpty()) ? inlineAnswer : null;
+                analysisBuf.setLength(0);
+                criteriaBuf.setLength(0);
                 section = Section.NONE;
                 continue;
             }
 
-            // 行内题号（**1. ...**）：更新 currentQ
-            Matcher inlineQ = QNUM_INLINE.matcher(line);
-            if (inlineQ.find()) {
-                int detected = Integer.parseInt(inlineQ.group(1));
-                if (detected != (currentQ == null ? -1 : currentQ)) {
-                    flush(result, currentQ, answerValue, analysisBuf, criteriaBuf);
-                    currentQ = detected;
-                    answerValue = null;
-                    analysisBuf.setLength(0);
-                    criteriaBuf.setLength(0);
-                }
-            }
+            // 以下均为「当前题」内的收集行
 
-            // 答案标记行
+            // 答案标记行（覆盖行内答案）
             Matcher am = ANSWER_MARK.matcher(line);
             if (am.find()) {
                 section = Section.ANSWER;
-                answerValue = cleanInline(am.group(1));
+                String labeled = cleanInline(am.group(1));
+                if (!labeled.isEmpty()) {
+                    answerValue = labeled;
+                }
                 continue;
             }
             // 解析标记行
@@ -167,15 +186,45 @@ public final class AnswerKeyParser {
             }
         }
 
-        flush(result, currentQ, answerValue, analysisBuf, criteriaBuf);
+        flush(result, currentSeq, answerValue, analysisBuf, criteriaBuf);
 
-        logger.debug("解析标准答案与评分标准：共 {} 道题", result.size());
+        logger.debug("解析标准答案与评分标准：共 {} 道题（按全局题序）", result.size());
         return result;
     }
 
-    private static void flush(Map<Integer, QuestionKey> result, Integer q, String answer,
+    /**
+     * 从行内题号标记之后的文本里提取答案本体。
+     * <p>处理形如 "（2分）** B  " / "（共35分）** 7；8" / "答案：B**" 的残留：
+     * 先剥离行首「分值」括注，再去掉 markdown 加粗与行尾换行反斜杠，
+     * 最后剥离可能残留的「答案：」标签，返回纯答案串（可能为空）。</p>
+     */
+    private static String extractInlineAnswer(String rest) {
+        if (rest == null) {
+            return null;
+        }
+        String s = rest.replaceAll("^\\*+", "").trim();
+        // 剥离行首分值括注（含"分"字）
+        Matcher pm = INLINE_SCORE_PAREN.matcher(s);
+        if (pm.find()) {
+            s = s.substring(pm.end()).trim();
+        }
+        // 去掉 markdown 加粗与行尾续行反斜杠
+        s = s.replace("*", "").trim();
+        s = s.replaceFirst("\\\\\\s*$", "").trim();
+        // 剥离可能残留的「答案：」类标签
+        Matcher lm = ANSWER_LABEL_PREFIX.matcher(s);
+        if (lm.find()) {
+            s = s.substring(lm.end()).trim();
+        }
+        if (s.isEmpty() || isHorizontalRule(s)) {
+            return null;
+        }
+        return s;
+    }
+
+    private static void flush(Map<Integer, QuestionKey> result, Integer seq, String answer,
                               StringBuilder analysis, StringBuilder criteria) {
-        if (q == null) {
+        if (seq == null) {
             return;
         }
         String a = answer != null ? answer : "";
@@ -184,12 +233,12 @@ public final class AnswerKeyParser {
         if (a.isEmpty() && an.isEmpty() && cr.isEmpty()) {
             return;
         }
-        // 已存在则补全空缺字段，不覆盖已有内容
-        QuestionKey existing = result.get(q);
+        // 全局题序唯一，直接落位；如重复则以补全空缺的方式合并，不覆盖已有内容
+        QuestionKey existing = result.get(seq);
         if (existing == null) {
-            result.put(q, new QuestionKey(emptyToNull(a), emptyToNull(an), emptyToNull(cr)));
+            result.put(seq, new QuestionKey(emptyToNull(a), emptyToNull(an), emptyToNull(cr)));
         } else {
-            result.put(q, new QuestionKey(
+            result.put(seq, new QuestionKey(
                     existing.answer() != null ? existing.answer() : emptyToNull(a),
                     existing.analysis() != null ? existing.analysis() : emptyToNull(an),
                     existing.scoringCriteria() != null ? existing.scoringCriteria() : emptyToNull(cr)));

@@ -155,6 +155,11 @@ public class ExamReviewController {
             }
 
             @Override
+            public void onQuestionToken(int questionIndex, String kind, String delta) {
+                inner.onQuestionToken(questionIndex, kind, delta);
+            }
+
+            @Override
             public void onQuestionDone(int questionIndex, String aiRawOutput, int aiScore, int maxScore,
                                        String aiFeedback, long elapsedMs) {
                 inner.onQuestionDone(questionIndex, aiRawOutput, aiScore, maxScore, aiFeedback, elapsedMs);

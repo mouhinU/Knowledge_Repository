@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 /**
  * AI 出卷历史记录视图对象
  *
- * <p>字段集合与顺序与原 {@code ExamHistory} 实体的 Jackson 序列化结果逐一对齐（22 个属性），
+ * <p>字段集合与顺序与原 {@code ExamHistory} 实体的 Jackson 序列化结果逐一对齐（23 个属性），
  * 保证 {@code /api/agent/exam/history} 系列端点返回 JSON 键集合、顺序与取值不变。
  * {@code examPlan} 为序列化后的方案 JSON 字符串（实体即为字符串字段）。</p>
  *
@@ -29,6 +29,7 @@ public class ExamHistoryDTO {
     private String examPaper;
     private String answerKey;
     private Integer qualityScore;
+    private String scoreDetail;
     private Integer retrievedChunks;
     private String keyFindings;
     private String reviewFeedback;

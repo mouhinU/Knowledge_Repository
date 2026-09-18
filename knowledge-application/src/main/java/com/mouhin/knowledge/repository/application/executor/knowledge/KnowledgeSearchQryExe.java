@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
+import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
@@ -71,12 +72,12 @@ public class KnowledgeSearchQryExe {
         List<SearchResponseVO.ItemVO> items = new ArrayList<>(results.size());
         for (SearchResult sr : results) {
             String docName = documentGateway.findByDocumentKey(sr.getDocumentId())
-                    .map(doc -> doc.getFileName())
+                    .map(Document::getFileName)
                     .orElse("");
             SearchResponseVO.ItemVO item = new SearchResponseVO.ItemVO();
             item.setText(sr.getText());
             item.setDocumentKey(sr.getDocumentId());
-            item.setDocumentName(docName != null ? docName : "");
+            item.setDocumentName(docName);
             item.setPageNumber(sr.getPageNumber() != null ? sr.getPageNumber() : 0);
             item.setChunkIndex(sr.getChunkIndex() != null ? sr.getChunkIndex() : 0);
             item.setScore(Math.round(sr.getScore() * 10000.0) / 10000.0);

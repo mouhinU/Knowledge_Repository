@@ -101,6 +101,21 @@ public class ExamGradingProgressStore {
             }
 
             @Override
+            public void onQuestionToken(int questionIndex, String kind, String delta) {
+                if (delta == null || delta.isEmpty()) {
+                    return;
+                }
+                Map<String, Object> payload = new java.util.LinkedHashMap<>();
+                if (sessionId != null) {
+                    payload.put("sessionId", sessionId);
+                }
+                payload.put("questionIndex", questionIndex);
+                payload.put("kind", kind == null ? "output" : kind);
+                payload.put("delta", delta);
+                send(streamId, "TOKEN", payload);
+            }
+
+            @Override
             public void onQuestionDone(int questionIndex, String aiRawOutput, int aiScore, int maxScore,
                                        String aiFeedback, long elapsedMs) {
                 Map<String, Object> payload = new java.util.LinkedHashMap<>();
@@ -184,7 +199,9 @@ public class ExamGradingProgressStore {
             return;
         }
         try {
-            emitter.send(SseEmitter.event().name(name).data(payload));
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event().name(name).data(payload));
+            }
         } catch (IOException e) {
             logger.debug("评分 SSE 推送失败 [streamId={}, event={}]: {}", streamId, name, e.getMessage());
             emitters.remove(streamId, emitter);

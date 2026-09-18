@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -52,10 +47,10 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
             - 主观题列出评分要点（如：提到 XX 得 2 分）
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public AnswerKeyGeneratorAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public AnswerKeyGeneratorAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -93,15 +88,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
                 请为每道题生成标准答案和评分标准。
                 """, blackboard.getQuestion(), examPaper, knowledgeContext);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String answerKey = response.aiMessage().text();
+        String answerKey = agentStreamer.stream("answer-generator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (answerKey == null || answerKey.isBlank()) {
             logger.error("[AnswerKeyGenerator] LLM 返回空答案");

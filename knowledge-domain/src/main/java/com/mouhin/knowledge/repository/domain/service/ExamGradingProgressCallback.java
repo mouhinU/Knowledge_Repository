@@ -22,6 +22,18 @@ public interface ExamGradingProgressCallback {
     void onQuestionStart(int questionIndex, String questionType, String aiInput);
 
     /**
+     * 主观题 AI 评分的逐 token 增量（真流式输出）。
+     * <p>默认空实现，便于不需要流式的实现方忽略。</p>
+     *
+     * @param questionIndex 题号（从 1 开始）
+     * @param kind          增量类型：{@code output}（正式输出）/ {@code thinking}（思考链）
+     * @param delta         本次增量文本片段
+     */
+    default void onQuestionToken(int questionIndex, String kind, String delta) {
+        // 默认忽略，由需要流式展示的实现方覆写
+    }
+
+    /**
      * 单题评分完成
      *
      * @param questionIndex 题号

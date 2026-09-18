@@ -32,7 +32,7 @@
         {
             group: '考试管理', items: [
                 { key: 'exam-review', label: '成绩复核', icon: '✓', href: 'exam-review.html' },
-                { key: 'wrong-answers', label: '错题本', icon: '⚑', href: 'wrong-answers.html' }
+                { key: 'wrong-answers', label: '错题库', icon: '⚑', href: 'wrong-answers.html' }
             ]
         },
         {

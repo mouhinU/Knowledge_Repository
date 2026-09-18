@@ -60,6 +60,11 @@ public class ExamHistory {
     private Integer qualityScore;
 
     /**
+     * 质量评分六维度明细（JSON：accuracy/wording/coverage/typeReasonable/difficulty/format/total）
+     */
+    private String scoreDetail;
+
+    /**
      * 检索到的知识块数量
      */
     private Integer retrievedChunks;
@@ -193,6 +198,14 @@ public class ExamHistory {
 
     public void setQualityScore(Integer qualityScore) {
         this.qualityScore = qualityScore;
+    }
+
+    public String getScoreDetail() {
+        return scoreDetail;
+    }
+
+    public void setScoreDetail(String scoreDetail) {
+        this.scoreDetail = scoreDetail;
     }
 
     public Integer getRetrievedChunks() {

@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,10 +38,10 @@ public class WriterAgent implements BlackboardAgent {
             7. 文章长度适中（800-2000字），根据问题复杂度调整
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public WriterAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public WriterAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -81,15 +76,7 @@ public class WriterAgent implements BlackboardAgent {
                 请根据以上信息撰写一篇文章来回答用户的问题。
                 """, blackboard.getQuestion(), findings);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String draft = response.aiMessage().text();
+        String draft = agentStreamer.stream("writer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         blackboard.setDraftArticle(draft);
         emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("writer", draft));

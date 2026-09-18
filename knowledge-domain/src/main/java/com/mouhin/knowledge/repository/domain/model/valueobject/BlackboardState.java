@@ -125,6 +125,10 @@ public class BlackboardState {
      */
     private String examReviewFeedback;
     /**
+     * 质量评分六维度明细（JSON：accuracy/wording/coverage/typeReasonable/difficulty/format/total）
+     */
+    private String examScoreDetail;
+    /**
      * 难度校准评估
      */
     private String difficultyAssessment;
@@ -363,6 +367,15 @@ public class BlackboardState {
 
     public void setExamReviewFeedback(String examReviewFeedback) {
         this.examReviewFeedback = examReviewFeedback;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getExamScoreDetail() {
+        return examScoreDetail;
+    }
+
+    public void setExamScoreDetail(String examScoreDetail) {
+        this.examScoreDetail = examScoreDetail;
         this.updatedAt = Instant.now();
     }
 

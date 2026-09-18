@@ -5,11 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
+import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -72,20 +68,19 @@ public class ExamGradingSupport {
     /**
      * 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容
      */
-    private static final Pattern ANSWER_LINE = Pattern.compile(
-            "(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
+    private static final Pattern ANSWER_LINE = Pattern.compile("(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
-    private final ChatModel chatModel;
+    private final StreamingChatGateway streamingChatGateway;
     private final ExecutorService agentExecutor;
 
     public ExamGradingSupport(ExamSessionGateway examSessionGateway,
                               ExamAnswerGateway examAnswerGateway,
-                              ChatModel chatModel) {
+                              StreamingChatGateway streamingChatGateway) {
         this.examSessionGateway = examSessionGateway;
         this.examAnswerGateway = examAnswerGateway;
-        this.chatModel = chatModel;
+        this.streamingChatGateway = streamingChatGateway;
         this.agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
@@ -97,6 +92,7 @@ public class ExamGradingSupport {
      * @param callback  进度回调，null 表示静默模式
      */
     public void gradeExamInternal(Long sessionId, ExamGradingProgressCallback callback) {
+
         ExamSession session = examSessionGateway.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
 
@@ -162,8 +158,7 @@ public class ExamGradingSupport {
             callback.onComplete(answers.size(), totalAiScore);
         }
 
-        logger.info("评分完成 [session={}, aiScore={}, total={}]",
-                sessionId, totalAiScore, session.getTotalScore());
+        logger.info("评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, session.getTotalScore());
     }
 
     /**
@@ -197,6 +192,7 @@ public class ExamGradingSupport {
      */
     public void triggerGradingAsync(Long sessionId, ExamGradingProgressCallback callback) {
         try {
+
             ExamSession session = examSessionGateway.findById(sessionId)
                     .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
             if (!"SUBMITTED".equals(session.getStatus())) {
@@ -217,11 +213,12 @@ public class ExamGradingSupport {
     // ==================== 内部评分方法 ====================
 
     /**
-     * 客观题自动评分：比对标准答案
+     * 客观题自动评分：按题型分派比对逻辑（含多选部分给分）
+     *
+     * @param answer   待评分的答题记录
+     * @param callback 进度回调（可为 null）
      */
     private void gradeObjective(ExamAnswer answer, ExamGradingProgressCallback callback) {
-        String correct = normalizeAnswer(answer.getCorrectAnswer());
-        String student = normalizeAnswer(answer.getStudentAnswer());
         int qIdx = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
         String input = buildObjectiveInput(answer);
 
@@ -230,22 +227,64 @@ public class ExamGradingSupport {
         }
         answer.setAiInput(input);
 
-        if (correct == null || correct.isBlank()) {
-            // 没有标准答案，给满分（可能是题目问题）
-            answer.setCorrect(true);
-            answer.setAiScore(answer.getMaxScore());
-            answer.setAiFeedback("未设置标准答案，默认给满分");
-            answer.setAiRawOutput("客观题自动比对：未设置参考答案 → 默认满分");
+        String rawCorrect = answer.getCorrectAnswer();
+        String rawStudent = answer.getStudentAnswer();
+        String type = answer.getQuestionType();
+        int maxScore = answer.getMaxScore() != null ? answer.getMaxScore() : 0;
+
+        // 缺少标准答案：判 0 分 + 标记待复核 + 告警，绝不静默给满分
+        if (rawCorrect == null || rawCorrect.isBlank()) {
+            logger.warn("grading: sessionId answer_key missing for questionIndex={}, forcing 0 + review", qIdx);
+            answer.setCorrect(false);
+            answer.setAiScore(0);
+            answer.setAiFeedback("缺少标准答案，待人工确认");
+            answer.setAiRawOutput("客观题自动比对：缺少参考答案 → 判 0 分（待复核）");
             return;
         }
 
-        boolean isCorrect = correct.equals(student);
+        // 按题型分派规范化与比较
+        String normalizedCorrect = normalizeForCompare(rawCorrect, type);
+        String normalizedStudent = normalizeForCompare(rawStudent, type);
+        int score;
+        boolean isCorrect;
+        String feedbackDetail;
+
+        if ("MULTI_CHOICE".equals(type)) {
+            // 多选部分给分：全对满分 / 少选半分 / 含错选或未选 0 分
+            java.util.Set<Character> correctSet = parseChoiceSet(normalizedCorrect);
+            java.util.Set<Character> studentSet = parseChoiceSet(normalizedStudent);
+            if (studentSet.isEmpty()) {
+                score = 0;
+                isCorrect = false;
+                feedbackDetail = "未选择任何选项";
+            } else if (!correctSet.containsAll(studentSet)) {
+                score = 0;
+                isCorrect = false;
+                feedbackDetail = "含错选（选择了不在正确答案中的选项）";
+            } else if (studentSet.equals(correctSet)) {
+                score = maxScore;
+                isCorrect = true;
+                feedbackDetail = "回答正确（全对）";
+            } else {
+                // 少选（student ⊂ correct）→ 半分，向下取整
+                score = maxScore / 2;
+                isCorrect = false;
+                feedbackDetail = "少选（正确答案：" + rawCorrect + "），得半分";
+            }
+        } else {
+            // 单选 / 判断：等值比较
+            boolean match = normalizedCorrect != null && normalizedCorrect.equals(normalizedStudent);
+            score = match ? maxScore : 0;
+            isCorrect = match;
+            feedbackDetail = match ? "回答正确" : "回答错误，正确答案：" + rawCorrect;
+        }
+
         answer.setCorrect(isCorrect);
-        answer.setAiScore(isCorrect ? answer.getMaxScore() : 0);
-        answer.setAiFeedback(isCorrect ? "回答正确" : "回答错误，正确答案：" + answer.getCorrectAnswer());
-        answer.setAiRawOutput("客观题自动比对：期望[" + answer.getCorrectAnswer() + "] 实际["
-                + (answer.getStudentAnswer() == null ? "" : answer.getStudentAnswer()) + "] → "
-                + (isCorrect ? "匹配" : "不匹配"));
+        answer.setAiScore(score);
+        answer.setAiFeedback(feedbackDetail);
+        answer.setAiRawOutput("客观题自动比对：期望[" + rawCorrect + "] 实际["
+                + (rawStudent == null ? "" : rawStudent) + "] → "
+                + (isCorrect ? "匹配" : "不匹配") + "（得分" + score + "/" + maxScore + "）");
     }
 
     /**
@@ -255,8 +294,7 @@ public class ExamGradingSupport {
         StringBuilder sb = new StringBuilder();
         sb.append("[客观题自动比对 · 无需 LLM]\n");
         sb.append("题型：").append(answer.getQuestionType()).append("\n");
-        sb.append("题目（第").append(answer.getQuestionIndex()).append("题）：\n")
-                .append(answer.getQuestionContent()).append("\n\n");
+        sb.append("题目（第").append(answer.getQuestionIndex()).append("题）：\n").append(answer.getQuestionContent()).append("\n\n");
         sb.append("满分：").append(answer.getMaxScore()).append("分\n");
         sb.append("参考答案：").append(answer.getCorrectAnswer() == null ? "-" : answer.getCorrectAnswer()).append("\n");
         sb.append("学生答案：").append(answer.getStudentAnswer() == null ? "" : answer.getStudentAnswer()).append("\n");
@@ -284,15 +322,13 @@ public class ExamGradingSupport {
         }
 
         try {
-            ChatRequest request = ChatRequest.builder()
-                    .messages(
-                            SystemMessage.from(AI_GRADING_SYSTEM_PROMPT),
-                            UserMessage.from(userPrompt)
-                    )
-                    .build();
-
-            ChatResponse response = chatModel.chat(request);
-            String output = response.aiMessage().text();
+            String output = streamingChatGateway.streamCompletion(
+                    AI_GRADING_SYSTEM_PROMPT, userPrompt,
+                    (kind, delta) -> {
+                        if (callback != null) {
+                            callback.onQuestionToken(qIdx, kind, delta);
+                        }
+                    });
 
             if (output == null || output.isBlank()) {
                 logger.warn("AI 评分返回空 [question={}]", answer.getQuestionIndex());
@@ -361,13 +397,103 @@ public class ExamGradingSupport {
         return output.length() > 200 ? output.substring(0, 200) + "..." : output;
     }
 
-    private String normalizeAnswer(String answer) {
-        if (answer == null) {
+    // ==================== 答案规范化工具（按题型分派） ====================
+
+    /**
+     * 按题型规范化答案字符串，用于客观题等值比较。
+     * <ul>
+     *     <li>多选题：拆字母 → 去重 → 排序 → 拼接（使 "A,C"=="AC"=="C,A"）</li>
+     *     <li>判断题：符号字典折叠 → "TRUE" / "FALSE"（正确=√=T=对=是=Y → TRUE）</li>
+     *     <li>其他（单选等）：trim + 全半角 + 去空白 + 大写</li>
+     * </ul>
+     *
+     * @param raw           原始答案字符串
+     * @param questionType  题型 key
+     * @return 规范化后的比较用字符串（null 入参返回 null）
+     */
+    private String normalizeForCompare(String raw, String questionType) {
+        if (raw == null) {
             return null;
         }
-        return answer.trim()
-                .replaceAll("\\s+", "")
-                .toUpperCase();
+        String base = toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();
+        if ("MULTI_CHOICE".equals(questionType)) {
+            return normalizeChoiceSet(base);
+        }
+        if ("TRUE_FALSE".equals(questionType)) {
+            return normalizeTrueFalse(base);
+        }
+        return base;
+    }
+
+    /**
+     * 多选规范化：仅保留大写字母 A-D，去重排序拼接。
+     */
+    private String normalizeChoiceSet(String s) {
+        return s.chars()
+                .filter(c -> c >= 'A' && c <= 'D')
+                .distinct()
+                .sorted()
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
+
+    /**
+     * 解析多选字母集合：从已规范化的纯字母串拆为 Set。
+     */
+    private java.util.Set<Character> parseChoiceSet(String normalized) {
+        if (normalized == null || normalized.isBlank()) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<Character> set = new java.util.HashSet<>();
+        for (char c : normalized.toCharArray()) {
+            if (c >= 'A' && c <= 'Z') {
+                set.add(c);
+            }
+        }
+        return set;
+    }
+
+    /**
+     * 判断题符号字典：所有"对"的变体 → TRUE，所有"错"的变体 → FALSE。
+     */
+    private String normalizeTrueFalse(String s) {
+        if (s == null || s.isEmpty()) {
+            return "";
+        }
+        // 正向集
+        if ("正确".equals(s) || "√".equals(s) || "T".equals(s) || "TRUE".equals(s)
+                || "对".equals(s) || "Y".equals(s) || "是".equals(s) || "✓".equals(s)
+                || "TRUE".equals(s) || "对".equals(s) || "YES".equals(s)) {
+            return "TRUE";
+        }
+        // 负向集
+        if ("错误".equals(s) || "×".equals(s) || "X".equals(s) || "FALSE".equals(s)
+                || "错".equals(s) || "N".equals(s) || "否".equals(s) || "✗".equals(s)
+                || "✕".equals(s) || "NO".equals(s)) {
+            return "FALSE";
+        }
+        return s;
+    }
+
+    /**
+     * 全角字符 → 半角（仅处理常见全角 ASCII 范围 0xFF01-0xFF5E，以及全角空格 0x3000）。
+     */
+    private String toHalfWidth(String s) {
+        if (s == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= '\uFF01' && c <= '\uFF5E') {
+                sb.append((char) (c - 0xFEE0));
+            } else if (c == '\u3000') {
+                sb.append(' ');
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     /**

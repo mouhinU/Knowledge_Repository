@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -56,10 +51,10 @@ public class ExamCalibratorAgent implements BlackboardAgent {
             （如有需要调整的题目，给出具体建议）
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamCalibratorAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamCalibratorAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -99,15 +94,7 @@ public class ExamCalibratorAgent implements BlackboardAgent {
                 请分析试卷的难度分布，评估是否与目标难度匹配。
                 """, blackboard.getQuestion(), difficultyDesc, examPaper);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String assessment = response.aiMessage().text();
+        String assessment = agentStreamer.stream("exam-calibrator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (assessment == null || assessment.isBlank()) {
             logger.error("[ExamCalibrator] LLM 返回空评估结果");

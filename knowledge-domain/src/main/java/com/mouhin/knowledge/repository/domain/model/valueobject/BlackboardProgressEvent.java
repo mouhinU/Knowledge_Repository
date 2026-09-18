@@ -15,7 +15,7 @@ import java.time.Instant;
 public class BlackboardProgressEvent {
 
     /**
-     * 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
+     * 事件类型：PHASE / AGENT_OUTPUT / AGENT_TOKEN / COMPLETED / ERROR
      */
     private final String type;
 
@@ -30,9 +30,19 @@ public class BlackboardProgressEvent {
     private final String agentName;
 
     /**
-     * Agent 状态（running / done）
+     * Agent 状态（running / done / failed）
      */
     private final String agentStatus;
+
+    /**
+     * Token 增量类型（仅 AGENT_TOKEN 事件）：output（正式输出）/ thinking（思考链）
+     */
+    private final String kind;
+
+    /**
+     * Token 增量内容（仅 AGENT_TOKEN 事件）
+     */
+    private final String delta;
 
     /**
      * Agent 输出内容
@@ -124,6 +134,8 @@ public class BlackboardProgressEvent {
         this.phase = builder.phase;
         this.agentName = builder.agentName;
         this.agentStatus = builder.agentStatus;
+        this.kind = builder.kind;
+        this.delta = builder.delta;
         this.output = builder.output;
         this.message = builder.message;
         this.finalArticle = builder.finalArticle;
@@ -207,6 +219,27 @@ public class BlackboardProgressEvent {
     }
 
     /**
+     * 创建 Token 增量事件（真流式输出）
+     * <p>
+     * 每当底层 LLM 流式返回一小段内容时推送，前端按 {@code kind} 分别追加到
+     * 「思考链」或「正式输出」区域。与快照式 {@link #agentCompleted(String, String)}
+     * 并存：token 流负责实时逐字，完成时的 AGENT_OUTPUT(done) 负责最终收敛。
+     * </p>
+     *
+     * @param agentName Agent 名称
+     * @param kind      增量类型：output（正式输出）/ thinking（思考链）
+     * @param delta     增量文本片段
+     */
+    public static BlackboardProgressEvent tokenDelta(String agentName, String kind, String delta) {
+        return new Builder()
+                .type("AGENT_TOKEN")
+                .agentName(agentName)
+                .kind(kind)
+                .delta(delta)
+                .build();
+    }
+
+    /**
      * 创建整体完成事件
      */
     public static BlackboardProgressEvent completed(BlackboardState blackboard, int retrievedChunks) {
@@ -277,6 +310,14 @@ public class BlackboardProgressEvent {
 
     public String getAgentStatus() {
         return agentStatus;
+    }
+
+    public String getKind() {
+        return kind;
+    }
+
+    public String getDelta() {
+        return delta;
     }
 
     public String getOutput() {
@@ -355,6 +396,8 @@ public class BlackboardProgressEvent {
         private BlackboardPhase phase;
         private String agentName;
         private String agentStatus;
+        private String kind;
+        private String delta;
         private String output;
         private String message;
         private String finalArticle;
@@ -389,6 +432,16 @@ public class BlackboardProgressEvent {
 
         public Builder agentStatus(String agentStatus) {
             this.agentStatus = agentStatus;
+            return this;
+        }
+
+        public Builder kind(String kind) {
+            this.kind = kind;
+            return this;
+        }
+
+        public Builder delta(String delta) {
+            this.delta = delta;
             return this;
         }
 

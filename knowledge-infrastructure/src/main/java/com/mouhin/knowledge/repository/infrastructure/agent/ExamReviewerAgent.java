@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -62,10 +57,10 @@ public class ExamReviewerAgent implements BlackboardAgent {
             （如有需要改进的地方，列出具体建议）
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamReviewerAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamReviewerAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -106,15 +101,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 请审核试卷质量。
                 """, blackboard.getQuestion(), examPaper, answerKey, knowledgeContext);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String reviewOutput = response.aiMessage().text();
+        String reviewOutput = agentStreamer.stream("exam-reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (reviewOutput == null || reviewOutput.isBlank()) {
             logger.error("[ExamReviewer] LLM 返回空审核结果");
@@ -123,6 +110,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
         blackboard.setExamReviewFeedback(reviewOutput);
         blackboard.setQualityScore(extractScore(reviewOutput));
+        blackboard.setExamScoreDetail(buildScoreDetailJson(reviewOutput, blackboard.getQualityScore()));
         emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-reviewer", reviewOutput));
         logger.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
     }
@@ -141,39 +129,23 @@ public class ExamReviewerAgent implements BlackboardAgent {
         return sb.toString();
     }
 
+    /** 六维度权重，顺序：知识准确性 / 题目表述 / 知识点覆盖 / 题型合理性 / 难度适当性 / 格式规范性 */
+    private static final double[] WEIGHTS = {0.25, 0.15, 0.25, 0.15, 0.10, 0.10};
+    /** 六维度名称，顺序与 WEIGHTS 一致 */
+    private static final String[] DIMENSIONS = {"知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"};
+
     private int extractScore(String reviewOutput) {
         try {
-            // 优先尝试从评分明细中解析各维度分数并加权计算
-            int detailIdx = reviewOutput.indexOf("## 评分明细");
-            if (detailIdx >= 0) {
-                String detailSection = reviewOutput.substring(detailIdx);
-                // 截取到下一个 ## 之前
-                int nextSection = detailSection.indexOf("\n##", 2);
-                if (nextSection > 0) {
-                    detailSection = detailSection.substring(0, nextSection);
+            int[] dims = parseDimensionScores(reviewOutput);
+            if (dims != null) {
+                double weighted = 0;
+                for (int i = 0; i < dims.length; i++) {
+                    weighted += dims[i] * WEIGHTS[i];
                 }
-
-                int accuracy = extractDimensionScore(detailSection, "知识准确性");
-                int wording = extractDimensionScore(detailSection, "题目表述");
-                int coverage = extractDimensionScore(detailSection, "知识点覆盖");
-                int typeReasonable = extractDimensionScore(detailSection, "题型合理性");
-                int difficulty = extractDimensionScore(detailSection, "难度适当性");
-                int format = extractDimensionScore(detailSection, "格式规范性");
-
-                if (accuracy >= 0 && wording >= 0 && coverage >= 0
-                        && typeReasonable >= 0 && difficulty >= 0 && format >= 0) {
-                    int weighted = (int) Math.round(
-                            accuracy * 0.25
-                                    + wording * 0.15
-                                    + coverage * 0.25
-                                    + typeReasonable * 0.15
-                                    + difficulty * 0.10
-                                    + format * 0.10);
-                    int result = Math.min(100, Math.max(0, weighted));
-                    logger.info("[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
-                            accuracy, wording, coverage, typeReasonable, difficulty, format, result);
-                    return result;
-                }
+                int result = (int) Math.min(100, Math.max(0, Math.round(weighted)));
+                logger.info("[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
+                        dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], result);
+                return result;
             }
 
             // 回退：从质量评分中解析单一分数
@@ -196,6 +168,49 @@ public class ExamReviewerAgent implements BlackboardAgent {
             logger.warn("[ExamReviewer] 评分解析异常: {}", e.getMessage());
         }
         return 70;
+    }
+
+    /**
+     * 解析"评分明细"中的六个维度分数。
+     *
+     * @return 长度为 6 的分数数组（顺序与 {@link #DIMENSIONS} 一致）；任一维度缺失则返回 {@code null}
+     */
+    private int[] parseDimensionScores(String reviewOutput) {
+        if (reviewOutput == null) {
+            return null;
+        }
+        int detailIdx = reviewOutput.indexOf("## 评分明细");
+        if (detailIdx < 0) {
+            return null;
+        }
+        String detailSection = reviewOutput.substring(detailIdx);
+        int nextSection = detailSection.indexOf("\n##", 2);
+        if (nextSection > 0) {
+            detailSection = detailSection.substring(0, nextSection);
+        }
+        int[] dims = new int[DIMENSIONS.length];
+        for (int i = 0; i < DIMENSIONS.length; i++) {
+            dims[i] = extractDimensionScore(detailSection, DIMENSIONS[i]);
+            if (dims[i] < 0) {
+                return null;
+            }
+        }
+        return dims;
+    }
+
+    /**
+     * 构造六维度评分明细 JSON（键：accuracy/wording/coverage/typeReasonable/difficulty/format + total）。
+     *
+     * @return JSON 字符串；无法解析全部维度时返回 {@code null}
+     */
+    private String buildScoreDetailJson(String reviewOutput, int total) {
+        int[] dims = parseDimensionScores(reviewOutput);
+        if (dims == null) {
+            return null;
+        }
+        return String.format(
+                "{\"accuracy\":%d,\"wording\":%d,\"coverage\":%d,\"typeReasonable\":%d,\"difficulty\":%d,\"format\":%d,\"total\":%d}",
+                dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], total);
     }
 
     /**

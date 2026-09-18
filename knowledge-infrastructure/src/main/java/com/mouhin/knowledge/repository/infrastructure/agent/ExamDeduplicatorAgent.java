@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -52,10 +47,10 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
             （如有重复，给出替换或修改建议）
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamDeduplicatorAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamDeduplicatorAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -92,15 +87,7 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
                 请检查试卷中是否存在重复或高度相似的题目。
                 """, blackboard.getQuestion(), examPaper, answerContext);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String report = response.aiMessage().text();
+        String report = agentStreamer.stream("exam-deduplicator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (report == null || report.isBlank()) {
             logger.error("[ExamDeduplicator] LLM 返回空查重报告");

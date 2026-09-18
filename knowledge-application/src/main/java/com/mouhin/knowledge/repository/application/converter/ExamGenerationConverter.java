@@ -31,6 +31,7 @@ public final class ExamGenerationConverter {
         dto.setExamPaper(history.getExamPaper());
         dto.setAnswerKey(history.getAnswerKey());
         dto.setQualityScore(history.getQualityScore());
+        dto.setScoreDetail(history.getScoreDetail());
         dto.setRetrievedChunks(history.getRetrievedChunks());
         dto.setKeyFindings(history.getKeyFindings());
         dto.setReviewFeedback(history.getReviewFeedback());

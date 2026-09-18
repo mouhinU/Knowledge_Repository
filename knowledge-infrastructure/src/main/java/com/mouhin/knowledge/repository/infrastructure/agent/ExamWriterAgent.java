@@ -5,11 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,6 +26,9 @@ import org.springframework.stereotype.Component;
 public class ExamWriterAgent implements BlackboardAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamWriterAgent.class);
+
+    /** 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。 */
+    private static final int MIN_VALID_EXAM_LENGTH = 200;
 
     private static final String SYSTEM_PROMPT = """
             你是一位资深教育考试专家，擅长根据知识内容编写高质量的考试试卷。
@@ -58,10 +56,10 @@ public class ExamWriterAgent implements BlackboardAgent {
             - 只输出试卷部分，不要输出答案
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ExamWriterAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ExamWriterAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
@@ -134,19 +132,15 @@ public class ExamWriterAgent implements BlackboardAgent {
                     """, topic, difficultyDesc, questionConfig, scoringSection, findings);
         }
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
+        String examPaper = agentStreamer.stream("exam-writer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
-        ChatResponse response = chatModel.chat(request);
-        String examPaper = response.aiMessage().text();
-
-        if (examPaper == null || examPaper.isBlank()) {
-            logger.error("[ExamWriter] LLM 返回空试卷");
-            examPaper = "# " + topic + " 考试试卷\n\n> 试卷生成失败，请重试。";
+        // 快速失败：空或异常简短的试卷说明模型未真正产出内容（多为推理模型思考链耗尽
+        // token 预算）。此前会写成占位文本让流水线空转多轮，现直接抛异常中止并回报错误。
+        if (examPaper == null || examPaper.isBlank() || examPaper.length() < MIN_VALID_EXAM_LENGTH) {
+            String msg = "试卷编写失败：模型未产出有效内容（可能是思考链耗尽 token 预算），请重试或调大流式 max-tokens";
+            logger.error("[ExamWriter] LLM 返回空/过短试卷，长度：{}", examPaper == null ? 0 : examPaper.length());
+            emitProgress(progressCallback, BlackboardProgressEvent.agentFailed("exam-writer", msg));
+            throw new RuntimeException(msg);
         }
 
         blackboard.setExamPaper(examPaper);

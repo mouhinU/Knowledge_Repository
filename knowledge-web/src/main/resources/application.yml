@@ -94,6 +94,11 @@ knowledge:
     provider: ${LLM_PROVIDER:ollama}
     temperature: ${LLM_TEMPERATURE:0.7}
     max-tokens: ${LLM_MAX_TOKENS:4096}
+    # 流式对话网关（黑板 Agent 逐 token 输出）独立配置：推理型模型会先把预算耗在思考链上，
+    # 故预算需明显大于上面的 max-tokens，超时也更长，避免正式内容被"喂空"。
+    streaming:
+      max-tokens: ${LLM_STREAMING_MAX_TOKENS:16384}
+      timeout-seconds: ${LLM_STREAMING_TIMEOUT_SECONDS:300}
 
     # DashScope (阿里云通义)
     dashscope:
@@ -103,7 +108,7 @@ knowledge:
     # DeepSeek
     deepseek:
       api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
-      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-chat}
+      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-flash}
 
     # Ollama (本地模型)
     ollama:

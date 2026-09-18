@@ -20,8 +20,7 @@ public interface ExamTakingServiceI {
 
     ExamSessionDTO startFromHistory(String studentToken, String historySessionId);
 
-    ExamSessionDTO startWithPaper(String studentToken, String examPaper, String answerKey,
-                                  String topic, String difficulty);
+    ExamSessionDTO startWithPaper(String studentToken, String examPaper, String answerKey, String topic, String difficulty);
 
     Map<String, Object> validateReport(String questionsJson);
 

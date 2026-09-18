@@ -90,8 +90,8 @@ public class BlackboardProgressStore {
             for (SseEmitter emitter : sessionEmitters) {
                 sendToEmitter(emitter, event);
             }
-        } else {
-            // SSE 尚未连接，缓冲事件
+        } else if (!"AGENT_TOKEN".equals(event.getType())) {
+            // SSE 尚未连接，缓冲事件（AGENT_TOKEN 为瞬时增量，无连接时直接丢弃不缓冲）
             eventBuffers.computeIfAbsent(sessionId, k -> {
                 synchronized (new Object()) {
                     return new CopyOnWriteArrayList<>();
@@ -107,9 +107,11 @@ public class BlackboardProgressStore {
 
     private void sendToEmitter(SseEmitter emitter, BlackboardProgressEvent event) {
         try {
-            emitter.send(SseEmitter.event()
-                    .name(event.getType())
-                    .data(eventToMap(event)));
+            synchronized (emitter) {
+                emitter.send(SseEmitter.event()
+                        .name(event.getType())
+                        .data(eventToMap(event)));
+            }
         } catch (IOException e) {
             logger.debug("SSE 推送失败: {}", e.getMessage());
         }
@@ -155,6 +157,8 @@ public class BlackboardProgressStore {
         }
         putIfNotNull(map, "agentName", event.getAgentName());
         putIfNotNull(map, "agentStatus", event.getAgentStatus());
+        putIfNotNull(map, "kind", event.getKind());
+        putIfNotNull(map, "delta", event.getDelta());
         putIfNotNull(map, "output", event.getOutput());
         putIfNotNull(map, "message", event.getMessage());
         putIfNotNull(map, "finalArticle", event.getFinalArticle());
