@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
+import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
@@ -80,6 +81,7 @@ public class ExamGradingSupport {
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final StreamingChatGateway streamingChatGateway;
+    private final ExamAlertGateway examAlertGateway;
     private final ExecutorService agentExecutor;
 
     public ExamGradingSupport(ExamSessionGateway examSessionGateway,
@@ -87,13 +89,15 @@ public class ExamGradingSupport {
                               ExamQuestionGateway examQuestionGateway,
                               ExamHistoryGateway examHistoryGateway,
                               ExamQuestionSplitSupport examQuestionSplitSupport,
-                              StreamingChatGateway streamingChatGateway) {
+                              StreamingChatGateway streamingChatGateway,
+                              ExamAlertGateway examAlertGateway) {
         this.examSessionGateway = examSessionGateway;
         this.examAnswerGateway = examAnswerGateway;
         this.examQuestionGateway = examQuestionGateway;
         this.examHistoryGateway = examHistoryGateway;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.streamingChatGateway = streamingChatGateway;
+        this.examAlertGateway = examAlertGateway;
         this.agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
@@ -348,6 +352,9 @@ public class ExamGradingSupport {
             answer.setAiScore(0);
             answer.setAiFeedback("缺少标准答案，待人工确认");
             answer.setAiRawOutput("客观题自动比对：缺少参考答案 → 判 0 分（待复核）");
+            if (examAlertGateway != null) {
+                examAlertGateway.answerKeyMissing(answer.getSessionId(), answer.getQuestionNumber());
+            }
             return;
         }
 

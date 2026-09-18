@@ -3,6 +3,17 @@ server:
   servlet:
     context-path: /
 
+# ==================== 运维可观测性（2-F）====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 spring:
   application:
     name: knowledge-repository

@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
+import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class ExamGradingScheduler {
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamGradingServiceI gradingService;
+    private final ExamAlertGateway examAlertGateway;
 
     @Value("${knowledge.exam.grading-delay-minutes:30}")
     private int gradingDelayMinutes;
@@ -50,9 +52,11 @@ public class ExamGradingScheduler {
     private int gradingTimeoutMinutes;
 
     public ExamGradingScheduler(ExamSessionGateway examSessionGateway,
-                                ExamGradingServiceI gradingService) {
+                                ExamGradingServiceI gradingService,
+                                ExamAlertGateway examAlertGateway) {
         this.examSessionGateway = examSessionGateway;
         this.gradingService = gradingService;
+        this.examAlertGateway = examAlertGateway;
     }
 
     /**
@@ -109,6 +113,7 @@ public class ExamGradingScheduler {
                         && examSessionGateway.casUpdateStatus(session.getId(), STATUS_GRADING, STATUS_SUBMITTED)) {
                     recovered++;
                     logger.warn("回收超时评分场次 [session={}, lastUpdate={}]", session.getId(), lastTouch);
+                    examAlertGateway.gradingTimeout(session.getId());
                 }
             }
             if (recovered > 0) {

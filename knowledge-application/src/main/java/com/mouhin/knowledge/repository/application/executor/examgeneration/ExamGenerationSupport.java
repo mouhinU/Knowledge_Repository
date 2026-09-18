@@ -10,6 +10,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
@@ -80,6 +81,7 @@ public class ExamGenerationSupport {
     private final StreamingChatGateway streamingChatGateway;
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
+    private final ExamAlertGateway examAlertGateway;
 
     private final ExecutorService agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -107,7 +109,8 @@ public class ExamGenerationSupport {
             ChatModel chatModel,
             StreamingChatGateway streamingChatGateway,
             ExamHistoryGateway examHistoryGateway,
-            ExamQuestionSplitSupport examQuestionSplitSupport) {
+            ExamQuestionSplitSupport examQuestionSplitSupport,
+            ExamAlertGateway examAlertGateway) {
         this.examResearcherAgent = examResearcherAgent;
         this.examScoringAgent = examScoringAgent;
         this.examWriterAgent = examWriterAgent;
@@ -122,6 +125,7 @@ public class ExamGenerationSupport {
         this.streamingChatGateway = streamingChatGateway;
         this.examHistoryGateway = examHistoryGateway;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
+        this.examAlertGateway = examAlertGateway;
     }
 
     /**
@@ -837,16 +841,21 @@ public class ExamGenerationSupport {
                     sessionId, outcome.count(), validation.pass());
         } catch (Exception splitEx) {
             logger.error("[ExamPipeline] 出卷即切分失败，置 VALIDATION_FAILED [session={}]", sessionId, splitEx);
+            examAlertGateway.validationFailed(sessionId, -1);
             return ExamHistory.STATUS_VALIDATION_FAILED;
         }
 
         if (!validation.pass()) {
             logger.warn("[ExamPipeline] 出卷契约校验未通过，强制人工校对 [session={}, issues={}]",
                     sessionId, validation.issues());
+            examAlertGateway.validationFailed(sessionId, validation.issues().size());
             return ExamHistory.STATUS_VALIDATION_FAILED;
         }
 
         int quality = blackboard.getQualityScore();
+        if (quality < QUALITY_SCORE_THRESHOLD) {
+            examAlertGateway.lowQualityScore(sessionId, quality, QUALITY_SCORE_THRESHOLD);
+        }
         if (!examReviewRequired && quality >= QUALITY_SCORE_THRESHOLD) {
             logger.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
             return ExamHistory.STATUS_PUBLISHED;

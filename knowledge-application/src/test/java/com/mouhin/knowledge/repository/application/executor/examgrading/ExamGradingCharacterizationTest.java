@@ -34,7 +34,7 @@ class ExamGradingCharacterizationTest {
      * gradeObjective 不使用任何注入依赖，直接以 null 构造被测对象即可。
      */
     private final ExamGradingSupport support = new ExamGradingSupport(
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
 
     private ExamAnswer objectiveAnswer(String type, String correctAnswer, String studentAnswer, int maxScore) {
         ExamAnswer answer = new ExamAnswer();
