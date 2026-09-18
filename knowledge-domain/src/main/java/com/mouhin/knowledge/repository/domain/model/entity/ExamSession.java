@@ -288,6 +288,15 @@ public class ExamSession {
     }
 
     /**
+     * 标记为评分中（并发认领态）
+     * <p>由 {@code SUBMITTED} 经 CAS 抢占进入，评分完成后转 {@code AI_GRADED}；
+     * 若评分进程崩溃停留在本态，由定时任务按超时阈值回退至 {@code SUBMITTED} 重新调度。</p>
+     */
+    public void markGrading() {
+        this.status = "GRADING";
+    }
+
+    /**
      * 标记为 AI 评分完成
      */
     public void markAiGraded(int aiScore) {

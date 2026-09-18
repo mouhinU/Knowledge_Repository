@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamSessionConverter;
@@ -8,6 +9,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamSessionMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +39,16 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     public void update(ExamSession session) {
         ExamSessionDO doObj = ExamSessionConverter.toDO(session);
         examSessionMapper.updateById(doObj);
+    }
+
+    @Override
+    public boolean casUpdateStatus(Long id, String expectedStatus, String newStatus) {
+        LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamSessionDO::getId, id)
+                .eq(ExamSessionDO::getStatus, expectedStatus)
+                .set(ExamSessionDO::getStatus, newStatus)
+                .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
+        return examSessionMapper.update(null, wrapper) == 1;
     }
 
     @Override

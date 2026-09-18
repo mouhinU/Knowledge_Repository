@@ -68,6 +68,12 @@ public class ExamGradingSupport {
      */
     private static final Pattern REASON_PATTERN = Pattern.compile("理由[：:]\\s*(.+)", Pattern.DOTALL);
 
+    /** 场次状态：已交卷，待评分 */
+    private static final String STATUS_SUBMITTED = "SUBMITTED";
+
+    /** 场次状态：评分中（并发认领态） */
+    private static final String STATUS_GRADING = "GRADING";
+
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamQuestionGateway examQuestionGateway;
@@ -111,6 +117,18 @@ public class ExamGradingSupport {
             }
             return;
         }
+
+        // V2 阶段 2-B：并发认领 —— 原子将 SUBMITTED 抢占为 GRADING，
+        // 防止定时任务与手动触发 / 多轮调度对同一场次重复评分（异步评分期间状态原本长期停留 SUBMITTED）。
+        // 抢占失败说明已有评分流程持有本场次，直接优雅结束，不重复评分。
+        if (!examSessionGateway.casUpdateStatus(sessionId, STATUS_SUBMITTED, STATUS_GRADING)) {
+            logger.info("评分认领失败，跳过重复评分 [session={}]", sessionId);
+            if (callback != null) {
+                callback.onComplete(0, 0);
+            }
+            return;
+        }
+        session.markGrading();
 
         // V2 出卷即切分 · 阶段 2-A：标准答案唯一来源为结构化题目行 kb_exam_question
         // （生成期一次性绑定 + 契约校验，缺失时 resolveStructuredAnswerMap 惰性回灌）。
@@ -246,6 +264,9 @@ public class ExamGradingSupport {
                 gradeExamInternal(sessionId, callback);
             } catch (Exception e) {
                 logger.error("异步评分异常 [session={}]", sessionId, e);
+                // 无事务包裹的异步评分若中途异常，会停留在 GRADING；此处尽力回退为 SUBMITTED 以便立即重新调度，
+                // 免去等待超时回收（进程崩溃等无法回退的场景仍由定时任务兜底）。
+                resetGradingToSubmitted(sessionId);
                 if (callback != null) {
                     try {
                         callback.onError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
@@ -255,6 +276,20 @@ public class ExamGradingSupport {
                 }
             }
         });
+    }
+
+    /**
+     * 尽力将处于 GRADING 的场次回退为 SUBMITTED（用于失败后重新纳入调度）。
+     * <p>CAS 语义：仅当前确为 GRADING 才回退，避免覆盖已完成评分的终态。</p>
+     */
+    private void resetGradingToSubmitted(Long sessionId) {
+        try {
+            if (examSessionGateway.casUpdateStatus(sessionId, STATUS_GRADING, STATUS_SUBMITTED)) {
+                logger.warn("异步评分失败，场次已回退为 SUBMITTED 待重评 [session={}]", sessionId);
+            }
+        } catch (Exception ex) {
+            logger.error("回退评分状态失败，等待超时回收兜底 [session={}]", sessionId, ex);
+        }
     }
 
     /**
@@ -268,7 +303,7 @@ public class ExamGradingSupport {
 
             ExamSession session = examSessionGateway.findById(sessionId)
                     .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
-            if (!"SUBMITTED".equals(session.getStatus())) {
+            if (!STATUS_SUBMITTED.equals(session.getStatus())) {
                 if (callback != null) {
                     callback.onError("仅已交卷的考试可以触发评分，当前状态: " + session.getStatus());
                 }

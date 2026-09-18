@@ -17,6 +17,17 @@ public interface ExamSessionGateway {
 
     void update(ExamSession session);
 
+    /**
+     * 原子状态流转（CAS）：仅当前状态等于 {@code expectedStatus} 时才更新为 {@code newStatus}。
+     * <p>用于并发认领场景（如评分 {@code SUBMITTED → GRADING}），返回 {@code true} 表示本次成功抢占。</p>
+     *
+     * @param id             场次主键
+     * @param expectedStatus 期望的当前状态
+     * @param newStatus      目标新状态
+     * @return 是否更新成功（受影响行数为 1）
+     */
+    boolean casUpdateStatus(Long id, String expectedStatus, String newStatus);
+
     Optional<ExamSession> findById(Long id);
 
     Optional<ExamSession> findBySessionKey(String sessionKey);
