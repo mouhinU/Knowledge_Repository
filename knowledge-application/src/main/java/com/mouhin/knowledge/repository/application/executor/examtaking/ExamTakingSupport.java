@@ -6,8 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.agent.ExamContentRenderAgent;
 import com.mouhin.knowledge.repository.application.agent.ExamContentValidatorAgent;
 import com.mouhin.knowledge.repository.application.agent.PaperValidationReport;
+import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import org.slf4j.Logger;
@@ -38,15 +42,21 @@ public class ExamTakingSupport {
 
     private final StudentGateway studentGateway;
     private final ExamSessionGateway examSessionGateway;
+    private final ExamHistoryGateway examHistoryGateway;
+    private final ExamQuestionGateway examQuestionGateway;
     private final ExamContentRenderAgent contentRenderAgent;
     private final ExamContentValidatorAgent contentValidatorAgent;
 
     public ExamTakingSupport(StudentGateway studentGateway,
                              ExamSessionGateway examSessionGateway,
+                             ExamHistoryGateway examHistoryGateway,
+                             ExamQuestionGateway examQuestionGateway,
                              ExamContentRenderAgent contentRenderAgent,
                              ExamContentValidatorAgent contentValidatorAgent) {
         this.studentGateway = studentGateway;
         this.examSessionGateway = examSessionGateway;
+        this.examHistoryGateway = examHistoryGateway;
+        this.examQuestionGateway = examQuestionGateway;
         this.contentRenderAgent = contentRenderAgent;
         this.contentValidatorAgent = contentValidatorAgent;
     }
@@ -65,6 +75,40 @@ public class ExamTakingSupport {
             throw new IllegalArgumentException("无权访问此考试");
         }
         return session;
+    }
+
+    /**
+     * 解析本场次对应「试卷」的结构化题目主键（与评分 {@code ExamGradingSupport} 口径一致）。
+     * <p>关联出卷历史时取历史 sessionId（生成期切分即以之为键），即时卷则用场次自身 sessionKey。</p>
+     *
+     * @param session 考试场次
+     * @return kb_exam_question 的 session_key
+     */
+    public String resolvePaperSessionKey(ExamSession session) {
+        Long historyId = session.getExamHistoryId();
+        if (historyId != null) {
+            return examHistoryGateway.findById(historyId)
+                    .map(ExamHistory::getSessionId)
+                    .filter(s -> s != null && !s.isBlank())
+                    .orElse(session.getSessionKey());
+        }
+        return session.getSessionKey();
+    }
+
+    /**
+     * 读取本场次试卷的结构化题目行（kb_exam_question，按印刷题号升序）。
+     * <p>V2「出卷即切分」下这是题目元数据的权威来源，供答题保存在线匹配题型 / 分值 / 选项，
+     * 免去重复解析 markdown。</p>
+     *
+     * @param session 考试场次
+     * @return 结构化题目列表；无行时返回空列表
+     */
+    public List<ExamQuestion> listPaperQuestions(ExamSession session) {
+        String paperKey = resolvePaperSessionKey(session);
+        if (paperKey == null || paperKey.isBlank()) {
+            return List.of();
+        }
+        return examQuestionGateway.listBySessionKey(paperKey);
     }
 
     /** 渲染题目（带考试方案） */

@@ -67,24 +67,6 @@ public class ExamGradingSupport {
      * 匹配 AI 返回的理由
      */
     private static final Pattern REASON_PATTERN = Pattern.compile("理由[：:]\\s*(.+)", Pattern.DOTALL);
-    /**
-     * 题号标记（行首）：**1. 或 1. 或 1、
-     */
-    private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})[.、．]\\s*");
-    /**
-     * 题号标记（标题）：第1题 / 第 1 题
-     */
-    private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
-    /**
-     * 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容
-     */
-    private static final Pattern ANSWER_LINE = Pattern.compile("(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
-    /**
-     * 行内答案提取：题号+分值标记之后紧跟的短答案（字母串/正确/错误/√/×）
-     * 匹配示例：**1.（3分）** B  /  **11.（3分）** 错误。  /  **1. **AC** — 解析
-     */
-    private static final Pattern INLINE_ANSWER = Pattern.compile(
-            "^\\*{0,2}\\d{1,3}[.、．]\\s*(?:[（(]\\s*\\d+\\s*分\\s*[）)]\\s*)?\\*{0,2}\\s*(?:\\*{2})?\\s*([A-Da-d]{1,4}|正确|错误|√|×|对|错)(?=[\\s。.，,；;—\\-*]|$)");
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
@@ -130,12 +112,10 @@ public class ExamGradingSupport {
             return;
         }
 
-        // V2 出卷即切分：标准答案优先读结构化题目行（生成期一次性绑定 + 契约校验），
-        // 结构化行缺失（老卷 / 即时卷未落库）时才回退到自由文本答案键解析。
+        // V2 出卷即切分 · 阶段 2-A：标准答案唯一来源为结构化题目行 kb_exam_question
+        // （生成期一次性绑定 + 契约校验，缺失时 resolveStructuredAnswerMap 惰性回灌）。
+        // 已删除自由文本答案键（parseAnswerKey）回退——下游纯读结构，杜绝评分 / 展示双解析口径漂移。
         Map<Integer, String> structuredAnswers = resolveStructuredAnswerMap(session);
-        Map<Integer, String> answerKeyMap = structuredAnswers.isEmpty()
-                ? parseAnswerKey(session.getAnswerKey())
-                : Collections.emptyMap();
         for (ExamAnswer answer : answers) {
             if (answer.getQuestionNumber() == null && answer.getQuestionIndex() != null) {
                 // V2 题目号 == 全局连续印刷号 == 落库位置序号，缺失时按位置对齐
@@ -145,9 +125,6 @@ public class ExamGradingSupport {
                 String correctAnswer = answer.getQuestionNumber() != null
                         ? structuredAnswers.get(answer.getQuestionNumber())
                         : null;
-                if (correctAnswer == null || correctAnswer.isBlank()) {
-                    correctAnswer = answerKeyMap.get(answer.getQuestionIndex());
-                }
                 if (correctAnswer != null && !correctAnswer.isBlank()) {
                     answer.setCorrectAnswer(correctAnswer);
                 }
@@ -188,7 +165,15 @@ public class ExamGradingSupport {
 
         // 更新场次状态
         session.markAiGraded(totalAiScore);
-        session.setTotalScore(answers.stream().mapToInt(ExamAnswer::getMaxScore).sum());
+        // V2 阶段 2-E：卷面总分取试卷结构化题目满分合计（与答题情况无关），
+        // 避免"未答题无落库行 → 分母偏小 → 得分率虚高"。结构化行缺失时回退已入库答案行合计。
+        int paperTotal = examQuestionGateway
+                .listBySessionKey(resolvePaperSessionKey(session)).stream()
+                .mapToInt(q -> q.getMaxScore() == null ? 0 : q.getMaxScore()).sum();
+        if (paperTotal <= 0) {
+            paperTotal = answers.stream().mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore()).sum();
+        }
+        session.setTotalScore(paperTotal);
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
 
@@ -583,107 +568,6 @@ public class ExamGradingSupport {
             }
         }
         return sb.toString();
-    }
-
-    /**
-     * 从标准答案 Markdown 中解析每道题的正确答案。
-     * <p>
-     * 兼容两种主流格式：
-     * <ul>
-     *     <li>行内格式：{@code **1. 答案：B**}</li>
-     *     <li>分块格式：{@code ### 第1题 ... **标准答案：B**}</li>
-     * </ul>
-     * 对于填空 / 论述题，若 {@code 答案：} 后为空，则向下收集内容行直到遇到
-     * {@code 解析} 或下一题。
-     * </p>
-     *
-     * @param answerKey 标准答案 Markdown
-     * @return 题号 → 答案 的映射
-     */
-    private Map<Integer, String> parseAnswerKey(String answerKey) {
-        Map<Integer, String> result = new HashMap<>();
-        if (answerKey == null || answerKey.isBlank()) {
-            return result;
-        }
-
-        String[] lines = answerKey.split("\\n");
-        Integer currentQ = null;
-
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-
-            // 1. 识别题号：优先行内 **N.，其次标题 第N题
-            Integer detected = null;
-            Matcher inline = QNUM_INLINE.matcher(line);
-            if (inline.find()) {
-                detected = Integer.parseInt(inline.group(1));
-            } else {
-                Matcher header = QNUM_HEADER.matcher(line);
-                if (header.find()) {
-                    detected = Integer.parseInt(header.group(1));
-                }
-            }
-            if (detected != null) {
-                currentQ = detected;
-            }
-
-            // 2. 行内答案提取（如 **1.（3分）** B 或 **11.（3分）** 错误）
-            if (currentQ != null && !result.containsKey(currentQ) && inline != null && detected != null) {
-                Matcher iam = INLINE_ANSWER.matcher(line);
-                if (iam.find()) {
-                    String answer = iam.group(1).replaceAll("\\*+", "").trim();
-                    // 去尾部句号/标点
-                    answer = answer.replaceAll("[。.，,；;]+$", "").trim();
-                    if (!answer.isEmpty()) {
-                        result.put(currentQ, answer);
-                        continue;
-                    }
-                }
-            }
-
-            // 3. 标签式答案行（需含"答案/标准答案/参考答案/正确答案"）
-            Matcher am = ANSWER_LINE.matcher(line);
-            if (am.find() && currentQ != null && !result.containsKey(currentQ)) {
-                String value = am.group(1).replaceAll("\\*+", "").trim();
-                // 行内没有答案内容（如填空/论述题），向下收集内容行
-                if (value.isEmpty()) {
-                    value = collectAnswerBody(lines, i + 1);
-                }
-                if (!value.isEmpty()) {
-                    result.put(currentQ, value);
-                }
-            }
-        }
-
-        logger.debug("解析标准答案：共 {} 道题", result.size());
-        return result;
-    }
-
-    /**
-     * 从给定行开始向下收集答案正文，直到遇到"解析"或下一题标记。
-     */
-    private String collectAnswerBody(String[] lines, int start) {
-        StringBuilder sb = new StringBuilder();
-        for (int j = start; j < lines.length; j++) {
-            String line = lines[j].trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            String clean = line.replaceAll("\\*+", "").trim();
-            if (clean.startsWith("解析") || clean.startsWith("评分标准")
-                    || QNUM_HEADER.matcher(clean).find()
-                    || QNUM_INLINE.matcher(clean).find()) {
-                break;
-            }
-            if (sb.length() > 0) {
-                sb.append(" ");
-            }
-            sb.append(clean);
-        }
-        return sb.toString().trim();
     }
 
     public ExamSessionGateway examSessionGateway() {

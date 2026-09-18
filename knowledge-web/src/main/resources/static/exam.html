@@ -2216,7 +2216,7 @@
     function startAutoSave() {
         stopAutoSave();
         autoSaveInterval = setInterval(function() {
-            saveAnswers(true);
+            saveAnswers(true).catch(function() { /* 静默自动保存失败忽略，下次周期重试 */ });
         }, 60000);
     }
 
@@ -2628,36 +2628,37 @@
         }
     }
 
-    /* ===== Save Answers ===== */
-    function saveAnswers(silent) {
-        if (!currentSession) return;
-        saveCurrentAnswer();
-
-        var answersList = [];
-        Object.keys(currentAnswers).forEach(function(key) {
-            var a = currentAnswers[key];
-            var q = currentQuestions.find(function(qq) { return (qq.index != null ? qq.index : currentQuestions.indexOf(qq)) === parseInt(key); });
-            answersList.push({
-                questionIndex: a.questionIndex,
-                questionType: a.questionType,
-                content: q ? q.content : '',
-                answer: a.answer
+    /* ===== Build full answers list (all questions, unanswered → empty) ===== */
+    function buildFullAnswersList() {
+        var list = [];
+        currentQuestions.forEach(function (q, pos) {
+            var idx = q.index != null ? q.index : pos;
+            var num = q.number != null ? q.number : idx;
+            var a = currentAnswers[idx];
+            list.push({
+                questionIndex: idx,
+                questionNumber: num,
+                questionType: q.type,
+                content: q.content || '',
+                answer: a ? a.answer : ''
             });
         });
+        return list;
+    }
 
-        // 空答案列表直接跳过：后端 save 是先删后插，空列表会导致已保存答案被清空
-        if (answersList.length === 0) {
-            if (!silent) showToast('暂无答案需要保存', 'info');
-            return;
-        }
+    /* ===== Save Answers ===== */
+    function saveAnswers(silent) {
+        if (!currentSession) return Promise.resolve();
+        saveCurrentAnswer();
 
+        var answersList = buildFullAnswersList();
         var sessionKey = currentSession.sessionKey;
-        apiRequest('/api/exam/' + sessionKey + '/save', {
+        return apiRequest('/api/exam/' + sessionKey + '/save', {
             method: 'POST',
             body: JSON.stringify({ token: token, answers: answersList })
-        }).then(function() {
+        }).then(function () {
             if (!silent) showToast('答案已保存', 'success');
-        }).catch(function(err) {
+        }).catch(function (err) {
             if (!silent) showToast('保存失败: ' + err.message, 'error');
         });
     }
@@ -2687,41 +2688,31 @@
         if (!currentSession) return;
         var sessionKey = currentSession.sessionKey;
 
-        // Save answers first
+        // Save answers first（全量落行，含未答）
         saveCurrentAnswer();
-        var answersList = [];
-        Object.keys(currentAnswers).forEach(function(key) {
-            var a = currentAnswers[key];
-            var q = currentQuestions.find(function(qq) { return (qq.index != null ? qq.index : currentQuestions.indexOf(qq)) === parseInt(key); });
-            answersList.push({
-                questionIndex: a.questionIndex,
-                questionType: a.questionType,
-                content: q ? q.content : '',
-                answer: a.answer
-            });
-        });
+        var answersList = buildFullAnswersList();
 
-        // Save then submit
+        // Save then submit —— 保存失败必须中止提交，绝不吞掉（否则答案静默丢失）
         var savePromise = answersList.length > 0
             ? apiRequest('/api/exam/' + sessionKey + '/save', {
                 method: 'POST',
                 body: JSON.stringify({ token: token, answers: answersList })
-              }).catch(function() {})
+              })
             : Promise.resolve();
 
-        savePromise.then(function() {
+        savePromise.then(function () {
             return apiRequest('/api/exam/' + sessionKey + '/submit', {
                 method: 'POST',
                 body: JSON.stringify({ token: token })
             });
-        }).then(function() {
+        }).then(function () {
             stopTimer();
             stopAutoSave();
             showToast('试卷已提交', 'success');
             document.getElementById('examTakingPage').classList.remove('exam-locked');
             backToList();
-        }).catch(function(err) {
-            showToast('提交失败: ' + err.message, 'error');
+        }).catch(function (err) {
+            showToast('提交失败（答案未保存成功，请重试）: ' + err.message, 'error');
         });
     }
 
