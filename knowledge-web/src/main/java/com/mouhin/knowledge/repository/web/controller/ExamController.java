@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.Balan
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateDistributionAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamSyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ValidatePlanAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
@@ -54,6 +55,7 @@ public class ExamController {
     private final GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe;
     private final BalanceDistributionQryExe balanceDistributionQryExe;
     private final ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe;
+    private final ListPublishedHistoryQryExe listPublishedHistoryQryExe;
     private final ExamWordExporter examWordExporter;
     private final BlackboardProgressStore progressStore;
 
@@ -63,6 +65,7 @@ public class ExamController {
                           GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe,
                           BalanceDistributionQryExe balanceDistributionQryExe,
                           ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe,
+                          ListPublishedHistoryQryExe listPublishedHistoryQryExe,
                           ExamWordExporter examWordExporter,
                           BlackboardProgressStore progressStore) {
         this.examGenerationService = examGenerationService;
@@ -71,6 +74,7 @@ public class ExamController {
         this.generateDistributionAsyncCmdExe = generateDistributionAsyncCmdExe;
         this.balanceDistributionQryExe = balanceDistributionQryExe;
         this.validatePlanAsyncCmdExe = validatePlanAsyncCmdExe;
+        this.listPublishedHistoryQryExe = listPublishedHistoryQryExe;
         this.examWordExporter = examWordExporter;
         this.progressStore = progressStore;
     }
@@ -440,15 +444,15 @@ public class ExamController {
     }
 
     /**
-     * 查询出卷历史列表
+     * 查询可开考的学生端试卷列表（仅返回已发布 PUBLISHED 的试卷）
      *
      * @param limit 最大返回数量，默认 20
-     * @return 历史记录列表（按时间倒序）
+     * @return 已发布试卷列表（按时间倒序）
      */
     @GetMapping("/exam/history")
     public ResponseEntity<List<ExamHistoryDTO>> listExamHistory(
             @RequestParam(defaultValue = "20") int limit) {
-        List<ExamHistoryDTO> history = examGenerationService.listHistory(limit);
+        List<ExamHistoryDTO> history = listPublishedHistoryQryExe.execute(limit);
         return ResponseEntity.ok(history);
     }
 

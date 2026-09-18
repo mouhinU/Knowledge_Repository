@@ -51,6 +51,11 @@ public class ExamStartFromHistoryCmdExe {
             throw new IllegalArgumentException("试卷内容为空");
         }
 
+        // 发布门禁（阶段 1-D）：仅已发布（校对通过）的试卷可开考，未发布 / 校验不通过的卷一律拒绝
+        if (!history.isPublished()) {
+            throw new IllegalStateException("试卷尚未发布（未通过校对或校验不通过），暂不可开考");
+        }
+
         ExamSession session = new ExamSession();
         session.setSessionKey(UUID.randomUUID().toString());
         session.setStudentId(student.getId());

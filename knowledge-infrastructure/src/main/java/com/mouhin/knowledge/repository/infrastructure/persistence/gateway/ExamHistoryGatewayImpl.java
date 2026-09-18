@@ -64,6 +64,39 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     }
 
     @Override
+    public List<ExamHistory> listPublished(int limit) {
+        LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ExamHistoryDO::getStatus, ExamHistory.STATUS_PUBLISHED)
+                .orderByDesc(ExamHistoryDO::getCreateTime)
+                .last("LIMIT " + (limit > 0 ? limit : 20));
+        return examHistoryMapper.selectList(wrapper).stream()
+                .map(ExamHistoryConverter::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ExamHistory> listReviewPending(int limit, int offset) {
+        int safeLimit = limit > 0 ? limit : 20;
+        int safeOffset = Math.max(offset, 0);
+        LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(ExamHistoryDO::getStatus,
+                        ExamHistory.STATUS_REVIEWABLE, ExamHistory.STATUS_VALIDATION_FAILED)
+                .orderByDesc(ExamHistoryDO::getCreateTime)
+                .last("LIMIT " + safeLimit + " OFFSET " + safeOffset);
+        return examHistoryMapper.selectList(wrapper).stream()
+                .map(ExamHistoryConverter::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countReviewPending() {
+        LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(ExamHistoryDO::getStatus,
+                ExamHistory.STATUS_REVIEWABLE, ExamHistory.STATUS_VALIDATION_FAILED);
+        return examHistoryMapper.selectCount(wrapper);
+    }
+
+    @Override
     public List<ExamHistory> listPage(int limit, int offset) {
         int safeLimit = limit > 0 ? limit : 20;
         int safeOffset = Math.max(offset, 0);

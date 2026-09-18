@@ -1221,6 +1221,20 @@
     let examHistoryPage = 0;
     function goExamHistoryPage(p) { loadExamHistory(p); }
 
+    // 试卷生命周期状态 → 徽章（阶段 1-D 校对关口）
+    function paperStatusBadge(status) {
+        const map = {
+            PUBLISHED: ['已发布', 'badge-success'],
+            REVIEWABLE: ['待校对', 'badge-warning'],
+            VALIDATION_FAILED: ['校验未通过', 'badge-danger'],
+            DRAFT: ['草稿', 'badge-info'],
+            COMPLETED: ['成功', 'badge-success'],
+            FAILED: ['生成失败', 'badge-danger']
+        };
+        const m = map[status] || [status || '-', 'badge-info'];
+        return '<span class="badge ' + m[1] + '">' + KR.esc(m[0]) + '</span>';
+    }
+
     async function loadExamHistory(page) {
         if (page == null) page = examHistoryPage;
         examHistoryPage = page;
@@ -1238,7 +1252,7 @@
             }
             const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
             tbody.innerHTML = list.map(h => {
-                const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+                const statusLabel = paperStatusBadge(h.status);
                 const score = h.qualityScore != null ? h.qualityScore : '-';
                 const time = KR.fmtDateTime(h.createTime);
                 const diff = diffMap[h.difficulty] || h.difficulty || '-';
@@ -1270,7 +1284,7 @@
             const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId));
             if (!res.ok) throw new Error('加载失败');
             const h = await res.json();
-            const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+            const statusLabel = paperStatusBadge(h.status);
             const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 19) : '-';
             const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
             const diff = diffMap[h.difficulty] || h.difficulty || '-';

@@ -129,6 +129,9 @@ knowledge:
   # ---------- 在线考试评分配置 ----------
   exam:
     grading-delay-minutes: ${EXAM_GRADING_DELAY_MINUTES:30}
+    # 试卷校对关口：true=所有试卷须人工校对通过后方可发布开考；
+    # false=校验通过且质量分达阈可自动发布，但校验不过 / 低分仍强制人工校对（不可绕过）。
+    review-required: ${EXAM_REVIEW_REQUIRED:true}
 
 # ==================== 日志 ====================
 logging:

@@ -83,6 +83,12 @@ public class ExamHistoryDO {
     @TableField("error_message")
     private String errorMessage;
 
+    @TableField("reviewed_by")
+    private String reviewedBy;
+
+    @TableField("reviewed_time")
+    private LocalDateTime reviewedTime;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 

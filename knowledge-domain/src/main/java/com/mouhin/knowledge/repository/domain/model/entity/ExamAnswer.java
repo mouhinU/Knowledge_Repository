@@ -19,9 +19,14 @@ public class ExamAnswer {
     private Long sessionId;
 
     /**
-     * 题目序号（从 1 开始）
+     * 题目序号（从 1 开始，答题落库位置序号）
      */
     private Integer questionIndex;
+
+    /**
+     * 印刷题号（与 kb_exam_question.question_number 对齐，权威编号；可为空表示未结构化）
+     */
+    private Integer questionNumber;
 
     /**
      * 题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY
@@ -126,6 +131,14 @@ public class ExamAnswer {
 
     public void setQuestionIndex(Integer questionIndex) {
         this.questionIndex = questionIndex;
+    }
+
+    public Integer getQuestionNumber() {
+        return questionNumber;
+    }
+
+    public void setQuestionNumber(Integer questionNumber) {
+        this.questionNumber = questionNumber;
     }
 
     public String getQuestionType() {

@@ -40,6 +40,8 @@ public final class ExamHistoryConverter {
         domain.setCategory(doObj.getCategory());
         domain.setStatus(doObj.getStatus());
         domain.setErrorMessage(doObj.getErrorMessage());
+        domain.setReviewedBy(doObj.getReviewedBy());
+        domain.setReviewedTime(doObj.getReviewedTime());
         domain.setCreateTime(doObj.getCreateTime());
         domain.setUpdateTime(doObj.getUpdateTime());
         return domain;
@@ -71,6 +73,8 @@ public final class ExamHistoryConverter {
         doObj.setCategory(domain.getCategory());
         doObj.setStatus(domain.getStatus());
         doObj.setErrorMessage(domain.getErrorMessage());
+        doObj.setReviewedBy(domain.getReviewedBy());
+        doObj.setReviewedTime(domain.getReviewedTime());
         doObj.setCreateTime(domain.getCreateTime());
         doObj.setUpdateTime(domain.getUpdateTime());
         return doObj;

@@ -129,6 +129,12 @@
     .trace-tag-input { background:#e0e7ff;color:#3730a3 }
     .trace-tag-think { background:#fef3c7;color:#92400e }
     .trace-tag-output { background:#dcfce7;color:#166534 }
+    .ai-process-wrap { border:1px solid #e2e8f0;border-radius:8px;background:#fff;overflow:hidden }
+    .ai-process-summary { cursor:pointer;list-style:none;padding:8px 12px;font-size:12px;font-weight:600;color:#475569;background:#f8fafc;user-select:none;display:flex;align-items:center;gap:6px }
+    .ai-process-summary::-webkit-details-marker { display:none }
+    .ai-process-summary:hover { background:#f1f5f9 }
+    .ai-process-wrap[open] > .ai-process-summary { border-bottom:1px solid #e2e8f0 }
+    .ai-process-hint { font-weight:400;color:#94a3b8;font-size:11px }
     .rv-tab { padding:6px 14px;font-size:13px;border:1px solid #e2e8f0;background:#fff;color:#475569;border-radius:8px;cursor:pointer;font-weight:600;transition:all .15s }
     .rv-tab:hover { border-color:#cbd5e1;background:#f8fafc }
     .rv-tab.active { background:var(--primary);color:#fff;border-color:var(--primary) }
@@ -692,25 +698,29 @@
                 html += '</div>';
                 if (a.aiFeedback) html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI 反馈</div>'
                     + '<div style="font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">' + esc(a.aiFeedback) + '</div></div>';
-                // AI 评分过程（输入 / 原始输出 / 解析结果）— 与 SSE 面板同一视觉规范
+                // AI 评分过程（输入 / 原始输出 / 解析结果）— 默认整体折叠，点标题才展开
                 if (a.aiInput || a.aiRawOutput) {
-                    html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI 评分过程</div>'
-                        + '<div class="gq-trace" style="padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">';
+                    let traceInner = '';
                     if (a.aiInput) {
-                        html += '<details><summary><span class="trace-tag trace-tag-input">📥 输入</span>发送给模型的 Prompt</summary>'
+                        traceInner += '<details><summary><span class="trace-tag trace-tag-input">📥 输入</span>发送给模型的 Prompt</summary>'
                             + '<pre class="trace-input">' + esc(a.aiInput) + '</pre></details>';
                     }
                     if (a.aiRawOutput) {
-                        html += '<details><summary><span class="trace-tag trace-tag-think">💭 思考 / 原始输出</span>模型返回全文（或客观题比对依据）</summary>'
+                        traceInner += '<details><summary><span class="trace-tag trace-tag-think">💭 思考 / 原始输出</span>模型返回全文（或客观题比对依据）</summary>'
                             + '<pre class="trace-think">' + esc(a.aiRawOutput) + '</pre></details>';
                     }
                     const parsedLine = (a.aiScore != null ? a.aiScore + ' / ' + (a.maxScore || 0) + ' 分' : '')
                         + (a.aiFeedback ? ' · ' + a.aiFeedback : '');
                     if (parsedLine) {
-                        html += '<details><summary><span class="trace-tag trace-tag-output">📤 输出</span>解析后的评分结果</summary>'
+                        traceInner += '<details><summary><span class="trace-tag trace-tag-output">📤 输出</span>解析后的评分结果</summary>'
                             + '<pre class="trace-output">' + esc(parsedLine) + '</pre></details>';
                     }
-                    html += '</div></div>';
+                    html += '<div style="margin-bottom:12px">'
+                        + '<details class="ai-process-wrap"><summary class="ai-process-summary">🔧 AI 评分过程'
+                        + '<span class="ai-process-hint">（点击展开：输入 / 原始输出 / 解析结果）</span></summary>'
+                        + '<div class="gq-trace" style="padding:6px 10px 8px">'
+                        + traceInner
+                        + '</div></details></div>';
                 }
                 html += '<div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px"><div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">'
                     + '<div style="min-width:100px"><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;font-weight:600">复核分数</label>'

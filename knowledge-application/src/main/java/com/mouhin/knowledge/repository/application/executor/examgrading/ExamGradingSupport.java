@@ -1,8 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
+import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
@@ -11,9 +18,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -69,17 +79,32 @@ public class ExamGradingSupport {
      * 答案标记：答案/标准答案/参考答案/正确答案 后跟冒号与内容
      */
     private static final Pattern ANSWER_LINE = Pattern.compile("(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
+    /**
+     * 行内答案提取：题号+分值标记之后紧跟的短答案（字母串/正确/错误/√/×）
+     * 匹配示例：**1.（3分）** B  /  **11.（3分）** 错误。  /  **1. **AC** — 解析
+     */
+    private static final Pattern INLINE_ANSWER = Pattern.compile(
+            "^\\*{0,2}\\d{1,3}[.、．]\\s*(?:[（(]\\s*\\d+\\s*分\\s*[）)]\\s*)?\\*{0,2}\\s*(?:\\*{2})?\\s*([A-Da-d]{1,4}|正确|错误|√|×|对|错)(?=[\\s。.，,；;—\\-*]|$)");
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
+    private final ExamQuestionGateway examQuestionGateway;
+    private final ExamHistoryGateway examHistoryGateway;
+    private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final StreamingChatGateway streamingChatGateway;
     private final ExecutorService agentExecutor;
 
     public ExamGradingSupport(ExamSessionGateway examSessionGateway,
                               ExamAnswerGateway examAnswerGateway,
+                              ExamQuestionGateway examQuestionGateway,
+                              ExamHistoryGateway examHistoryGateway,
+                              ExamQuestionSplitSupport examQuestionSplitSupport,
                               StreamingChatGateway streamingChatGateway) {
         this.examSessionGateway = examSessionGateway;
         this.examAnswerGateway = examAnswerGateway;
+        this.examQuestionGateway = examQuestionGateway;
+        this.examHistoryGateway = examHistoryGateway;
+        this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.streamingChatGateway = streamingChatGateway;
         this.agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
@@ -105,11 +130,24 @@ public class ExamGradingSupport {
             return;
         }
 
-        // 解析标准答案，填充到每道题的 correctAnswer
-        Map<Integer, String> answerKeyMap = parseAnswerKey(session.getAnswerKey());
+        // V2 出卷即切分：标准答案优先读结构化题目行（生成期一次性绑定 + 契约校验），
+        // 结构化行缺失（老卷 / 即时卷未落库）时才回退到自由文本答案键解析。
+        Map<Integer, String> structuredAnswers = resolveStructuredAnswerMap(session);
+        Map<Integer, String> answerKeyMap = structuredAnswers.isEmpty()
+                ? parseAnswerKey(session.getAnswerKey())
+                : Collections.emptyMap();
         for (ExamAnswer answer : answers) {
+            if (answer.getQuestionNumber() == null && answer.getQuestionIndex() != null) {
+                // V2 题目号 == 全局连续印刷号 == 落库位置序号，缺失时按位置对齐
+                answer.setQuestionNumber(answer.getQuestionIndex());
+            }
             if (answer.getCorrectAnswer() == null || answer.getCorrectAnswer().isBlank()) {
-                String correctAnswer = answerKeyMap.get(answer.getQuestionIndex());
+                String correctAnswer = answer.getQuestionNumber() != null
+                        ? structuredAnswers.get(answer.getQuestionNumber())
+                        : null;
+                if (correctAnswer == null || correctAnswer.isBlank()) {
+                    correctAnswer = answerKeyMap.get(answer.getQuestionIndex());
+                }
                 if (correctAnswer != null && !correctAnswer.isBlank()) {
                     answer.setCorrectAnswer(correctAnswer);
                 }
@@ -159,6 +197,56 @@ public class ExamGradingSupport {
         }
 
         logger.info("评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, session.getTotalScore());
+    }
+
+    /**
+     * 解析本场次对应「试卷」的结构化题目主键。
+     * <p>关联出卷历史时取历史 sessionId（生成期切分即以之为键），即时卷则用场次自身 sessionKey。</p>
+     */
+    private String resolvePaperSessionKey(ExamSession session) {
+        Long historyId = session.getExamHistoryId();
+        if (historyId != null) {
+            return examHistoryGateway.findById(historyId)
+                    .map(ExamHistory::getSessionId)
+                    .filter(s -> s != null && !s.isBlank())
+                    .orElse(session.getSessionKey());
+        }
+        return session.getSessionKey();
+    }
+
+    /**
+     * 读取结构化题目行的标准答案映射（印刷题号 → 标准答案）。
+     * <p>缺失时对老卷 / 即时卷惰性回灌一次（用本场次自带的试卷 + 答案键 + 方案重建），
+     * 回灌失败则返回空表，交由调用方回退到答案键解析。</p>
+     */
+    private Map<Integer, String> resolveStructuredAnswerMap(ExamSession session) {
+        Map<Integer, String> map = new HashMap<>();
+        String paperKey = resolvePaperSessionKey(session);
+        if (paperKey == null || paperKey.isBlank()) {
+            return map;
+        }
+        List<ExamQuestion> questions = examQuestionGateway.listBySessionKey(paperKey);
+        if (questions.isEmpty()) {
+            try {
+                ExamPlan plan = ExamPaperParser.readPlan(session.getExamPlan());
+                examQuestionSplitSupport.splitAndPersist(paperKey,
+                        session.getExamPaper(), session.getAnswerKey(), plan);
+                questions = examQuestionGateway.listBySessionKey(paperKey);
+                logger.info("惰性回灌结构化题目 [session={}, paperKey={}, rows={}]",
+                        session.getId(), paperKey, questions.size());
+            } catch (Exception e) {
+                logger.warn("惰性回灌结构化题目失败，回退答案键解析 [session={}, paperKey={}]: {}",
+                        session.getId(), paperKey, e.getMessage());
+                return map;
+            }
+        }
+        for (ExamQuestion q : questions) {
+            if (q.getQuestionNumber() != null
+                    && q.getCorrectAnswer() != null && !q.getCorrectAnswer().isBlank()) {
+                map.put(q.getQuestionNumber(), q.getCorrectAnswer());
+            }
+        }
+        return map;
     }
 
     /**
@@ -251,8 +339,8 @@ public class ExamGradingSupport {
 
         if ("MULTI_CHOICE".equals(type)) {
             // 多选部分给分：全对满分 / 少选半分 / 含错选或未选 0 分
-            java.util.Set<Character> correctSet = parseChoiceSet(normalizedCorrect);
-            java.util.Set<Character> studentSet = parseChoiceSet(normalizedStudent);
+            Set<Character> correctSet = parseChoiceSet(normalizedCorrect);
+            Set<Character> studentSet = parseChoiceSet(normalizedStudent);
             if (studentSet.isEmpty()) {
                 score = 0;
                 isCorrect = false;
@@ -440,11 +528,11 @@ public class ExamGradingSupport {
     /**
      * 解析多选字母集合：从已规范化的纯字母串拆为 Set。
      */
-    private java.util.Set<Character> parseChoiceSet(String normalized) {
+    private Set<Character> parseChoiceSet(String normalized) {
         if (normalized == null || normalized.isBlank()) {
-            return java.util.Collections.emptySet();
+            return Collections.emptySet();
         }
-        java.util.Set<Character> set = new java.util.HashSet<>();
+        Set<Character> set = new HashSet<>();
         for (char c : normalized.toCharArray()) {
             if (c >= 'A' && c <= 'Z') {
                 set.add(c);
@@ -541,7 +629,21 @@ public class ExamGradingSupport {
                 currentQ = detected;
             }
 
-            // 2. 识别答案行
+            // 2. 行内答案提取（如 **1.（3分）** B 或 **11.（3分）** 错误）
+            if (currentQ != null && !result.containsKey(currentQ) && inline != null && detected != null) {
+                Matcher iam = INLINE_ANSWER.matcher(line);
+                if (iam.find()) {
+                    String answer = iam.group(1).replaceAll("\\*+", "").trim();
+                    // 去尾部句号/标点
+                    answer = answer.replaceAll("[。.，,；;]+$", "").trim();
+                    if (!answer.isEmpty()) {
+                        result.put(currentQ, answer);
+                        continue;
+                    }
+                }
+            }
+
+            // 3. 标签式答案行（需含"答案/标准答案/参考答案/正确答案"）
             Matcher am = ANSWER_LINE.matcher(line);
             if (am.find() && currentQ != null && !result.containsKey(currentQ)) {
                 String value = am.group(1).replaceAll("\\*+", "").trim();

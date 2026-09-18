@@ -11,6 +11,31 @@ import java.util.Objects;
  */
 public class ExamHistory {
 
+    /**
+     * 试卷生命周期状态：已生成待切分/校验（向后兼容旧 COMPLETED 语义，校对前中间态）
+     */
+    public static final String STATUS_DRAFT = "DRAFT";
+
+    /**
+     * 试卷生命周期状态：出卷契约校验通过，等待人工校对（review-required=true 默认停留于此）
+     */
+    public static final String STATUS_REVIEWABLE = "REVIEWABLE";
+
+    /**
+     * 试卷生命周期状态：已发布，学生方可开考
+     */
+    public static final String STATUS_PUBLISHED = "PUBLISHED";
+
+    /**
+     * 试卷生命周期状态：出卷契约校验未通过，强制人工校对，不可自动发布
+     */
+    public static final String STATUS_VALIDATION_FAILED = "VALIDATION_FAILED";
+
+    /**
+     * 生成失败（出卷流水线异常，非试卷质量问题）
+     */
+    public static final String STATUS_FAILED = "FAILED";
+
     private Long id;
 
     /**
@@ -105,7 +130,7 @@ public class ExamHistory {
     private String category;
 
     /**
-     * 状态：COMPLETED / FAILED
+     * 试卷生命周期状态：DRAFT / REVIEWABLE / PUBLISHED / VALIDATION_FAILED / FAILED
      */
     private String status;
 
@@ -113,6 +138,16 @@ public class ExamHistory {
      * 错误信息
      */
     private String errorMessage;
+
+    /**
+     * 校对审核人（管理员 / 出题人），PUBLISHED 时写入
+     */
+    private String reviewedBy;
+
+    /**
+     * 校对审核（发布）时间
+     */
+    private LocalDateTime reviewedTime;
 
     private LocalDateTime createTime;
 
@@ -302,6 +337,56 @@ public class ExamHistory {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(String reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public LocalDateTime getReviewedTime() {
+        return reviewedTime;
+    }
+
+    public void setReviewedTime(LocalDateTime reviewedTime) {
+        this.reviewedTime = reviewedTime;
+    }
+
+    // ==================== 业务方法（试卷生命周期） ====================
+
+    /**
+     * 是否已发布（学生可开口的唯一判据）。
+     */
+    public boolean isPublished() {
+        return STATUS_PUBLISHED.equals(status);
+    }
+
+    /**
+     * 校验通过，进入待校对状态（review-required=true 默认停留于此）。
+     */
+    public void markReviewable() {
+        this.status = STATUS_REVIEWABLE;
+    }
+
+    /**
+     * 出卷契约校验未通过，强制人工校对，不可自动发布。
+     */
+    public void markValidationFailed() {
+        this.status = STATUS_VALIDATION_FAILED;
+    }
+
+    /**
+     * 校对通过并发布，记录审核人与时间。
+     *
+     * @param reviewer 审核人（管理员 / 出题人）
+     */
+    public void markPublished(String reviewer) {
+        this.status = STATUS_PUBLISHED;
+        this.reviewedBy = reviewer;
+        this.reviewedTime = LocalDateTime.now();
     }
 
     // ==================== equals / hashCode ====================

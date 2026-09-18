@@ -242,6 +242,9 @@ public final class ExamPaperParser {
             for (Map<String, Object> q : secQuestions) {
                 globalIndex++;
                 q.put("index", globalIndex);
+                if (q.get("number") == null) {
+                    q.put("number", globalIndex);
+                }
                 questions.add(q);
             }
         }
@@ -432,6 +435,7 @@ public final class ExamPaperParser {
 
         for (int bi = 0; bi < n; bi++) {
             List<String> block = blocks.get(bi);
+            Integer printedNumber = extractQuestionNumber(block.get(0).trim());
             String firstLine = removeQuestionNumber(block.get(0).trim());
             StringBuilder contentBuilder = new StringBuilder();
             StringBuilder rawOptionsBuilder = new StringBuilder();
@@ -492,6 +496,7 @@ public final class ExamPaperParser {
             Map<String, Object> q = new LinkedHashMap<>();
             q.put("type", kernel);
             q.put("sectionLabel", label);
+            q.put("number", printedNumber);
             q.put("maxScore", finalScore);
             q.put("content", cleanContent(contentBuilder.toString()));
             if ("SINGLE_CHOICE".equals(kernel) || "MULTI_CHOICE".equals(kernel)) {
@@ -572,6 +577,7 @@ public final class ExamPaperParser {
 
     private static Map<String, Object> buildOneQuestion(
             List<String> block, String type, String label, int defaultScore, int index) {
+        Integer printedNumber = extractQuestionNumber(block.get(0).trim());
         String firstLine = removeQuestionNumber(block.get(0).trim());
         StringBuilder contentBuilder = new StringBuilder();
         StringBuilder rawOptionsBuilder = new StringBuilder();
@@ -600,6 +606,7 @@ public final class ExamPaperParser {
         }
         Map<String, Object> q = new LinkedHashMap<>();
         q.put("index", index);
+        q.put("number", printedNumber != null ? printedNumber : index);
         String kernel = type != null ? type : resolveKernel(label != null ? label : "", null);
         q.put("type", kernel);
         if (label != null) {
@@ -715,10 +722,37 @@ public final class ExamPaperParser {
     }
 
     /**
+     * 匹配题目行首的印刷题号（可选前置加粗 + 1~3 位数字 + 分隔符 + 可选后置加粗），group(1)=题号
+     */
+    private static final Pattern QUESTION_NUMBER_STRIP = Pattern.compile(
+            "^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*\\*{0,2}");
+
+    /**
      * 移除题目行中的序号
      */
     private static String removeQuestionNumber(String line) {
         return line.replaceFirst("^\\*{0,2}\\d+[.、．]\\s*\\*{0,2}", "").trim();
+    }
+
+    /**
+     * 提取题目行首的印刷题号；无法识别时返回 null（调用方按位置序号回退）。
+     *
+     * @param line 题目块首行（原始，含题号标记）
+     * @return 印刷题号，或 null
+     */
+    private static Integer extractQuestionNumber(String line) {
+        if (line == null) {
+            return null;
+        }
+        Matcher matcher = QUESTION_NUMBER_STRIP.matcher(line.trim());
+        if (matcher.find()) {
+            try {
+                return Integer.parseInt(matcher.group(1));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /**

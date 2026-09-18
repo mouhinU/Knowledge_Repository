@@ -14,6 +14,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
+import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
@@ -60,6 +61,8 @@ public class ExamGenerationSupport {
     private static final int MAX_REVIEW_RETRIES = 2;
     /** 手动调整方案下，连续两轮评分差 ≤ 该值即视为已收敛，提前结束改进循环 */
     private static final int SCORE_CONVERGENCE_DELTA = 3;
+    /** 自动发布（免人工校对）时写入的审核人标识 */
+    private static final String AUTO_PUBLISH_REVIEWER = "system:auto-publish";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -76,6 +79,7 @@ public class ExamGenerationSupport {
     private final ChatModel chatModel;
     private final StreamingChatGateway streamingChatGateway;
     private final ExamHistoryGateway examHistoryGateway;
+    private final ExamQuestionSplitSupport examQuestionSplitSupport;
 
     private final ExecutorService agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -84,6 +88,10 @@ public class ExamGenerationSupport {
 
     @Value("${knowledge.blackboard.search.min-score:0.3}")
     private double searchMinScore;
+
+    /** 是否强制人工校对后方可发布（默认 true：所有卷须校对通过才发布） */
+    @Value("${knowledge.exam.review-required:true}")
+    private boolean examReviewRequired;
 
     public ExamGenerationSupport(
             @Qualifier("examResearcherAgent") BlackboardAgent examResearcherAgent,
@@ -98,7 +106,8 @@ public class ExamGenerationSupport {
             PermissionDomainService permissionDomainService,
             ChatModel chatModel,
             StreamingChatGateway streamingChatGateway,
-            ExamHistoryGateway examHistoryGateway) {
+            ExamHistoryGateway examHistoryGateway,
+            ExamQuestionSplitSupport examQuestionSplitSupport) {
         this.examResearcherAgent = examResearcherAgent;
         this.examScoringAgent = examScoringAgent;
         this.examWriterAgent = examWriterAgent;
@@ -112,6 +121,7 @@ public class ExamGenerationSupport {
         this.chatModel = chatModel;
         this.streamingChatGateway = streamingChatGateway;
         this.examHistoryGateway = examHistoryGateway;
+        this.examQuestionSplitSupport = examQuestionSplitSupport;
     }
 
     /**
@@ -266,9 +276,19 @@ public class ExamGenerationSupport {
                 callback.onProgress(BlackboardProgressEvent.examCompleted(blackboard, results.size()));
             }
 
-            // 保存历史记录
+            // 出卷即切分（V2）+ 发布门禁：先一次性切分并做确定性契约校验，据此决定试卷状态，
+            // 再把状态写入出卷历史。契约不通过 → VALIDATION_FAILED（强制人工校对，绝不自动发布）；
+            // 契约通过且关闭校对要求（review-required=false）且质量分达阈 → 自动 PUBLISHED；
+            // 其余通过情形 → REVIEWABLE（等待管理员 / 出题人在校对关口批准发布）。
+            String paperStatus = resolvePaperStatus(sessionId, blackboard);
+            if (callback != null) {
+                callback.onProgress(BlackboardProgressEvent.phaseChanged(
+                        BlackboardPhase.WRITING, describePaperStatus(paperStatus)));
+            }
+
+            // 保存历史记录（携带试卷生命周期状态）
             saveHistory(sessionId, topic, difficulty, questionConfig, blackboard, permission,
-                    category, results.size(), null);
+                    category, results.size(), null, paperStatus);
 
         } catch (Exception e) {
             String friendly = unwrapErrorMessage(e);
@@ -277,7 +297,7 @@ public class ExamGenerationSupport {
 
             // 保存失败记录
             saveHistory(sessionId, topic, difficulty, questionConfig, blackboard, permission,
-                    category, 0, friendly);
+                    category, 0, friendly, ExamHistory.STATUS_FAILED);
 
             if (callback != null) {
                 callback.onProgress(BlackboardProgressEvent.error(friendly));
@@ -709,9 +729,9 @@ public class ExamGenerationSupport {
                 ## 一、单选题
                 1. **B** — 解析简要说明
                 ## 二、多选题
-                X. **ABD** — 解析简要说明
+                X. **AC** — 解析简要说明（多个选项字母间无逗号）
                 ## 三、判断题
-                X. **√**（或 **×**）— 解析
+                X. **正确**（或 **错误**）— 解析
                 ## 四、填空题
                 X. **答案**
                 ## 五、简答题
@@ -722,6 +742,9 @@ public class ExamGenerationSupport {
                 注意：
                 - 只输出用户要求的题型，不要求的题型不要输出
                 - 每种题型的题目数量必须严格匹配用户要求
+                - 题目序号全局连续编排（1, 2, 3, ...），禁止分节重新从 1 起号
+                - 判断题答案统一使用"正确"或"错误"，禁止使用 √/× 符号
+                - 多选题答案用纯字母无分隔拼接（如 AC、ABD），不加逗号
                 - 分值分配合理：每题分值、大题小计与卷面总分必须严格取自【分值分配方案】，各题分值之和等于总分；若方案含合卷说明，按科目分节组织大题
                 """;
     }
@@ -795,12 +818,64 @@ public class ExamGenerationSupport {
     }
 
     /**
+     * 出卷即切分（V2）+ 发布门禁：切分落库、契约校验，并据校对要求决定试卷生命周期状态。
+     * <p>契约校验不通过（含切分异常）→ {@code VALIDATION_FAILED}，强制人工校对，绝不自动发布；
+     * 校验通过且 {@code review-required=false} 且质量分 ≥ 阈值 → {@code PUBLISHED}（自动发布）；
+     * 其余通过情形 → {@code REVIEWABLE}（等待管理员 / 出题人校对批准后发布）。</p>
+     *
+     * @param sessionId  出卷会话（= 试卷标识）
+     * @param blackboard 黑板状态（含试卷 / 答案键 / 方案 / 质量分）
+     * @return 试卷状态字符串（{@link ExamHistory} 的 STATUS_* 常量）
+     */
+    private String resolvePaperStatus(String sessionId, BlackboardState blackboard) {
+        ExamContractValidator.Result validation;
+        try {
+            ExamQuestionSplitSupport.SplitOutcome outcome = examQuestionSplitSupport.splitAndPersist(
+                    sessionId, blackboard.getExamPaper(), blackboard.getAnswerKey(), blackboard.getExamPlan());
+            validation = outcome.validation();
+            logger.info("[ExamPipeline] 出卷即切分落库完成 [session={}, questions={}, pass={}]",
+                    sessionId, outcome.count(), validation.pass());
+        } catch (Exception splitEx) {
+            logger.error("[ExamPipeline] 出卷即切分失败，置 VALIDATION_FAILED [session={}]", sessionId, splitEx);
+            return ExamHistory.STATUS_VALIDATION_FAILED;
+        }
+
+        if (!validation.pass()) {
+            logger.warn("[ExamPipeline] 出卷契约校验未通过，强制人工校对 [session={}, issues={}]",
+                    sessionId, validation.issues());
+            return ExamHistory.STATUS_VALIDATION_FAILED;
+        }
+
+        int quality = blackboard.getQualityScore();
+        if (!examReviewRequired && quality >= QUALITY_SCORE_THRESHOLD) {
+            logger.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
+            return ExamHistory.STATUS_PUBLISHED;
+        }
+        return ExamHistory.STATUS_REVIEWABLE;
+    }
+
+    /**
+     * 把试卷状态翻译为面向 SSE 进度面板的一句话提示。
+     */
+    private String describePaperStatus(String paperStatus) {
+        if (ExamHistory.STATUS_PUBLISHED.equals(paperStatus)) {
+            return "出卷契约校验通过，已自动发布，学生可开考。";
+        }
+        if (ExamHistory.STATUS_VALIDATION_FAILED.equals(paperStatus)) {
+            return "出卷契约校验未通过，已标记为待人工校对（校验不过不可发布）。";
+        }
+        return "试卷已生成并通过校验，等待管理员 / 出题人校对批准后发布。";
+    }
+
+    /**
      * 保存出卷历史记录
+     *
+     * @param paperStatus 试卷生命周期状态（PUBLISHED / REVIEWABLE / VALIDATION_FAILED / FAILED）
      */
     private void saveHistory(String sessionId, String topic, String difficulty,
                              String questionConfig, BlackboardState blackboard,
                              Permission permission, String category,
-                             int retrievedChunks, String errorMessage) {
+                             int retrievedChunks, String errorMessage, String paperStatus) {
         try {
             ExamHistory history = new ExamHistory();
             history.setSessionId(sessionId);
@@ -828,7 +903,12 @@ public class ExamGenerationSupport {
             history.setUserId(permission.getUserId());
             history.setDepartmentId(permission.getDepartmentId());
             history.setCategory(category);
-            history.setStatus(errorMessage != null ? "FAILED" : "COMPLETED");
+            if (ExamHistory.STATUS_PUBLISHED.equals(paperStatus)) {
+                // 自动发布（review-required=false 且校验通过 + 质量达阈）：记系统审核人
+                history.markPublished(AUTO_PUBLISH_REVIEWER);
+            } else {
+                history.setStatus(paperStatus);
+            }
             history.setErrorMessage(errorMessage);
             history.setCreateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
             history.setUpdateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));

@@ -27,6 +27,28 @@ public interface ExamHistoryGateway {
     List<ExamHistory> listRecent(int limit);
 
     /**
+     * 查询已发布（学生可开考）的试卷，按创建时间倒序。
+     *
+     * @param limit 最大返回数量
+     * @return 已发布试卷列表
+     */
+    List<ExamHistory> listPublished(int limit);
+
+    /**
+     * 查询待校对队列（状态为 REVIEWABLE 或 VALIDATION_FAILED），按创建时间倒序。
+     *
+     * @param limit  每页数量
+     * @param offset 偏移量
+     * @return 待校对试卷列表
+     */
+    List<ExamHistory> listReviewPending(int limit, int offset);
+
+    /**
+     * 统计待校对队列总数（REVIEWABLE + VALIDATION_FAILED）。
+     */
+    long countReviewPending();
+
+    /**
      * 分页查询历史记录（按创建时间倒序）
      *
      * @param limit  每页数量
