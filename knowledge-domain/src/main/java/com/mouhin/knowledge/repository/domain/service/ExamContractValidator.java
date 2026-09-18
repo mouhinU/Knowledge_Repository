@@ -22,7 +22,7 @@ import java.util.Set;
  *     <li>印刷题号非空且唯一（权威编号）；</li>
  *     <li>每题标准答案非空；</li>
  *     <li>答案规范：单选 ∈ {A,B,C,D}；多选 ⊆ {A,B,C,D} 且 ≥ 2 项；判断 ∈ {正确, 错误}；</li>
- *     <li>选择题（单选 / 多选 / 判断）选项非空。</li>
+ *     <li>选择题（单选 / 多选）选项非空（判断题为隐式二选一，不校验选项）。</li>
  * </ol>
  *
  * @author Knowledge-Repository
@@ -117,7 +117,7 @@ public final class ExamContractValidator {
                     if (!isTrueFalseLegal(answer)) {
                         issues.add(tag + " 判断答案非法（应为 正确/错误）：" + answer);
                     }
-                    requireOptions(q, tag, issues);
+                    // 判断题为隐式二选一（正确/错误），试卷切分不产出 options_json，故不校验选项
                 }
                 default -> {
                     // 填空 / 简答 / 论述：仅需答案非空（已在上方校验），不做字母规范约束

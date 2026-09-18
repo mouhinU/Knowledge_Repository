@@ -302,11 +302,12 @@ public class ExamGradingSupport {
 
     /**
      * 客观题自动评分：按题型分派比对逻辑（含多选部分给分）
+     * <p>包级可见以便 golden-file 回归基线测试直接调用（0-A），不改变任何评分逻辑。</p>
      *
      * @param answer   待评分的答题记录
      * @param callback 进度回调（可为 null）
      */
-    private void gradeObjective(ExamAnswer answer, ExamGradingProgressCallback callback) {
+    void gradeObjective(ExamAnswer answer, ExamGradingProgressCallback callback) {
         int qIdx = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
         String input = buildObjectiveInput(answer);
 
@@ -499,7 +500,7 @@ public class ExamGradingSupport {
      * @param questionType  题型 key
      * @return 规范化后的比较用字符串（null 入参返回 null）
      */
-    private String normalizeForCompare(String raw, String questionType) {
+    String normalizeForCompare(String raw, String questionType) {
         if (raw == null) {
             return null;
         }

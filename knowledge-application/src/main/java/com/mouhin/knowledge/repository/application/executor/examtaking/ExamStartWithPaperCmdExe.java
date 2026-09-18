@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
 import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
@@ -31,11 +32,14 @@ public class ExamStartWithPaperCmdExe {
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamTakingSupport support;
+    private final ExamQuestionSplitSupport examQuestionSplitSupport;
 
     public ExamStartWithPaperCmdExe(ExamSessionGateway examSessionGateway,
-                                    ExamTakingSupport support) {
+                                    ExamTakingSupport support,
+                                    ExamQuestionSplitSupport examQuestionSplitSupport) {
         this.examSessionGateway = examSessionGateway;
         this.support = support;
+        this.examQuestionSplitSupport = examQuestionSplitSupport;
     }
 
     @Transactional
@@ -61,6 +65,20 @@ public class ExamStartWithPaperCmdExe {
         session.setUpdateTime(LocalDateTime.now());
 
         examSessionGateway.save(session);
+
+        // 出卷即切分 · 开考回填（阶段 1-F）：即时试卷未经生成 / 校对切分，此处按本场唯一
+        // sessionKey 回灌结构化题目行，供答题保存 / 评分纯读结构化数据。回灌失败不阻断开考，
+        // 评分阶段仍有答案键解析兜底。
+        try {
+            ExamQuestionSplitSupport.SplitOutcome outcome = examQuestionSplitSupport.splitAndPersist(
+                    session.getSessionKey(), examPaper, answerKey, null);
+            logger.info("即时试卷结构化回灌完成 [session={}, rows={}]",
+                    session.getSessionKey(), outcome.count());
+        } catch (Exception e) {
+            logger.warn("即时试卷结构化回灌失败（不影响开考，评分阶段回退答案键解析） [session={}]: {}",
+                    session.getSessionKey(), e.getMessage());
+        }
+
         logger.info("考生开始考试（即时试卷）[student={}, session={}]",
                 student.getId(), session.getSessionKey());
         return ExamTakingConverter.toSessionDTO(session);
