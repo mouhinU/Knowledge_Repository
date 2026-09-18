@@ -1446,6 +1446,18 @@
             });
         }
     })();
+    /* 切换到「出卷历史」Tab 时主动拉取最新数据：common.js 的通用 Tab 只切换样式不刷新数据，
+       避免工作台生成新卷后需手动刷新页面才能看到最新记录。 */
+    (function bindHistoryTabRefresh() {
+        const bar = document.querySelector('.tabs');
+        if (!bar) return;
+        bar.addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (tab && tab.dataset.panel === 'history') {
+                loadExamHistory(examHistoryPage);
+            }
+        });
+    })();
     refreshStepGate();
     loadExamHistory(0);
 })();
