@@ -25,9 +25,15 @@ public final class AnswerKeyParser {
     private static final Logger logger = LoggerFactory.getLogger(AnswerKeyParser.class);
 
     /**
-     * 题号标记（标题）：第1题 / 第 1 题
+     * 题号标记（标题）：仅「以第N题开头」的标题才算一道题，如 {@code ### 第5题 …} / {@code 第 5 题}。
+     * <p>
+     * 用 {@code ^#{0,6}\s*} 把 {@code 第N题} 锚定到标题<b>起始处</b>（可带 markdown 井号）。大题分节标题
+     * 形如 {@code ## 五、看图写话（第32题，共10分）}：其以枚举序号「五、」开头、{@code 第N题} 只是括号内的
+     * 题号区间/索引，并不位于起始，故不匹配、不再被误当作一道新题，从而避免全局题序错位（历史缺陷：语文卷
+     * 末题因区间/索引标题产生幻影题序而漂移到 seq=33、真实题标准答案落空）。
+     * </p>
      */
-    private static final Pattern QNUM_HEADER = Pattern.compile("第\\s*(\\d{1,3})\\s*题");
+    private static final Pattern QNUM_HEADER = Pattern.compile("^#{0,6}\\s*第\\s*(\\d{1,3})\\s*题");
 
     /**
      * 题号标记（行首）：**1. 或 1. 或 1、
@@ -72,6 +78,14 @@ public final class AnswerKeyParser {
      */
     private static final Pattern ANSWER_LABEL_PREFIX = Pattern.compile(
             "^(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*");
+
+    /**
+     * 整行仅为「引导标签」（如 {@code 示例} / {@code 参考答案} / {@code 答案}，可带冒号与 markdown 加粗星号），
+     * 其后无任何答案本体。命中时应视为「答案正文在后续未标记行」，从而开启 ANSWER 收集区接收后文，
+     * 避免把题号行尾的裸标签（如 {@code **32.（10分）示例：**}）当作非空行内答案而丢弃紧随其后的答案正文。
+     */
+    private static final Pattern BARE_LABEL_ONLY = Pattern.compile(
+            "^\\*{0,2}\\s*(?:示例|例题|参考答案|标准答案|正确答案|答案|解答|解析|分析|说明|理由)\\s*[：:]?\\s*\\*{0,2}$");
 
     private AnswerKeyParser() {
     }
@@ -236,6 +250,10 @@ public final class AnswerKeyParser {
             s = s.substring(lm.end()).trim();
         }
         if (s.isEmpty() || isHorizontalRule(s)) {
+            return null;
+        }
+        // 行内仅剩「引导标签」（如「示例」「答案」）而无答案本体 → 视为空，令答案正文由后续行收集
+        if (BARE_LABEL_ONLY.matcher(s).matches()) {
             return null;
         }
         return s;

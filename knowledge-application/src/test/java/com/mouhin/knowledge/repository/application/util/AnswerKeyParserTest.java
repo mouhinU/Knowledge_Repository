@@ -147,4 +147,69 @@ class AnswerKeyParserTest {
         assertThat(q30.answer()).contains("早晨，太阳升起来了");
         assertThat(q30.scoringCriteria()).contains("内容符合图意");
     }
+
+    @Test
+    @DisplayName("大题区间标题（第1~10题 / 第32题）不得被当作一道新题产生幻影题序")
+    void rangeSectionHeadingDoesNotCreatePhantomQuestion() {
+        // 复现语文卷缺陷：三个大题区间标题 + 32 道行内题号
+        // 若区间标题被误识别为新题，最后一题会漂到 seq=33；修复后严格 32 项、末题落在 seq=32
+        StringBuilder md = new StringBuilder();
+        md.append("## 一、单选题（第1~2题，共4分）\n\n");
+        md.append("**1.（2分）A**  \n\n");
+        md.append("**2.（2分）B**  \n\n");
+        md.append("## 二、判断题（第3~4题，共4分）\n\n");
+        md.append("**3.（2分）正确。**  \n\n");
+        md.append("**4.（2分）错误。**  \n\n");
+        md.append("## 三、填空题（第5~6题，共6分）\n\n");
+        md.append("**5.（3分）蓝天；白云**  \n\n");
+        md.append("**6.（3分）种子；花朵**  \n\n");
+        md.append("## 四、阅读理解（第7~8题，共6分）\n\n");
+        md.append("**7.（3分）答：×**  \n\n");
+        md.append("**8.（3分）答：√**  \n\n");
+        md.append("## 五、看图写话（第9题，共10分）\n\n");
+        md.append("**9.（10分）示例：**  \n");
+        md.append("蓝天是白云的家。  \n");
+        md.append("评分标准：内容切题得满分。\n");
+
+        Map<Integer, AnswerKeyParser.QuestionKey> parsed = AnswerKeyParser.parse(md.toString());
+
+        assertThat(parsed)
+                .as("8 道行内题号 + 1 道看图写话 = 9 项，区间标题不贡献幻影项")
+                .hasSize(9);
+        // 每一 seq 都对应正确的印刷题号内容
+        assertThat(parsed.get(1).answer()).isEqualTo("A");
+        assertThat(parsed.get(8).answer()).isEqualTo("答：√");
+        AnswerKeyParser.QuestionKey q9 = parsed.get(9);
+        assertThat(q9).isNotNull();
+        assertThat(q9.answer()).contains("蓝天是白云的家");
+        assertThat(q9.scoringCriteria()).contains("内容切题");
+    }
+
+    @Test
+    @DisplayName("行内题号末尾仅裸「示例：」标签、正文另起一行 → 正文归入答案（语文 Q32 看图写话）")
+    void trailingBareExampleLabelCollectsFollowingBody() {
+        String md = "## 五、看图写话（第32题，共10分）\n\n"
+                + "**32.（10分）示例：**  \n"
+                + "蓝天是白云的家。树林是小鸟的家。小河是鱼儿的家。  \n"
+                + "答案不唯一，能围绕图上景物写即可。  \n\n"
+                + "评分标准：  \n"
+                + "- 内容切题得 3~4 分。  \n"
+                + "- 正确使用句式，用对一句得 1 分。  \n"
+                + "满分10分。\n";
+
+        Map<Integer, AnswerKeyParser.QuestionKey> parsed = AnswerKeyParser.parse(md);
+        // 大题区间标题不算新题，仅 "32." 行头作为唯一边界 → seq=1
+        AnswerKeyParser.QuestionKey key = parsed.get(1);
+
+        assertThat(key).isNotNull();
+        assertThat(key.answer())
+                .as("行内仅剩「示例：」引导标签时，紧随其后的答案正文应被收集，而非丢弃")
+                .contains("蓝天是白云的家")
+                .contains("树林是小鸟的家")
+                .contains("小河是鱼儿的家");
+        assertThat(key.scoringCriteria())
+                .as("评分标准仍独立归位，不并入答案")
+                .contains("内容切题")
+                .contains("正确使用句式");
+    }
 }

@@ -1038,23 +1038,44 @@
             box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
-        /* Multi-blank inline inputs */
+        /* Multi-blank answer area (labeled blanks, grouped by sub-question) */
         .blank-content {
-            font-size: 16px;
-            line-height: 2.6;
-            color: var(--gray-800);
-            white-space: pre-wrap;
-            letter-spacing: .2px;
-            background: var(--gray-50);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius);
-            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 4px 2px 2px;
+        }
+
+        .blank-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .blank-group-tag {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            border-radius: 999px;
+            padding: 4px 13px;
+            flex-shrink: 0;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .blank-group-fields {
+            display: inline-flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px 14px;
         }
 
         .blank-inline-input {
             display: inline-block;
-            min-width: 120px;
-            width: 120px;
+            min-width: 170px;
+            width: min(320px, 56vw);
             border: none;
             border-bottom: 2px solid var(--gray-300);
             padding: 3px 10px;
@@ -1065,7 +1086,7 @@
             background: #fff;
             transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
             vertical-align: baseline;
-            text-align: center;
+            text-align: left;
             border-radius: 6px 6px 0 0;
         }
 
@@ -1404,8 +1425,8 @@
             .question-card { padding: 18px 16px 20px; }
             .question-content { font-size: 15px; line-height: 1.8; padding-left: 12px; }
             .question-number { min-width: 32px; height: 32px; font-size: 15px; border-radius: 10px; }
-            .blank-content { font-size: 15px; line-height: 2.4; padding: 14px 14px; }
-            .blank-inline-input { min-width: 88px; width: 88px; padding: 3px 6px; }
+            .blank-group { gap: 8px; }
+            .blank-inline-input { min-width: 130px; width: min(260px, 66vw); padding: 3px 6px; }
         }
     </style>
 </head>
@@ -2468,7 +2489,7 @@
         html += '</div>';
 
         html += '<div class="answer-controls">';
-        html += renderAnswerInput(type, qIndex, answerValue, q.options, q.content, q.blankCount);
+        html += renderAnswerInput(type, qIndex, answerValue, q.options, q.content, q.blankCount, q.number);
         html += '</div>';
         html += '</div>';
 
@@ -2489,7 +2510,7 @@
         area.innerHTML = html;
     }
 
-    function renderAnswerInput(type, qIndex, answerValue, options, questionContent, blankCount) {
+    function renderAnswerInput(type, qIndex, answerValue, options, questionContent, blankCount, qNumber) {
         switch (type) {
             case 'SINGLE_CHOICE':
                 return renderChoiceOptions(qIndex, answerValue, options, false);
@@ -2498,9 +2519,9 @@
             case 'TRUE_FALSE':
                 return renderTrueFalse(qIndex, answerValue);
             case 'FILL_BLANK':
-                return renderFillBlank(qIndex, answerValue, questionContent, blankCount);
+                return renderFillBlank(qIndex, answerValue, questionContent, blankCount, qNumber);
             case 'SHORT_ANSWER':
-                return renderShortAnswer(qIndex, answerValue, questionContent, blankCount);
+                return renderShortAnswer(qIndex, answerValue, questionContent, blankCount, qNumber);
             case 'ESSAY':
                 return '<textarea class="answer-textarea large" placeholder="请输入答案" onchange="setAnswer(' + qIndex + ', \'ESSAY\', this.value)" oninput="setAnswer(' + qIndex + ', \'ESSAY\', this.value)">' + escapeHtml(answerValue) + '</textarea>';
             default:
@@ -2527,42 +2548,97 @@
     }
 
     /**
-     * 将题目内容中的空白处替换为内联输入框。
-     * 逐空命中的标记数 == 生成输入框数，从构造上保证「题干空数」与「填空输入框数」一致。
+     * 扫描题干，按出现顺序定位每个「空」，并推断其所属小题号与类型。
+     * - sub：行首 / 标点后的「（1）（2）…」子问标记（紧跟数字的「30（ ）」不算）；
+     * - kind：下划线空 → 'line'（多为“列式”书写位，较宽），括号空 → 'result'（填结果，较窄）。
+     * 若解析出的空位数量与后端权威 blankCount 不一致，回退为通用序号空位，确保输入框数恒等于 blankCount。
      *
-     * @param qIndex     题目序号
-     * @param answerValue 已存答案（||| 分隔或数组）
-     * @param content    题干文本
-     * @param blankCount 后端权威空数（缺省时用本地 countBlanks 兜底）
-     * @param qType      真实题型（回填答案时携带，避免固定成 FILL_BLANK）
+     * @param content       题干文本
+     * @param expectedCount 后端权威空数
+     * @return [{sub, kind, seq}]，seq 为从 1 开始的空位序号
      */
-    function renderInlineBlanks(qIndex, answerValue, content, blankCount, qType) {
-        if (!content) return '';
-        var count = (blankCount != null && blankCount > 0) ? blankCount : countBlanks(content);
-        var answers = parseMultiAnswer(answerValue, count);
+    function buildBlankSlots(content, expectedCount) {
+        var text = content || '';
+        var re = /（\s*(\d+)\s*）|(_{2,}|＿{2,}|\(\s*\)|（\s*）)/g;
+        var slots = [];
+        var curSub = null;
+        var m;
+        while ((m = re.exec(text)) !== null) {
+            if (m[1] != null) {
+                // 子问标记：仅当其后紧跟非数字（即不是「30（1）」这类数字+量词）才视为分组编号
+                var after = text.charAt(re.lastIndex);
+                if (!/[0-9０-９]/.test(after)) {
+                    curSub = m[1];
+                }
+                continue;
+            }
+            var token = m[2];
+            var isUnderscore = /^_+$/.test(token) || /^＿+$/.test(token);
+            slots.push({ sub: curSub, kind: isUnderscore ? 'line' : 'result', seq: slots.length + 1 });
+        }
+        // 空位数须与 blankCount 一致，否则口径分叉（题干含「（1）」等被漏判时）回退为纯序号空位
+        if (expectedCount != null && expectedCount > 0 && slots.length !== expectedCount) {
+            slots = [];
+            for (var i = 0; i < expectedCount; i++) {
+                slots.push({ sub: null, kind: i % 2 === 0 ? 'line' : 'result', seq: i + 1 });
+            }
+        }
+        return slots;
+    }
 
-        // 用统一正则分割内容，把每个空白标记替换为 input
-        var splitRe = new RegExp('(' + BLANK_REGEX_SRC + ')');
-        var testRe = new RegExp('^(?:' + BLANK_REGEX_SRC + ')$');
-        var parts = content.split(splitRe);
+    /**
+     * 渲染填空 / 解决问题类作答区：只呈现带标签的横线空位（按小题号分组），不复述题干。
+     * 输入框数恒等于 blankCount；答案仍按题面空位顺序以 '|||' 连接保存，兼容既有评分/存储格式。
+     *
+     * @param qIndex      题目序号
+     * @param answerValue 已存答案（||| 分隔或数组）
+     * @param content     题干文本（仅用于推断空位标签，不展示）
+     * @param blankCount  后端权威空数
+     * @param qType       真实题型（回填答案时携带）
+     * @param qNumber     试卷印刷题号（无小题号时用于标注）
+     */
+    function renderBlankAnswer(qIndex, answerValue, content, blankCount, qType, qNumber) {
+        var slots = buildBlankSlots(content, blankCount);
+        var count = (blankCount != null && blankCount > 0) ? blankCount : slots.length;
+        if (count <= 0) { count = Math.max(slots.length, 1); }
+        var answers = parseMultiAnswer(answerValue, count);
         var typeArg = (qType || 'FILL_BLANK');
+        var mainLabel = (qNumber != null && qNumber !== '') ? ('第' + qNumber + '题') : '';
+
+        // 按小题号归组（保持题面出现顺序）：每个不同的小题号 = 一行，行内并排该小题的若干空位横线
+        var groupMap = new Map();
+        slots.forEach(function(s, i) {
+            var key = (s.sub != null) ? ('sub:' + s.sub) : 'main';
+            if (!groupMap.has(key)) groupMap.set(key, { sub: s.sub, slots: [] });
+            groupMap.get(key).slots.push(i);
+        });
+
         var html = '<div class="blank-content">';
-        var blankIdx = 0;
-        parts.forEach(function(part) {
-            if (part !== '' && testRe.test(part)) {
-                var val = answers[blankIdx] || '';
+        groupMap.forEach(function(g) {
+            var groupTag;
+            if (g.sub != null) {
+                groupTag = '（' + g.sub + '）';
+            } else if (mainLabel) {
+                groupTag = mainLabel;
+            } else {
+                groupTag = '作答';
+            }
+            html += '<div class="blank-group">';
+            html += '<span class="blank-group-tag">' + escapeHtml(groupTag) + '</span>';
+            html += '<div class="blank-group-fields">';
+            g.slots.forEach(function(i) {
+                var val = answers[i] || '';
                 var filledClass = val ? ' filled' : '';
-                html += '<span class="blank-label">' + (blankIdx + 1) + '.</span>';
-                html += '<input type="text" class="blank-inline-input' + filledClass + '" '
-                    + 'placeholder="空' + (blankIdx + 1) + '" '
+                html += '<input type="text" class="blank-inline-input blank-input' + filledClass + '" '
+                    + 'data-slot="' + i + '" '
+                    + 'placeholder="请作答" '
                     + 'value="' + escapeAttr(val) + '" '
-                    + 'oninput="setBlankAnswer(' + qIndex + ', ' + blankIdx + ', ' + count + ', this.value, \'' + typeArg + '\')" '
+                    + 'oninput="setBlankAnswer(' + qIndex + ', ' + i + ', ' + count + ', this.value, \'' + typeArg + '\')" '
                     + 'onfocus="this.classList.add(\'filled\')" '
                     + 'onblur="if(!this.value)this.classList.remove(\'filled\')">';
-                blankIdx++;
-            } else {
-                html += escapeHtml(part);
-            }
+            });
+            html += '</div>';
+            html += '</div>';
         });
         html += '</div>';
         return html;
@@ -2595,20 +2671,20 @@
     }
 
     /**
-     * 设置单个空的答案
+     * 设置单个空的答案：按 data-slot 归位收集（与题面空位顺序一致），仍用 '|||' 连接保存。
      */
     function setBlankAnswer(qIndex, blankIdx, totalBlanks, value, qType) {
-        // 收集所有空的值
-        var inputs = document.querySelectorAll('.blank-inline-input');
-        var allValues = [];
-        // 找到属于当前题目的输入框
         var blankContent = document.querySelector('.blank-content');
+        var slots = [];
         if (blankContent) {
-            var allInputs = blankContent.querySelectorAll('.blank-inline-input');
-            allInputs.forEach(function(inp) {
-                allValues.push(inp.value || '');
+            blankContent.querySelectorAll('.blank-inline-input').forEach(function(inp) {
+                var idx = parseInt(inp.getAttribute('data-slot'), 10);
+                if (isNaN(idx)) idx = slots.length;
+                slots.push({ idx: idx, val: inp.value || '' });
             });
         }
+        slots.sort(function(a, b) { return a.idx - b.idx; });
+        var allValues = slots.map(function(s) { return s.val; });
         var joined = allValues.join('|||');
         if (allValues.some(function(v) { return v !== ''; })) {
             currentAnswers[qIndex] = {
@@ -2625,49 +2701,27 @@
     /**
      * 渲染填空题（支持多空）
      */
-    function renderFillBlank(qIndex, answerValue, content, blankCount) {
+    function renderFillBlank(qIndex, answerValue, content, blankCount, qNumber) {
         var count = (blankCount != null && blankCount > 0) ? blankCount : countBlanks(content);
         if (count >= 2) {
-            // 多空：在题目内容中内联显示输入框（输入框数 == 题干空数）
-            return renderInlineBlanks(qIndex, answerValue, content, count, 'FILL_BLANK');
+            // 多空：作答区只呈现带小题号标签的横线空位，不复述题干
+            return renderBlankAnswer(qIndex, answerValue, content, count, 'FILL_BLANK', qNumber);
         }
         // 单空：普通输入框
         return '<input type="text" class="answer-input" placeholder="请输入答案" value="' + escapeAttr(answerValue) + '" onchange="setAnswer(' + qIndex + ', \'FILL_BLANK\', this.value)" oninput="setAnswer(' + qIndex + ', \'FILL_BLANK\', this.value)">';
     }
 
     /**
-     * 渲染简答题（多问时按题面内联填空，输入框数与题干空白处一致）
+     * 渲染简答题（多问时按小题号分组给出横线空位；书写量大的单问仍用多行文本域）
      */
-    function renderShortAnswer(qIndex, answerValue, content, blankCount) {
+    function renderShortAnswer(qIndex, answerValue, content, blankCount, qNumber) {
         var count = (blankCount != null && blankCount > 0) ? blankCount : countBlanks(content);
         if (count >= 2) {
-            // 多空：在题面空白处内联生成输入框，携带真实题型 SHORT_ANSWER
-            return renderInlineBlanks(qIndex, answerValue, content, count, 'SHORT_ANSWER');
+            // 多空：作答区只呈现带标签的横线空位，携带真实题型 SHORT_ANSWER
+            return renderBlankAnswer(qIndex, answerValue, content, count, 'SHORT_ANSWER', qNumber);
         }
-        // 单问：普通文本域
+        // 单问 / 无空：多行文本域，便于书写解答过程
         return '<textarea class="answer-textarea small" placeholder="请输入答案" onchange="setAnswer(' + qIndex + ', \'SHORT_ANSWER\', this.value)" oninput="setAnswer(' + qIndex + ', \'SHORT_ANSWER\', this.value)">' + escapeHtml(answerValue) + '</textarea>';
-    }
-
-    /**
-     * 设置简答题多问答案
-     */
-    function setShortBlankAnswer(qIndex, totalBlanks) {
-        var inputs = document.querySelectorAll('.multi-blank-item .answer-input');
-        var allValues = [];
-        inputs.forEach(function(inp) {
-            allValues.push(inp.value || '');
-        });
-        var joined = allValues.join('|||');
-        if (allValues.some(function(v) { return v !== ''; })) {
-            currentAnswers[qIndex] = {
-                questionIndex: qIndex,
-                questionType: 'SHORT_ANSWER',
-                answer: joined
-            };
-        } else {
-            delete currentAnswers[qIndex];
-        }
-        renderQuestionNav();
     }
 
     function renderChoiceOptions(qIndex, answerValue, options, multi) {
