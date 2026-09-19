@@ -182,6 +182,7 @@ public class PaperReviewController {
             m.put("maxScore", q.getMaxScore());
             m.put("correctAnswer", q.getCorrectAnswer());
             m.put("analysis", q.getAnalysis());
+            m.put("scoringCriteria", q.getScoringCriteria());
             list.add(m);
         }
         return list;

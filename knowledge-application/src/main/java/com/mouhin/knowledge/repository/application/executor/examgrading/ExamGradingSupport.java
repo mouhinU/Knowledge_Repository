@@ -224,8 +224,9 @@ public class ExamGradingSupport {
 
     /**
      * 读取结构化题目行的标准答案映射（印刷题号 → 标准答案）。
-     * <p>缺失时对老卷 / 即时卷惰性回灌一次（用本场次自带的试卷 + 答案键 + 方案重建），
-     * 回灌失败则返回空表，交由调用方回退到答案键解析。</p>
+     * <p>缺失时对老卷 / 即时卷惰性回灌一次（用本场次自带的试卷 + 答案键 + 方案重建）；
+     * 回灌仍拿不到则返回空表，调用方保持 {@code correct_answer} 为空（评分走 0-E「缺少标准答案，
+     * 待人工确认」），不再回退到自由文本答案键解析。</p>
      */
     private Map<Integer, String> resolveStructuredAnswerMap(ExamSession session) {
         Map<Integer, String> map = new HashMap<>();
@@ -243,7 +244,7 @@ public class ExamGradingSupport {
                 logger.info("惰性回灌结构化题目 [session={}, paperKey={}, rows={}]",
                         session.getId(), paperKey, questions.size());
             } catch (Exception e) {
-                logger.warn("惰性回灌结构化题目失败，回退答案键解析 [session={}, paperKey={}]: {}",
+                logger.warn("惰性回灌结构化题目失败，本次评分按缺失标准答案处理（待人工确认）[session={}, paperKey={}]: {}",
                         session.getId(), paperKey, e.getMessage());
                 return map;
             }

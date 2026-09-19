@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.application.executor.wronganswer;
 
 import com.mouhin.knowledge.repository.application.converter.WrongAnswerConverter;
-import com.mouhin.knowledge.repository.application.util.AnswerKeyParser;
+import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * 错题列表核心查询执行器（app 层用例）
  * <p>
- * 基于已评分场次筛选答错 / 部分得分题目，按题型过滤并预解析标准答案键，
+ * 基于已评分场次筛选答错 / 部分得分题目，按题型过滤并预读结构化题目行（答案 / 解析 / 评分标准），
  * 产出按提交时间倒序的错题视图列表。供分页与 AI 总结两个用例复用。
  * </p>
  *
@@ -43,13 +44,16 @@ public class WrongAnswerListQryExe {
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamSessionGateway examSessionGateway;
     private final StudentGateway studentGateway;
+    private final ExamStructuredQuestionSupport structuredQuestionSupport;
 
     public WrongAnswerListQryExe(ExamAnswerGateway examAnswerGateway,
                                  ExamSessionGateway examSessionGateway,
-                                 StudentGateway studentGateway) {
+                                 StudentGateway studentGateway,
+                                 ExamStructuredQuestionSupport structuredQuestionSupport) {
         this.examAnswerGateway = examAnswerGateway;
         this.examSessionGateway = examSessionGateway;
         this.studentGateway = studentGateway;
+        this.structuredQuestionSupport = structuredQuestionSupport;
     }
 
     public List<WrongAnswerVO> execute(Long studentId, String topic, String questionType) {
@@ -79,11 +83,12 @@ public class WrongAnswerListQryExe {
         Map<Long, ExamSession> sessionMap = sessions.stream()
                 .collect(Collectors.toMap(ExamSession::getId, s -> s));
 
-        // 5.1 预解析各场次的「标准答案与评分标准」，缓存到 sessionId → (题号 → QuestionKey)
-        Map<Long, Map<Integer, AnswerKeyParser.QuestionKey>> answerKeyBySession = new HashMap<>();
+        // 5.1 预读各场次对应试卷的结构化题目行，缓存到 sessionId → (印刷题号 → 题目)
+        //     （「出卷即切分」唯一权威来源，替代对 answer_key 自由文本的重复解析）
+        Map<Long, Map<Integer, ExamQuestion>> questionBySession = new HashMap<>();
         for (ExamSession session : sessions) {
-            answerKeyBySession.put(session.getId(),
-                    AnswerKeyParser.parse(session.getAnswerKey()));
+            questionBySession.put(session.getId(),
+                    structuredQuestionSupport.loadByQuestionNumber(session));
         }
 
         // 6. 解析考生名称
@@ -97,11 +102,13 @@ public class WrongAnswerListQryExe {
             if (session == null) {
                 continue;
             }
-            Map<Integer, AnswerKeyParser.QuestionKey> keyMap =
-                    answerKeyBySession.getOrDefault(answer.getSessionId(), Map.of());
-            AnswerKeyParser.QuestionKey key = keyMap.get(answer.getQuestionIndex());
+            Map<Integer, ExamQuestion> questionMap =
+                    questionBySession.getOrDefault(answer.getSessionId(), Map.of());
+            Integer number = answer.getQuestionNumber() != null
+                    ? answer.getQuestionNumber() : answer.getQuestionIndex();
+            ExamQuestion question = number != null ? questionMap.get(number) : null;
             String studentName = studentNames.getOrDefault(session.getStudentId(), UNKNOWN_STUDENT);
-            result.add(WrongAnswerConverter.toVO(answer, session, studentName, key));
+            result.add(WrongAnswerConverter.toVO(answer, session, studentName, question));
         }
 
         result.sort(Comparator.comparing(

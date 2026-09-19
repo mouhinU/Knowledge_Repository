@@ -93,4 +93,58 @@ class AnswerKeyParserTest {
         assertThat(key.answer()).contains("光合作用");
         assertThat(key.analysis()).contains("绿色植物");
     }
+
+    @Test
+    @DisplayName("题号行内值为空且无「答案：」标记：后续（1）（2）未标记正文应归入答案（语文第29题连词成句）")
+    void emptyInlineHeaderWithoutAnswerMarkerCollectsFollowingBody() {
+        String md = "## 四、句子题（每题7分，共21分）\n\n"
+                + "**27.（7分）** 示例：树林是小鸟的家。  \n"
+                + "评分标准：句式正确3分。\n\n"
+                + "**28.（7分）** 示例：我在教室里读书。  \n"
+                + "评分标准：用上\"在\"2分。\n\n"
+                + "**29.（7分）**  \n"
+                + "（1）我们是祖国的花朵。  \n"
+                + "（2）影子跟着我。  \n"
+                + "评分标准：每小题3.5分；连词成句正确、句意通顺3分。\n";
+
+        Map<Integer, AnswerKeyParser.QuestionKey> parsed = AnswerKeyParser.parse(md);
+
+        AnswerKeyParser.QuestionKey key = parsed.get(3);
+        assertThat(key).isNotNull();
+        assertThat(key.answer())
+                .as("题号行内值为空时，紧随其后的未标记正文应被收集为答案，而非丢失")
+                .contains("我们是祖国的花朵")
+                .contains("影子跟着我");
+        assertThat(key.scoringCriteria())
+                .as("评分标准仍应单独归位，不被并入答案")
+                .contains("连词成句正确");
+        // 同行带答案的 27/28 不受影响
+        assertThat(parsed.get(1).answer()).contains("树林是小鸟的家");
+        assertThat(parsed.get(2).answer()).contains("我在教室里读书");
+    }
+
+    @Test
+    @DisplayName("大题标题不得串入上一题评分标准（非题号标题关闭收集区）")
+    void sectionHeadingDoesNotLeakIntoPreviousCriteria() {
+        String md = "**29.（7分）**  \n"
+                + "（1）我们是祖国的花朵。  \n"
+                + "评分标准：每小题3.5分，共7分。  \n\n"
+                + "## 五、看图写话（共11分）  \n\n"
+                + "**30.（11分）** 示例：早晨，太阳升起来了。  \n"
+                + "评分标准：内容符合图意得4分。\n";
+
+        Map<Integer, AnswerKeyParser.QuestionKey> parsed = AnswerKeyParser.parse(md);
+
+        AnswerKeyParser.QuestionKey q29 = parsed.get(1);
+        assertThat(q29).isNotNull();
+        assertThat(q29.scoringCriteria())
+                .as("上一题评分标准只应含自身细则，不得并入下一大题标题")
+                .contains("每小题3.5分")
+                .doesNotContain("看图写话");
+        // 下一大题的题仍正常解析
+        AnswerKeyParser.QuestionKey q30 = parsed.get(2);
+        assertThat(q30).isNotNull();
+        assertThat(q30.answer()).contains("早晨，太阳升起来了");
+        assertThat(q30.scoringCriteria()).contains("内容符合图意");
+    }
 }

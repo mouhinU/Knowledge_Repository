@@ -131,12 +131,12 @@ public class ExamQuestionSplitSupport {
     // ==================== 工具 ====================
 
     /**
-     * 绑定标准答案与解析（按题型区分处理）。
+     * 绑定标准答案、解析与评分标准（按题型区分处理）。
      * <p>
      * 客观题（单选 / 多选 / 判断）若答案键把「结论 + 解释」写在同一行（如 {@code 正确。理由：…}、
      * {@code B【解析】…}），拆出答案头部作为 {@code correct_answer}，并在解析字段为空时把解释正文并入
      * {@code analysis}，使落库答案纯净、便于展示与校对；主观题（填空 / 简答 / 论述）答案本身即正文，
-     * 原样绑定，避免误截。
+     * 原样绑定，避免误截。{@code scoring_criteria} 与题型无关，统一从答案键一次性绑定。
      * </p>
      *
      * @param question 目标题目行
@@ -144,6 +144,7 @@ public class ExamQuestionSplitSupport {
      * @param type     题型 key
      */
     private void bindAnswerAndAnalysis(ExamQuestion question, AnswerKeyParser.QuestionKey key, String type) {
+        question.setScoringCriteria(key.scoringCriteria());
         String rawAnswer = key.answer();
         boolean objective = type != null && OBJECTIVE_TYPES.contains(type.toUpperCase());
         if (!objective) {

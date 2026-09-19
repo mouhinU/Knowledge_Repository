@@ -30,6 +30,7 @@ public final class ExamQuestionConverter {
         domain.setMaxScore(doObj.getMaxScore());
         domain.setCorrectAnswer(doObj.getCorrectAnswer());
         domain.setAnalysis(doObj.getAnalysis());
+        domain.setScoringCriteria(doObj.getScoringCriteria());
         domain.setCreateTime(doObj.getCreateTime());
         domain.setUpdateTime(doObj.getUpdateTime());
         return domain;
@@ -51,6 +52,7 @@ public final class ExamQuestionConverter {
         doObj.setMaxScore(domain.getMaxScore());
         doObj.setCorrectAnswer(domain.getCorrectAnswer());
         doObj.setAnalysis(domain.getAnalysis());
+        doObj.setScoringCriteria(domain.getScoringCriteria());
         doObj.setCreateTime(domain.getCreateTime());
         doObj.setUpdateTime(domain.getUpdateTime());
         return doObj;

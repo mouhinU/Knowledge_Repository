@@ -66,6 +66,11 @@ public class ExamQuestion {
      */
     private String analysis;
 
+    /**
+     * 评分标准 / 给分细则（切分时从答案键一次性绑定，下游错题本展示的权威来源）
+     */
+    private String scoringCriteria;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
@@ -158,6 +163,14 @@ public class ExamQuestion {
 
     public void setAnalysis(String analysis) {
         this.analysis = analysis;
+    }
+
+    public String getScoringCriteria() {
+        return scoringCriteria;
+    }
+
+    public void setScoringCriteria(String scoringCriteria) {
+        this.scoringCriteria = scoringCriteria;
     }
 
     public LocalDateTime getCreateTime() {

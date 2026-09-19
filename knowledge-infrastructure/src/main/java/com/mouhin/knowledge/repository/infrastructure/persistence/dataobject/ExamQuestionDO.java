@@ -53,6 +53,9 @@ public class ExamQuestionDO {
     @TableField("analysis")
     private String analysis;
 
+    @TableField("scoring_criteria")
+    private String scoringCriteria;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 

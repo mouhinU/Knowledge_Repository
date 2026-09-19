@@ -106,7 +106,7 @@ public final class AnswerKeyParser {
             // 判断本行是否开启一道新题，并（若行内带答案）提取行内答案本体
             boolean newQuestion = false;
             String inlineAnswer = null;
-            boolean answerContinues = false;   // 本行出现空的「答案：」标记 → 答案正文在后续行
+            boolean answerContinues = false;   // 行内题号后无答案本体 → 答案正文在后续未标记行
             boolean isHeading = HEADING.matcher(line).find();
 
             if (isHeading) {
@@ -120,9 +120,9 @@ public final class AnswerKeyParser {
                 if (inlineQ.find()) {
                     newQuestion = true;
                     inlineAnswer = extractInlineAnswer(line.substring(inlineQ.end()));
-                    // 题号行内「答案：」值为空 → 答案本体在紧随其后的未标记行
-                    Matcher amOnQ = ANSWER_MARK.matcher(line);
-                    answerContinues = amOnQ.find() && cleanInline(amOnQ.group(1)).isEmpty();
+                    // 行内题号之后无答案本体（如 **29.（7分）** 行为空、或 **21.（10分）答案：** 值为空）
+                    // → 答案正文写在紧随其后的未标记行，开启 ANSWER 收集区接收
+                    answerContinues = inlineAnswer == null || inlineAnswer.isEmpty();
                 }
             }
 
@@ -172,6 +172,13 @@ public final class AnswerKeyParser {
                 if (!inline.isEmpty()) {
                     appendSegment(criteriaBuf, inline);
                 }
+                continue;
+            }
+
+            // 大题标题等非题号标题行（如 "## 五、看图写话（共11分）"）：结束当前收集，
+            // 避免把下一大题标题并入上一题的答案 / 解析 / 评分标准。
+            if (isHeading) {
+                section = Section.NONE;
                 continue;
             }
 
