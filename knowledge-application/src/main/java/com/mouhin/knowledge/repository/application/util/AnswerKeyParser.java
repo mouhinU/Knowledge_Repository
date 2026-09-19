@@ -93,9 +93,9 @@ public final class AnswerKeyParser {
         Integer currentSeq = null;   // 当前正在收集的全局题序，null 表示尚未进入任何题
         Section section = Section.NONE;
 
+        StringBuilder answerBuf = new StringBuilder();
         StringBuilder analysisBuf = new StringBuilder();
         StringBuilder criteriaBuf = new StringBuilder();
-        String answerValue = null;
 
         for (String raw : lines) {
             String line = raw.trim();
@@ -106,6 +106,7 @@ public final class AnswerKeyParser {
             // 判断本行是否开启一道新题，并（若行内带答案）提取行内答案本体
             boolean newQuestion = false;
             String inlineAnswer = null;
+            boolean answerContinues = false;   // 本行出现空的「答案：」标记 → 答案正文在后续行
             boolean isHeading = HEADING.matcher(line).find();
 
             if (isHeading) {
@@ -119,29 +120,38 @@ public final class AnswerKeyParser {
                 if (inlineQ.find()) {
                     newQuestion = true;
                     inlineAnswer = extractInlineAnswer(line.substring(inlineQ.end()));
+                    // 题号行内「答案：」值为空 → 答案本体在紧随其后的未标记行
+                    Matcher amOnQ = ANSWER_MARK.matcher(line);
+                    answerContinues = amOnQ.find() && cleanInline(amOnQ.group(1)).isEmpty();
                 }
             }
 
             if (newQuestion) {
-                flush(result, currentSeq, answerValue, analysisBuf, criteriaBuf);
+                flush(result, currentSeq, answerBuf.toString(), analysisBuf, criteriaBuf);
                 currentSeq = ++seq;
-                answerValue = (inlineAnswer != null && !inlineAnswer.isEmpty()) ? inlineAnswer : null;
+                answerBuf.setLength(0);
                 analysisBuf.setLength(0);
                 criteriaBuf.setLength(0);
-                section = Section.NONE;
+                if (inlineAnswer != null && !inlineAnswer.isEmpty()) {
+                    appendSegment(answerBuf, inlineAnswer);
+                    section = Section.NONE;
+                } else {
+                    section = answerContinues ? Section.ANSWER : Section.NONE;
+                }
                 continue;
             }
 
             // 以下均为「当前题」内的收集行
 
-            // 答案标记行（覆盖行内答案）
+            // 答案标记行（覆盖行内答案；值为空时保持，切换收集区以接收后续正文行）
             Matcher am = ANSWER_MARK.matcher(line);
             if (am.find()) {
-                section = Section.ANSWER;
                 String labeled = cleanInline(am.group(1));
                 if (!labeled.isEmpty()) {
-                    answerValue = labeled;
+                    answerBuf.setLength(0);
+                    appendSegment(answerBuf, labeled);
                 }
+                section = Section.ANSWER;
                 continue;
             }
             // 解析标记行
@@ -183,10 +193,12 @@ public final class AnswerKeyParser {
                 appendSegment(analysisBuf, contentLine);
             } else if (section == Section.CRITERIA) {
                 appendSegment(criteriaBuf, contentLine);
+            } else if (section == Section.ANSWER) {
+                appendSegment(answerBuf, contentLine);
             }
         }
 
-        flush(result, currentSeq, answerValue, analysisBuf, criteriaBuf);
+        flush(result, currentSeq, answerBuf.toString(), analysisBuf, criteriaBuf);
 
         logger.debug("解析标准答案与评分标准：共 {} 道题（按全局题序）", result.size());
         return result;

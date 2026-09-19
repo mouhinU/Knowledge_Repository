@@ -1,0 +1,96 @@
+package com.mouhin.knowledge.repository.application.util;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * 标准答案与评分标准解析器回归测试。
+ * <p>
+ * 冻结「答案标记行内值为空、答案正文写在后续未标记行」这类计算 / 解答题的答案键解析行为
+ * （如试卷校对阶段 {@code 计算与解决问题} 题型答案不渲染的历史缺陷），并顺带覆盖行内答案、
+ * 解析、评分标准的既有口径，防止后续改动回归。
+ * </p>
+ *
+ * @author Knowledge-Repository
+ * @date 2026-09-19
+ */
+@DisplayName("标准答案与评分标准解析器")
+class AnswerKeyParserTest {
+
+    @Test
+    @DisplayName("行内值非空的答案键：答案/解析/评分标准各自归位（回归保护）")
+    void inlineAnswerKey() {
+        String md = "# 一年级数学期末参考答案\n\n"
+                + "## 一、选择题\n\n"
+                + "**1.（4分）答案：B**  \n"
+                + "解析：6+2=8。  \n"
+                + "评分标准：选B得4分；错选不得分。\n";
+
+        AnswerKeyParser.QuestionKey key = AnswerKeyParser.parse(md).get(1);
+
+        assertThat(key).isNotNull();
+        assertThat(key.answer()).isEqualTo("B");
+        assertThat(key.analysis()).contains("6+2=8");
+        assertThat(key.scoringCriteria()).contains("选B得4分");
+    }
+
+    @Test
+    @DisplayName("空的行内「答案：」+后续多行正文 → 答案正文跨行收集（Q21 计算题）")
+    void multilineAnswerAfterEmptyInlineMarker() {
+        String md = "## 四、计算与解决问题（共2题，共20分）\n\n"
+                + "**21.（10分）答案：**  \n"
+                + "8+2=10　　10-4=6　　9+3=12  \n"
+                + "7+3+2=12　　10-5-3=2  \n"
+                + "评分标准：每个得数1分，共10分。\n";
+
+        Map<Integer, AnswerKeyParser.QuestionKey> parsed = AnswerKeyParser.parse(md);
+
+        // 文档中仅第 21 题一个题号 → 全局题序 seq=1
+        AnswerKeyParser.QuestionKey key = parsed.get(1);
+        assertThat(key).isNotNull();
+        assertThat(key.answer())
+                .as("空「答案：」后的未标记正文应被收集为答案")
+                .contains("8+2=10")
+                .contains("10-4=6")
+                .contains("7+3+2=12");
+        assertThat(key.scoringCriteria())
+                .as("评分标准仍应单独归位，不被并入答案")
+                .contains("每个得数1分");
+    }
+
+    @Test
+    @DisplayName("应用题：列式与答语跨行归入答案，评分标准独立")
+    void wordProblemAnswerAndCriteria() {
+        String md = "**22.（10分）答案：**  \n"
+                + "列式：10-3+5=12（支）  \n"
+                + "答：现在盒子里有12支铅笔。  \n"
+                + "评分标准：列式正确得6分；计算结果正确得3分；答语完整得1分。\n";
+
+        AnswerKeyParser.QuestionKey key = AnswerKeyParser.parse(md).get(1);
+
+        assertThat(key).isNotNull();
+        assertThat(key.answer())
+                .contains("列式：10-3+5=12")
+                .contains("答：现在盒子里有12支铅笔");
+        assertThat(key.scoringCriteria()).contains("列式正确得6分");
+    }
+
+    @Test
+    @DisplayName("答案独立成行的「答案：」标记同样切换收集区")
+    void answerMarkerOnOwnLineCollectsFollowingText() {
+        String md = "**5.（5分）**  \n"
+                + "答案：  \n"
+                + "光合作用  \n"
+                + "解析：绿色植物利用光能合成有机物。\n";
+
+        AnswerKeyParser.QuestionKey key = AnswerKeyParser.parse(md).get(1);
+
+        assertThat(key).isNotNull();
+        assertThat(key.answer()).contains("光合作用");
+        assertThat(key.analysis()).contains("绿色植物");
+    }
+}
