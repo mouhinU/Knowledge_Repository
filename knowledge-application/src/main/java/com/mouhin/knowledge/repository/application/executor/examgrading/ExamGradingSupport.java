@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
+import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
@@ -79,7 +78,7 @@ public class ExamGradingSupport {
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamQuestionGateway examQuestionGateway;
-    private final ExamHistoryGateway examHistoryGateway;
+    private final ExamStructuredQuestionSupport structuredQuestionSupport;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final StreamingChatGateway streamingChatGateway;
     private final ExamAlertGateway examAlertGateway;
@@ -88,14 +87,14 @@ public class ExamGradingSupport {
     public ExamGradingSupport(ExamSessionGateway examSessionGateway,
                               ExamAnswerGateway examAnswerGateway,
                               ExamQuestionGateway examQuestionGateway,
-                              ExamHistoryGateway examHistoryGateway,
+                              ExamStructuredQuestionSupport structuredQuestionSupport,
                               ExamQuestionSplitSupport examQuestionSplitSupport,
                               StreamingChatGateway streamingChatGateway,
                               ExamAlertGateway examAlertGateway) {
         this.examSessionGateway = examSessionGateway;
         this.examAnswerGateway = examAnswerGateway;
         this.examQuestionGateway = examQuestionGateway;
-        this.examHistoryGateway = examHistoryGateway;
+        this.structuredQuestionSupport = structuredQuestionSupport;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.streamingChatGateway = streamingChatGateway;
         this.examAlertGateway = examAlertGateway;
@@ -191,7 +190,7 @@ public class ExamGradingSupport {
         // V2 阶段 2-E：卷面总分取试卷结构化题目满分合计（与答题情况无关），
         // 避免"未答题无落库行 → 分母偏小 → 得分率虚高"。结构化行缺失时回退已入库答案行合计。
         int paperTotal = examQuestionGateway
-                .listBySessionKey(resolvePaperSessionKey(session)).stream()
+                .listBySessionKey(structuredQuestionSupport.resolvePaperSessionKey(session)).stream()
                 .mapToInt(q -> q.getMaxScore() == null ? 0 : q.getMaxScore()).sum();
         if (paperTotal <= 0) {
             paperTotal = answers.stream().mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore()).sum();
@@ -208,21 +207,6 @@ public class ExamGradingSupport {
     }
 
     /**
-     * 解析本场次对应「试卷」的结构化题目主键。
-     * <p>关联出卷历史时取历史 sessionId（生成期切分即以之为键），即时卷则用场次自身 sessionKey。</p>
-     */
-    private String resolvePaperSessionKey(ExamSession session) {
-        Long historyId = session.getExamHistoryId();
-        if (historyId != null) {
-            return examHistoryGateway.findById(historyId)
-                    .map(ExamHistory::getSessionId)
-                    .filter(s -> s != null && !s.isBlank())
-                    .orElse(session.getSessionKey());
-        }
-        return session.getSessionKey();
-    }
-
-    /**
      * 读取结构化题目行的标准答案映射（印刷题号 → 标准答案）。
      * <p>缺失时对老卷 / 即时卷惰性回灌一次（用本场次自带的试卷 + 答案键 + 方案重建）；
      * 回灌仍拿不到则返回空表，调用方保持 {@code correct_answer} 为空（评分走 0-E「缺少标准答案，
@@ -230,7 +214,7 @@ public class ExamGradingSupport {
      */
     private Map<Integer, String> resolveStructuredAnswerMap(ExamSession session) {
         Map<Integer, String> map = new HashMap<>();
-        String paperKey = resolvePaperSessionKey(session);
+        String paperKey = structuredQuestionSupport.resolvePaperSessionKey(session);
         if (paperKey == null || paperKey.isBlank()) {
             return map;
         }
