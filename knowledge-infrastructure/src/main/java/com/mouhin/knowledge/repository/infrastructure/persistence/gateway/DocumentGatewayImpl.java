@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
@@ -46,6 +47,17 @@ public class DocumentGatewayImpl implements DocumentGateway {
         document.setUpdatedTime(LocalDateTime.now());
         DocumentDO doObj = DocumentConverter.toDO(document);
         documentMapper.updateById(doObj);
+    }
+
+    @Override
+    public void clearErrorMessage(Long documentId) {
+        // 通用 updateById 在 NOT_NULL 策略下会跳过 null 列，无法真正清空 error_message，
+        // 故走显式 set(..., null) 的专用 update-wrapper。
+        LambdaUpdateWrapper<DocumentDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(DocumentDO::getId, documentId)
+                .set(DocumentDO::getErrorMessage, null)
+                .set(DocumentDO::getUpdateTime, LocalDateTime.now());
+        documentMapper.update(null, wrapper);
     }
 
     @Override

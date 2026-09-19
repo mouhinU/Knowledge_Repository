@@ -1,10 +1,12 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,5 +92,69 @@ class PermissionDomainServiceTest {
         String expr = service.buildFilterExpression(p);
         assertTrue(expr.contains("visibility == \"PRIVATE\""));
         assertTrue(expr.contains("owner_id == \"owner-9\""));
+    }
+
+    @Nested
+    @DisplayName("hasAccess 文档级 ACL 判定（SEC-1 检索后置过滤复用）")
+    class HasAccess {
+
+        @Test
+        @DisplayName("超级管理员放行任意可见性文档")
+        void adminBypassesAll() {
+            Permission admin = new Permission("u-admin", "dept-x", "ADMIN", true);
+            assertTrue(service.hasAccess(admin, DocumentVisibilityEnum.PRIVATE, "someone-else", "other-dept", "MANAGER"));
+            assertTrue(service.hasAccess(admin, DocumentVisibilityEnum.RESTRICTED, "o", "d", "NONE"));
+        }
+
+        @Test
+        @DisplayName("PUBLIC 对所有已认证用户放行")
+        void publicAlwaysAllowed() {
+            Permission u = new Permission("u1", "dept-a", "STUDENT", false);
+            assertTrue(service.hasAccess(u, DocumentVisibilityEnum.PUBLIC, "owner-x", "dept-y", null));
+        }
+
+        @Test
+        @DisplayName("INTERNAL 同部门放行、跨部门拒绝")
+        void internalByDepartment() {
+            Permission u = new Permission("u1", "dept-a", "STUDENT", false);
+            assertTrue(service.hasAccess(u, DocumentVisibilityEnum.INTERNAL, "owner-x", "dept-a", null));
+            assertFalse(service.hasAccess(u, DocumentVisibilityEnum.INTERNAL, "owner-x", "dept-b", null));
+        }
+
+        @Test
+        @DisplayName("INTERNAL 用户无部门时拒绝")
+        void internalNullDepartmentDenied() {
+            Permission u = new Permission("u1", null, "STUDENT", false);
+            assertFalse(service.hasAccess(u, DocumentVisibilityEnum.INTERNAL, "owner-x", "dept-a", null));
+        }
+
+        @Test
+        @DisplayName("RESTRICTED 用户角色命中允许列表放行（逗号分隔）")
+        void restrictedRoleMatch() {
+            Permission u = new Permission("u1", "dept-a", "TEACHER,LEADER", false);
+            assertTrue(service.hasAccess(u, DocumentVisibilityEnum.RESTRICTED, "o", "d", "ADMIN,TEACHER"));
+        }
+
+        @Test
+        @DisplayName("RESTRICTED 用户角色不在允许列表拒绝")
+        void restrictedRoleMismatch() {
+            Permission u = new Permission("u1", "dept-a", "STUDENT", false);
+            assertFalse(service.hasAccess(u, DocumentVisibilityEnum.RESTRICTED, "o", "d", "TEACHER,MANAGER"));
+        }
+
+        @Test
+        @DisplayName("RESTRICTED 用户无角色时拒绝")
+        void restrictedNullRolesDenied() {
+            Permission u = new Permission("u1", "dept-a", null, false);
+            assertFalse(service.hasAccess(u, DocumentVisibilityEnum.RESTRICTED, "o", "d", "TEACHER"));
+        }
+
+        @Test
+        @DisplayName("PRIVATE 仅所有者放行、他人拒绝")
+        void privateByOwner() {
+            Permission u = new Permission("u1", "dept-a", "MEMBER", false);
+            assertTrue(service.hasAccess(u, DocumentVisibilityEnum.PRIVATE, "u1", "dept-a", null));
+            assertFalse(service.hasAccess(u, DocumentVisibilityEnum.PRIVATE, "u2", "dept-a", null));
+        }
     }
 }

@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,6 +28,11 @@ import java.util.UUID;
  * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.indexWithCustomChunks}，含 catch 内
  * 标记失败并返回文档的语义。当前线上走异步 SSE 入口，同步入口作为完整用例保留。
  * </p>
+ *
+ * <p>CONC-3 / OPS-2：不再标注 {@code @Transactional}。用例中的
+ * {@code vectorStoreService.storeChunks} 是耗时的 Ollama 向量化 + Milvus 写入，若被方法级事务包裹，
+ * 会在整个 embedding 期间持续占用 HikariCP 连接。而本用例的 try/catch 本就逐步落库、异常时标记
+ * FAILED 并正常返回（事务无法回滚该吞掉的异常），去掉事务与异步索引入口（无事务）保持一致。</p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -59,7 +63,6 @@ public class IndexCustomChunksCmdExe {
         this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
     public DocumentVO execute(String documentKey, List<CustomChunkInput> customChunks) {
         if (customChunks == null || customChunks.isEmpty()) {
             throw new IllegalArgumentException("Custom chunks must not be empty");

@@ -21,4 +21,7 @@ public class UserVO {
     private String departmentId;
     private Boolean admin;
     private String createdTime;
+
+    /** 账号状态：ACTIVE / DISABLED。不含密码等敏感字段。 */
+    private String status;
 }

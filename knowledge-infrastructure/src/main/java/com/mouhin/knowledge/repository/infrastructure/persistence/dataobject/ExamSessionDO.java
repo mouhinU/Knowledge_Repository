@@ -65,6 +65,14 @@ public class ExamSessionDO {
     @TableField("status")
     private String status;
 
+    /**
+     * 评分围栏令牌（CONC-1）：认领 GRADING 时写入的一次性 UUID，
+     * 心跳 / 终态 / 回退均以 status==GRADING 且本列匹配为谓词，防止超时回收后旧评分者交叉写。
+     * 属基础设施并发控制关注点，不进入领域实体，仅经 Gateway 的 LambdaUpdateWrapper 读写。
+     */
+    @TableField("grading_token")
+    private String gradingToken;
+
     @TableField("start_time")
     private LocalDateTime startTime;
 

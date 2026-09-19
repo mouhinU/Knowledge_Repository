@@ -239,7 +239,8 @@
                 return;
             }
             KR.toast('试卷已发布', 'success');
-            openReview(currentSessionId);
+            // 校验通过并发布成功后，返回待校对列表（该卷已 PUBLISHED，会从列表移除）
+            closeDetail();
         } catch (e) {
             KR.toast('发布失败：' + e.message, 'error');
         }

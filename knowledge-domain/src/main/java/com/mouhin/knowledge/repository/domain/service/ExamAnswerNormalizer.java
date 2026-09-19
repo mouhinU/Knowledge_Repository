@@ -116,8 +116,9 @@ public final class ExamAnswerNormalizer {
     }
 
     /**
-     * 选择题答案归一：仅取答案头部中的 A~D 选项字母，按首次出现顺序去重。
-     * 单选判定「恰 1 个」、多选判定「≥ 2 个」均基于此结果，且解释文字中的字母不会污染。
+     * 选择题答案归一：仅取答案头部中的 A~Z 选项字母，按首次出现顺序去重。
+     * 单选判定「恰 1 个」、多选判定「≥ 2 个」均基于此结果。上界取 A~Z 以兼容 5 选及以上题型，
+     * 且与评分侧归一口径一致；解释文字中的字母不会污染（已由 {@link #answerHead(String)} 按标记截断）。
      *
      * @param raw 原始答案串
      * @return 去重后的选项字母串（可能为空串）
@@ -131,7 +132,7 @@ public final class ExamAnswerNormalizer {
         Set<Character> ordered = new LinkedHashSet<>();
         for (int i = 0; i < head.length(); i++) {
             char c = head.charAt(i);
-            if (c >= 'A' && c <= 'D') {
+            if (c >= 'A' && c <= 'Z') {
                 ordered.add(c);
             }
         }

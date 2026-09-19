@@ -17,4 +17,10 @@ public class UserUpdateCmd {
     private String username;
     private String departmentId;
     private Boolean admin;
+
+    /** 可选：重置登录密码（明文，app 层 BCrypt 后落库）；为 null 表示不修改密码。 */
+    private String password;
+
+    /** 可选：账号状态 ACTIVE / DISABLED；为 null 表示不修改状态。 */
+    private String status;
 }

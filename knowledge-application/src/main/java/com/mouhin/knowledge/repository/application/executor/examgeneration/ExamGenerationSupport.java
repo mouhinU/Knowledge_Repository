@@ -14,7 +14,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
+import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -77,7 +78,7 @@ public class ExamGenerationSupport {
     private final BlackboardAgent examCalibratorAgent;
     private final BlackboardAgent examDeduplicatorAgent;
     private final ExamDistributionGateway examDistributionAgent;
-    private final VectorStoreGateway vectorStoreService;
+    private final AuthorizedSearchSupport authorizedSearch;
     private final PermissionDomainService permissionDomainService;
     private final ChatModel chatModel;
     private final StreamingChatGateway streamingChatGateway;
@@ -106,7 +107,7 @@ public class ExamGenerationSupport {
             @Qualifier("examCalibratorAgent") BlackboardAgent examCalibratorAgent,
             @Qualifier("examDeduplicatorAgent") BlackboardAgent examDeduplicatorAgent,
             ExamDistributionGateway examDistributionAgent,
-            VectorStoreGateway vectorStoreService,
+            AuthorizedSearchSupport authorizedSearch,
             PermissionDomainService permissionDomainService,
             ChatModel chatModel,
             StreamingChatGateway streamingChatGateway,
@@ -121,7 +122,7 @@ public class ExamGenerationSupport {
         this.examCalibratorAgent = examCalibratorAgent;
         this.examDeduplicatorAgent = examDeduplicatorAgent;
         this.examDistributionAgent = examDistributionAgent;
-        this.vectorStoreService = vectorStoreService;
+        this.authorizedSearch = authorizedSearch;
         this.permissionDomainService = permissionDomainService;
         this.chatModel = chatModel;
         this.streamingChatGateway = streamingChatGateway;
@@ -161,10 +162,21 @@ public class ExamGenerationSupport {
                     BlackboardProgressEvent.phaseChanged(BlackboardPhase.INIT, "正在初始化..."));
         }
 
-        CompletableFuture.runAsync(
-                () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission,
-                        progressCallback, category, schoolLevel, plan, skipScoringValidation),
-                agentExecutor);
+        try {
+            CompletableFuture.runAsync(
+                    () -> executeExamPipeline(sessionId, topic, difficulty, questionConfig, permission,
+                            progressCallback, category, schoolLevel, plan, skipScoringValidation),
+                    agentExecutor);
+        } catch (RejectedExecutionException rex) {
+            // 线程池已达并发上限：不在请求线程上同步跑流水线（AbortPolicy），
+            // 先经 SSE 推送友好错误让前端优雅收尾，再向上冒泡由控制器转 429。
+            logger.warn("出卷任务被拒绝（并发已达上限）[session={}]", sessionId);
+            if (progressCallback != null) {
+                progressCallback.onProgress(BlackboardProgressEvent.error(
+                        "系统繁忙，出卷任务已达并发上限，请稍后重试。"));
+            }
+            throw rex;
+        }
     }
 
     /**
@@ -198,7 +210,7 @@ public class ExamGenerationSupport {
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
-            List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+            List<SearchResult> results = authorizedSearch.searchAuthorized(topic, maxResults, minScore, filterExpr, category, permission);
             blackboard.setKnowledgeChunks(results);
             logger.info("[ExamPipeline] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
 
@@ -234,6 +246,15 @@ public class ExamGenerationSupport {
             boolean manualPlan = plan != null && plan.isManualAdjusted();
             int firstAttemptScore = -1;
             for (int attempt = 0; attempt <= MAX_REVIEW_RETRIES; attempt++) {
+                // 仅在重试轮（attempt>=1，即上一轮质量分未达阈触发重新生成）显示"第 N 轮"，首轮静默
+                if (attempt >= 1 && callback != null) {
+                    int currentRound = attempt + 1;
+                    int totalRounds = MAX_REVIEW_RETRIES + 1;
+                    callback.onProgress(BlackboardProgressEvent.retryRoundChanged(
+                            BlackboardPhase.WRITING,
+                            String.format("上一轮未达标，正在重新生成试卷（第 %d / 共 %d 轮）...", currentRound, totalRounds),
+                            currentRound, totalRounds));
+                }
                 // 3. 试卷编写 Agent（重试时会读取审核反馈进行改进）
                 examWriterAgent.execute(blackboard, callback);
 
@@ -387,7 +408,7 @@ public class ExamGenerationSupport {
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
-        List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+        List<SearchResult> results = authorizedSearch.searchAuthorized(topic, maxResults, minScore, filterExpr, category, permission);
         logger.info("[Exam] 检索到 {} 个知识片段 [topic='{}']", results.size(), topic);
 
         String knowledgeContext = buildKnowledgeContext(results);
@@ -424,7 +445,7 @@ public class ExamGenerationSupport {
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
-            List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+            List<SearchResult> results = authorizedSearch.searchAuthorized(topic, maxResults, minScore, filterExpr, category, permission);
             if (!results.isEmpty()) {
                 knowledgeHint = buildKnowledgeContext(results);
             }
@@ -454,8 +475,8 @@ public class ExamGenerationSupport {
                     String filterExpr = permissionDomainService.buildFilterExpression(permission);
                     int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
                     double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
-                    List<SearchResult> results = vectorStoreService.search(
-                            topic, maxResults, minScore, filterExpr, category);
+                    List<SearchResult> results = authorizedSearch.searchAuthorized(
+                            topic, maxResults, minScore, filterExpr, category, permission);
                     if (!results.isEmpty()) {
                         knowledgeHint = buildKnowledgeContext(results);
                     }
@@ -616,7 +637,7 @@ public class ExamGenerationSupport {
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
-        List<SearchResult> results = vectorStoreService.search(topic, maxResults, minScore, filterExpr, category);
+        List<SearchResult> results = authorizedSearch.searchAuthorized(topic, maxResults, minScore, filterExpr, category, permission);
         String knowledgeContext = buildKnowledgeContext(results);
 
         String userPrompt = buildUserPromptFromPlan(topic, difficulty, plan, knowledgeContext, total, schemeText);

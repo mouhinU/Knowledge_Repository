@@ -10,6 +10,175 @@
 
     window.API = '';
 
+    /* ---------- 管理端鉴权（无状态 JWT）：令牌存取 + fetch/EventSource 拦截 + 退出 ---------- */
+    const AUTH_TOKEN_KEY = 'kr_admin_token';
+    const LOGIN_PATH = '/admin/login.html';
+
+    function getToken() {
+        try { return sessionStorage.getItem(AUTH_TOKEN_KEY); } catch (e) { return null; }
+    }
+
+    function setToken(t) {
+        try { if (t) sessionStorage.setItem(AUTH_TOKEN_KEY, t); } catch (e) { /* ignore */ }
+    }
+
+    function clearToken() {
+        try { sessionStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* ignore */ }
+    }
+
+    function isLoginPage() {
+        return location.pathname.indexOf(LOGIN_PATH) !== -1;
+    }
+
+    function redirectToLogin() {
+        clearToken();
+        if (!isLoginPage()) {
+            location.replace(LOGIN_PATH + '?next=' + encodeURIComponent(location.pathname + location.search));
+        }
+    }
+
+    /* 将既有 headers（对象 / 数组 / Headers / Request.headers）与 init.headers 合并为单一 Headers。 */
+    function mergeHeaders(input, init) {
+        const headers = new Headers();
+        try {
+            if (typeof Request !== 'undefined' && input instanceof Request) {
+                input.headers.forEach(function (v, k) { headers.set(k, v); });
+            }
+        } catch (e) { /* ignore */ }
+        const ih = init && init.headers;
+        if (ih) {
+            if (typeof Headers !== 'undefined' && ih instanceof Headers) {
+                ih.forEach(function (v, k) { headers.set(k, v); });
+            } else if (Array.isArray(ih)) {
+                ih.forEach(function (kv) { headers.set(kv[0], kv[1]); });
+            } else {
+                Object.keys(ih).forEach(function (k) { headers.set(k, ih[k]); });
+            }
+        }
+        return headers;
+    }
+
+    function isAuthEndpoint(url) {
+        return /\/api\/admin\/auth\/(login|logout)/.test(url);
+    }
+
+    function isApiUrl(url) {
+        return url.indexOf('/api/') !== -1;
+    }
+
+    /* fetch 拦截：注入 X-Admin-Token，命中 401 统一清令牌并跳登录。 */
+    (function patchFetch() {
+        if (typeof window.fetch !== 'function' || window.__krFetchPatched) return;
+        window.__krFetchPatched = true;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+            init = init || {};
+            const url = typeof input === 'string' ? input
+                : (input && typeof input.url === 'string' ? input.url : String(input || ''));
+            if (isApiUrl(url) && !isAuthEndpoint(url)) {
+                const tok = getToken();
+                if (tok) {
+                    const headers = mergeHeaders(input, init);
+                    headers.set('X-Admin-Token', tok);
+                    init = Object.assign({}, init, { headers: headers });
+                }
+            }
+            return originalFetch(input, init).then(function (res) {
+                if (isApiUrl(url) && !isAuthEndpoint(url) && res && res.status === 401) {
+                    redirectToLogin();
+                }
+                return res;
+            });
+        };
+    })();
+
+    /* EventSource 拦截：SSE 无法带自定义头，改在 URL 上追加 access_token 查询参数。 */
+    (function patchEventSource() {
+        if (typeof window.EventSource !== 'function' || window.__krEventSourcePatched) return;
+        window.__krEventSourcePatched = true;
+        const OriginalES = window.EventSource;
+        window.EventSource = function (url, config) {
+            let target = url;
+            try {
+                if (typeof target === 'string' && isApiUrl(target) && !isAuthEndpoint(target)) {
+                    const tok = getToken();
+                    if (tok) {
+                        const sep = target.indexOf('?') === -1 ? '?' : '&';
+                        target = target + sep + 'access_token=' + encodeURIComponent(tok);
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            return new OriginalES(target, config);
+        };
+        window.EventSource.prototype = OriginalES.prototype;
+        window.EventSource.CONNECTING = OriginalES.CONNECTING;
+        window.EventSource.OPEN = OriginalES.OPEN;
+        window.EventSource.CLOSED = OriginalES.CLOSED;
+    })();
+
+    /* 退出登录：通知服务端（失败也继续本地清理），清令牌后跳登录页。 */
+    function logout() {
+        const tok = getToken();
+        const done = function () { clearToken(); location.replace(LOGIN_PATH); };
+        if (!tok) { done(); return; }
+        try {
+            fetch(API + '/api/admin/auth/logout', {
+                method: 'POST',
+                headers: { 'X-Admin-Token': tok },
+                // 直接用 fetch（已被拦截），但 logout 在鉴权放行清单内，令牌头不影响
+            }).catch(function () { /* ignore */ }).then(done, done);
+        } catch (e) { done(); }
+    }
+
+    function openChangePasswordModal() {
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+        if (title) title.textContent = '修改密码';
+        if (body) {
+            body.innerHTML =
+                '<div class="form-group"><label class="form-label">原密码</label><input class="form-input" id="cp-old" type="password" autocomplete="current-password"></div>'
+                + '<div class="form-group"><label class="form-label">新密码</label><input class="form-input" id="cp-new" type="password" autocomplete="new-password"></div>'
+                + '<div class="form-group"><label class="form-label">确认新密码</label><input class="form-input" id="cp-confirm" type="password" autocomplete="new-password"></div>'
+                + '<div class="login-err" id="cp-err" style="display:none"></div>'
+                + '<button class="btn btn-primary" onclick="KR.submitChangePassword()">确认修改</button>';
+        }
+        openModal();
+    }
+
+    function submitChangePassword() {
+        const errBox = document.getElementById('cp-err');
+        function showErr(msg) { if (errBox) { errBox.textContent = msg; errBox.style.display = 'block'; } }
+        const oldPwd = (document.getElementById('cp-old') || {}).value || '';
+        const newPwd = (document.getElementById('cp-new') || {}).value || '';
+        const confirmPwd = (document.getElementById('cp-confirm') || {}).value || '';
+        if (errBox) errBox.style.display = 'none';
+        if (!oldPwd || !newPwd) { showErr('请填写原密码与新密码'); return; }
+        if (newPwd !== confirmPwd) { showErr('两次输入的新密码不一致'); return; }
+        fetch(API + '/api/admin/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
+        }).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) { return { res: res, data: data }; });
+        }).then(function (r) {
+            if (r.res.ok) {
+                closeModal();
+                toast('密码已修改，请使用新密码重新登录', 'success');
+                setTimeout(function () { clearToken(); location.replace(LOGIN_PATH); }, 1200);
+            } else {
+                showErr((r.data && r.data.error) || '密码修改失败');
+            }
+        }).catch(function () { showErr('请求失败，请稍后重试'); });
+    }
+
+    const AUTH = {
+        TOKEN_KEY: AUTH_TOKEN_KEY,
+        LOGIN_PATH: LOGIN_PATH,
+        getToken: getToken, setToken: setToken, clearToken: clearToken,
+        isLoginPage: isLoginPage, redirectToLogin: redirectToLogin, logout: logout
+    };
+
+
     /* ---------- 导航结构（两级：分组 → 页面） ---------- */
     const NAV = [
         {
@@ -91,6 +260,23 @@
             + '<div class="topbar-right" id="topbar-actions"></div>';
         const mt = document.getElementById('menu-toggle');
         if (mt) mt.addEventListener('click', toggleSidebar);
+
+        const actions = document.getElementById('topbar-actions');
+        if (actions) {
+            let user = '';
+            try { user = sessionStorage.getItem('kr_admin_user') || ''; } catch (e) { /* ignore */ }
+            const esc2 = (user || '管理员').replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+            actions.innerHTML =
+                '<span class="user-chip" title="当前登录">' + esc2 + '</span>'
+                + '<button class="btn btn-ghost btn-sm" id="kr-chpwd-btn">修改密码</button>'
+                + '<button class="btn btn-outline btn-sm" id="kr-logout-btn">退出登录</button>';
+            const cpwBtn = document.getElementById('kr-chpwd-btn');
+            if (cpwBtn) cpwBtn.addEventListener('click', openChangePasswordModal);
+            const btn = document.getElementById('kr-logout-btn');
+            if (btn) btn.addEventListener('click', logout);
+        }
     }
 
     function toggleSidebar() {
@@ -132,6 +318,10 @@
     }
 
     function initLayout(activeKey) {
+        if (!isLoginPage() && !getToken()) {
+            redirectToLogin();
+            return;
+        }
         renderSidebar(activeKey);
         renderTopbar(activeKey);
         injectShells();
@@ -171,9 +361,14 @@
     /* ---------- 通用工具 ---------- */
     function esc(str) {
         if (str == null) return '';
-        const d = document.createElement('div');
-        d.textContent = String(str);
-        return d.innerHTML;
+        // 显式转义 5 个实体（& 必须最先）。DOM textContent→innerHTML 技巧只处理 & < >，
+        // 不转义引号，一旦把结果拼进带引号的属性（value/title/onclick）即可被 " 截断注入（SEC-3）。
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function toast(msg, type) {
@@ -329,6 +524,9 @@
     /* ---------- 挂载到 window（供各页面内联脚本以全局函数名直接调用） ---------- */
     const KR = {
         NAV: NAV,
+        auth: AUTH,
+        submitChangePassword: submitChangePassword,
+        openChangePasswordModal: openChangePasswordModal,
         initLayout: initLayout,
         activateTab: activateTab,
         initTabs: initTabs,

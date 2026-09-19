@@ -24,6 +24,7 @@ public final class UserConverter {
         vo.setDepartmentId(user.getDepartmentId() != null ? user.getDepartmentId() : "");
         vo.setAdmin(user.getAdmin() != null ? user.getAdmin() : false);
         vo.setCreatedTime(user.getCreatedTime() != null ? user.getCreatedTime().toString() : "");
+        vo.setStatus(user.getStatus() != null ? user.getStatus() : User.STATUS_ACTIVE);
         return vo;
     }
 }

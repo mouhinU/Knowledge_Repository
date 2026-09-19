@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
+import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -498,7 +499,9 @@ public final class ExamPaperParser {
             q.put("sectionLabel", label);
             q.put("number", printedNumber);
             q.put("maxScore", finalScore);
-            q.put("content", cleanContent(contentBuilder.toString()));
+            String content = cleanContent(contentBuilder.toString());
+            q.put("content", content);
+            q.put("blankCount", ExamBlankCounter.count(content));
             if ("SINGLE_CHOICE".equals(kernel) || "MULTI_CHOICE".equals(kernel)) {
                 q.put("options", parseOptions(rawOptionsBuilder.toString()));
             }
@@ -617,7 +620,9 @@ public final class ExamPaperParser {
             stem = extractQuestionScore(rawOptionsBuilder.toString());
         }
         q.put("maxScore", stem > 0 ? stem : defaultScore);
-        q.put("content", cleanContent(contentBuilder.toString()));
+        String content = cleanContent(contentBuilder.toString());
+        q.put("content", content);
+        q.put("blankCount", ExamBlankCounter.count(content));
         if ("SINGLE_CHOICE".equals(kernel) || "MULTI_CHOICE".equals(kernel)) {
             q.put("options", parseOptions(rawOptionsBuilder.toString()));
         }

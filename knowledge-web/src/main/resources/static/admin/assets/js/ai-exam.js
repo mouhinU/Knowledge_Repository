@@ -954,6 +954,19 @@
             });
         });
     }
+
+    // 出卷改进重试轮次徽标：仅重试轮显示"第 N / 共 M 轮"
+    function showExamRoundBadge(round, maxRound) {
+        const badge = document.getElementById('exam-round-badge');
+        const text = document.getElementById('exam-round-badge-text');
+        if (!badge || !text) return;
+        text.textContent = '第 ' + round + ' / 共 ' + maxRound + ' 轮 · 正在重新生成试卷';
+        badge.style.display = 'flex';
+    }
+    function hideExamRoundBadge() {
+        const badge = document.getElementById('exam-round-badge');
+        if (badge) badge.style.display = 'none';
+    }
     function setExamAgentStatus(agent, status, text) {
         const el = document.getElementById('exam-status-' + agent);
         if (!el) return;
@@ -993,6 +1006,7 @@
             skipScoringValidation: true  // Node 2 已校验通过，Node 3 跳过校验
         };
 
+        hideExamRoundBadge();
         const sessionId = 'exam-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
         const eventSource = new EventSource(API + '/api/agent/exam/progress/' + sessionId);
         let sseReady = false;
@@ -1006,6 +1020,9 @@
                 'DEDUPLICATING': 'dedup', 'COMPLETED': 'dedup'
             };
             setExamPhase(phaseMap[data.phase] || 'research');
+            if (data.round != null) {
+                showExamRoundBadge(data.round, data.maxRound);
+            }
         });
 
         eventSource.addEventListener('AGENT_OUTPUT', (e) => {
@@ -1116,6 +1133,7 @@
         eventSource.addEventListener('COMPLETED', (e) => {
             const data = JSON.parse(e.data);
             eventSource.close();
+            hideExamRoundBadge();
             ['research', 'scoring', 'writing', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
                 const el = document.getElementById('exam-flow-' + n);
                 if (el) { el.classList.remove('active'); el.classList.add('done'); }
@@ -1148,6 +1166,7 @@
         eventSource.addEventListener('ERROR', (e) => {
             const data = JSON.parse(e.data);
             eventSource.close();
+            hideExamRoundBadge();
             document.getElementById('exam-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
             document.getElementById('exam-error').classList.add('active');
             btn.disabled = false;

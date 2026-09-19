@@ -35,6 +35,12 @@ public class UserDO {
     @TableField("is_admin")
     private Boolean admin;
 
+    @TableField("password_hash")
+    private String passwordHash;
+
+    @TableField("status")
+    private String status;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 

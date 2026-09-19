@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
+import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 出卷期切分支撑（app 层，V2「出卷即切分」核心节点）
@@ -39,11 +38,6 @@ public class ExamQuestionSplitSupport {
     private static final Logger logger = LoggerFactory.getLogger(ExamQuestionSplitSupport.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    /**
-     * 填空题空位：连续 2 个及以上半角 / 全角下划线，或空括号
-     */
-    private static final Pattern BLANK_PATTERN = Pattern.compile("(_{2,}|＿{2,}|\\(\\s*\\)|（\\s*）)");
 
     /**
      * 客观题题型：答案存在「结论 + 内联解释」整串风险，切分时需拆出纯净答案头部
@@ -87,7 +81,9 @@ public class ExamQuestionSplitSupport {
             question.setStem(stem);
             question.setMaxScore(readInt(q.get("maxScore")));
             question.setOptionsJson(serializeOptions(q.get("options"), type));
-            question.setBlankCount("FILL_BLANK".equals(type) ? countBlanks(stem) : 0);
+            // 统一按共享口径统计填空数（下划线 + 括号空两相累加），对所有题型生效（不再仅限填空题）
+            Integer parsedBlankCount = readInt(q.get("blankCount"));
+            question.setBlankCount(parsedBlankCount != null ? parsedBlankCount : ExamBlankCounter.count(stem));
 
             // 按题目位置序号（与答案键题序一致）绑定标准答案与解析
             Integer positionalIndex = readInt(q.get("index"));
@@ -174,18 +170,6 @@ public class ExamQuestionSplitSupport {
             logger.warn("[Split] 选项序列化失败（忽略）: {}", e.getMessage());
             return null;
         }
-    }
-
-    private int countBlanks(String stem) {
-        if (stem == null || stem.isBlank()) {
-            return 1;
-        }
-        Matcher matcher = BLANK_PATTERN.matcher(stem);
-        int count = 0;
-        while (matcher.find()) {
-            count++;
-        }
-        return count > 0 ? count : 1;
     }
 
     private Integer readInt(Object value) {

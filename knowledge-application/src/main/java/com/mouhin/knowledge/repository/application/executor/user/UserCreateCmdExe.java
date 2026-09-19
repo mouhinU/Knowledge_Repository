@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +25,11 @@ public class UserCreateCmdExe {
     private static final Logger logger = LoggerFactory.getLogger(UserCreateCmdExe.class);
 
     private final UserGateway userGateway;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    public UserCreateCmdExe(UserGateway userGateway) {
+    public UserCreateCmdExe(UserGateway userGateway, BCryptPasswordEncoder passwordEncoder) {
         this.userGateway = userGateway;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -40,6 +43,10 @@ public class UserCreateCmdExe {
         user.setUsername(cmd.getUsername());
         user.setDepartmentId(cmd.getDepartmentId());
         user.setAdmin(cmd.getAdmin() != null ? cmd.getAdmin() : false);
+        user.setStatus(User.STATUS_ACTIVE);
+        if (cmd.getPassword() != null && !cmd.getPassword().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(cmd.getPassword()));
+        }
         userGateway.save(user);
 
         logger.info("User created: {} ({})", cmd.getUsername(), user.getUserKey());

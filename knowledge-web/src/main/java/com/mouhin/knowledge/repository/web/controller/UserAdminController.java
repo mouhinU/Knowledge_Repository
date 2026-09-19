@@ -46,6 +46,7 @@ public class UserAdminController {
         cmd.setUsername((String) body.get("username"));
         cmd.setDepartmentId((String) body.get("departmentId"));
         cmd.setAdmin(body.get("admin") != null && (Boolean) body.get("admin"));
+        cmd.setPassword((String) body.get("password"));
 
         return ResponseEntity.ok(userService.createUser(cmd));
     }
@@ -58,6 +59,8 @@ public class UserAdminController {
         cmd.setUsername((String) body.get("username"));
         cmd.setDepartmentId((String) body.get("departmentId"));
         cmd.setAdmin(body.get("admin") != null ? (Boolean) body.get("admin") : null);
+        cmd.setPassword((String) body.get("password"));
+        cmd.setStatus((String) body.get("status"));
 
         return ResponseEntity.ok(userService.updateUser(cmd));
     }

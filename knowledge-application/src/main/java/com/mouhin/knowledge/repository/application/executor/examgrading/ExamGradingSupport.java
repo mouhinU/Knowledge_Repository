@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -74,9 +75,6 @@ public class ExamGradingSupport {
 
     /** 场次状态：已交卷，待评分 */
     private static final String STATUS_SUBMITTED = "SUBMITTED";
-
-    /** 场次状态：评分中（并发认领态） */
-    private static final String STATUS_GRADING = "GRADING";
 
     /** 场次状态：AI 评分完成（终态之一） */
     private static final String STATUS_AI_GRADED = "AI_GRADED";
@@ -138,17 +136,20 @@ public class ExamGradingSupport {
 
         List<ExamAnswer> answers = examAnswerGateway.listBySessionId(sessionId);
         if (answers.isEmpty()) {
-            logger.warn("考试场次无答题记录 [session={}]", sessionId);
-            if (callback != null) {
-                callback.onComplete(0, 0);
-            }
-            return;
+            // DATA-5：全空答卷（未落任何作答行）此前直接 return，导致场次永远停在 SUBMITTED、
+            // 被定时任务反复认领却永不进入终态。改为仅告警并继续走后续流程：逐题循环空转 0 次
+            // （totalAiScore 保持 0），随后照常执行认领 CAS 与终态 CAS，按卷面满分合计、得分 0 落
+            // AI_GRADED（语义等同"客观题全部零分判定"），使空卷也能收敛到终态、可被人工复核。
+            logger.warn("考试场次无答题记录，按零分落终态 [session={}]", sessionId);
         }
 
-        // V2 阶段 2-B：并发认领 —— 原子将 SUBMITTED 抢占为 GRADING，
-        // 防止定时任务与手动触发 / 多轮调度对同一场次重复评分（异步评分期间状态原本长期停留 SUBMITTED）。
-        // 抢占失败说明已有评分流程持有本场次，直接优雅结束，不重复评分。
-        if (!examSessionGateway.casUpdateStatus(sessionId, STATUS_SUBMITTED, STATUS_GRADING)) {
+        // CONC-1：并发认领改用围栏令牌——原子将 SUBMITTED 抢占为 GRADING 并写入一次性 UUID，
+        // 返回令牌；后续心跳 / 终态 / 失败回退均以「status==GRADING 且令牌匹配」为谓词。
+        // 认领返回 null 说明已有评分流程持有本场次（或已非 SUBMITTED），直接优雅结束、不重复评分。
+        // 相比裸状态 CAS，被超时回收再重新认领后令牌会轮换，令在途旧评分者立即失去所有权判定，
+        // 杜绝新旧评分者对同一场次交叉写、覆盖终态。
+        String gradingToken = examSessionGateway.claimForGrading(sessionId);
+        if (gradingToken == null) {
             logger.info("评分认领失败，跳过重复评分 [session={}]", sessionId);
             if (callback != null) {
                 callback.onComplete(0, 0);
@@ -156,6 +157,9 @@ public class ExamGradingSupport {
             return;
         }
         session.markGrading();
+
+        // 认领成功后的任何异常，都以本次令牌安全回退（release 内含令牌匹配判定，绝不误伤接管者），再向上抛出。
+        try {
 
         // V2 出卷即切分 · 阶段 2-A：标准答案唯一来源为结构化题目行 kb_exam_question
         // （生成期一次性绑定 + 契约校验，缺失时 resolveStructuredAnswerMap 惰性回灌）。
@@ -212,9 +216,9 @@ public class ExamGradingSupport {
                 examAnswerGateway.clearAiTrace(answer.getId());
             }
 
-            // 心跳续约：仅当仍为 GRADING 时刷新 update_time，避免"多题 LLM 耗时长"被超时回收误判为卡死而抢占。
-            // 心跳失败说明本场次已被其它评分流程接管或已终态，立即停止，杜绝两个评分者对同场次交叉写。
-            if (!examSessionGateway.touchGradingHeartbeat(sessionId)) {
+            // 心跳续约（带围栏令牌）：仅当仍为本次认领的 GRADING 时刷新 update_time；令牌失配说明已被
+            // 超时回收并重新认领，立即停止，杜绝两个评分者对同场次交叉写。
+            if (!examSessionGateway.touchGradingHeartbeat(sessionId, gradingToken)) {
                 logger.warn("评分心跳失败，场次已被接管，停止本次评分 [session={}]", sessionId);
                 stillOwner = false;
                 break;
@@ -236,12 +240,12 @@ public class ExamGradingSupport {
             paperTotal = answers.stream().mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore()).sum();
         }
 
-        // 终态原子落库（CAS GRADING→AI_GRADED + 分数）。若期间已被超时回收改回 SUBMITTED，
-        // 返回 false，本场慢速评分不得再盲写覆盖（否则会与接管者互相覆盖，产生错乱终态）。
+        // 终态原子落库（带围栏令牌 CAS GRADING→AI_GRADED + 分数）。若期间已被超时回收并重新认领
+        // （令牌已轮换），本次令牌失配返回 false，本场慢速评分不得再盲写覆盖，交由接管者收尾。
         session.markAiGraded(totalAiScore);
         session.setTotalScore(paperTotal);
-        if (!examSessionGateway.completeGrading(sessionId, STATUS_GRADING, STATUS_AI_GRADED, totalAiScore, paperTotal)) {
-            logger.warn("评分终态落库失败：场次已非 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
+        if (!examSessionGateway.completeGrading(sessionId, gradingToken, STATUS_AI_GRADED, totalAiScore, paperTotal)) {
+            logger.warn("评分终态落库失败：场次已非本次认领的 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
             if (callback != null) {
                 callback.onError("评分结果未被采纳：场次已被其它流程接管");
             }
@@ -253,6 +257,12 @@ public class ExamGradingSupport {
         }
 
         logger.info("评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, paperTotal);
+        } catch (RuntimeException | Error ex) {
+            // 认领后任何异常：以本次令牌安全回退为 SUBMITTED（令牌失配则不动，不误伤接管者），再上抛。
+            logger.error("评分过程异常，回退本场次待重评 [session={}]: {}", sessionId, ex.getMessage(), ex);
+            examSessionGateway.releaseGradingToSubmitted(sessionId, gradingToken);
+            throw ex;
+        }
     }
 
     /**
@@ -298,36 +308,34 @@ public class ExamGradingSupport {
      * @param callback  进度回调，可为 null
      */
     public void gradeExamAsync(Long sessionId, ExamGradingProgressCallback callback) {
-        agentExecutor.submit(() -> {
-            try {
-                gradeExamInternal(sessionId, callback);
-            } catch (Exception e) {
-                logger.error("异步评分异常 [session={}]", sessionId, e);
-                // 无事务包裹的异步评分若中途异常，会停留在 GRADING；此处尽力回退为 SUBMITTED 以便立即重新调度，
-                // 免去等待超时回收（进程崩溃等无法回退的场景仍由定时任务兜底）。
-                resetGradingToSubmitted(sessionId);
-                if (callback != null) {
-                    try {
-                        callback.onError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
-                    } catch (Exception ignored) {
-                        // 回调内部异常吞掉
+        try {
+            agentExecutor.submit(() -> {
+                try {
+                    gradeExamInternal(sessionId, callback);
+                } catch (Exception e) {
+                    // 认领后的异常已在 gradeExamInternal 内以围栏令牌安全回退并记日志，这里只负责把错误上报回调。
+                    logger.error("异步评分异常 [session={}]", sessionId, e);
+                    if (callback != null) {
+                        try {
+                            callback.onError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                        } catch (Exception ignored) {
+                            // 回调内部异常吞掉
+                        }
                     }
                 }
+            });
+        } catch (RejectedExecutionException rex) {
+            // 线程池已达并发上限：AbortPolicy 在提交瞬间同步抛出，任务体尚未执行、
+            // 未认领任何场次，无需回退围栏令牌。上报繁忙提示后向上冒泡由控制器转 429。
+            logger.warn("评分任务被拒绝（并发已达上限）[session={}]", sessionId);
+            if (callback != null) {
+                try {
+                    callback.onError("系统繁忙，评分任务已达并发上限，请稍后重试");
+                } catch (Exception ignored) {
+                    // 回调内部异常吞掉
+                }
             }
-        });
-    }
-
-    /**
-     * 尽力将处于 GRADING 的场次回退为 SUBMITTED（用于失败后重新纳入调度）。
-     * <p>CAS 语义：仅当前确为 GRADING 才回退，避免覆盖已完成评分的终态。</p>
-     */
-    private void resetGradingToSubmitted(Long sessionId) {
-        try {
-            if (examSessionGateway.casUpdateStatus(sessionId, STATUS_GRADING, STATUS_SUBMITTED)) {
-                logger.warn("异步评分失败，场次已回退为 SUBMITTED 待重评 [session={}]", sessionId);
-            }
-        } catch (Exception ex) {
-            logger.error("回退评分状态失败，等待超时回收兜底 [session={}]", sessionId, ex);
+            throw rex;
         }
     }
 
@@ -579,11 +587,16 @@ public class ExamGradingSupport {
     }
 
     /**
-     * 多选规范化：仅保留大写字母 A-D，去重排序拼接。
+     * 多选规范化：仅保留大写字母 A-Z，去重排序拼接。
+     * <p>
+     * 上界须与 {@link #parseChoiceSet(String)} 一致（A-Z）。早前硬截断到 A-D 会把 E 及以后的
+     * 合法选项字母剥掉，导致「期望 E / 学生未答（空）」双方都归一为空串而误判相等给满分。
+     * 解释文字中的字母不在此处过滤，由 {@code ExamAnswerNormalizer.answerHead} 依【解析】等标记截断兜底。
+     * </p>
      */
     private String normalizeChoiceSet(String s) {
         return s.chars()
-                .filter(c -> c >= 'A' && c <= 'D')
+                .filter(c -> c >= 'A' && c <= 'Z')
                 .distinct()
                 .sorted()
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)

@@ -39,10 +39,13 @@ public final class AgentExecutorFactory {
     }
 
     /**
-     * 构建一个有界、空闲回收、溢出走 {@code CallerRunsPolicy} 的线程池。
+     * 构建一个有界、空闲回收、溢出走 {@code AbortPolicy}（快速失败）的线程池。
      * <p>
-     * 采用 {@link SynchronousQueue}：任务到达时若无空闲线程则立即扩容至上限；达到上限后由
-     * 调用线程自行执行（背压），既不无界堆积、也不丢任务，保证异步语义下的最终一致性。
+     * 采用 {@link SynchronousQueue}：任务到达时若无空闲线程则立即扩容至上限。达到上限后
+     * <b>不再</b>由调用线程自行执行（旧 {@code CallerRunsPolicy} 会让承载 HTTP 请求的
+     * servlet 线程同步跑完整条 LLM / 出卷 / 评分流水线，分钟级阻塞请求线程、违背异步语义，
+     * 并放大对上游模型服务的踩踏），而是抛出 {@link java.util.concurrent.RejectedExecutionException}，
+     * 由上层调用点捕获并向客户端返回 429（请求过多），实现背压下的快速失败。
      * </p>
      *
      * @param namePrefix 线程名前缀，便于日志与线程栈定位
@@ -56,7 +59,7 @@ public final class AgentExecutorFactory {
                 TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 new NamedDaemonThreadFactory(namePrefix),
-                new ThreadPoolExecutor.CallerRunsPolicy());
+                new ThreadPoolExecutor.AbortPolicy());
     }
 
     /**

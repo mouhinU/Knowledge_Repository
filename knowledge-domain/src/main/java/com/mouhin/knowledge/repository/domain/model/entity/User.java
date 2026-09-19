@@ -33,9 +33,36 @@ public class User {
      */
     private Boolean admin;
 
+    /**
+     * 登录密码 BCrypt 哈希（$2a）。为 null 表示该账号尚未设置密码、不可通过密码登录。
+     */
+    private String passwordHash;
+
+    /**
+     * 账号状态：ACTIVE / DISABLED。禁用账号登录与被拦截的令牌校验均实时读此字段。
+     */
+    private String status;
+
     private LocalDateTime createdTime;
 
     private LocalDateTime updatedTime;
+
+    // ==================== 状态常量 ====================
+
+    /** 有效账号状态 */
+    public static final String STATUS_ACTIVE = "ACTIVE";
+
+    /** 禁用账号状态 */
+    public static final String STATUS_DISABLED = "DISABLED";
+
+    /**
+     * 账号是否处于激活状态（大小写不敏感，null 视为非激活）。
+     *
+     * @return status 等于 ACTIVE 时返回 true
+     */
+    public boolean isActive() {
+        return STATUS_ACTIVE.equalsIgnoreCase(this.status);
+    }
 
     // ==================== Getters & Setters ====================
 
@@ -77,6 +104,22 @@ public class User {
 
     public void setAdmin(Boolean admin) {
         this.admin = admin;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedTime() {

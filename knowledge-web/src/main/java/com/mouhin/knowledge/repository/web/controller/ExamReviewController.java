@@ -10,6 +10,7 @@ import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallbac
 import com.mouhin.knowledge.repository.client.dto.ReviewRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -96,6 +98,11 @@ public class ExamReviewController {
                     "sessionId", sessionId,
                     "streamId", streamId
             ));
+        } catch (RejectedExecutionException rex) {
+            // 评分线程池已达并发上限：任务未启动（SSE 已上报繁忙），返回 429 供前端退避重试。
+            logger.warn("评分请求被限流（并发已达上限）[session={}]", sessionId);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "系统繁忙，评分并发已达上限，请稍后重试"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -116,14 +123,36 @@ public class ExamReviewController {
         }
         final int total = pending.size();
         AtomicInteger remaining = new AtomicInteger(total);
+        int accepted = 0;
+        int rejected = 0;
         for (Long id : pending) {
             ExamGradingProgressCallback inner = gradingProgressStore.createCallback(streamId, id);
             ExamGradingProgressCallback wrapped = wrapWithCounter(inner, remaining, streamId, total);
-            gradeExamAsyncCmdExe.execute(id, wrapped);
+            try {
+                gradeExamAsyncCmdExe.execute(id, wrapped);
+                accepted++;
+            } catch (RejectedExecutionException rex) {
+                // 线程池饱和：本场次任务未启动。繁忙提示已由 support 经 wrapped.onError 上报，
+                // 该 onError 已对 remaining 递减一次，此处绝不可再次递减，否则会破坏批量完成计数。
+                rejected++;
+                logger.warn("批量评分中某场次被限流（并发已达上限）[session={}]", id);
+            }
+        }
+        if (accepted == 0) {
+            // 全部被拒：无任何场次回调会收尾，SSE 会挂起，主动补发 BATCH_COMPLETE 关闭通道并返回 429。
+            gradingProgressStore.emitBatchComplete(streamId, 0);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of(
+                    "message", "系统繁忙，评分并发已达上限，请稍后重试",
+                    "count", total,
+                    "accepted", accepted,
+                    "rejected", rejected
+            ));
         }
         return ResponseEntity.ok(Map.of(
                 "message", "批量评分已启动",
                 "count", total,
+                "accepted", accepted,
+                "rejected", rejected,
                 "streamId", streamId
         ));
     }

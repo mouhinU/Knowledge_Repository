@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,7 +20,7 @@ public interface ExamSessionGateway {
 
     /**
      * 原子状态流转（CAS）：仅当前状态等于 {@code expectedStatus} 时才更新为 {@code newStatus}。
-     * <p>用于并发认领场景（如评分 {@code SUBMITTED → GRADING}），返回 {@code true} 表示本次成功抢占。</p>
+     * <p>通用状态机流转使用；评分认领 / 心跳 / 终态请改用下方围栏令牌方法（CONC-1）。</p>
      *
      * @param id             场次主键
      * @param expectedStatus 期望的当前状态
@@ -29,28 +30,57 @@ public interface ExamSessionGateway {
     boolean casUpdateStatus(Long id, String expectedStatus, String newStatus);
 
     /**
-     * 评分心跳续约：仅当场次当前仍为 {@code GRADING} 时刷新 {@code update_time}（不改动状态）。
-     * <p>用于长时间评分过程中周期性续命，使超时回收任务只回收"真正卡死"（update_time 停滞）的场次，
-     * 而不会把仍在运行的评分误判为卡死并抢占，导致同一场次被两个评分流程交叉写。</p>
+     * 评分认领（带围栏令牌，CONC-1）：原子地将 {@code SUBMITTED} 抢占为 {@code GRADING} 并写入一次性令牌。
+     * <p>后续心跳 / 终态 / 失败回退都以「status==GRADING 且令牌匹配」为谓词。区别于裸
+     * {@code casUpdateStatus}：一旦本场次被超时回收再被他人重新认领，令牌会被轮换，旧评分者随即失去
+     * 所有权判定，杜绝回收后新旧评分者交叉写、覆盖终态。</p>
      *
      * @param id 场次主键
-     * @return 是否仍在 GRADING（受影响行数 &gt; 0）；false 表示已被其它流程接管或已终态，调用方应放弃写入
+     * @return 认领成功返回本次写入的围栏令牌；认领失败（非 SUBMITTED 或已被抢占）返回 {@code null}
      */
-    boolean touchGradingHeartbeat(Long id);
+    String claimForGrading(Long id);
 
     /**
-     * 评分终态原子落库（CAS）：仅当当前状态为 {@code expectedStatus}（GRADING）时，一次性写入
-     * 目标状态 {@code newStatus}（AI_GRADED）及评分结果（ai_score / total_score / grade_time / update_time）。
-     * <p>杜绝"回收已把场次改回 SUBMITTED、慢速原评分者完成时又无条件 updateById 覆盖为 AI_GRADED"的丢失更新。</p>
+     * 评分心跳续约（带围栏令牌，CONC-1）：仅当场次仍为 {@code GRADING} 且令牌匹配时刷新 {@code update_time}。
      *
-     * @param id             场次主键
-     * @param expectedStatus 期望的当前状态（GRADING）
-     * @param newStatus      目标终态（AI_GRADED）
-     * @param aiScore        AI 总分
-     * @param totalScore     卷面总分
-     * @return 是否落库成功；false 表示已不再持有 GRADING 所有权（已被接管），调用方不应再上报完成
+     * @param id    场次主键
+     * @param token {@link #claimForGrading(Long)} 返回的围栏令牌
+     * @return {@code true}=仍持有所有权；{@code false}=已被回收/接管或已终态，调用方须立即停止写入
      */
-    boolean completeGrading(Long id, String expectedStatus, String newStatus, int aiScore, int totalScore);
+    boolean touchGradingHeartbeat(Long id, String token);
+
+    /**
+     * 评分终态原子落库（带围栏令牌，CONC-1）：仅当 {@code GRADING} 且令牌匹配时一次性写入终态与分数。
+     *
+     * @param id         场次主键
+     * @param token      围栏令牌
+     * @param newStatus  目标终态（AI_GRADED）
+     * @param aiScore    AI 总分
+     * @param totalScore 卷面总分
+     * @return 是否落库成功；{@code false}=已非本次认领的 GRADING（被接管），调用方不得再上报完成
+     */
+    boolean completeGrading(Long id, String token, String newStatus, int aiScore, int totalScore);
+
+    /**
+     * 评分失败安全回退（带围栏令牌，CONC-1）：仅当 {@code GRADING} 且令牌匹配时回退为 {@code SUBMITTED}
+     * 并清空令牌，供异步评分异常时重新纳入调度；不误伤已被他人重新认领的场次。
+     *
+     * @param id    场次主键
+     * @param token 围栏令牌
+     * @return 是否回退成功（受影响行数为 1）
+     */
+    boolean releaseGradingToSubmitted(Long id, String token);
+
+    /**
+     * 超时回收（轮换令牌，CONC-1）：原子地将「仍为 {@code GRADING} 且 {@code update_time} 早于
+     * {@code deadline}」的场次回退为 {@code SUBMITTED} 并清空围栏令牌。时间判定下沉到 SQL 谓词，
+     * 消除调度器「先查后改」的 TOCTOU；令牌置空使在途旧评分者心跳 / 终态立即失效。
+     *
+     * @param id       场次主键
+     * @param deadline 超时阈值（update_time 早于此值视为卡死）
+     * @return 是否回收成功（受影响行数为 1）
+     */
+    boolean reclaimStuckGrading(Long id, LocalDateTime deadline);
 
     Optional<ExamSession> findById(Long id);
 

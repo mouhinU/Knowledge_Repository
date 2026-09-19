@@ -76,6 +76,22 @@ class ExamGradingCharacterizationTest {
             assertThat(answer.getCorrect()).isFalse();
             assertThat(answer.getAiFeedback()).isEqualTo("回答错误，正确答案：B");
         }
+
+        @Test
+        @DisplayName("DATA-1：D 之后的选项(E) 不再因归一为空而误判满分")
+        void optionBeyondDIsNotFalseFullMark() {
+            // 正确答案 E，学生未答（空）——旧 A-D 归一会把双方都剥成空串误判相等给满分
+            ExamAnswer blank = objectiveAnswer("SINGLE_CHOICE", "E", "", 3);
+            support.gradeObjective(blank, null);
+            assertThat(blank.getAiScore()).as("期望 E / 学生未答 应判 0 分").isZero();
+            assertThat(blank.getCorrect()).isFalse();
+
+            // 正确答案 E，学生作答 E —— 应正常命中满分
+            ExamAnswer hit = objectiveAnswer("SINGLE_CHOICE", "E", "E", 3);
+            support.gradeObjective(hit, null);
+            assertThat(hit.getAiScore()).as("期望 E / 学生 E 应满分").isEqualTo(3);
+            assertThat(hit.getCorrect()).isTrue();
+        }
     }
 
     // ==================== 多选（部分给分 D4） ====================
@@ -121,14 +137,15 @@ class ExamGradingCharacterizationTest {
         }
 
         @Test
-        @DisplayName("字母集归一：去重排序且仅保留 A-D")
+        @DisplayName("字母集归一：去重排序且保留 A-Z（DATA-1 修正）")
         void choiceSetNormalization() {
-            // 归一化后含 E/F 应被丢弃，乱序去重排序
+            // 归一化后按首次出现去重排序
             assertThat(support.normalizeForCompare("DCA", "MULTI_CHOICE")).isEqualTo("ACD");
             assertThat(support.normalizeForCompare("A,D ; C", "MULTI_CHOICE")).isEqualTo("ACD");
             assertThat(support.normalizeForCompare("aacc", "MULTI_CHOICE")).isEqualTo("AC");
-            // 超出 D 的字母被过滤
-            assertThat(support.normalizeForCompare("AEFG", "MULTI_CHOICE")).isEqualTo("A");
+            // DATA-1：A 之外的字母（含 E/F/G）不再被误剥
+            assertThat(support.normalizeForCompare("AEFG", "MULTI_CHOICE")).isEqualTo("AEFG");
+            assertThat(support.normalizeForCompare("ACE", "MULTI_CHOICE")).isEqualTo("ACE");
         }
     }
 

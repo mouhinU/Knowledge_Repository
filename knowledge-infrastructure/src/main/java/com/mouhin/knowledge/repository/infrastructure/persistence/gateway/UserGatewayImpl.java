@@ -89,6 +89,8 @@ public class UserGatewayImpl implements UserGateway {
         user.setUsername(doObj.getUsername());
         user.setDepartmentId(doObj.getDepartmentId());
         user.setAdmin(doObj.getAdmin());
+        user.setPasswordHash(doObj.getPasswordHash());
+        user.setStatus(doObj.getStatus());
         user.setCreatedTime(doObj.getCreateTime());
         user.setUpdatedTime(doObj.getUpdateTime());
         return user;
@@ -104,6 +106,8 @@ public class UserGatewayImpl implements UserGateway {
         doObj.setUsername(user.getUsername());
         doObj.setDepartmentId(user.getDepartmentId());
         doObj.setAdmin(user.getAdmin());
+        doObj.setPasswordHash(user.getPasswordHash());
+        doObj.setStatus(user.getStatus());
         return doObj;
     }
 }

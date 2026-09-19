@@ -6,9 +6,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -110,5 +113,52 @@ class ReviewAnswerCmdExeTest {
 
         verify(answerGateway, never()).update(any(ExamAnswer.class));
         verify(answerGateway, never()).clearReviewOverride(anyLong());
+        // 非法状态早退，绝不应回刷场次聚合
+        verify(sessionGateway, never()).update(any(ExamSession.class));
+    }
+
+    private static ExamAnswer answerWithEffective(int effectiveScore) {
+        ExamAnswer a = new ExamAnswer();
+        a.setSessionId(SESSION_ID);
+        // reviewScore 优先于 aiScore（getEffectiveScore）：直接以复核分表达有效分
+        a.setReviewScore(effectiveScore);
+        return a;
+    }
+
+    /** DATA-2：改分后须按全场有效分之和回刷场次 final_score 并转入 REVIEWED。 */
+    @Test
+    @DisplayName("DATA-2：非空改分后回刷场次聚合 (final_score=Σ有效分, status=REVIEWED)")
+    void nonNullReviewRecomputesSessionAggregate() {
+        when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
+        stubSession("AI_GRADED");
+        // 本场次有效分：7 + 3 + 0 = 10
+        when(answerGateway.listBySessionId(SESSION_ID)).thenReturn(List.of(
+                answerWithEffective(7), answerWithEffective(3), answerWithEffective(0)));
+
+        exe.execute(ANSWER_ID, 8, "酌情加分", "teacher01");
+
+        ArgumentCaptor<ExamSession> captor = ArgumentCaptor.forClass(ExamSession.class);
+        verify(sessionGateway).update(captor.capture());
+        ExamSession updated = captor.getValue();
+        assertEquals(10, updated.getFinalScore().intValue(), "final_score 应回刷为全场有效分之和");
+        assertEquals("REVIEWED", updated.getStatus(), "复核后场次应进入 REVIEWED 态");
+    }
+
+    /** DATA-2：清除改分（回落 AI 分）同样须触发聚合回刷，避免聚合停留在旧人工合计。 */
+    @Test
+    @DisplayName("DATA-2：清除改分后仍回刷场次聚合")
+    void clearOverrideAlsoRecomputesAggregate() {
+        when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
+        stubSession("REVIEWED");
+        // 清除后该题回落 AI 分=6，全场有效分 6 + 2 = 8
+        when(answerGateway.listBySessionId(SESSION_ID)).thenReturn(List.of(
+                answerWithEffective(6), answerWithEffective(2)));
+
+        exe.execute(ANSWER_ID, null, null, "teacher01");
+
+        verify(answerGateway).clearReviewOverride(ANSWER_ID);
+        ArgumentCaptor<ExamSession> captor = ArgumentCaptor.forClass(ExamSession.class);
+        verify(sessionGateway).update(captor.capture());
+        assertEquals(8, captor.getValue().getFinalScore().intValue(), "清除改分后聚合须重算为回落值");
     }
 }

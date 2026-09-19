@@ -38,9 +38,9 @@ services:
       DEEPSEEK_CHAT_MODEL: deepseek-flash
       LLM_TEMPERATURE: "0.7"
       LLM_MAX_TOKENS: "4096"
-      # Spring Security 管理员凭据
-      SPRING_SECURITY_USER: ${SPRING_SECURITY_USER}
-      SPRING_SECURITY_PASSWORD: ${SPRING_SECURITY_PASSWORD}
+      # 管理端登录鉴权（无状态 JWT）：签名密钥须由 .env 提供，勿用默认值
+      KNOWLEDGE_ADMIN_JWT_SECRET: ${KNOWLEDGE_ADMIN_JWT_SECRET}
+      KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS: "${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:-8}"
       # 文件存储（宿主机 bind mount）
       STORAGE_PATH: /app/data/documents
       # JVM
@@ -57,5 +57,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 60s
+      # OPS-1：实测冷启动约 124s，原 60s 会让健康探针长时间停在 starting 甚至误判；上调到 150s 留足余量
+      start_period: 150s
+    # 容器内存硬上限（OPS-3b）：JVM -Xmx=1024m，容器需留出 Metaspace / 线程栈 / CodeCache /
+    # Milvus gRPC(netty 堆外) 等原生开销余量，故限 1536m。调大 -Xmx 时须同步上调此值，否则会被内核 OOM-kill。
+    mem_limit: 1536m
+    mem_reservation: 512m
     restart: unless-stopped

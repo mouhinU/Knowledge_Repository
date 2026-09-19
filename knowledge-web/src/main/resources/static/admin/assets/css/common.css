@@ -155,6 +155,8 @@ a:hover { text-decoration: underline; }
 .breadcrumb .bc-current { color: var(--text); font-weight: 600; font-size: 15px; }
 .topbar-right { display: flex; align-items: center; gap: 14px; }
 .topbar-meta { font-size: 12px; color: var(--text-light); }
+.user-chip { font-size: 13px; color: var(--text-secondary); background: var(--surface-alt); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; white-space: nowrap; }
+.login-err { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 14px; }
 
 .content { padding: 24px 28px 48px; max-width: 1320px; width: 100%; }
 

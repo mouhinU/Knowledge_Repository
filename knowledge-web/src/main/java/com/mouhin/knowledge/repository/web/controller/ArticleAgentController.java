@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.client.dto.ArticleGenerationRequest;
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * AI 文章生成控制器
@@ -89,8 +91,15 @@ public class ArticleAgentController {
                 event -> progressStore.pushEvent(sessionId, event);
 
         // 启动异步生成
-        generateArticleAsyncCmdExe.execute(
-                request.getQuestion(), permission, progressCallback, sessionId, request.getCategory());
+        try {
+            generateArticleAsyncCmdExe.execute(
+                    request.getQuestion(), permission, progressCallback, sessionId, request.getCategory());
+        } catch (RejectedExecutionException rex) {
+            // 文章生成线程池已达并发上限：任务未启动（未占用请求线程），返回 429 供前端退避重试。
+            logger.warn("文章生成请求被限流（并发已达上限）[session={}]", sessionId);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "系统繁忙，生成并发已达上限，请稍后重试"));
+        }
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }

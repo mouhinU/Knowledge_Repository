@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 人工复核单题执行器
@@ -60,17 +61,39 @@ public class ReviewAnswerCmdExe {
             answer.setReviewTime(null);
             examAnswerGateway.clearReviewOverride(answerId);
             logger.info("人工复核清除改分覆盖 [answerId={}, reviewer={}]", answerId, reviewer);
-            return;
+        } else {
+            answer.setReviewScore(reviewScore);
+            answer.setReviewFeedback(reviewFeedback);
+            answer.setReviewedBy(reviewer);
+            answer.setReviewTime(LocalDateTime.now());
+            answer.setUpdateTime(LocalDateTime.now());
+            examAnswerGateway.update(answer);
+            logger.info("人工复核单题 [answerId={}, score={}, reviewer={}]",
+                    answerId, reviewScore, reviewer);
         }
 
-        answer.setReviewScore(reviewScore);
-        answer.setReviewFeedback(reviewFeedback);
-        answer.setReviewedBy(reviewer);
-        answer.setReviewTime(LocalDateTime.now());
-        answer.setUpdateTime(LocalDateTime.now());
-        examAnswerGateway.update(answer);
+        // DATA-2：单题复核（含清除改分）后立即按全场有效分之和回刷场次 final_score，
+        // 并转入 REVIEWED 复核态。此前聚合仅在「发布成绩」时才计算，导致复核后成绩列表 / 详情
+        // 长期停留在旧的 AI 合计、与实际人工改分不一致（改分未发布期间数据漂移）。
+        recomputeSessionAggregate(session);
+    }
 
-        logger.info("人工复核单题 [answerId={}, score={}, reviewer={}]",
-                answerId, reviewScore, reviewer);
+    /**
+     * 依据本场次全部答题记录的有效分（人工复核分优先，否则 AI 分）重算并回刷场次聚合。
+     * <p>复用调用方已加载且状态校验通过的 {@code session} 对象，避免多余查询；
+     * {@code updateById} 对非空列生效，{@code final_score}/{@code status}/{@code update_time}
+     * 均被写入；{@code grading_token} 在领域对象中不承载，故不会被本更新覆盖。</p>
+     *
+     * @param session 已通过状态校验的场次聚合
+     */
+    private void recomputeSessionAggregate(ExamSession session) {
+        List<ExamAnswer> answers = examAnswerGateway.listBySessionId(session.getId());
+        int finalScore = answers.stream()
+                .mapToInt(ExamAnswer::getEffectiveScore)
+                .sum();
+        session.markReviewed(finalScore);
+        session.setUpdateTime(LocalDateTime.now());
+        examSessionGateway.update(session);
+        logger.info("复核回刷场次聚合 [session={}, finalScore={}]", session.getId(), finalScore);
     }
 }

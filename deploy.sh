@@ -90,7 +90,13 @@ fi
 # ============================================================
 # 更新 .env 文件
 # ============================================================
-sed -i '' "s/^APP_VERSION=.*/APP_VERSION=${APP_VERSION}/" .env
+# 跨平台原地替换：GNU sed `-i` 不带参数，BSD/macOS sed `-i` 需一个（可为空）备份后缀。
+# `sed --version` 在 GNU 下成功、BSD 下失败，据此判别。
+if sed --version >/dev/null 2>&1; then
+    sed -i "s/^APP_VERSION=.*/APP_VERSION=${APP_VERSION}/" .env
+else
+    sed -i '' "s/^APP_VERSION=.*/APP_VERSION=${APP_VERSION}/" .env
+fi
 echo ">>> 已更新 .env (APP_VERSION=${APP_VERSION})"
 
 # ============================================================

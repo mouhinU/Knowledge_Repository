@@ -125,6 +125,16 @@ public class BlackboardProgressEvent {
     private final String distributionPlan;
 
     /**
+     * 当前生成轮次（1-based，仅出卷重试轮的 PHASE 事件携带；首轮为 null 表示不显示）
+     */
+    private final Integer round;
+
+    /**
+     * 最大生成轮次（含首轮的总轮数，仅出卷重试轮的 PHASE 事件携带）
+     */
+    private final Integer maxRound;
+
+    /**
      * 事件时间戳
      */
     private final Instant timestamp;
@@ -152,6 +162,8 @@ public class BlackboardProgressEvent {
         this.difficultyAssessment = builder.difficultyAssessment;
         this.deduplicationReport = builder.deduplicationReport;
         this.distributionPlan = builder.distributionPlan;
+        this.round = builder.round;
+        this.maxRound = builder.maxRound;
         this.timestamp = Instant.now();
     }
 
@@ -163,6 +175,27 @@ public class BlackboardProgressEvent {
                 .type("PHASE")
                 .phase(phase)
                 .message(message)
+                .build();
+    }
+
+    /**
+     * 创建"改进重试轮"阶段事件：在出卷流水线因质量分不达标触发重新生成时下发，
+     * 携带当前轮次（1-based）与总轮数，供前端显示"第 N / 共 M 轮"。
+     *
+     * @param phase    当前阶段（通常为 WRITING，表示重新开始编写）
+     * @param message  人类可读提示
+     * @param round    当前轮次（1-based）
+     * @param maxRound 总轮数（含首轮）
+     * @return 阶段事件
+     */
+    public static BlackboardProgressEvent retryRoundChanged(BlackboardPhase phase, String message,
+                                                            int round, int maxRound) {
+        return new Builder()
+                .type("PHASE")
+                .phase(phase)
+                .message(message)
+                .round(round)
+                .maxRound(maxRound)
                 .build();
     }
 
@@ -384,6 +417,14 @@ public class BlackboardProgressEvent {
         return distributionPlan;
     }
 
+    public Integer getRound() {
+        return round;
+    }
+
+    public Integer getMaxRound() {
+        return maxRound;
+    }
+
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -414,6 +455,8 @@ public class BlackboardProgressEvent {
         private String difficultyAssessment;
         private String deduplicationReport;
         private String distributionPlan;
+        private Integer round;
+        private Integer maxRound;
 
         public Builder type(String type) {
             this.type = type;
@@ -522,6 +565,16 @@ public class BlackboardProgressEvent {
 
         public Builder distributionPlan(String distributionPlan) {
             this.distributionPlan = distributionPlan;
+            return this;
+        }
+
+        public Builder round(Integer round) {
+            this.round = round;
+            return this;
+        }
+
+        public Builder maxRound(Integer maxRound) {
+            this.maxRound = maxRound;
             return this;
         }
 

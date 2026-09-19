@@ -24,11 +24,14 @@ COPY knowledge-application/src knowledge-application/src
 COPY knowledge-web/src knowledge-web/src
 
 # 默认在镜像构建阶段跑一遍测试（体检 HIGH H4：生产镜像跳过测试 → 回归漏检）。
-# SKIP_TESTS 默认 false；仅本地应急/CI 已跑过测试的场景，用 --build-arg SKIP_TESTS=true 跳过。
+# 单命令 clean package：编译/测试/打包一次跑完，避免 test + clean package 两遍全量编译拖慢构建。
+# SKIP_TESTS 默认 false（跑测试）；本地应急/CI 已单独跑过测试时用 --build-arg SKIP_TESTS=true 跳过。
 ARG SKIP_TESTS=false
-RUN mvn test -B -q \
-        ${SKIP_TESTS:+-DskipTests=$SKIP_TESTS} \
- && mvn clean package -DskipTests -q
+RUN if [ "$SKIP_TESTS" = "true" ]; then \
+        mvn clean package -B -q -DskipTests ; \
+    else \
+        mvn clean package -B -q ; \
+    fi
 
 # ============================================================
 # Stage 2: Runtime

@@ -24,10 +24,10 @@
             <div class="table-wrap">
                 <table>
                     <thead>
-                    <tr><th>用户名</th><th>部门</th><th>角色</th><th>操作</th></tr>
+                    <tr><th>用户名</th><th>部门</th><th>角色</th><th>状态</th><th>操作</th></tr>
                     </thead>
                     <tbody id="user-list">
-                    <tr><td class="loading" colspan="4">加载中...</td></tr>
+                    <tr><td class="loading" colspan="5">加载中...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -39,38 +39,69 @@
 <script>
     KR.initLayout('users');
 
+    function statusBadgeHtml(s) {
+        return s === 'DISABLED'
+            ? '<span class="badge badge-danger">已禁用</span>'
+            : '<span class="badge badge-success">正常</span>';
+    }
+
     async function loadUsers() {
         try {
             const res = await fetch(API + '/api/admin/user');
             const users = await res.json();
             const tbody = document.getElementById('user-list');
-            if (!users.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无用户</td></tr>'; return; }
-            tbody.innerHTML = users.map(u => '<tr>'
-                + '<td>' + esc(u.username) + '</td>'
-                + '<td>' + esc(u.departmentId || '-') + '</td>'
-                + '<td>' + (u.admin ? '<span class="badge badge-warning">管理员</span>' : '<span class="badge badge-info">普通</span>') + '</td>'
-                + '<td><button class="btn btn-outline btn-sm" onclick="showEditUserModal(\'' + esc(u.userKey) + '\',\'' + esc(u.username) + '\',\'' + esc(u.departmentId || '') + '\',' + !!u.admin + ')">编辑</button></td>'
-                + '</tr>').join('');
+            if (!users.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无用户</td></tr>'; return; }
+            tbody.innerHTML = users.map(function (u) {
+                const attrs = encodeURIComponent(JSON.stringify({
+                    userKey: u.userKey, username: u.username, departmentId: u.departmentId || '',
+                    admin: !!u.admin, status: u.status || 'ACTIVE'
+                }));
+                return '<tr>'
+                    + '<td>' + esc(u.username) + '</td>'
+                    + '<td>' + esc(u.departmentId || '-') + '</td>'
+                    + '<td>' + (u.admin ? '<span class="badge badge-warning">管理员</span>' : '<span class="badge badge-info">普通</span>') + '</td>'
+                    + '<td>' + statusBadgeHtml(u.status) + '</td>'
+                    + '<td><button class="btn btn-outline btn-sm" data-u="' + attrs + '" onclick="showEditUserModal(this)">编辑</button></td>'
+                    + '</tr>';
+            }).join('');
         } catch (e) { console.error(e); toast('加载用户失败', 'error'); }
     }
 
-    function userFormHtml(u) {
+    function userFormHtml(u, editing) {
         u = u || {};
-        return '<div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="modal-username" value="' + esc(u.username || '') + '"></div>'
+        let html = '<div class="form-group"><label class="form-label">用户名</label><input class="form-input" id="modal-username" value="' + esc(u.username || '') + '"></div>'
             + '<div class="form-group"><label class="form-label">部门</label><input class="form-input" id="modal-userdept" placeholder="dept-key" value="' + esc(u.departmentId || '') + '"></div>'
             + '<div class="form-group"><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-secondary)"><input type="checkbox" id="modal-useradmin"' + (u.admin ? ' checked' : '') + '> 管理员</label></div>';
+        if (editing) {
+            html += '<div class="form-group"><label class="form-label">账号状态</label>'
+                + '<select class="form-input" id="modal-userstatus">'
+                + '<option value="ACTIVE"' + (u.status !== 'DISABLED' ? ' selected' : '') + '>正常</option>'
+                + '<option value="DISABLED"' + (u.status === 'DISABLED' ? ' selected' : '') + '>禁用</option>'
+                + '</select></div>';
+        }
+        html += '<div class="form-group"><label class="form-label">'
+            + (editing ? '重置密码（留空则不修改）' : '初始密码（留空则该账号暂不可密码登录）')
+            + '</label><input class="form-input" id="modal-userpwd" type="password" autocomplete="new-password"></div>';
+        return html;
     }
 
+    let _editingUserKey = null;
+
     function showCreateUserModal() {
+        _editingUserKey = null;
         document.getElementById('modal-title').textContent = '新增用户';
-        document.getElementById('modal-body').innerHTML = userFormHtml()
+        document.getElementById('modal-body').innerHTML = userFormHtml(null, false)
             + '<button class="btn btn-primary" onclick="createUser()">创建</button>';
         openModal();
     }
-    function showEditUserModal(key, name, dept, admin) {
+
+    function showEditUserModal(btn) {
+        let u = {};
+        try { u = JSON.parse(decodeURIComponent(btn.getAttribute('data-u'))); } catch (e) { return; }
+        _editingUserKey = u.userKey;
         document.getElementById('modal-title').textContent = '编辑用户';
-        document.getElementById('modal-body').innerHTML = userFormHtml({ username: name, departmentId: dept, admin: admin })
-            + '<button class="btn btn-primary" onclick="updateUser(\'' + key + '\')">保存</button>';
+        document.getElementById('modal-body').innerHTML = userFormHtml(u, true)
+            + '<button class="btn btn-primary" onclick="updateUser()">保存</button>';
         openModal();
     }
 
@@ -80,19 +111,25 @@
             departmentId: document.getElementById('modal-userdept').value,
             admin: document.getElementById('modal-useradmin').checked
         };
+        const pwd = document.getElementById('modal-userpwd').value;
+        if (pwd) body.password = pwd;
         const res = await fetch(API + '/api/admin/user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!res.ok) { toast('创建失败', 'error'); return; }
         closeModal();
         toast('用户已创建', 'success');
         loadUsers();
     }
-    async function updateUser(key) {
+
+    async function updateUser() {
         const body = {
             username: document.getElementById('modal-username').value,
             departmentId: document.getElementById('modal-userdept').value,
-            admin: document.getElementById('modal-useradmin').checked
+            admin: document.getElementById('modal-useradmin').checked,
+            status: document.getElementById('modal-userstatus').value
         };
-        const res = await fetch(API + '/api/admin/user/' + key, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const pwd = document.getElementById('modal-userpwd').value;
+        if (pwd) body.password = pwd;
+        const res = await fetch(API + '/api/admin/user/' + _editingUserKey, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!res.ok) { toast('更新失败', 'error'); return; }
         closeModal();
         toast('用户已更新', 'success');

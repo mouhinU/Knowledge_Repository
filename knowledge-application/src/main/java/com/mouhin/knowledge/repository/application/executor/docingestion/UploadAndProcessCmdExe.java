@@ -11,7 +11,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -24,6 +23,10 @@ import java.time.LocalDateTime;
  * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadAndProcess}。当前无适配层调用点，
  * 作为完整用例保留。
  * </p>
+ *
+ * <p>CONC-3 / OPS-2：不再标注 {@code @Transactional}。本用例含文件解析与 {@link DocumentIngestionSupport#processDocument}
+ * 的耗时向量化 IO，若被方法级事务包裹会在整个流程期间占用 HikariCP 连接。文档落库为单条原子写、
+ * 创建事件亦无 {@code @TransactionalEventListener} 消费方，去掉事务不损失任何一致性。</p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -46,7 +49,6 @@ public class UploadAndProcessCmdExe {
         this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
     public DocumentVO execute(MultipartFile file, String ownerId, String departmentId,
                               DocumentVisibilityEnum visibility, String allowedRoles,
                               String tags, ChunkingConfig chunkingConfig) {

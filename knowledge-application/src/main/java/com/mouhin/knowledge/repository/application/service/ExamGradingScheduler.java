@@ -38,9 +38,6 @@ public class ExamGradingScheduler {
     /** 场次状态：评分中（并发认领态） */
     private static final String STATUS_GRADING = "GRADING";
 
-    /** 场次状态：已交卷 */
-    private static final String STATUS_SUBMITTED = "SUBMITTED";
-
     private final ExamSessionGateway examSessionGateway;
     private final ExamGradingServiceI gradingService;
     private final ExamAlertGateway examAlertGateway;
@@ -108,11 +105,12 @@ public class ExamGradingScheduler {
             LocalDateTime deadline = LocalDateTime.now().minusMinutes(gradingTimeoutMinutes);
             int recovered = 0;
             for (ExamSession session : grading) {
-                LocalDateTime lastTouch = session.getUpdateTime();
-                if (lastTouch != null && lastTouch.isBefore(deadline)
-                        && examSessionGateway.casUpdateStatus(session.getId(), STATUS_GRADING, STATUS_SUBMITTED)) {
+                // CONC-1：单条原子回收——SQL 内判定 status==GRADING 且 update_time<deadline，
+                // 回退 SUBMITTED 同时清空围栏令牌，使在途旧评分者心跳/终态立即失配退出。
+                // 仅当确实回收了本场次（affected=1）才告警，避免与刚完成评分的行竞争误报。
+                if (examSessionGateway.reclaimStuckGrading(session.getId(), deadline)) {
                     recovered++;
-                    logger.warn("回收超时评分场次 [session={}, lastUpdate={}]", session.getId(), lastTouch);
+                    logger.warn("回收超时评分场次 [session={}, lastUpdate={}]", session.getId(), session.getUpdateTime());
                     examAlertGateway.gradingTimeout(session.getId());
                 }
             }

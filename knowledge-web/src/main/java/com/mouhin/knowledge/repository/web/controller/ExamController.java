@@ -18,6 +18,7 @@ import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * AI 试卷生成控制器
@@ -130,17 +132,24 @@ public class ExamController {
         boolean skipScoringValidation = request.getSkipScoringValidation() != null
                 && request.getSkipScoringValidation();
 
-        generateExamAsyncCmdExe.execute(
-                request.getTopic(),
-                request.getDifficulty(),
-                questionConfig,
-                permission,
-                progressCallback,
-                sessionId,
-                request.getCategory(),
-                request.getSchoolLevel(),
-                hasPlan ? plan : null,
-                skipScoringValidation);
+        try {
+            generateExamAsyncCmdExe.execute(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    questionConfig,
+                    permission,
+                    progressCallback,
+                    sessionId,
+                    request.getCategory(),
+                    request.getSchoolLevel(),
+                    hasPlan ? plan : null,
+                    skipScoringValidation);
+        } catch (RejectedExecutionException rex) {
+            // 出卷线程池已达并发上限：任务未启动（未占用请求线程），返回 429 供前端退避重试。
+            logger.warn("出卷请求被限流（并发已达上限）[session={}]", sessionId);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "系统繁忙，出卷并发已达上限，请稍后重试"));
+        }
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }

@@ -1,7 +1,9 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
+import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
 import com.mouhin.knowledge.repository.client.dto.SaveAnswersRequest;
 import com.mouhin.knowledge.repository.client.dto.StartExamRequest;
@@ -28,9 +30,28 @@ public class ExamTakingController {
     private static final Logger logger = LoggerFactory.getLogger(ExamTakingController.class);
 
     private final ExamTakingServiceI examTakingService;
+    private final ListPublishedHistoryQryExe listPublishedHistoryQryExe;
 
-    public ExamTakingController(ExamTakingServiceI examTakingService) {
+    public ExamTakingController(ExamTakingServiceI examTakingService,
+                                ListPublishedHistoryQryExe listPublishedHistoryQryExe) {
         this.examTakingService = examTakingService;
+        this.listPublishedHistoryQryExe = listPublishedHistoryQryExe;
+    }
+
+    /**
+     * 可开考的学生端试卷列表（仅返回已发布 PUBLISHED 的试卷）。
+     * <p>
+     * 学生端「可用考试」入口专用，位于已放行的 {@code /api/exam} 命名空间下，与教师/管理端的
+     * {@code /api/agent/exam/history} 解耦——后者属受管理端令牌保护的出卷历史接口，不应由学生端直接调用。
+     * </p>
+     *
+     * @param limit 最大返回数量，默认 20
+     * @return 已发布试卷列表（按时间倒序）
+     */
+    @GetMapping("/available")
+    public ResponseEntity<List<ExamHistoryDTO>> listAvailableExams(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit));
     }
 
     /**

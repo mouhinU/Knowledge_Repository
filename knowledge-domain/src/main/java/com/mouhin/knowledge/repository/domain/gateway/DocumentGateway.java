@@ -26,6 +26,19 @@ public interface DocumentGateway {
     void update(Document document);
 
     /**
+     * 清空文档的错误信息列（置为 NULL）。
+     * <p>
+     * MyBatis-Plus 默认 {@code FieldStrategy=NOT_NULL} 会使 {@code updateById} 跳过值为 null 的字段，
+     * 因此重新入库（reindex）把上一轮的 {@code error_message} 置 null 后走 {@code update} 并不会真正清列，
+     * 残留的旧错误信息会误导前端。此方法用专用 update-wrapper 显式将 error_message 写回 NULL。
+     * 凡"清空某列"一律走此类专用通道，勿退回 updateById。
+     * </p>
+     *
+     * @param documentId 文档主键
+     */
+    void clearErrorMessage(Long documentId);
+
+    /**
      * 根据 ID 查找
      */
     Optional<Document> findById(Long id);

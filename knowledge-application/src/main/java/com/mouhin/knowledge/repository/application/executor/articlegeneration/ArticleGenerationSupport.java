@@ -7,8 +7,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
-import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
+import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
@@ -29,6 +29,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -53,7 +54,7 @@ public class ArticleGenerationSupport {
     private final BlackboardAgent researcherAgent;
     private final BlackboardAgent writerAgent;
     private final BlackboardAgent reviewerAgent;
-    private final VectorStoreGateway vectorStoreService;
+    private final AuthorizedSearchSupport authorizedSearch;
     private final PermissionDomainService permissionDomainService;
     private final WritingHistoryGateway writingHistoryGateway;
     private final ChatModel chatModel;
@@ -70,14 +71,14 @@ public class ArticleGenerationSupport {
             @Qualifier("researcherAgent") BlackboardAgent researcherAgent,
             @Qualifier("writerAgent") BlackboardAgent writerAgent,
             @Qualifier("reviewerAgent") BlackboardAgent reviewerAgent,
-            VectorStoreGateway vectorStoreService,
+            AuthorizedSearchSupport authorizedSearch,
             PermissionDomainService permissionDomainService,
             WritingHistoryGateway writingHistoryGateway,
             ChatModel chatModel) {
         this.researcherAgent = researcherAgent;
         this.writerAgent = writerAgent;
         this.reviewerAgent = reviewerAgent;
-        this.vectorStoreService = vectorStoreService;
+        this.authorizedSearch = authorizedSearch;
         this.permissionDomainService = permissionDomainService;
         this.writingHistoryGateway = writingHistoryGateway;
         this.chatModel = chatModel;
@@ -120,9 +121,20 @@ public class ArticleGenerationSupport {
                     BlackboardProgressEvent.phaseChanged(BlackboardPhase.INIT, "正在初始化..."));
         }
 
-        CompletableFuture.runAsync(
-                () -> executeGeneration(sessionId, question, permission, progressCallback, category),
-                agentExecutor);
+        try {
+            CompletableFuture.runAsync(
+                    () -> executeGeneration(sessionId, question, permission, progressCallback, category),
+                    agentExecutor);
+        } catch (RejectedExecutionException rex) {
+            // 线程池已达并发上限：不在请求线程上同步跑流水线（AbortPolicy），
+            // 先经 SSE 推送友好错误让前端优雅收尾，再向上冒泡由控制器转 429。
+            logger.warn("文章生成任务被拒绝（并发已达上限）[session={}]", sessionId);
+            if (progressCallback != null) {
+                progressCallback.onProgress(BlackboardProgressEvent.error(
+                        "系统繁忙，生成任务已达并发上限，请稍后重试。"));
+            }
+            throw rex;
+        }
     }
 
     /**
@@ -148,7 +160,7 @@ public class ArticleGenerationSupport {
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
-            List<SearchResult> results = vectorStoreService.search(question, maxResults, minScore, filterExpr, category);
+            List<SearchResult> results = authorizedSearch.searchAuthorized(question, maxResults, minScore, filterExpr, category, permission);
             blackboard.setKnowledgeChunks(results);
             logger.info("[Blackboard] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
 

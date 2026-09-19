@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>登录 · Knowledge Repository 管理台</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f1f5f9; margin: 0; }
+        .login-card { width: 380px; max-width: calc(100vw - 40px); background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgba(15, 23, 42, .12); padding: 32px 30px; }
+        .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .login-brand .logo-dot { width: 34px; height: 34px; border-radius: 9px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .login-brand h1 { font-size: 18px; margin: 0; color: var(--text); }
+        .login-sub { font-size: 13px; color: var(--text-light); margin: 0 0 22px; }
+        .login-err { display: none; background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 14px; }
+        .login-card .form-group { margin-bottom: 16px; }
+        #login-btn { width: 100%; margin-top: 4px; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-brand">
+        <span class="logo-dot">K</span>
+        <h1>Knowledge Repository</h1>
+    </div>
+    <p class="login-sub">RAG 知识库管理台 · 请登录后访问</p>
+    <div class="login-err" id="login-err"></div>
+    <form id="login-form" autocomplete="on">
+        <div class="form-group">
+            <label class="form-label" for="username">用户名</label>
+            <input class="form-input" id="username" name="username" type="text" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">密码</label>
+            <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-primary" id="login-btn" type="submit">登录</button>
+    </form>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+    (function () {
+        'use strict';
+        const AUTH = KR.auth;
+
+        function nextUrl() {
+            const m = /[?&]next=([^&]+)/.exec(location.search);
+            let target = m ? decodeURIComponent(m[1]) : '/admin/index.html';
+            // 仅允许站内跳转，防开放重定向
+            if (!/^\/admin\//.test(target)) target = '/admin/index.html';
+            return target;
+        }
+
+        // 已登录则直接进入
+        if (AUTH.getToken()) {
+            location.replace(nextUrl());
+            return;
+        }
+
+        const errBox = document.getElementById('login-err');
+        const btn = document.getElementById('login-btn');
+        const form = document.getElementById('login-form');
+
+        function showError(msg) {
+            errBox.textContent = msg;
+            errBox.style.display = 'block';
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            errBox.style.display = 'none';
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            if (!username || !password) { showError('请输入用户名和密码'); return; }
+            btn.disabled = true;
+            btn.textContent = '登录中…';
+            try {
+                const res = await fetch(API + '/api/admin/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                const data = await res.json().catch(function () { return {}; });
+                if (res.ok && data && data.token) {
+                    AUTH.setToken(data.token);
+                    try { sessionStorage.setItem('kr_admin_user', data.username || username); } catch (err) { /* ignore */ }
+                    location.replace(nextUrl());
+                    return;
+                }
+                showError((data && data.error) || '用户名或密码错误');
+            } catch (err) {
+                showError('登录请求失败，请稍后重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        });
+    })();
+</script>
+</body>
+</html>
