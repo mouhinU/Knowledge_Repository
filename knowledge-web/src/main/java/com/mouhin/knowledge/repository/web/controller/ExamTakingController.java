@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,8 @@ public class ExamTakingController {
                     "totalScore", session.getTotalScore(),
                     "durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0,
                     "validation", examTakingService.validateReport(session.getQuestionsJson()).getData(),
-                    "startTime", session.getStartTime().toString()
+                    "startTime", session.getStartTime().toString(),
+                    "serverNow", LocalDateTime.now().toString()
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -125,6 +127,8 @@ public class ExamTakingController {
             result.put("durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0);
             result.put("startTime", session.getStartTime() != null ? session.getStartTime().toString() : "");
             result.put("submitTime", session.getSubmitTime() != null ? session.getSubmitTime().toString() : "");
+            // 供前端校正本地时钟：客户端 Date.now() 与服务端时钟的漂移会使倒计时 / 自动交卷提前或延后触发。
+            result.put("serverNow", LocalDateTime.now().toString());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

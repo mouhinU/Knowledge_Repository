@@ -17,6 +17,30 @@ public interface ExamAnswerGateway {
 
     void update(ExamAnswer answer);
 
+    /**
+     * 清除某题的人工复核覆盖（review_score / review_feedback / reviewed_by / review_time 置 NULL）。
+     * <p>
+     * 复核人将分数改回 {@code null} 表示"放弃人工改分、回落到 AI 评分"。但 {@link #update}
+     * 走 MyBatis-Plus {@code updateById}，默认 {@code FieldStrategy=NOT_NULL} 会跳过所有 null 字段，
+     * 无法把这几列真正清成 NULL。故此处用 {@code LambdaUpdateWrapper.set(col, null)} 显式清空。
+     * </p>
+     *
+     * @param answerId 答题记录 ID
+     */
+    void clearReviewOverride(Long answerId);
+
+    /**
+     * 清除某题的 AI 评分 trace（ai_input / ai_raw_output 置 NULL）。
+     * <p>
+     * 重跑评分时，若本轮某题（如客观题）不再产生 trace，{@link #update} 走 {@code updateById}
+     * 因默认 {@code FieldStrategy=NOT_NULL} 会跳过 null 的 ai_input / ai_raw_output，
+     * 导致上一轮残留的旧 trace 无法被清掉。故用 {@code LambdaUpdateWrapper.set(col, null)} 显式清空。
+     * </p>
+     *
+     * @param answerId 答题记录 ID
+     */
+    void clearAiTrace(Long answerId);
+
     Optional<ExamAnswer> findById(Long id);
 
     /**

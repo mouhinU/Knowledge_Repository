@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
+import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
@@ -16,6 +17,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,7 +29,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 文章生成支撑组件（app 层，黑板模式编排）
@@ -56,7 +58,7 @@ public class ArticleGenerationSupport {
     private final WritingHistoryGateway writingHistoryGateway;
     private final ChatModel chatModel;
 
-    private final ExecutorService agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService agentExecutor = AgentExecutorFactory.newBoundedAgentPool("article-gen");
 
     @Value("${knowledge.blackboard.search.max-results:10}")
     private int searchMaxResults;
@@ -79,6 +81,22 @@ public class ArticleGenerationSupport {
         this.permissionDomainService = permissionDomainService;
         this.writingHistoryGateway = writingHistoryGateway;
         this.chatModel = chatModel;
+    }
+
+    /**
+     * 容器优雅停机时关闭文章生成异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。
+     */
+    @PreDestroy
+    public void shutdown() {
+        agentExecutor.shutdown();
+        try {
+            if (!agentExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                agentExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            agentExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

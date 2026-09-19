@@ -52,6 +52,17 @@ public class ReviewAnswerCmdExe {
                     "复核分数越界：应为 0~" + maxScore + "，实际 " + reviewScore);
         }
 
+        if (reviewScore == null) {
+            // 清除人工改分：回落 AI 分。updateById 会跳过 null 列，故走显式置 NULL 的专用通道。
+            answer.setReviewScore(null);
+            answer.setReviewFeedback(null);
+            answer.setReviewedBy(null);
+            answer.setReviewTime(null);
+            examAnswerGateway.clearReviewOverride(answerId);
+            logger.info("人工复核清除改分覆盖 [answerId={}, reviewer={}]", answerId, reviewer);
+            return;
+        }
+
         answer.setReviewScore(reviewScore);
         answer.setReviewFeedback(reviewFeedback);
         answer.setReviewedBy(reviewer);

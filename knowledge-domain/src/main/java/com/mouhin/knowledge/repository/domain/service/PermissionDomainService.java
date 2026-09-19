@@ -141,6 +141,9 @@ public class PermissionDomainService {
         if (value == null) {
             return "";
         }
-        return value.replace("\"", "\\\"").replace("\\", "\\\\");
+        // 顺序敏感：先转义反斜杠，再转义双引号。
+        // 若先转义引号，引号转义新插入的反斜杠会被随后的反斜杠转义再次翻倍，
+        // 破坏含引号 / 反斜杠的值（a"b → a\\"b 而非期望的 a\"b）。
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

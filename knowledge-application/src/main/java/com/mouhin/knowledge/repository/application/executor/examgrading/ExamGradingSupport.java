@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.examgrading;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
@@ -14,6 +15,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,8 +35,10 @@ import java.util.regex.Pattern;
  * 考试评分支撑组件（app 层）
  *
  * <p>承载评分核心逻辑：客观题自动比对、主观题 AI 评分、评分进度上报与落库 trace，
- * 以及标准答案解析等工具方法。同步评分由 {@code TriggerGradingCmdExe} 调用
- * {@link #gradeExamInternal}（事务边界在执行器）；异步评分由虚拟线程执行器调度。</p>
+ * 以及标准答案解析等工具方法。评分<b>刻意不置于数据库事务内</b>（含分钟级 LLM 调用），
+ * 并发正确性由原子状态机保证：入口 {@code SUBMITTED→GRADING} CAS 认领、逐题心跳续约、
+ * 终态 {@code GRADING→AI_GRADED} CAS 落库。同步评分由 {@code TriggerGradingCmdExe} 调用
+ * {@link #gradeExamInternal}，异步评分由虚拟线程执行器调度，二者共享同一套 CAS 语义。</p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -75,6 +78,9 @@ public class ExamGradingSupport {
     /** 场次状态：评分中（并发认领态） */
     private static final String STATUS_GRADING = "GRADING";
 
+    /** 场次状态：AI 评分完成（终态之一） */
+    private static final String STATUS_AI_GRADED = "AI_GRADED";
+
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamQuestionGateway examQuestionGateway;
@@ -98,7 +104,24 @@ public class ExamGradingSupport {
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.streamingChatGateway = streamingChatGateway;
         this.examAlertGateway = examAlertGateway;
-        this.agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        this.agentExecutor = AgentExecutorFactory.newBoundedAgentPool("exam-grading");
+    }
+
+    /**
+     * 容器优雅停机时关闭评分异步线程池：先温和 shutdown 拒绝新任务，
+     * 给在途评分留出短暂收尾窗口，超时则强制中断，杜绝停机后遗留在跑线程。
+     */
+    @PreDestroy
+    public void shutdown() {
+        agentExecutor.shutdown();
+        try {
+            if (!agentExecutor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                agentExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            agentExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -151,12 +174,12 @@ public class ExamGradingSupport {
                     answer.setCorrectAnswer(correctAnswer);
                 }
             }
-            // 重跑评分时清空历史 trace，避免残留
-            answer.setAiInput(null);
-            answer.setAiRawOutput(null);
+            // trace 无需在此显式清空：每题稍后都会在 gradeObjective / gradeSubjectiveWithAi 中被完整重写，
+            // 若本轮某题意外不产生 trace（如题目类型变更）则在下方 update 后走 clearAiTrace 兜底清残留。
         }
 
         int totalAiScore = 0;
+        boolean stillOwner = true;
         for (ExamAnswer answer : answers) {
             long start = System.currentTimeMillis();
             int questionIndex = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
@@ -183,10 +206,27 @@ public class ExamGradingSupport {
             }
             totalAiScore += answer.getEffectiveScore();
             examAnswerGateway.update(answer);
+            // 兜底清残留：若本轮该题意外无 trace（题型变更等），显式将 ai_input / ai_raw_output 置 NULL。
+            // updateById 因 NOT_NULL 会跳过 null 字段无法清列，只能走 clearAiTrace 专用通道。
+            if (answer.getAiInput() == null || answer.getAiRawOutput() == null) {
+                examAnswerGateway.clearAiTrace(answer.getId());
+            }
+
+            // 心跳续约：仅当仍为 GRADING 时刷新 update_time，避免"多题 LLM 耗时长"被超时回收误判为卡死而抢占。
+            // 心跳失败说明本场次已被其它评分流程接管或已终态，立即停止，杜绝两个评分者对同场次交叉写。
+            if (!examSessionGateway.touchGradingHeartbeat(sessionId)) {
+                logger.warn("评分心跳失败，场次已被接管，停止本次评分 [session={}]", sessionId);
+                stillOwner = false;
+                break;
+            }
+        }
+        if (!stillOwner) {
+            if (callback != null) {
+                callback.onError("评分被中断：场次已被其它流程接管");
+            }
+            return;
         }
 
-        // 更新场次状态
-        session.markAiGraded(totalAiScore);
         // V2 阶段 2-E：卷面总分取试卷结构化题目满分合计（与答题情况无关），
         // 避免"未答题无落库行 → 分母偏小 → 得分率虚高"。结构化行缺失时回退已入库答案行合计。
         int paperTotal = examQuestionGateway
@@ -195,15 +235,24 @@ public class ExamGradingSupport {
         if (paperTotal <= 0) {
             paperTotal = answers.stream().mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore()).sum();
         }
+
+        // 终态原子落库（CAS GRADING→AI_GRADED + 分数）。若期间已被超时回收改回 SUBMITTED，
+        // 返回 false，本场慢速评分不得再盲写覆盖（否则会与接管者互相覆盖，产生错乱终态）。
+        session.markAiGraded(totalAiScore);
         session.setTotalScore(paperTotal);
-        session.setUpdateTime(LocalDateTime.now());
-        examSessionGateway.update(session);
+        if (!examSessionGateway.completeGrading(sessionId, STATUS_GRADING, STATUS_AI_GRADED, totalAiScore, paperTotal)) {
+            logger.warn("评分终态落库失败：场次已非 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
+            if (callback != null) {
+                callback.onError("评分结果未被采纳：场次已被其它流程接管");
+            }
+            return;
+        }
 
         if (callback != null) {
             callback.onComplete(answers.size(), totalAiScore);
         }
 
-        logger.info("评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, session.getTotalScore());
+        logger.info("评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, paperTotal);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamAnswerConverter;
@@ -8,6 +9,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamAnswerMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +39,28 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
     public void update(ExamAnswer answer) {
         ExamAnswerDO doObj = ExamAnswerConverter.toDO(answer);
         examAnswerMapper.updateById(doObj);
+    }
+
+    @Override
+    public void clearReviewOverride(Long answerId) {
+        LambdaUpdateWrapper<ExamAnswerDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamAnswerDO::getId, answerId)
+                .set(ExamAnswerDO::getReviewScore, null)
+                .set(ExamAnswerDO::getReviewFeedback, null)
+                .set(ExamAnswerDO::getReviewedBy, null)
+                .set(ExamAnswerDO::getReviewTime, null)
+                .set(ExamAnswerDO::getUpdateTime, LocalDateTime.now());
+        examAnswerMapper.update(null, wrapper);
+    }
+
+    @Override
+    public void clearAiTrace(Long answerId) {
+        LambdaUpdateWrapper<ExamAnswerDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamAnswerDO::getId, answerId)
+                .set(ExamAnswerDO::getAiInput, null)
+                .set(ExamAnswerDO::getAiRawOutput, null)
+                .set(ExamAnswerDO::getUpdateTime, LocalDateTime.now());
+        examAnswerMapper.update(null, wrapper);
     }
 
     @Override

@@ -28,6 +28,30 @@ public interface ExamSessionGateway {
      */
     boolean casUpdateStatus(Long id, String expectedStatus, String newStatus);
 
+    /**
+     * 评分心跳续约：仅当场次当前仍为 {@code GRADING} 时刷新 {@code update_time}（不改动状态）。
+     * <p>用于长时间评分过程中周期性续命，使超时回收任务只回收"真正卡死"（update_time 停滞）的场次，
+     * 而不会把仍在运行的评分误判为卡死并抢占，导致同一场次被两个评分流程交叉写。</p>
+     *
+     * @param id 场次主键
+     * @return 是否仍在 GRADING（受影响行数 &gt; 0）；false 表示已被其它流程接管或已终态，调用方应放弃写入
+     */
+    boolean touchGradingHeartbeat(Long id);
+
+    /**
+     * 评分终态原子落库（CAS）：仅当当前状态为 {@code expectedStatus}（GRADING）时，一次性写入
+     * 目标状态 {@code newStatus}（AI_GRADED）及评分结果（ai_score / total_score / grade_time / update_time）。
+     * <p>杜绝"回收已把场次改回 SUBMITTED、慢速原评分者完成时又无条件 updateById 覆盖为 AI_GRADED"的丢失更新。</p>
+     *
+     * @param id             场次主键
+     * @param expectedStatus 期望的当前状态（GRADING）
+     * @param newStatus      目标终态（AI_GRADED）
+     * @param aiScore        AI 总分
+     * @param totalScore     卷面总分
+     * @return 是否落库成功；false 表示已不再持有 GRADING 所有权（已被接管），调用方不应再上报完成
+     */
+    boolean completeGrading(Long id, String expectedStatus, String newStatus, int aiScore, int totalScore);
+
     Optional<ExamSession> findById(Long id);
 
     Optional<ExamSession> findBySessionKey(String sessionKey);

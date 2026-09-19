@@ -52,6 +52,29 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     }
 
     @Override
+    public boolean touchGradingHeartbeat(Long id) {
+        LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamSessionDO::getId, id)
+                .eq(ExamSessionDO::getStatus, "GRADING")
+                .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
+        return examSessionMapper.update(null, wrapper) > 0;
+    }
+
+    @Override
+    public boolean completeGrading(Long id, String expectedStatus, String newStatus,
+                                   int aiScore, int totalScore) {
+        LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamSessionDO::getId, id)
+                .eq(ExamSessionDO::getStatus, expectedStatus)
+                .set(ExamSessionDO::getStatus, newStatus)
+                .set(ExamSessionDO::getAiScore, aiScore)
+                .set(ExamSessionDO::getTotalScore, totalScore)
+                .set(ExamSessionDO::getGradeTime, LocalDateTime.now())
+                .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
+        return examSessionMapper.update(null, wrapper) == 1;
+    }
+
+    @Override
     public Optional<ExamSession> findById(Long id) {
         ExamSessionDO doObj = examSessionMapper.selectById(id);
         return Optional.ofNullable(ExamSessionConverter.toDomain(doObj));

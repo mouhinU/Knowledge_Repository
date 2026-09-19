@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
@@ -25,6 +26,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 试卷生成支撑组件（app 层，黑板模式 7 步 Agent 流水线编排）
@@ -83,7 +85,7 @@ public class ExamGenerationSupport {
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final ExamAlertGateway examAlertGateway;
 
-    private final ExecutorService agentExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService agentExecutor = AgentExecutorFactory.newBoundedAgentPool("exam-gen");
 
     @Value("${knowledge.blackboard.search.max-results:20}")
     private int searchMaxResults;
@@ -126,6 +128,22 @@ public class ExamGenerationSupport {
         this.examHistoryGateway = examHistoryGateway;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.examAlertGateway = examAlertGateway;
+    }
+
+    /**
+     * 容器优雅停机时关闭出卷异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。
+     */
+    @PreDestroy
+    public void shutdown() {
+        agentExecutor.shutdown();
+        try {
+            if (!agentExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                agentExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            agentExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

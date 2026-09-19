@@ -1518,7 +1518,7 @@
         <p id="submitModalText">确定要提交试卷吗？提交后将无法修改答案。</p>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeSubmitModal()">继续答题</button>
-            <button class="btn btn-warning" onclick="submitExam()">确认交卷</button>
+            <button class="btn btn-warning" id="submitModalConfirm" onclick="submitExam()">确认交卷</button>
         </div>
     </div>
 </div>
@@ -1537,6 +1537,16 @@
     let autoSubmitTimer = null;
     let currentQuestionIndex = 0;
     let examDurationMinutes = 0;
+    /* ===== H5 可靠性状态 ===== */
+    // 服务端时钟与本地时钟的差值（ms）。Date.now() + serverClockOffsetMs ≈ 服务端时刻，
+    // 消除客户端时间漂移导致的倒计时提前 / 延后。
+    let serverClockOffsetMs = 0;
+    // 自动保存失败标记 + 短周期重试定时器：失败时不再静默吞掉，改为可见提示并每 15s 补一次。
+    let autoSaveFailed = false;
+    let autoSaveRetryTimer = null;
+    // 提交在途守卫：手动点击 / 倒计时到点自动提交 / 二次弹窗都可能并发触发 submitExam，
+    // 若不加锁会产生重复 save+submit 请求（后端 CAS 会拒绝，但用户看到"提交失败"混乱）。
+    let isSubmitting = false;
 
     /* ===== Student Error Book State ===== */
     let wbSize = 10;
@@ -2070,7 +2080,7 @@
 
                 renderQuestionNav();
                 renderQuestion(0);
-                startTimer(data.startTime, data.durationMinutes);
+                startTimer(data.startTime, data.durationMinutes, data.serverNow);
                 startAutoSave();
             }, 600);
         }).catch(function(err) {
@@ -2107,14 +2117,21 @@
 
             if (Array.isArray(answers)) {
                 answers.forEach(function(a) {
-                    currentAnswers[a.questionIndex] = a;
+                    // 服务端 DTO 字段为 studentAnswer，须归一化为本地作答模型 {answer}，
+                    // 否则 renderQuestion / buildFullAnswersList 读 a.answer 得 undefined，
+                    // 续答自动保存会回传空串覆盖学生此前已保存的答案（数据损毁）。
+                    currentAnswers[a.questionIndex] = {
+                        questionIndex: a.questionIndex,
+                        questionType: a.questionType,
+                        answer: a.studentAnswer != null ? a.studentAnswer : ''
+                    };
                 });
             }
 
             document.getElementById('examTakingTitle').textContent = session.topic || '考试进行中';
             renderQuestionNav();
             renderQuestion(0);
-            startTimer(session.startTime, session.durationMinutes);
+            startTimer(session.startTime, session.durationMinutes, session.serverNow);
             startAutoSave();
         }).catch(function(err) {
             showToast('加载考试失败: ' + err.message, 'error');
@@ -2122,11 +2139,21 @@
         });
     }
 
-    /* ===== Timer (Countdown or Elapsed) ===== */
-    function startTimer(startTime, durationMinutes) {
+    /* ===== Timer (Countdown or Elapsed, server-clock-aligned) ===== */
+    function startTimer(startTime, durationMinutes, serverNowIso) {
         stopTimer();
         clearAutoSubmitTimer();
         examDurationMinutes = durationMinutes || 0;
+
+        // 校正本地时钟：以服务端为基准，之后所有 now() 与 deadline 比较都用校准后的时间。
+        // 未提供 serverNow（旧版接口 / 缓存兜底）时偏移保持为 0，退化为纯本地时钟。
+        if (serverNowIso) {
+            var sn = new Date(serverNowIso).getTime();
+            if (!isNaN(sn)) {
+                serverClockOffsetMs = sn - Date.now();
+            }
+        }
+        function now() { return Date.now() + serverClockOffsetMs; }
 
         var start = new Date(startTime).getTime();
         var timerEl = document.getElementById('timerDisplay');
@@ -2138,8 +2165,7 @@
             var deadline = start + totalSeconds * 1000;
 
             function updateCountdown() {
-                var now = Date.now();
-                var remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+                var remaining = Math.max(0, Math.floor((deadline - now()) / 1000));
 
                 var h = String(Math.floor(remaining / 3600)).padStart(2, '0');
                 var m = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
@@ -2165,8 +2191,7 @@
         } else {
             // 正计时模式（不限时）
             function updateElapsed() {
-                var now = Date.now();
-                var elapsed = Math.floor((now - start) / 1000);
+                var elapsed = Math.floor((now() - start) / 1000);
                 var h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
                 var m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
                 var s = String(elapsed % 60).padStart(2, '0');
@@ -2216,8 +2241,47 @@
     function startAutoSave() {
         stopAutoSave();
         autoSaveInterval = setInterval(function() {
-            saveAnswers(true).catch(function() { /* 静默自动保存失败忽略，下次周期重试 */ });
+            silentSave();
         }, 60000);
+        // 关闭 / 刷新 / 切前后台前尽力落一次，防止答案丢失。beforeunload 只给极短时间，
+        // 用 sendBeacon（浏览器保证在页面卸载后仍完成该请求）而非 fetch。
+        window.addEventListener('beforeunload', flushOnUnload);
+    }
+
+    function silentSave() {
+        saveAnswers(true).then(function() {
+            // 成功：清除失败标记，取消可能挂起的短周期重试。
+            if (autoSaveFailed) {
+                autoSaveFailed = false;
+                showToast('答案已重新同步', 'success');
+            }
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = null;
+        }).catch(function() {
+            // 静默自动保存失败不再吞掉：首次失败提示用户，并每 15s 快速重试，
+            // 直到成功或用户手动保存 / 交卷（交卷前的 save 失败会直接阻断提交）。
+            if (!autoSaveFailed) {
+                autoSaveFailed = true;
+                showToast('自动保存失败，正在重试…（请保持网络畅通，或手动点“保存答案”）', 'warning');
+            }
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = setTimeout(silentSave, 15000);
+        });
+    }
+
+    function flushOnUnload() {
+        if (!currentSession || isSubmitting) return;
+        if (typeof navigator === 'undefined' || !navigator.sendBeacon) return;
+        try {
+            saveCurrentAnswer();
+            var answersList = buildFullAnswersList();
+            if (!answersList.length) return;
+            var blob = new Blob([JSON.stringify({ token: token, answers: answersList })],
+                    { type: 'application/json' });
+            navigator.sendBeacon('/api/exam/' + currentSession.sessionKey + '/save', blob);
+        } catch (e) {
+            // best-effort：卸载路径无法提示用户，静默即可
+        }
     }
 
     function stopAutoSave() {
@@ -2225,6 +2289,12 @@
             clearInterval(autoSaveInterval);
             autoSaveInterval = null;
         }
+        if (autoSaveRetryTimer) {
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = null;
+        }
+        autoSaveFailed = false;
+        window.removeEventListener('beforeunload', flushOnUnload);
     }
 
     /* ===== Render Question Nav ===== */
@@ -2289,7 +2359,7 @@
         var qIndex = q.index != null ? q.index : index;
         var type = q.type || 'SHORT_ANSWER';
         var existingAnswer = currentAnswers[qIndex];
-        var answerValue = existingAnswer ? (existingAnswer.answer || existingAnswer.content || '') : '';
+        var answerValue = existingAnswer ? (existingAnswer.answer || '') : '';
 
         var html = '<div class="question-card">';
         html += '<div class="question-header">';
@@ -2653,13 +2723,18 @@
 
         var answersList = buildFullAnswersList();
         var sessionKey = currentSession.sessionKey;
-        return apiRequest('/api/exam/' + sessionKey + '/save', {
+        var p = apiRequest('/api/exam/' + sessionKey + '/save', {
             method: 'POST',
             body: JSON.stringify({ token: token, answers: answersList })
-        }).then(function () {
-            if (!silent) showToast('答案已保存', 'success');
+        });
+        if (silent) {
+            // 静默模式（自动保存 / beforeunload）：把失败暴露给调用方，由其决定重试 / 提示。
+            return p;
+        }
+        return p.then(function () {
+            showToast('答案已保存', 'success');
         }).catch(function (err) {
-            if (!silent) showToast('保存失败: ' + err.message, 'error');
+            showToast('保存失败: ' + err.message, 'error');
         });
     }
 
@@ -2683,10 +2758,20 @@
     }
 
     function submitExam() {
+        // 并发/重复提交守卫：手动点击 + 倒计时到点自动提交 + 弹窗按钮可能同时触发；
+        // 一旦在途，后续调用直接返回，避免重复 save+submit 与"提交失败"噪声。
+        if (isSubmitting) {
+            console.debug('[exam] submitExam: 已有提交在途，忽略重复调用');
+            return;
+        }
         closeSubmitModal();
         clearAutoSubmitTimer();
         if (!currentSession) return;
         var sessionKey = currentSession.sessionKey;
+
+        isSubmitting = true;
+        var confirmBtn = document.getElementById('submitModalConfirm');
+        if (confirmBtn) confirmBtn.disabled = true;
 
         // Save answers first（全量落行，含未答）
         saveCurrentAnswer();
@@ -2708,10 +2793,14 @@
         }).then(function () {
             stopTimer();
             stopAutoSave();
+            isSubmitting = false;
+            if (confirmBtn) confirmBtn.disabled = false;
             showToast('试卷已提交', 'success');
             document.getElementById('examTakingPage').classList.remove('exam-locked');
             backToList();
         }).catch(function (err) {
+            isSubmitting = false;
+            if (confirmBtn) confirmBtn.disabled = false;
             showToast('提交失败（答案未保存成功，请重试）: ' + err.message, 'error');
         });
     }
@@ -2795,9 +2884,9 @@
 
         answers.forEach(function(ans, i) {
             var q = questions.find(function(qq) { return (qq.index != null ? qq.index : questions.indexOf(qq)) === ans.questionIndex; }) || questions[i];
-            var score = ans.score != null ? ans.score : null;
+            var score = ans.effectiveScore != null ? ans.effectiveScore : null;
             var maxScore = q ? (q.maxScore || 0) : 0;
-            var correctAnswer = ans.correctAnswer || ans.standardAnswer || '';
+            var correctAnswer = ans.correctAnswer || '';
             var aiFeedback = ans.aiFeedback || '';
             var reviewFeedback = ans.reviewFeedback || '';
 
@@ -2833,7 +2922,7 @@
 
             html += '<div class="result-detail-grid">';
             html += '<span class="label">我的答案:</span>';
-            html += '<span class="value">' + escapeHtml(ans.answer || '未作答') + '</span>';
+            html += '<span class="value">' + escapeHtml(ans.studentAnswer || '未作答') + '</span>';
 
             if (correctAnswer) {
                 html += '<span class="label">正确答案:</span>';
