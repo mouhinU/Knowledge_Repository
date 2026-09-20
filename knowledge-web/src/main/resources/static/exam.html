@@ -2042,6 +2042,7 @@
                 + '<div class="session-meta">' + formatDateTime(session.startTime || session.createTime) + '</div>'
                 + '</div>'
                 + '<div class="session-actions">'
+                + (session.voided ? '<span class="badge" style="background:#fee2e2;color:#b91c1c;margin-right:6px">试卷已作废</span>' : '')
                 + statusBadge(status)
                 + (session.totalScore != null ? ' <span class="badge badge-score">' + session.totalScore + '分</span>' : '')
                 + actionHtml

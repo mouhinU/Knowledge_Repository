@@ -17,6 +17,9 @@ import java.util.UUID;
 
 /**
  * 从历史试卷开考命令执行器（app 层用例，事务边界）
+ * <p>系统级门禁：（1）试卷未发布不可开考；（2）试卷已作废（VOIDED）不可开考；
+ * （3）同一考生对同一份试卷仅允许开考一次——已存在任意状态的历史场次即拒绝再次开考，
+ * 需重考请由管理员走「重新开考」流程或联系技术支持。三道门禁均在写入前抛出，避免脏场次。</p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -51,9 +54,20 @@ public class ExamStartFromHistoryCmdExe {
             throw new IllegalArgumentException("试卷内容为空");
         }
 
+        // 作废门禁（优先）：VOIDED 属终态，任何学生均不可再开考此卷
+        if (history.isVoided()) {
+            throw new IllegalStateException("试卷已作废，不可开考");
+        }
+
         // 发布门禁（阶段 1-D）：仅已发布（校对通过）的试卷可开考，未发布 / 校验不通过的卷一律拒绝
         if (!history.isPublished()) {
             throw new IllegalStateException("试卷尚未发布（未通过校对或校验不通过），暂不可开考");
+        }
+
+        // 一次开考门禁：同一考生对同一份试卷仅允许开考一次（IN_PROGRESS / SUBMITTED / AI_GRADED 等任意状态均计入）
+        if (examSessionGateway.existsByStudentIdAndExamHistoryId(student.getId(), history.getId())) {
+            logger.warn("考生尝试重复开考同一试卷 [student={}, history={}]", student.getId(), historySessionId);
+            throw new IllegalStateException("该试卷仅允许考试一次，您已完成本次考试，如需重考请联系教师");
         }
 
         ExamSession session = new ExamSession();
@@ -74,6 +88,7 @@ public class ExamStartFromHistoryCmdExe {
         session.setTotalScore(support.sumMaxScore(withImages));
         session.setDurationMinutes(history.getDurationMinutes());
         session.setStatus(STATUS_IN_PROGRESS);
+        session.setVoided(false);
         session.setStartTime(LocalDateTime.now());
         session.setCreateTime(LocalDateTime.now());
         session.setUpdateTime(LocalDateTime.now());

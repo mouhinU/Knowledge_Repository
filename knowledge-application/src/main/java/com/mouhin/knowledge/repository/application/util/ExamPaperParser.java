@@ -233,7 +233,7 @@ public final class ExamPaperParser {
             if (matched != null) {
                 sectionCursor++;
             }
-            String kernel = resolveKernel(sec.name, matched);
+            String kernel = resolveKernel(sec.name, matched, sec.rawHeading);
             String displayLabel = matched != null && notBlank(matched.getLabel())
                     ? matched.getLabel() : sec.name;
             int defaultScore = resolveDefaultScore(sec, matched, kernel);
@@ -259,11 +259,13 @@ public final class ExamPaperParser {
      */
     private static final class Section {
         final String name;
+        final String rawHeading;
         final String scoreInfo;
         final List<String> lines = new ArrayList<>();
 
-        Section(String name, String scoreInfo) {
+        Section(String name, String rawHeading, String scoreInfo) {
             this.name = name;
+            this.rawHeading = rawHeading;
             this.scoreInfo = scoreInfo;
         }
     }
@@ -273,7 +275,7 @@ public final class ExamPaperParser {
      */
     private static List<Section> splitSections(String[] lines) {
         List<Section> sections = new ArrayList<>();
-        Section current = new Section(null, null);
+        Section current = new Section(null, null, null);
         sections.add(current);
         for (String raw : lines) {
             String line = raw.trim();
@@ -282,7 +284,7 @@ public final class ExamPaperParser {
                 String head = m.group(1);
                 String name = extractSectionName(head);
                 String scoreInfo = extractScoreInfo(head);
-                current = new Section(name, scoreInfo);
+                current = new Section(name, head, scoreInfo);
                 sections.add(current);
             } else {
                 current.lines.add(raw);
@@ -326,17 +328,28 @@ public final class ExamPaperParser {
     // ==================== 题型/分值决策 ====================
 
     /**
-     * 按标签匹配方案中的 TypePlan；匹配不到且仍在方案顺序范围内则按序号兜底对应。
+     * 按标签匹配方案中的 TypePlan。匹配路径（按优先级）：
+     * <ol>
+     *     <li>{@code baseName} 相等：剥离方案 label 与试卷标题里的括注（如「（单选题）」），
+     *         让「我会选（单选题）」与试卷标题「我会选」对齐；</li>
+     *     <li>试卷标题关键词精确命中某内核题型中文名，且方案中同 key 项存在；</li>
+     *     <li>顺序兜底：section 数与 plan 数一一对应且 label 的 baseName 相同；或
+     *         cursor 处仍有未匹配项且试卷端关键词回落到同 key（避免整卷全部走关键词导致答案漂移）。</li>
+     * </ol>
      */
     private static TypePlan matchPlanType(List<TypePlan> planTypes, String name, int cursor) {
         if (planTypes.isEmpty()) {
             return null;
         }
-        String norm = normalizeLabel(name);
-        for (TypePlan t : planTypes) {
-            if (normalizeLabel(t.getLabel()).equals(norm)
-                    && !t.getLabel().isEmpty()) {
-                return t;
+        String norm = baseName(normalizeLabel(name));
+        if (!norm.isEmpty()) {
+            for (TypePlan t : planTypes) {
+                if (t.getLabel() == null || t.getLabel().isEmpty()) {
+                    continue;
+                }
+                if (baseName(normalizeLabel(t.getLabel())).equals(norm)) {
+                    return t;
+                }
             }
         }
         // 关键词精确等于内核中文名
@@ -348,10 +361,11 @@ public final class ExamPaperParser {
                 }
             }
         }
-        // 顺序兜底：section 数量与 plan 数量一致时按序对应
+        // 顺序兜底：section 数与 plan 数一致时按序对应
         if (cursor < planTypes.size()) {
             TypePlan byOrder = planTypes.get(cursor);
-            if (normalizeLabel(byOrder.getLabel()).equals(norm)) {
+            String byOrderBase = baseName(normalizeLabel(byOrder.getLabel()));
+            if (byOrderBase.equals(norm)) {
                 return byOrder;
             }
         }
@@ -362,6 +376,18 @@ public final class ExamPaperParser {
      * 解析大题的内核题型 key：方案优先，其次关键词启发式，最后默认简答题。
      */
     private static String resolveKernel(String name, TypePlan matched) {
+        return resolveKernel(name, matched, null);
+    }
+
+    /**
+     * 解析大题的内核题型 key：方案优先，其次关键词启发式，最后默认简答题。
+     *
+     * @param name        剥离括注后的大题标题名
+     * @param matched     匹配到的方案题型（可为 null）
+     * @param keywordHint 关键词启发式的额外扫描文本，通常传入含括注的完整标题，
+     *                    使「我会选（单选题）」这类被剥离的类型提示仍能被识别；为 null 时仅扫描 name
+     */
+    private static String resolveKernel(String name, TypePlan matched, String keywordHint) {
         if (matched != null && notBlank(matched.getKey())) {
             return matched.getKey().toUpperCase();
         }
@@ -369,7 +395,8 @@ public final class ExamPaperParser {
         if (exact != null) {
             return exact;
         }
-        String norm = normalizeLabel(name);
+        String scan = keywordHint != null && !keywordHint.isBlank() ? keywordHint : name;
+        String norm = normalizeLabel(scan);
         for (String[] rule : KEYWORD_TYPE_RULES) {
             if (norm.contains(normalizeLabel(rule[0]))) {
                 return rule[1];
@@ -692,6 +719,18 @@ public final class ExamPaperParser {
             return "";
         }
         return s.replaceAll("[\\s　]", "").trim();
+    }
+
+    /**
+     * 取标签的基础名：剥离首个括号起的括注（如「我会选（单选题）」→「我会选」），
+     * 使方案 label 与试卷标题在题型对齐时忽略类型标注差异。
+     */
+    private static String baseName(String s) {
+        if (s == null) {
+            return "";
+        }
+        int idx = indexOfFirstBracket(s);
+        return (idx >= 0 ? s.substring(0, idx) : s).trim();
     }
 
     /**

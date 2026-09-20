@@ -123,6 +123,33 @@ public interface ExamSessionGateway {
     List<ExamSession> listByStudentIdAndStatuses(Long studentId, List<String> statuses);
 
     /**
+     * 「一人一卷一次」系统级守卫：判断某考生是否已对指定试卷开过场次（任意状态均计入，
+     * 含 IN_PROGRESS / SUBMITTED / AI_GRADED / ... ）。
+     *
+     * @param studentId      考生 ID
+     * @param examHistoryId  出卷历史 ID（试卷唯一标识）
+     * @return true=已存在历史场次，不允许再次开考
+     */
+    boolean existsByStudentIdAndExamHistoryId(Long studentId, Long examHistoryId);
+
+    /**
+     * 查询某考生已开过场次的试卷 ID 集合（去重）。供「可用考试」列表按学生过滤已考卷使用。
+     *
+     * @param studentId 考生 ID
+     * @return 已考过的 examHistoryId 集合（不含即时卷：即时卷 examHistoryId 为空自动排除）
+     */
+    java.util.List<Long> listExamHistoryIdsByStudentId(Long studentId);
+
+    /**
+     * 作废 / 撤销作废级联：按试卷 ID 批量回写其下所有考试场次的 voided 标记。
+     *
+     * @param examHistoryId 出卷历史 ID
+     * @param voided        true=标注作废；false=撤销作废（试卷重新发布时回滚）
+     * @return 受影响行数
+     */
+    int markVoidedByExamHistoryId(Long examHistoryId, boolean voided);
+
+    /**
      * 按状态列表查询所有考试场次
      *
      * @param statuses 状态列表

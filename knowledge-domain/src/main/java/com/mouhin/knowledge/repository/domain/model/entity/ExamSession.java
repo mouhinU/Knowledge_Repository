@@ -84,6 +84,13 @@ public class ExamSession {
     private String status;
 
     /**
+     * 试卷是否已作废。true 表示该场次对应的 AI 试卷已被教师作废，
+     * 场次仍可正常显示与查阅，但会标注「试卷已作废」并不再计入有效成绩场景。
+     * <p>POJO 布尔属性不加 {@code is} 前缀（遵循编码规约 1.3）。</p>
+     */
+    private boolean voided;
+
+    /**
      * 开始答题时间
      */
     private LocalDateTime startTime;
@@ -227,6 +234,14 @@ public class ExamSession {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public boolean isVoided() {
+        return voided;
+    }
+
+    public void setVoided(boolean voided) {
+        this.voided = voided;
     }
 
     public LocalDateTime getStartTime() {

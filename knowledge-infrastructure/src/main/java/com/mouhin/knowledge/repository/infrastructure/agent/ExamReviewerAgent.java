@@ -5,9 +5,12 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import com.mouhin.knowledge.repository.domain.service.ExamMetaQuestionDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 试卷审核 Agent
@@ -27,6 +30,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamReviewerAgent.class);
 
+    /**
+     * 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。
+     */
+    private static final int DETECTOR_SCORE_CAP = 70;
+
     private static final String SYSTEM_PROMPT = """
             你是一位资深的教育评估专家，负责审核考试试卷的质量。
             
@@ -34,7 +42,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
             1. 知识准确性（权重 25%%）：题目和答案是否与知识点一致，有无事实错误
             2. 题目表述（权重 15%%）：题目是否清晰无歧义，选项是否合理
             3. 知识点覆盖（权重 25%%）：是否均匀覆盖了主要知识点，有无遗漏
-            4. 题型合理性（权重 15%%）：各题型的设置是否恰当，题量是否合理
+            4. 题型合理性（权重 15%%）：各题型的设置是否恰当，题量是否合理；发现「出处/位置类」记忆题（考查某知识点在第几单元/第几课/第几页/哪一章/出自哪篇哪一段等教材编排位置）须判为缺陷并在改进建议中逐条列出、要求替换为就内容实质（字音字形、词义语法、内容理解、阅读表达等）设问
             5. 难度适当性（权重 10%%）：难度是否符合要求，梯度是否合理
             6. 格式规范性（权重 10%%）：排版、编号、分值标注是否规范
             
@@ -111,8 +119,43 @@ public class ExamReviewerAgent implements BlackboardAgent {
         blackboard.setExamReviewFeedback(reviewOutput);
         blackboard.setQualityScore(extractScore(reviewOutput));
         blackboard.setExamScoreDetail(buildScoreDetailJson(reviewOutput, blackboard.getQualityScore()));
-        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-reviewer", reviewOutput));
+
+        // —— 确定性后处理：出处/位置类记忆题扫描（不依赖大模型的硬兜底）——
+        applyDeterministicMetaRecallCheck(blackboard, examPaper);
+
+        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-reviewer", blackboard.getExamReviewFeedback()));
         logger.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
+    }
+
+    /**
+     * 出处/位置类记忆题的确定性复核：命中即把分数压到 {@link #DETECTOR_SCORE_CAP}（低于通过阈值），
+     * 驱动外层流水线的 writer 打回重写，并把命中题目与改写要求追加进审核反馈。已有更低分则不抬升。
+     *
+     * @param blackboard 黑板状态
+     * @param examPaper  试卷 Markdown（LLM 刚产出的正文）
+     */
+    private void applyDeterministicMetaRecallCheck(BlackboardState blackboard, String examPaper) {
+        List<String> metaHits = ExamMetaQuestionDetector.scanMarkdown(examPaper);
+        if (metaHits.isEmpty()) {
+            return;
+        }
+        String feedback = blackboard.getExamReviewFeedback() == null ? "" : blackboard.getExamReviewFeedback();
+        StringBuilder block = new StringBuilder();
+        block.append("\n\n## ⚠️ 确定性复核：出处/位置类记忆题（必须修正）\n");
+        block.append("检测到 ").append(metaHits.size())
+                .append(" 道只考查教材编排位置（第几单元/第几课/第几页/哪一章/出自哪篇）的记忆题，")
+                .append("不符合「考查内容理解与运用」的命题要求，请逐一改写为就知识实质设问：\n");
+        for (String hit : metaHits) {
+            block.append("- ").append(hit).append('\n');
+        }
+        blackboard.setExamReviewFeedback(feedback + block);
+
+        int current = blackboard.getQualityScore();
+        if (current > DETECTOR_SCORE_CAP) {
+            blackboard.setQualityScore(DETECTOR_SCORE_CAP);
+        }
+        logger.warn("[ExamReviewer] 确定性复核命中 {} 道出处/位置类题目，质量分 {}→{}（触发打回重写）",
+                metaHits.size(), current, blackboard.getQualityScore());
     }
 
     private String buildMaterialsPreview(String examPaper, String answerKey) {

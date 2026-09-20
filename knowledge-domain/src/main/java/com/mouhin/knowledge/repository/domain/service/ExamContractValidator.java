@@ -96,6 +96,12 @@ public final class ExamContractValidator {
         for (ExamQuestion q : questions) {
             Integer num = q.getQuestionNumber();
             String tag = num != null ? ("第 " + num + " 题") : "（无题号题）";
+            // 内容确定性复核：出处/位置类记忆题——考查教材编排位置而非内容，强制人工改写后方可发布
+            if (ExamMetaQuestionDetector.isMetaRecall(q.getStem())) {
+                String stem = q.getStem();
+                String brief = stem.length() > 40 ? stem.substring(0, 40) + "…" : stem;
+                issues.add(tag + " " + ExamMetaQuestionDetector.ADVISORY + "：" + brief);
+            }
             String answer = q.getCorrectAnswer();
             if (answer == null || answer.isBlank()) {
                 issues.add(tag + " 缺少标准答案");

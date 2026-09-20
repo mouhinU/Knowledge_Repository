@@ -36,6 +36,12 @@ public class ExamHistory {
      */
     public static final String STATUS_FAILED = "FAILED";
 
+    /**
+     * 试卷生命周期状态：已作废（终态）。作废后学生不可再开考，且从「可用考试」列表移除；
+     * 已存在的考试场次随之标注「试卷已作废」，仍可正常显示与查阅，但不再计入有效成绩。
+     */
+    public static final String STATUS_VOIDED = "VOIDED";
+
     private Long id;
 
     /**
@@ -386,6 +392,24 @@ public class ExamHistory {
     public void markPublished(String reviewer) {
         this.status = STATUS_PUBLISHED;
         this.reviewedBy = reviewer;
+        this.reviewedTime = LocalDateTime.now();
+    }
+
+    /**
+     * 是否已作废（终态）。作废试卷不可再开考，也不出现在可用考试列表。
+     */
+    public boolean isVoided() {
+        return STATUS_VOIDED.equals(status);
+    }
+
+    /**
+     * 作废试卷（终态）。记录操作人与作废时间（复用 reviewedBy / reviewedTime 审计列）。
+     *
+     * @param operator 作废操作人（管理员 / 出题人）
+     */
+    public void markVoided(String operator) {
+        this.status = STATUS_VOIDED;
+        this.reviewedBy = operator;
         this.reviewedTime = LocalDateTime.now();
     }
 

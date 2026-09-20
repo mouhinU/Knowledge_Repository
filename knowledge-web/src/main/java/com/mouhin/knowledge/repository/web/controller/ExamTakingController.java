@@ -44,14 +44,20 @@ public class ExamTakingController {
      * 学生端「可用考试」入口专用，位于已放行的 {@code /api/exam} 命名空间下，与教师/管理端的
      * {@code /api/agent/exam/history} 解耦——后者属受管理端令牌保护的出卷历史接口，不应由学生端直接调用。
      * </p>
+     * <p>
+     * 系统级过滤：登录态下会剔除该考生已开考过的试卷（一人一卷一次），并排除已作废（VOIDED）卷。
+     * 未登录 / token 缺失时退化为「全部已发布试卷」列表（保持向后兼容）。
+     * </p>
      *
-     * @param limit 最大返回数量，默认 20
-     * @return 已发布试卷列表（按时间倒序）
+     * @param limit   最大返回数量，默认 20
+     * @param token   学生会话令牌（{@code X-Student-Token} 请求头），可选
+     * @return 已发布且该考生未考过的试卷列表（按时间倒序）
      */
     @GetMapping("/available")
     public ResponseEntity<List<ExamHistoryDTO>> listAvailableExams(
-            @RequestParam(defaultValue = "20") int limit) {
-        return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit));
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestHeader(value = "X-Student-Token", required = false) String token) {
+        return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit, token));
     }
 
     /**

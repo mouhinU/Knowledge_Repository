@@ -1,26 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
-import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
-import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
-import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
-import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
-import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
-import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
+import com.mouhin.knowledge.repository.domain.service.*;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -63,9 +52,13 @@ public class ExamGenerationSupport {
     private static final double DEFAULT_MIN_SCORE = 0.3;
     private static final int QUALITY_SCORE_THRESHOLD = 80;
     private static final int MAX_REVIEW_RETRIES = 2;
-    /** 手动调整方案下，连续两轮评分差 ≤ 该值即视为已收敛，提前结束改进循环 */
+    /**
+     * 手动调整方案下，连续两轮评分差 ≤ 该值即视为已收敛，提前结束改进循环
+     */
     private static final int SCORE_CONVERGENCE_DELTA = 3;
-    /** 自动发布（免人工校对）时写入的审核人标识 */
+    /**
+     * 自动发布（免人工校对）时写入的审核人标识
+     */
     private static final String AUTO_PUBLISH_REVIEWER = "system:auto-publish";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -94,7 +87,9 @@ public class ExamGenerationSupport {
     @Value("${knowledge.blackboard.search.min-score:0.3}")
     private double searchMinScore;
 
-    /** 是否强制人工校对后方可发布（默认 true：所有卷须校对通过才发布） */
+    /**
+     * 是否强制人工校对后方可发布（默认 true：所有卷须校对通过才发布）
+     */
     @Value("${knowledge.exam.review-required:true}")
     private boolean examReviewRequired;
 
@@ -603,7 +598,7 @@ public class ExamGenerationSupport {
                     %s
                     规则校验结果摘要：
                     %s
-
+                    
                     请给出你对该方案合理性的专业解读与优化建议。
                     """, plan.getTotalFullMark(), plan.totalQuestions(), planText, trimText(report, 800));
             return streamingChatGateway.streamCompletion(systemPrompt, userPrompt,
@@ -724,6 +719,7 @@ public class ExamGenerationSupport {
                 6. 使用 Markdown 格式输出
                 7. 分值必须严格遵循用户提供的【分值分配方案】：卷面总分等于方案给定的本卷满分，每题分值等于方案给定的小题分值，各题分值之和必须等于总分
                 8. 每题分值用中文括号 "（X分）" 标注，且必须紧跟在该题题干文字的最末尾、所有选项（A./B./C./D.）之前；严禁把分值放在选项之后或写进选项文本里（如 "D. 选项（3分）" 是错误的）
+                9. 只考知识内容本身的理解与运用，严禁命制「出处/位置类」记忆题：不得考查某知识点「在第几单元 / 第几课 / 第几页 / 哪一章 / 哪个章节 / 出自哪篇课文的哪一段」等教材编排位置信息；语文、英语等偏记忆理解的科目尤其如此，应就字音字形、词义语法、课文内容理解、阅读与表达运用等实质设问，而非让学生背编排位置
                 
                 输出格式（严格遵守）：
                 

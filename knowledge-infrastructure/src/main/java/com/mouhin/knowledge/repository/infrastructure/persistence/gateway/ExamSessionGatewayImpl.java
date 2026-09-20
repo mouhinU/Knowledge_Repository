@@ -225,6 +225,47 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     }
 
     @Override
+    public boolean existsByStudentIdAndExamHistoryId(Long studentId, Long examHistoryId) {
+        if (studentId == null || examHistoryId == null) {
+            return false;
+        }
+        LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ExamSessionDO::getStudentId, studentId)
+                .eq(ExamSessionDO::getExamHistoryId, examHistoryId)
+                .select(ExamSessionDO::getId)
+                .last("LIMIT 1");
+        return !examSessionMapper.selectList(wrapper).isEmpty();
+    }
+
+    @Override
+    public List<Long> listExamHistoryIdsByStudentId(Long studentId) {
+        if (studentId == null) {
+            return List.of();
+        }
+        LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ExamSessionDO::getStudentId, studentId)
+                .isNotNull(ExamSessionDO::getExamHistoryId)
+                .select(ExamSessionDO::getExamHistoryId);
+        return examSessionMapper.selectList(wrapper).stream()
+                .map(ExamSessionDO::getExamHistoryId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    @Override
+    public int markVoidedByExamHistoryId(Long examHistoryId, boolean voided) {
+        if (examHistoryId == null) {
+            return 0;
+        }
+        LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamSessionDO::getExamHistoryId, examHistoryId)
+                .set(ExamSessionDO::getVoided, voided)
+                .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
+        return examSessionMapper.update(null, wrapper);
+    }
+
+    @Override
     public List<ExamSession> listByStatuses(List<String> statuses) {
         if (statuses == null || statuses.isEmpty()) {
             return List.of();

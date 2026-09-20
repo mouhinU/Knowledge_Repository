@@ -66,6 +66,14 @@ public class ExamSessionDO {
     private String status;
 
     /**
+     * 试卷作废级联标记：1=该场次对应试卷已作废（仍可显示但标注「已作废」），0/null=正常。
+     * <p>由 {@link #examHistoryId} 关联的 kb_exam_history.status 变更时级联回写，见 Gateway
+     * {@code markVoidedByExamHistoryId}。POJO 布尔属性不加 {@code is} 前缀（编码规约 1.3）。</p>
+     */
+    @TableField("voided")
+    private Boolean voided;
+
+    /**
      * 评分围栏令牌（CONC-1）：认领 GRADING 时写入的一次性 UUID，
      * 心跳 / 终态 / 回退均以 status==GRADING 且本列匹配为谓词，防止超时回收后旧评分者交叉写。
      * 属基础设施并发控制关注点，不进入领域实体，仅经 Gateway 的 LambdaUpdateWrapper 读写。

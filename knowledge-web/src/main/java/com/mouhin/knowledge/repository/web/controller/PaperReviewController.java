@@ -8,6 +8,7 @@ import com.mouhin.knowledge.repository.application.executor.examreview.PaperQues
 import com.mouhin.knowledge.repository.application.executor.examreview.ResplitPaperCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examreview.UpdatePaperQuestionCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examreview.UpdateQuestionImagesCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examreview.VoidPaperCmdExe;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
@@ -45,19 +46,22 @@ public class PaperReviewController {
     private final ApprovePaperCmdExe approvePaperCmdExe;
     private final ResplitPaperCmdExe resplitPaperCmdExe;
     private final UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe;
+    private final VoidPaperCmdExe voidPaperCmdExe;
 
     public PaperReviewController(ListReviewPendingQryExe listReviewPendingQryExe,
                                  GetPaperQuestionsQryExe getPaperQuestionsQryExe,
                                  UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe,
                                  ApprovePaperCmdExe approvePaperCmdExe,
                                  ResplitPaperCmdExe resplitPaperCmdExe,
-                                 UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe) {
+                                 UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe,
+                                 VoidPaperCmdExe voidPaperCmdExe) {
         this.listReviewPendingQryExe = listReviewPendingQryExe;
         this.getPaperQuestionsQryExe = getPaperQuestionsQryExe;
         this.updatePaperQuestionCmdExe = updatePaperQuestionCmdExe;
         this.approvePaperCmdExe = approvePaperCmdExe;
         this.resplitPaperCmdExe = resplitPaperCmdExe;
         this.updateQuestionImagesCmdExe = updateQuestionImagesCmdExe;
+        this.voidPaperCmdExe = voidPaperCmdExe;
     }
 
     /**
@@ -172,6 +176,25 @@ public class PaperReviewController {
             return ResponseEntity.ok(Map.of("message", "试卷已校对通过并发布", "published", true));
         } catch (Exception e) {
             logger.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    /**
+     * 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」，
+     * 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。
+     */
+    @PostMapping("/{sessionId}/void")
+    public ResponseEntity<Map<String, Object>> voidPaper(
+            @PathVariable String sessionId,
+            @RequestParam(defaultValue = "admin") String operator) {
+        try {
+            int cascaded = voidPaperCmdExe.execute(sessionId, operator);
+            return ResponseEntity.ok(Map.of(
+                    "message", "试卷已作废",
+                    "cascadedSessions", cascaded));
+        } catch (Exception e) {
+            logger.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }

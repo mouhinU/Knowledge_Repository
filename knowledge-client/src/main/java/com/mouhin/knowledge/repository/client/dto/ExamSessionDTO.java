@@ -33,6 +33,8 @@ public class ExamSessionDTO {
     private Integer aiScore;
     private Integer finalScore;
     private String status;
+    /** 对应 AI 试卷是否已被教师作废；true 时前端标注「试卷已作废」。 */
+    private boolean voided;
     private LocalDateTime startTime;
     private LocalDateTime submitTime;
     private LocalDateTime gradeTime;

@@ -1248,7 +1248,8 @@
             VALIDATION_FAILED: ['校验未通过', 'badge-danger'],
             DRAFT: ['草稿', 'badge-info'],
             COMPLETED: ['成功', 'badge-success'],
-            FAILED: ['生成失败', 'badge-danger']
+            FAILED: ['生成失败', 'badge-danger'],
+            VOIDED: ['已作废', 'badge-danger']
         };
         const m = map[status] || [status || '-', 'badge-info'];
         return '<span class="badge ' + m[1] + '">' + KR.esc(m[0]) + '</span>';
@@ -1276,6 +1277,7 @@
                 const time = KR.fmtDateTime(h.createTime);
                 const diff = diffMap[h.difficulty] || h.difficulty || '-';
                 const t = h.topic && h.topic.length > 40 ? h.topic.substring(0, 40) + '...' : (h.topic || '-');
+                const canVoid = h.status === 'PUBLISHED' || h.status === 'REVIEWABLE';
                 return '<tr>'
                     + '<td title="' + esc(h.topic || '') + '">' + esc(t) + '</td>'
                     + '<td>' + diff + '</td>'
@@ -1285,6 +1287,7 @@
                     + '<td style="white-space:nowrap">'
                     + '<button class="btn btn-outline btn-sm" onclick="showExamHistoryDetail(\'' + esc(h.sessionId) + '\')">查看</button> '
                     + '<button class="btn btn-outline btn-sm" onclick="exportHistoryWord(\'' + esc(h.sessionId) + '\')" title="导出 Word">导出</button> '
+                    + (canVoid ? '<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="voidExamHistory(\'' + esc(h.sessionId) + '\')" title="作废后学生不可再开考，已有场次将标注「试卷已作废」">作废</button> ' : '')
                     + '<button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="deleteExamHistory(\'' + esc(h.sessionId) + '\')" title="删除">删除</button>'
                     + '</td></tr>';
             }).join('');
@@ -1408,6 +1411,27 @@
             toast('删除失败: ' + e.message, 'error');
         }
     }
+    async function voidExamHistory(sessionId) {
+        const ok = await showConfirm(
+            '作废后学生不可再开考此试卷，已产生的考试场次将标注「试卷已作废」（仍可显示与查阅）。确定作废？',
+            { confirmText: '作废' }
+        );
+        if (!ok) return;
+        try {
+            const res = await fetch(
+                API + '/api/admin/paper-review/' + encodeURIComponent(sessionId) + '/void?operator=admin',
+                { method: 'POST' }
+            );
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) throw new Error(data.error || '作废失败');
+            var extra = data && data.cascadedSessions ? '，已级联标注 ' + data.cascadedSessions + ' 场考试' : '';
+            toast('试卷已作废' + extra, 'success');
+            loadExamHistory();
+        } catch (e) {
+            console.error('作废试卷失败', e);
+            toast('作废失败: ' + e.message, 'error');
+        }
+    }
     async function exportHistoryWord(sessionId) {
         try {
             const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId) + '/export-word', { method: 'POST' });
@@ -1433,7 +1457,7 @@
     Object.assign(window, {
         generateExamPlan, validatePlan, balanceAndRevalidate, onPlanCountChange, evenSpreadType, evenSpreadAll,
         updatePlanSummary, markPlanManual, generateExamWithAgents, toggleExamPanels, copyExamPaper, exportExamWord,
-        loadExamHistory, goExamHistoryPage, showExamHistoryDetail, deleteExamHistory,
+        loadExamHistory, goExamHistoryPage, showExamHistoryDetail, deleteExamHistory, voidExamHistory,
         exportHistoryWord, closeHistoryModal, closeNodeModal, showNodeModal,
         showScoreRuleModal, closeScoreRuleModal
     });

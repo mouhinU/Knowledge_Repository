@@ -36,6 +36,7 @@ public final class ExamTakingConverter {
         dto.setAiScore(session.getAiScore());
         dto.setFinalScore(session.getFinalScore());
         dto.setStatus(session.getStatus());
+        dto.setVoided(session.isVoided());
         dto.setStartTime(session.getStartTime());
         dto.setSubmitTime(session.getSubmitTime());
         dto.setGradeTime(session.getGradeTime());
