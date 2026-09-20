@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,15 +114,54 @@ public class ExamQuestionSplitSupport {
             return new SplitOutcome(0,
                     new ExamContractValidator.Result(false, List.of("试卷标识为空，无法落库校验")));
         }
+        // 重新切分（幂等回灌）会先删后插，人工在校对页绑定的配图不应随之丢失：
+        // 删除前先按印刷题号快照既有 images_json，切分后回填题号未变的行（阶段 2 决策：按题号保留图片）。
+        Map<Integer, String> imageSnapshot = snapshotImagesByNumber(examQuestionGateway.listBySessionKey(sessionKey));
         List<ExamQuestion> questions = splitAndBind(sessionKey, examPaperMd, answerKeyMd, plan);
         if (questions.isEmpty()) {
             return new SplitOutcome(0,
                     new ExamContractValidator.Result(false, List.of("试卷切分结果为空")));
         }
+        int preserved = applyImageSnapshot(questions, imageSnapshot);
         examQuestionGateway.deleteBySessionKey(sessionKey);
         examQuestionGateway.batchInsert(questions);
         ExamContractValidator.Result validation = ExamContractValidator.validate(questions, plan);
+        if (preserved > 0) {
+            logger.info("[Split] 重新切分保留人工配图绑定 [session={}, preserved={}]", sessionKey, preserved);
+        }
         return new SplitOutcome(questions.size(), validation);
+    }
+
+    /**
+     * 快照既有行的人工配图绑定（印刷题号 → images_json），仅收录非空项。
+     */
+    static Map<Integer, String> snapshotImagesByNumber(List<ExamQuestion> existingQuestions) {
+        Map<Integer, String> snapshot = new HashMap<>();
+        for (ExamQuestion existing : existingQuestions) {
+            if (existing.getQuestionNumber() != null
+                    && existing.getImagesJson() != null && !existing.getImagesJson().isBlank()) {
+                snapshot.put(existing.getQuestionNumber(), existing.getImagesJson());
+            }
+        }
+        return snapshot;
+    }
+
+    /**
+     * 把配图快照回填到重切后的题目行（按印刷题号匹配），返回成功保留的绑定数。
+     */
+    static int applyImageSnapshot(List<ExamQuestion> questions, Map<Integer, String> snapshot) {
+        if (snapshot.isEmpty()) {
+            return 0;
+        }
+        int preserved = 0;
+        for (ExamQuestion question : questions) {
+            String imagesJson = snapshot.get(question.getQuestionNumber());
+            if (imagesJson != null) {
+                question.setImagesJson(imagesJson);
+                preserved++;
+            }
+        }
+        return preserved;
     }
 
     // ==================== 工具 ====================

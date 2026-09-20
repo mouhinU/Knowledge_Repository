@@ -30,6 +30,36 @@
         .pr-fields textarea { min-height:56px; resize:vertical }
         .pr-q-actions { margin-top:12px; display:flex; gap:8px; justify-content:flex-end }
         .pr-empty { color:var(--text-light); font-size:13px; padding:20px; text-align:center }
+        /* —— 配图绑定（阶段 2）—— */
+        .pr-imgs { margin-top:12px; padding-top:10px; border-top:1px dashed var(--border, #e2e8f0) }
+        .pr-imgs-head { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-light); margin-bottom:8px }
+        .pr-imgs-head .btn { margin-left:auto }
+        .pr-img-thumbs { display:flex; flex-wrap:wrap; gap:8px }
+        .pr-img-thumbs img { width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--border,#e2e8f0); background:#f8fafc }
+        .pr-img-none { font-size:12px; color:#94a3b8 }
+        /* 选图弹窗 */
+        .ip-tabs { display:flex; gap:6px; margin-bottom:12px }
+        .ip-tab { font-size:13px; padding:6px 14px; border-radius:8px; border:1px solid var(--border,#e2e8f0); background:#fff; cursor:pointer; color:var(--text) }
+        .ip-tab.active { background:var(--primary,#2563eb); color:#fff; border-color:var(--primary,#2563eb) }
+        .ip-tools { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap }
+        .ip-tools input { flex:1; min-width:160px }
+        .ip-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; max-height:46vh; overflow:auto; padding:4px }
+        .ip-cell { position:relative; border:2px solid transparent; border-radius:10px; cursor:pointer; overflow:hidden; background:#f8fafc }
+        .ip-cell img { width:100%; height:88px; object-fit:cover; display:block }
+        .ip-cell .ip-cap { font-size:10px; color:var(--text-light); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+        .ip-cell.sel { border-color:var(--primary,#2563eb) }
+        .ip-cell.sel::after { content:"✓"; position:absolute; top:3px; right:5px; width:18px; height:18px; border-radius:50%; background:var(--primary,#2563eb); color:#fff; font-size:12px; line-height:18px; text-align:center }
+        .ip-sel { margin-top:12px; border-top:1px solid var(--border,#e2e8f0); padding-top:10px }
+        .ip-sel-label { font-size:12px; color:var(--text-light); margin-bottom:6px }
+        .ip-sel-row { display:flex; flex-wrap:wrap; gap:8px }
+        .ip-sel-item { position:relative; width:64px }
+        .ip-sel-item img { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border,#e2e8f0); display:block }
+        .ip-sel-item .ip-order { position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:rgba(37,99,235,.9); color:#fff; font-size:10px; line-height:16px; text-align:center }
+        .ip-sel-item .ip-rm { position:absolute; right:-4px; top:-4px; width:18px; height:18px; border-radius:50%; background:#ef4444; color:#fff; border:none; font-size:12px; line-height:16px; cursor:pointer; padding:0 }
+        .ip-sel-item .ip-mv { position:absolute; bottom:2px; right:2px; display:flex; gap:2px }
+        .ip-sel-item .ip-mv button { width:16px; height:16px; font-size:10px; line-height:14px; padding:0; border:1px solid var(--border,#e2e8f0); background:#fff; border-radius:4px; cursor:pointer }
+        .ip-empty { font-size:12px; color:#94a3b8; text-align:center; padding:24px 0 }
+        .ip-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px }
     </style>
 </head>
 <body>

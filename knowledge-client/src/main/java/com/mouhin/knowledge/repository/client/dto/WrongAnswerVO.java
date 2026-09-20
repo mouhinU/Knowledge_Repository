@@ -1,7 +1,10 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 单条错题记录视图对象
@@ -36,4 +39,11 @@ public class WrongAnswerVO {
     private String scoringCriteria;
     private Boolean correct;
     private String submitTime;
+
+    /**
+     * 该题的看图题配图 assetKey 有序数组（源自校对页绑定、按印刷题号回读）。
+     * <p>无配图时为 {@code null}，经 {@code @JsonInclude(NON_NULL)} 省略该键，保持既有载荷不变。</p>
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<String> images;
 }

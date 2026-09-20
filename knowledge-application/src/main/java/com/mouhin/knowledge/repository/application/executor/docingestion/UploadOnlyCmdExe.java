@@ -41,17 +41,20 @@ public class UploadOnlyCmdExe {
     private final DocumentGateway documentGateway;
     private final DocumentExtractionGateway documentExtractionService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DocumentImageSupport documentImageSupport;
 
     public UploadOnlyCmdExe(DocumentIngestionSupport support,
                             ExtractionCacheHolder extractionCache,
                             DocumentGateway documentGateway,
                             DocumentExtractionGateway documentExtractionService,
-                            ApplicationEventPublisher eventPublisher) {
+                            ApplicationEventPublisher eventPublisher,
+                            DocumentImageSupport documentImageSupport) {
         this.support = support;
         this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
         this.documentExtractionService = documentExtractionService;
         this.eventPublisher = eventPublisher;
+        this.documentImageSupport = documentImageSupport;
     }
 
     @Transactional
@@ -99,6 +102,13 @@ public class UploadOnlyCmdExe {
 
             document.setTotalPages(result.totalPages());
             documentGateway.update(document);
+
+            try {
+                documentImageSupport.extractAndPersist(document, permanentFile);
+            } catch (Exception imgEx) {
+                logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}",
+                        documentKey, imgEx.getMessage());
+            }
 
             eventPublisher.publishEvent(new DocumentCreatedEvent(
                     documentKey, file.getOriginalFilename(), ownerId, departmentId, LocalDateTime.now()));

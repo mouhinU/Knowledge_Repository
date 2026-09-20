@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.application.executor.examreview.ListRevie
 import com.mouhin.knowledge.repository.application.executor.examreview.PaperQuestionsView;
 import com.mouhin.knowledge.repository.application.executor.examreview.ResplitPaperCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examreview.UpdatePaperQuestionCmdExe;
+import com.mouhin.knowledge.repository.application.executor.examreview.UpdateQuestionImagesCmdExe;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
@@ -43,17 +44,20 @@ public class PaperReviewController {
     private final UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe;
     private final ApprovePaperCmdExe approvePaperCmdExe;
     private final ResplitPaperCmdExe resplitPaperCmdExe;
+    private final UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe;
 
     public PaperReviewController(ListReviewPendingQryExe listReviewPendingQryExe,
                                  GetPaperQuestionsQryExe getPaperQuestionsQryExe,
                                  UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe,
                                  ApprovePaperCmdExe approvePaperCmdExe,
-                                 ResplitPaperCmdExe resplitPaperCmdExe) {
+                                 ResplitPaperCmdExe resplitPaperCmdExe,
+                                 UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe) {
         this.listReviewPendingQryExe = listReviewPendingQryExe;
         this.getPaperQuestionsQryExe = getPaperQuestionsQryExe;
         this.updatePaperQuestionCmdExe = updatePaperQuestionCmdExe;
         this.approvePaperCmdExe = approvePaperCmdExe;
         this.resplitPaperCmdExe = resplitPaperCmdExe;
+        this.updateQuestionImagesCmdExe = updateQuestionImagesCmdExe;
     }
 
     /**
@@ -131,6 +135,27 @@ public class PaperReviewController {
     }
 
     /**
+     * 校对页绑定配图：就地保存某题的有序 assetKey 列表（空列表清除绑定），回写 images_json。
+     */
+    @PutMapping("/{sessionId}/question/{questionNumber}/images")
+    public ResponseEntity<Map<String, Object>> updateQuestionImages(
+            @PathVariable String sessionId,
+            @PathVariable Integer questionNumber,
+            @RequestBody Map<String, Object> body) {
+        try {
+            List<String> assetKeys = strList(body.get("assetKeys"));
+            List<String> saved = updateQuestionImagesCmdExe.execute(sessionId, questionNumber, assetKeys);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("questionNumber", questionNumber);
+            result.put("assetKeys", saved);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.warn("校对配图绑定失败 [session={}, number={}]: {}", sessionId, questionNumber, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    /**
      * 校对通过并发布（契约校验不过则拒绝，不可绕过）
      */
     @PostMapping("/{sessionId}/approve")
@@ -183,6 +208,7 @@ public class PaperReviewController {
             m.put("correctAnswer", q.getCorrectAnswer());
             m.put("analysis", q.getAnalysis());
             m.put("scoringCriteria", q.getScoringCriteria());
+            m.put("imagesJson", q.getImagesJson());
             list.add(m);
         }
         return list;
@@ -197,6 +223,19 @@ public class PaperReviewController {
 
     private static String str(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private static List<String> strList(Object value) {
+        List<String> result = new ArrayList<>();
+        if (!(value instanceof List<?> list)) {
+            return result;
+        }
+        for (Object item : list) {
+            if (item != null) {
+                result.add(String.valueOf(item));
+            }
+        }
+        return result;
     }
 
     private static Integer intOrNull(Object value) {

@@ -86,6 +86,16 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
     }
 
     @Override
+    public void updateImagesJson(String sessionKey, Integer questionNumber, String imagesJson) {
+        LambdaUpdateWrapper<ExamQuestionDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey)
+                .eq(ExamQuestionDO::getQuestionNumber, questionNumber)
+                .set(ExamQuestionDO::getImagesJson, imagesJson)
+                .set(ExamQuestionDO::getUpdateTime, LocalDateTime.now());
+        examQuestionMapper.update(null, wrapper);
+    }
+
+    @Override
     public void deleteBySessionKey(String sessionKey) {
         LambdaQueryWrapper<ExamQuestionDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey);

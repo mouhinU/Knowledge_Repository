@@ -31,6 +31,7 @@ public final class ExamQuestionConverter {
         domain.setCorrectAnswer(doObj.getCorrectAnswer());
         domain.setAnalysis(doObj.getAnalysis());
         domain.setScoringCriteria(doObj.getScoringCriteria());
+        domain.setImagesJson(doObj.getImagesJson());
         domain.setCreateTime(doObj.getCreateTime());
         domain.setUpdateTime(doObj.getUpdateTime());
         return domain;
@@ -53,6 +54,7 @@ public final class ExamQuestionConverter {
         doObj.setCorrectAnswer(domain.getCorrectAnswer());
         doObj.setAnalysis(domain.getAnalysis());
         doObj.setScoringCriteria(domain.getScoringCriteria());
+        doObj.setImagesJson(domain.getImagesJson());
         doObj.setCreateTime(domain.getCreateTime());
         doObj.setUpdateTime(domain.getUpdateTime());
         return doObj;

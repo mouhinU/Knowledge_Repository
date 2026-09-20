@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.agent.ExamContentRenderAgent;
 import com.mouhin.knowledge.repository.application.agent.ExamContentValidatorAgent;
 import com.mouhin.knowledge.repository.application.agent.PaperValidationReport;
+import com.mouhin.knowledge.repository.application.util.ExamImages;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -109,6 +111,83 @@ public class ExamTakingSupport {
             return List.of();
         }
         return examQuestionGateway.listBySessionKey(paperKey);
+    }
+
+    /**
+     * 将「看图题」配图注入开考快照。
+     * <p>快照 {@code questionsJson} 由出卷 Markdown 渲染而来，不含 {@code kb_exam_question.images_json}
+     * 中教师在校对页人工绑定的图片。开考时按印刷题号（快照 {@code number} ↔
+     * {@link ExamQuestion#getQuestionNumber()}）把绑定图片 assetKey 数组写入题目 {@code images} 字段，
+     * 供学生答题页通过公开图片流 {@code /api/exam/assets/{key}} 渲染。</p>
+     * <p>无绑定、题号不匹配或解析失败时原样返回入参，绝不阻断开考。</p>
+     *
+     * @param questionsJson  渲染后的题目快照 JSON
+     * @param paperQuestions 该试卷的结构化题目行（含 {@code imagesJson}）
+     * @return 注入图片后的快照 JSON；无需注入或异常时返回原快照
+     */
+    public String injectImagesIntoSnapshot(String questionsJson, List<ExamQuestion> paperQuestions) {
+        if (questionsJson == null || questionsJson.isBlank()
+                || paperQuestions == null || paperQuestions.isEmpty()) {
+            return questionsJson;
+        }
+        try {
+            List<Map<String, Object>> questions = OBJECT_MAPPER.readValue(questionsJson,
+                    new TypeReference<List<Map<String, Object>>>() {
+                    });
+            if (questions.isEmpty()) {
+                return questionsJson;
+            }
+            Map<Integer, List<String>> imagesByNumber = new HashMap<>();
+            for (ExamQuestion q : paperQuestions) {
+                Integer no = q.getQuestionNumber();
+                List<String> keys = parseAssetKeys(q.getImagesJson());
+                if (no != null && !keys.isEmpty()) {
+                    imagesByNumber.put(no, keys);
+                }
+            }
+            if (imagesByNumber.isEmpty()) {
+                return questionsJson;
+            }
+            boolean changed = false;
+            for (Map<String, Object> q : questions) {
+                Integer no = toInteger(q.get("number"));
+                if (no == null) {
+                    continue;
+                }
+                List<String> keys = imagesByNumber.get(no);
+                if (keys != null && !keys.isEmpty()) {
+                    q.put("images", keys);
+                    changed = true;
+                }
+            }
+            if (!changed) {
+                return questionsJson;
+            }
+            return OBJECT_MAPPER.writeValueAsString(questions);
+        } catch (Exception e) {
+            logger.warn("注入看图题配图失败，回退原快照：{}", e.getMessage());
+            return questionsJson;
+        }
+    }
+
+    /** 解析 {@code images_json}（assetKey 字符串数组）为列表；委托共享工具 {@link ExamImages}，null / 空 / 解析失败返回空列表。 */
+    private List<String> parseAssetKeys(String imagesJson) {
+        return ExamImages.parseAssetKeys(imagesJson);
+    }
+
+    /** 宽松地把快照中的题号值转 {@link Integer}（Number 或数字字符串），无法转换返回 null。 */
+    private Integer toInteger(Object value) {
+        if (value instanceof Number num) {
+            return num.intValue();
+        }
+        if (value instanceof String s && !s.isBlank()) {
+            try {
+                return Integer.valueOf(s.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /** 渲染题目（带考试方案） */

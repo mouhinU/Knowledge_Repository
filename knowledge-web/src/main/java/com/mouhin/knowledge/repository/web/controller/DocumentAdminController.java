@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.executor.docingestion.IndexAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.IndexCustomChunksAsyncCmdExe;
+import com.mouhin.knowledge.repository.application.executor.docingestion.ReindexAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
 import com.mouhin.knowledge.repository.client.dto.ChunkingRequest;
@@ -35,17 +36,20 @@ public class DocumentAdminController {
     private final DocumentIngestionServiceI ingestionService;
     private final IndexAsyncCmdExe indexAsyncCmdExe;
     private final IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe;
+    private final ReindexAsyncCmdExe reindexAsyncCmdExe;
     private final IndexProgressStore indexProgressStore;
 
     public DocumentAdminController(DocumentServiceI documentService,
                                    DocumentIngestionServiceI ingestionService,
                                    IndexAsyncCmdExe indexAsyncCmdExe,
                                    IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe,
+                                   ReindexAsyncCmdExe reindexAsyncCmdExe,
                                    IndexProgressStore indexProgressStore) {
         this.documentService = documentService;
         this.ingestionService = ingestionService;
         this.indexAsyncCmdExe = indexAsyncCmdExe;
         this.indexCustomChunksAsyncCmdExe = indexCustomChunksAsyncCmdExe;
+        this.reindexAsyncCmdExe = reindexAsyncCmdExe;
         this.indexProgressStore = indexProgressStore;
     }
 
@@ -127,16 +131,48 @@ public class DocumentAdminController {
     }
 
     /**
-     * 重新入库文档（清理旧向量/分块，重新提取、分块、向量化）
+     * 重新入库（异步，通过 SSE 推送进度）
+     * <p>清理旧向量 / 分块 / 配图并重新提取、分块、向量化存储，进度复用 {@code /index/progress}。</p>
      */
     @PostMapping("/{documentKey}/reindex")
-    public ResponseEntity<Map<String, Object>> reindex(@PathVariable String documentKey) {
-        DocumentVO document = ingestionService.reindex(documentKey);
+    public ResponseEntity<Map<String, Object>> reindex(
+            @PathVariable String documentKey,
+            ChunkingRequest chunkingRequest) {
+
+        logger.info("Async reindexing document {}: chunkSize={}, strategy={}", documentKey,
+                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
+
+        var callback = indexProgressStore.createCallback(documentKey);
+        reindexAsyncCmdExe.execute(
+                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
+                chunkingRequest.getStrategy(), null, callback);
+
         return ResponseEntity.ok(Map.of(
-                "documentKey", document.getDocumentKey(),
-                "fileName", document.getFileName(),
-                "status", document.getStatus(),
-                "message", "Document reindexed: " + documentKey
+                "documentKey", documentKey,
+                "status", "STARTED",
+                "message", "Reindexing started. Connect to SSE for progress."
+        ));
+    }
+
+    /**
+     * 使用自定义分块重新入库（异步，通过 SSE 推送进度）
+     * <p>先清理旧向量 / 分块 / 配图，再以手动调整后的分块重新向量化存储。</p>
+     */
+    @PostMapping("/{documentKey}/reindex-custom")
+    public ResponseEntity<Map<String, Object>> reindexWithCustomChunks(
+            @PathVariable String documentKey,
+            @RequestBody List<CustomChunkInput> customChunks) {
+
+        logger.info("Async reindexing document {} with {} custom chunks", documentKey,
+                customChunks != null ? customChunks.size() : 0);
+
+        var callback = indexProgressStore.createCallback(documentKey);
+        reindexAsyncCmdExe.execute(documentKey, 0, 0, null, customChunks, callback);
+
+        return ResponseEntity.ok(Map.of(
+                "documentKey", documentKey,
+                "status", "STARTED",
+                "message", "Reindexing started. Connect to SSE for progress."
         ));
     }
 

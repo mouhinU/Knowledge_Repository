@@ -8,7 +8,6 @@ import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import org.slf4j.Logger;
@@ -17,10 +16,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.UUID;
 
 /**
  * 异步自定义分块索引用例执行器（app 层，SSE 进度回调）。
@@ -77,7 +74,7 @@ public class IndexCustomChunksAsyncCmdExe {
                 document.markProcessing();
                 documentGateway.update(document);
 
-                List<DocumentChunk> chunks = buildChunks(document, customChunks);
+                List<DocumentChunk> chunks = support.buildCustomChunks(document, customChunks);
 
                 if (chunks.isEmpty()) {
                     document.markFailed("No valid chunks provided");
@@ -118,35 +115,5 @@ public class IndexCustomChunksAsyncCmdExe {
                 }
             }
         });
-    }
-
-    private List<DocumentChunk> buildChunks(Document document, List<CustomChunkInput> customChunks) {
-        List<DocumentChunk> chunks = new ArrayList<>(customChunks.size());
-        int index = 0;
-        for (CustomChunkInput input : customChunks) {
-            if (input.content() == null || input.content().isBlank()) {
-                continue;
-            }
-            DocumentChunk chunk = new DocumentChunk();
-            chunk.setChunkKey(UUID.randomUUID().toString());
-            chunk.setDocumentId(document.getId());
-            chunk.setDocumentKey(document.getDocumentKey());
-            chunk.setChunkIndex(index++);
-            chunk.setStartPage(input.startPage());
-            chunk.setEndPage(input.endPage());
-            chunk.setContent(input.content());
-            chunk.setTokenCount(chunk.estimateTokenCount(input.content()));
-            chunk.setDepartmentId(document.getDepartmentId());
-            chunk.setVisibility(document.getVisibility() != null
-                    ? document.getVisibility().name()
-                    : DocumentVisibilityEnum.INTERNAL.name());
-            chunk.setAllowedRoles(document.getAllowedRoles());
-            chunk.setOwnerId(document.getOwnerId());
-            chunk.setDocumentName(document.getFileName());
-            chunk.setFileType(document.getFileType());
-            chunk.setTags(document.getTags());
-            chunks.add(chunk);
-        }
-        return chunks;
     }
 }

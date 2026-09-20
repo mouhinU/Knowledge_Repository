@@ -689,6 +689,7 @@
                 html += '</div>';
                 html += '<div style="padding:16px">';
                 html += '<div style="font-size:13px;color:#334155;line-height:1.7;margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid ' + qTypeColor + ';white-space:pre-wrap">' + esc(a.questionContent || '题目内容缺失') + '</div>';
+                html += KR.renderImages(a.images);
                 if (optionsHtml) html += optionsHtml;
                 html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">';
                 html += '<div><div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">考生答案</div>'

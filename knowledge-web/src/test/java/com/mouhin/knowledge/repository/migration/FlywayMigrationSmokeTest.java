@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Flyway V1-V15 迁移冒烟测试（体检 HIGH H4）。
+ * Flyway V1-V16 迁移冒烟测试（体检 HIGH H4）。
  * <p>
  * 用 H2（MySQL 兼容模式）在内存中一次性回放全部迁移脚本，锁定"库重建 / 迁移链可成功执行"这一
  * 生产启动前置：若任一版本脚本存在语法错误、跨版本对象依赖破坏（如 V11 新表被 V13 ALTER 引用），
@@ -32,18 +32,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Knowledge-Repository
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V15 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V17 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V15）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 15;
+    /** 迁移脚本总数（V1..V17）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 17;
 
     private static final String JDBC_URL = "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
     private static final String USER = "sa";
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 13")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 17")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway = Flyway.configure()
                 .dataSource(JDBC_URL, USER, PASSWORD)
@@ -56,11 +56,11 @@ class FlywayMigrationSmokeTest {
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted,
                 "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V15
+        // 二次调用应无待处理迁移（幂等），并停留在 V17
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals("15", current.getVersion().getVersion(),
-                "最终版本应为 V15（admin 登录鉴权 password_hash/status）");
+        assertEquals("17", current.getVersion().getVersion(),
+                "最终版本应为 V17（看图题配图绑定 kb_exam_question.images_json）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -76,13 +76,14 @@ class FlywayMigrationSmokeTest {
             List<String> tables = new ArrayList<>();
             try (ResultSet rs = st.executeQuery(
                     "SELECT LOWER(table_name) FROM information_schema.tables "
-                            + "WHERE LOWER(table_name) IN ('sys_department','kb_exam_question')")) {
+                            + "WHERE LOWER(table_name) IN ('sys_department','kb_exam_question','kb_document_image')")) {
                 while (rs.next()) {
                     tables.add(rs.getString(1));
                 }
             }
             assertTrue(tables.contains("sys_department"), "V1 初始表缺失 (sys_department)");
             assertTrue(tables.contains("kb_exam_question"), "V11 新表缺失 (kb_exam_question)");
+            assertTrue(tables.contains("kb_document_image"), "V16 新表缺失 (kb_document_image)");
 
             // 抽查 V14（CONC-1）为 kb_exam_session 增加的评分围栏令牌列存在
             boolean hasGradingToken = false;
@@ -118,6 +119,17 @@ class FlywayMigrationSmokeTest {
                 assertTrue(new BCryptPasswordEncoder().matches("admin123", adminHash),
                         "种子哈希应与默认口令 admin123 匹配（迁移常量漂移）");
             }
+
+            // 抽查 V17（看图题配图绑定）为 kb_exam_question 增加的 images_json 列存在
+            boolean hasImagesJson = false;
+            try (ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM information_schema.columns "
+                            + "WHERE LOWER(table_name) = 'kb_exam_question' "
+                            + "AND LOWER(column_name) = 'images_json'")) {
+                assertTrue(rs.next());
+                hasImagesJson = rs.getInt(1) > 0;
+            }
+            assertTrue(hasImagesJson, "V17 列缺失 (kb_exam_question.images_json)");
         }
     }
 }

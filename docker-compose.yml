@@ -43,11 +43,15 @@ services:
       KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS: "${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:-8}"
       # 文件存储（宿主机 bind mount）
       STORAGE_PATH: /app/data/documents
+      # 看图题配图二进制目录（由文档图片提取器写入，浏览器经 /api/exam/assets/{assetKey} 访问）
+      EXAM_ASSET_PATH: /app/data/exam-assets
       # JVM
       JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC -Duser.timezone=Asia/Shanghai"
     volumes:
       # 文档文件存储 → 宿主机 data/documents/
       - ./data/documents:/app/data/documents
+      # 看图题配图 → 宿主机 data/exam-assets/
+      - ./data/exam-assets:/app/data/exam-assets
       # 日志存储 → 宿主机 docker/logs/app/
       - ./docker/logs/app:/app/logs
     extra_hosts:

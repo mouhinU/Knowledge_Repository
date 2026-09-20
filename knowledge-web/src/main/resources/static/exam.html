@@ -893,6 +893,67 @@
             margin-left: 1px;
         }
 
+        /* 看图题配图（来自题库文档抽取的图片，按题号绑定注入 snapshot 的 q.images） */
+        .question-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 12px 0 0 16px;
+        }
+
+        .question-image {
+            max-width: 320px;
+            max-height: 260px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: var(--gray-50);
+            cursor: zoom-in;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+            transition: box-shadow .15s ease, transform .15s ease;
+        }
+
+        .question-image:hover {
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
+        }
+
+        /* 点击放大查看 */
+        .q-image-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .82);
+            padding: 24px;
+        }
+
+        .q-image-lightbox.open {
+            display: flex;
+        }
+
+        .q-image-lightbox img {
+            max-width: 92vw;
+            max-height: 92vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+        }
+
+        .q-image-lightbox .q-image-close {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            font-size: 34px;
+            line-height: 1;
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
+        }
+
         .question-score {
             font-size: 13px;
             font-weight: 600;
@@ -2100,6 +2161,7 @@
                 + '<div class="wb-score" style="color:' + scoreColor + '">' + item.effectiveScore + ' <span style="font-size:13px;color:var(--gray-500);font-weight:400">/ ' + item.maxScore + '分 · 得分率 ' + scorePercent + '%</span></div>'
                 + '</div>'
                 + '<div class="wb-question">' + escapeHtml(item.questionContent || '') + '</div>'
+                + renderQuestionImages(item.images)
                 + optionsHtml
                 + '<div class="wb-answer-grid">'
                 + '<div class="wb-answer mine"><div class="wb-answer-label">我的答案</div>' + escapeHtml(item.studentAnswer || '（未作答）') + '</div>'
@@ -2462,6 +2524,44 @@
         renderQuestionNav();
     }
 
+    /* ===== 看图题配图渲染（assetKey → 公开图片流 /api/exam/assets/{key}） ===== */
+    function renderQuestionImages(images) {
+        if (!images || !Array.isArray(images) || images.length === 0) {
+            return '';
+        }
+        var html = '<div class="question-images">';
+        images.forEach(function (key) {
+            if (!key || typeof key !== 'string') return;
+            var url = '/api/exam/assets/' + encodeURIComponent(key);
+            var safe = escapeAttr(url);
+            html += '<img class="question-image" src="' + safe + '" alt="题目配图" loading="lazy"'
+                + ' onclick="openImageLightbox(\'' + safe + '\')">';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function openImageLightbox(src) {
+        var box = document.getElementById('qImageLightbox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'qImageLightbox';
+            box.className = 'q-image-lightbox';
+            box.onclick = closeImageLightbox;
+            box.innerHTML = '<span class="q-image-close" onclick="closeImageLightbox()">&times;</span>'
+                + '<img id="qImageLightboxImg" alt="题目配图">';
+            document.body.appendChild(box);
+        }
+        var img = document.getElementById('qImageLightboxImg');
+        if (img) img.src = src;
+        box.classList.add('open');
+    }
+
+    function closeImageLightbox() {
+        var box = document.getElementById('qImageLightbox');
+        if (box) box.classList.remove('open');
+    }
+
     /* ===== Render Question ===== */
     function renderQuestion(index) {
         var area = document.getElementById('questionArea');
@@ -2484,6 +2584,7 @@
             ? q.sectionLabel.trim() : questionTypeLabel(type);
         html += '<div class="question-type-badge">' + escapeHtml(badgeLabel) + '</div>';
         html += '<div class="question-content">' + escapeHtml(q.content || '') + '</div>';
+        html += renderQuestionImages(q.images);
         html += '</div>';
         html += '<div class="question-score">' + (q.maxScore || 0) + '分</div>';
         html += '</div>';
@@ -3063,6 +3164,7 @@
 
             if (q) {
                 html += '<div class="result-q-content">' + escapeHtml(q.content || '') + '</div>';
+                html += renderQuestionImages(q.images);
             }
 
             html += '<div class="result-detail-grid">';

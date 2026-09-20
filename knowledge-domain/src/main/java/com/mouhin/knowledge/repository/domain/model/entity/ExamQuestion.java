@@ -71,6 +71,13 @@ public class ExamQuestion {
      */
     private String scoringCriteria;
 
+    /**
+     * 配图 assetKey 有序数组的 JSON（如 {@code ["k1","k2"]}）。
+     * <p>校对页人工绑定（阶段 2），学生答题页 / 校对页据此经
+     * {@code /api/exam/assets/{assetKey}} 拉取展示。重新切分时按印刷题号保留本列。</p>
+     */
+    private String imagesJson;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
@@ -171,6 +178,14 @@ public class ExamQuestion {
 
     public void setScoringCriteria(String scoringCriteria) {
         this.scoringCriteria = scoringCriteria;
+    }
+
+    public String getImagesJson() {
+        return imagesJson;
+    }
+
+    public void setImagesJson(String imagesJson) {
+        this.imagesJson = imagesJson;
     }
 
     public LocalDateTime getCreateTime() {

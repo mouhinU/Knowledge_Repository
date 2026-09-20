@@ -40,17 +40,20 @@ public class UploadFromFileCmdExe {
     private final DocumentGateway documentGateway;
     private final DocumentExtractionGateway documentExtractionService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DocumentImageSupport documentImageSupport;
 
     public UploadFromFileCmdExe(DocumentIngestionSupport support,
                                 ExtractionCacheHolder extractionCache,
                                 DocumentGateway documentGateway,
                                 DocumentExtractionGateway documentExtractionService,
-                                ApplicationEventPublisher eventPublisher) {
+                                ApplicationEventPublisher eventPublisher,
+                                DocumentImageSupport documentImageSupport) {
         this.support = support;
         this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
         this.documentExtractionService = documentExtractionService;
         this.eventPublisher = eventPublisher;
+        this.documentImageSupport = documentImageSupport;
     }
 
     public DocumentVO execute(Path assembledFile, String fileName, String ownerId,
@@ -89,6 +92,13 @@ public class UploadFromFileCmdExe {
         document.validateForCreate();
 
         documentGateway.save(document);
+
+        try {
+            documentImageSupport.extractAndPersist(document, assembledFile);
+        } catch (Exception imgEx) {
+            logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}",
+                    documentKey, imgEx.getMessage());
+        }
 
         eventPublisher.publishEvent(new DocumentCreatedEvent(
                 documentKey, fileName, ownerId, departmentId, LocalDateTime.now()));

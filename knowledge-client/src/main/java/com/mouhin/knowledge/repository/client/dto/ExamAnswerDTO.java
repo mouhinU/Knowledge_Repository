@@ -1,9 +1,11 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 单题答题记录视图对象
@@ -41,4 +43,12 @@ public class ExamAnswerDTO {
     private LocalDateTime updateTime;
     private Boolean objective;
     private Integer effectiveScore;
+
+    /**
+     * 该题的看图题配图 assetKey 有序数组（按印刷题号从结构化题目行回读），供教师「成绩复核详情」展示。
+     * <p>学生端 {@code /api/exam/{sessionKey}/answers} 不解析配图时为 {@code null}，
+     * 经 {@code @JsonInclude(NON_NULL)} 省略该键，保持既有载荷字节不变。</p>
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<String> images;
 }

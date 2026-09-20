@@ -200,6 +200,7 @@
                 + '<div style="font-size:11px;color:var(--text-light)">得分率 ' + scorePercent + '%</div></div>'
                 + '</div>'
                 + '<div style="font-size:14px;line-height:1.6;margin-bottom:10px">' + esc(item.questionContent) + '</div>'
+                + KR.renderImages(item.images)
                 + optionsHtml
                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">'
                 + '<div class="wb-answer-box" style="background:#fff3e0"><div style="font-size:12px;color:#e65100;font-weight:600;margin-bottom:4px">学生答案</div><div style="font-size:13px">' + esc(item.studentAnswer || '（未作答）') + '</div></div>'

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.converter;
 
+import com.mouhin.knowledge.repository.application.util.ExamImages;
 import com.mouhin.knowledge.repository.client.dto.StudentOptionVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
@@ -52,6 +53,7 @@ public final class WrongAnswerConverter {
         vo.setAiFeedback(answer.getAiFeedback());
         vo.setAnalysis(question != null ? question.getAnalysis() : null);
         vo.setScoringCriteria(question != null ? question.getScoringCriteria() : null);
+        vo.setImages(question != null ? ExamImages.parseOrNull(question.getImagesJson()) : null);
         vo.setCorrect(answer.getCorrect());
         vo.setSubmitTime(session.getSubmitTime() != null ? session.getSubmitTime().toString() : null);
         return vo;

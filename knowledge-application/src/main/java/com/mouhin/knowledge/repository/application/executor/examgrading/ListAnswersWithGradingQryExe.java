@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examgrading;
 
 import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter;
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
+import com.mouhin.knowledge.repository.application.util.ExamImages;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
@@ -49,12 +50,14 @@ public class ListAnswersWithGradingQryExe {
         return answers.stream()
                 .map(answer -> {
                     ExamAnswerDTO dto = ExamTakingConverter.toAnswerDTO(answer);
-                    if (dto.getCorrectAnswer() == null || dto.getCorrectAnswer().isBlank()) {
-                        ExamQuestion question = lookup(questionMap, answer);
-                        if (question != null && question.getCorrectAnswer() != null
+                    ExamQuestion question = lookup(questionMap, answer);
+                    if (question != null) {
+                        if ((dto.getCorrectAnswer() == null || dto.getCorrectAnswer().isBlank())
+                                && question.getCorrectAnswer() != null
                                 && !question.getCorrectAnswer().isBlank()) {
                             dto.setCorrectAnswer(question.getCorrectAnswer());
                         }
+                        dto.setImages(ExamImages.parseOrNull(question.getImagesJson()));
                     }
                     return dto;
                 })

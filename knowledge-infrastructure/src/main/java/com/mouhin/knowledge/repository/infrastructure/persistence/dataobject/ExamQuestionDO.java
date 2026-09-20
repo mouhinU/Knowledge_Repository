@@ -56,6 +56,9 @@ public class ExamQuestionDO {
     @TableField("scoring_criteria")
     private String scoringCriteria;
 
+    @TableField("images_json")
+    private String imagesJson;
+
     @TableField("create_time")
     private LocalDateTime createTime;
 

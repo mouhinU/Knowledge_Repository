@@ -387,6 +387,40 @@
     function openModal() { document.getElementById('modal-overlay').classList.add('active'); }
     function closeModal() { const m = document.getElementById('modal-overlay'); if (m) m.classList.remove('active'); }
 
+    /* ---------- 看图题配图渲染（错题本 / 成绩复核复用；公开流 /api/exam/assets/{key}，无需令牌） ---------- */
+    function renderImages(images) {
+        if (!images || !Array.isArray(images) || images.length === 0) return '';
+        var html = '<div class="kr-imgs">';
+        images.forEach(function (key) {
+            if (!key || typeof key !== 'string') return;
+            var url = '/api/exam/assets/' + encodeURIComponent(key);
+            var safe = esc(url);
+            html += '<img class="kr-img" src="' + safe + '" alt="题目配图" loading="lazy"'
+                + ' onclick="KR.openImgLightbox(\'' + safe + '\')">';
+        });
+        html += '</div>';
+        return html;
+    }
+    function openImgLightbox(src) {
+        var box = document.getElementById('kr-img-lightbox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'kr-img-lightbox';
+            box.className = 'kr-img-lightbox';
+            box.onclick = closeImgLightbox;
+            box.innerHTML = '<span class="kr-img-close" onclick="KR.closeImgLightbox()">&times;</span>'
+                + '<img id="kr-img-lightbox-img" alt="题目配图">';
+            document.body.appendChild(box);
+        }
+        var img = document.getElementById('kr-img-lightbox-img');
+        if (img) img.src = src;
+        box.classList.add('open');
+    }
+    function closeImgLightbox() {
+        var box = document.getElementById('kr-img-lightbox');
+        if (box) box.classList.remove('open');
+    }
+
     function showConfirm(msg, opts) {
         return new Promise(function (resolve) {
             const overlay = document.getElementById('confirm-overlay');
@@ -535,12 +569,14 @@
         showConfirm: showConfirm, statusBadge: statusBadge, formatSize: formatSize,
         formatElapsed: formatElapsed, formatTime: formatTime, fmtDateTime: fmtDateTime,
         renderMarkdown: renderMarkdown, renderPager: renderPager, distributeInt: distributeInt,
+        renderImages: renderImages, openImgLightbox: openImgLightbox, closeImgLightbox: closeImgLightbox,
         uuid: uuid
     };
     window.KR = KR;
     // 全局别名：与旧代码保持一致，页面脚本可直接使用这些裸函数名
     ['esc', 'escHtml', 'toast', 'openModal', 'closeModal', 'showConfirm', 'statusBadge',
         'formatSize', 'formatElapsed', 'formatTime', 'renderMarkdown', 'renderPager',
+        'renderImages', 'openImgLightbox', 'closeImgLightbox',
         'distributeInt'].forEach(function (fn) { window[fn] = KR[fn]; });
     window.generateId = KR.uuid;
 })();

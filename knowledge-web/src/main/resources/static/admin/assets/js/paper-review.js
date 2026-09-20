@@ -12,6 +12,13 @@
 
     let currentSessionId = null;
 
+    // —— 配图选择器状态（阶段 2）——
+    let pickerNumber = null;        // 当前正在配图的题号
+    let pickerSel = [];             // 有序已选图片 [{assetKey,url,name}]
+    let pickerTab = 'global';       // 'global' 全局搜索 | 'document' 按文档
+    let docListCache = null;        // 文档下拉数据缓存 [{documentKey,fileName}]
+    let questionsByNumber = {};     // 当前试卷题目缓存 {题号: question}
+
     const TYPE_LABEL = {
         SINGLE_CHOICE: '单选题', MULTI_CHOICE: '多选题', TRUE_FALSE: '判断题',
         FILL_BLANK: '填空题', SHORT_ANSWER: '简答题', ESSAY: '论述题'
@@ -120,6 +127,8 @@
     }
 
     function renderQuestions(questions) {
+        questionsByNumber = {};
+        questions.forEach(function (q) { questionsByNumber[q.questionNumber] = q; });
         const host = document.getElementById('detail-questions');
         if (!questions.length) {
             host.innerHTML = '<div class="pr-empty">该试卷无结构化题目行，可点「重新切分」回灌。</div>';
@@ -154,8 +163,39 @@
             + '</div>'
             + '<label>解析 / 说明<textarea class="form-input pr-in-analysis" rows="2">' + esc(q.analysis || '') + '</textarea></label>'
             + '</div>'
+            + imagesHtml(q)
             + '<div class="pr-q-actions"><button class="btn btn-primary btn-sm" onclick="saveQuestion(' + num + ', this)">保存本题</button></div>'
             + '</div>';
+    }
+
+    // 渲染某题的配图区：缩略图（按 assetKey 走公开流端点）+「配置配图」入口
+    function imagesHtml(q) {
+        const keys = parseImages(q.imagesJson);
+        const thumbs = keys.length
+            ? '<div class="pr-img-thumbs">' + keys.map(function (k) {
+                return '<img src="' + esc(imageUrl(k)) + '" alt="配图" loading="lazy">';
+            }).join('') + '</div>'
+            : '<div class="pr-img-none">尚未配图</div>';
+        return '<div class="pr-imgs">'
+            + '<div class="pr-imgs-head"><span>配图' + (keys.length ? '（' + keys.length + '）' : '') + '</span>'
+            + '<button class="btn btn-outline btn-sm" onclick="openImagePicker(' + q.questionNumber + ')">配置配图</button></div>'
+            + thumbs + '</div>';
+    }
+
+    function imageUrl(assetKey) {
+        return API + '/api/exam/assets/' + encodeURIComponent(assetKey);
+    }
+
+    // images_json 存的是 assetKey 有序字符串数组；容错解析
+    function parseImages(imagesJson) {
+        if (!imagesJson) return [];
+        try {
+            const arr = JSON.parse(imagesJson);
+            if (!Array.isArray(arr)) return [];
+            return arr.filter(function (x) { return x != null && String(x).trim(); }).map(String);
+        } catch (e) {
+            return [];
+        }
     }
 
     // 选项落库为 JSON 对象数组 [{key,value}]（兼容早期纯字符串数组）；统一归一化为 {key, value}
@@ -249,7 +289,7 @@
     /* ---------------- 重新切分 ---------------- */
     async function doResplit() {
         if (!currentSessionId) return;
-        const ok = await KR.showConfirm('按试卷原文重新切分会覆盖当前结构化题目行（含已编辑的答案），确认？', {
+        const ok = await KR.showConfirm('按试卷原文重新切分会覆盖当前结构化题目行（含已编辑的答案）；人工绑定的配图将按题号尽量保留。确认？', {
             confirmText: '确认重切', confirmClass: 'btn-danger', icon: '⚠'
         });
         if (!ok) return;
@@ -266,6 +306,208 @@
         }
     }
 
+    /* ---------------- 配图选择器 ---------------- */
+    function openImagePicker(number) {
+        if (!currentSessionId) return;
+        pickerNumber = number;
+        const q = questionsByNumber[number] || {};
+        // 以既有绑定的 assetKey 初始化有序已选（url 由句柄重建，name 暂用句柄）
+        pickerSel = parseImages(q.imagesJson).map(function (k) {
+            return { assetKey: k, url: imageUrl(k), name: '' };
+        });
+        renderImagePicker();
+    }
+
+    function switchImageTab(tab) {
+        pickerTab = tab;
+        renderImagePicker();
+    }
+
+    function renderImagePicker() {
+        const title = document.getElementById('modal-title');
+        if (title) title.textContent = '配置配图 · 第 ' + pickerNumber + ' 题';
+        const body = document.getElementById('modal-body');
+        if (!body) return;
+        body.innerHTML =
+            '<div class="ip-tabs">'
+            + '<button class="ip-tab ' + (pickerTab === 'global' ? 'active' : '') + '" onclick="switchImageTab(\'global\')">全局搜索</button>'
+            + '<button class="ip-tab ' + (pickerTab === 'document' ? 'active' : '') + '" onclick="switchImageTab(\'document\')">按文档选图</button>'
+            + '</div>'
+            + (pickerTab === 'global'
+                ? '<div class="ip-tools"><input class="form-input" id="ip-keyword" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchGlobalImages()}" placeholder="输入关键词匹配来源文档名 / 文档Key，回车或点检索">'
+                    + '<button class="btn btn-primary btn-sm" onclick="searchGlobalImages()">检索</button></div>'
+                : '<div class="ip-tools"><select class="form-input" id="ip-doc"></select>'
+                    + '<button class="btn btn-primary btn-sm" onclick="searchByDocument()">加载该文档配图</button></div>')
+            + '<div class="ip-grid" id="ip-grid"><div class="ip-empty">加载中…</div></div>'
+            + '<div class="ip-sel"><div class="ip-sel-label">已选配图（拖顺序号即展示顺序）：</div>'
+            + '<div class="ip-sel-row" id="ip-sel-row"></div></div>'
+            + '<div class="ip-foot"><button class="btn btn-outline" onclick="closeImagePicker()">取消</button>'
+            + '<button class="btn btn-primary" onclick="saveImagePicker(this)">保存配图</button></div>';
+        renderSelected();
+        KR.openModal();
+        if (pickerTab === 'document') { loadDocOptions(); } else { searchGlobalImages(); }
+    }
+
+    async function loadDocOptions() {
+        const sel = document.getElementById('ip-doc');
+        if (!sel) return;
+        try {
+            if (!docListCache) {
+                const res = await fetch(API + '/api/admin/document/list');
+                const arr = await res.json();
+                docListCache = Array.isArray(arr) ? arr : (arr.records || []);
+            }
+            if (!docListCache.length) { sel.innerHTML = '<option value="">（知识库暂无文档）</option>'; return; }
+            sel.innerHTML = docListCache.map(function (d) {
+                const label = d.fileName || d.documentKey;
+                return '<option value="' + esc(d.documentKey) + '">' + esc(label) + '</option>';
+            }).join('');
+        } catch (e) {
+            sel.innerHTML = '<option value="">（文档列表加载失败）</option>';
+        }
+    }
+
+    async function searchGlobalImages() {
+        const kwEl = document.getElementById('ip-keyword');
+        const kw = kwEl ? kwEl.value.trim() : '';
+        const url = API + '/api/admin/exam-images/search?limit=60&offset=0'
+            + (kw ? '&keyword=' + encodeURIComponent(kw) : '');
+        await runImageSearch(url);
+    }
+
+    async function searchByDocument() {
+        const sel = document.getElementById('ip-doc');
+        const key = sel ? sel.value : '';
+        if (!key) { KR.toast('请先选择一篇文档', 'error'); return; }
+        const url = API + '/api/admin/exam-images/search?limit=120&offset=0&documentKey=' + encodeURIComponent(key);
+        await runImageSearch(url);
+    }
+
+    async function runImageSearch(url) {
+        const grid = document.getElementById('ip-grid');
+        if (grid) grid.innerHTML = '<div class="ip-empty">加载中…</div>';
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!res.ok) { if (grid) grid.innerHTML = '<div class="ip-empty">' + esc(data.error || '检索失败') + '</div>'; return; }
+            loadImageGrid(data.records || []);
+        } catch (e) {
+            if (grid) grid.innerHTML = '<div class="ip-empty">检索失败：' + esc(e.message) + '</div>';
+        }
+    }
+
+    // 网格数据缓存，供点击按 assetKey 取回完整元信息
+    let pickerGridData = [];
+
+    function loadImageGrid(records) {
+        pickerGridData = records;
+        const grid = document.getElementById('ip-grid');
+        if (!grid) return;
+        if (!records.length) { grid.innerHTML = '<div class="ip-empty">没有匹配的图片</div>'; return; }
+        grid.innerHTML = records.map(function (r, i) {
+            const sel = isPicked(r.assetKey) ? ' sel' : '';
+            const cap = esc(r.sourceDocumentName || '') + (r.pageNo ? (' · 第' + esc(r.pageNo) + '页') : '');
+            return '<div class="ip-cell' + sel + '" data-i="' + i + '" onclick="togglePickByIndex(' + i + ')">'
+                + '<img src="' + esc(r.url) + '" alt="配图" loading="lazy">'
+                + '<div class="ip-cap">' + cap + '</div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function isPicked(assetKey) {
+        return pickerSel.some(function (x) { return x.assetKey === assetKey; });
+    }
+
+    function togglePickByIndex(i) {
+        const r = pickerGridData[i];
+        if (r) togglePick({ assetKey: r.assetKey, url: r.url, name: r.sourceDocumentName || '' });
+    }
+
+    function togglePick(image) {
+        const idx = pickerSel.findIndex(function (x) { return x.assetKey === image.assetKey; });
+        if (idx >= 0) {
+            pickerSel.splice(idx, 1);
+        } else {
+            if (pickerSel.length >= 20) { KR.toast('单题配图最多 20 张', 'error'); return; }
+            pickerSel.push(image);
+        }
+        // 同步刷新网格选中态 + 已选条
+        const cell = document.querySelector('.ip-cell[data-i="' + pickerGridData.findIndex(function (r) { return r.assetKey === image.assetKey; }) + '"]');
+        if (cell) cell.classList.toggle('sel', isPicked(image.assetKey));
+        renderSelected();
+    }
+
+    function renderSelected() {
+        const row = document.getElementById('ip-sel-row');
+        if (!row) return;
+        if (!pickerSel.length) { row.innerHTML = '<div class="ip-empty">尚未选择，点击上方缩略图添加</div>'; return; }
+        row.innerHTML = pickerSel.map(function (x, i) {
+            return '<div class="ip-sel-item">'
+                + '<span class="ip-order">' + (i + 1) + '</span>'
+                + '<button class="ip-rm" onclick="removePick(' + i + ')">×</button>'
+                + '<img src="' + esc(x.url) + '" alt="已选">'
+                + '<div class="ip-mv">'
+                + (i > 0 ? '<button onclick="movePick(' + i + ',-1)" title="前移">‹</button>' : '')
+                + (i < pickerSel.length - 1 ? '<button onclick="movePick(' + i + ',1)" title="后移">›</button>' : '')
+                + '</div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function removePick(i) {
+        const removed = pickerSel.splice(i, 1)[0];
+        if (removed) {
+            const gi = pickerGridData.findIndex(function (r) { return r.assetKey === removed.assetKey; });
+            if (gi >= 0) { const cell = document.querySelector('.ip-cell[data-i="' + gi + '"]'); if (cell) cell.classList.remove('sel'); }
+        }
+        renderSelected();
+    }
+
+    function movePick(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= pickerSel.length) return;
+        const tmp = pickerSel[i]; pickerSel[i] = pickerSel[j]; pickerSel[j] = tmp;
+        renderSelected();
+    }
+
+    async function saveImagePicker(btn) {
+        if (!currentSessionId || pickerNumber == null) return;
+        if (btn) btn.disabled = true;
+        const assetKeys = pickerSel.map(function (x) { return x.assetKey; });
+        try {
+            const res = await fetch(API + '/api/admin/paper-review/' + encodeURIComponent(currentSessionId)
+                + '/question/' + pickerNumber + '/images', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assetKeys: assetKeys })
+            });
+            const data = await res.json();
+            if (!res.ok) { KR.toast(data.error || '保存配图失败', 'error'); return; }
+            KR.toast('第 ' + pickerNumber + ' 题配图已保存', 'success');
+            // 更新缓存与卡片（就地重绘配图区，避免整卷重拉）
+            if (questionsByNumber[pickerNumber]) questionsByNumber[pickerNumber].imagesJson = JSON.stringify(data.assetKeys || assetKeys);
+            const card = document.querySelector('.pr-q[data-num="' + pickerNumber + '"]');
+            if (card) {
+                const old = card.querySelector('.pr-imgs');
+                const holder = document.createElement('div');
+                holder.innerHTML = imagesHtml({ questionNumber: pickerNumber, imagesJson: JSON.stringify(data.assetKeys || assetKeys) });
+                if (old && holder.firstChild) card.replaceChild(holder.firstChild, old);
+            }
+            closeImagePicker();
+        } catch (e) {
+            KR.toast('保存配图失败：' + e.message, 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    function closeImagePicker() {
+        pickerNumber = null;
+        pickerSel = [];
+        pickerGridData = [];
+        KR.closeModal();
+    }
+
     // 暴露给内联 onclick
     window.loadPending = loadPending;
     window.openReview = openReview;
@@ -273,6 +515,15 @@
     window.saveQuestion = saveQuestion;
     window.doApprove = doApprove;
     window.doResplit = doResplit;
+    window.openImagePicker = openImagePicker;
+    window.switchImageTab = switchImageTab;
+    window.searchGlobalImages = searchGlobalImages;
+    window.searchByDocument = searchByDocument;
+    window.togglePickByIndex = togglePickByIndex;
+    window.removePick = removePick;
+    window.movePick = movePick;
+    window.saveImagePicker = saveImagePicker;
+    window.closeImagePicker = closeImagePicker;
 
     loadPending();
 })();

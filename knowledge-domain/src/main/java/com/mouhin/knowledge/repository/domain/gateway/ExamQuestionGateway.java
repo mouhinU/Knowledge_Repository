@@ -61,6 +61,15 @@ public interface ExamQuestionGateway {
                           String correctAnswer, String analysis, Integer maxScore);
 
     /**
+     * 校对页绑定配图：就地更新某题的配图 assetKey 有序数组 JSON（按试卷标识 + 印刷题号定位）。
+     *
+     * @param sessionKey     试卷标识
+     * @param questionNumber 印刷题号
+     * @param imagesJson     配图 JSON（如 {@code ["k1","k2"]}）；null / 空串表示清除绑定
+     */
+    void updateImagesJson(String sessionKey, Integer questionNumber, String imagesJson);
+
+    /**
      * 删除某份试卷的全部题目（重切分 / 幂等回灌前清理）
      *
      * @param sessionKey 试卷标识

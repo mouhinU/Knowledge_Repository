@@ -67,8 +67,11 @@ public class ExamStartFromHistoryCmdExe {
         session.setExamPlan(history.getExamPlan());
         String rendered = support.renderWithPlan(history.getExamPaper(), history.getExamPlan());
         support.validateOrThrow(rendered);
-        session.setQuestionsJson(rendered);
-        session.setTotalScore(support.sumMaxScore(rendered));
+        // 看图题配图注入（Phase 3）：校对页人工绑定的图片存于 kb_exam_question.images_json，
+        // 快照由 Markdown 渲染而来不含图片，此处按印刷题号回填 assetKey 数组供学生答题页渲染。
+        String withImages = support.injectImagesIntoSnapshot(rendered, support.listPaperQuestions(session));
+        session.setQuestionsJson(withImages);
+        session.setTotalScore(support.sumMaxScore(withImages));
         session.setDurationMinutes(history.getDurationMinutes());
         session.setStatus(STATUS_IN_PROGRESS);
         session.setStartTime(LocalDateTime.now());

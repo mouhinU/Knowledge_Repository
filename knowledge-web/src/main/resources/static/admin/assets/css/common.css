@@ -667,3 +667,26 @@ textarea.form-input { min-height: 80px; resize: vertical; line-height: 1.6; }
 .menu-toggle { display: none; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 36px; height: 36px; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text); }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 90; }
 .sidebar-backdrop.show { display: block; }
+
+/* ===== 看图题配图（错题本 / 成绩复核共享渲染 KR.renderImages） ===== */
+.kr-imgs { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 12px; }
+.kr-img {
+    max-width: 300px; max-height: 240px; width: auto; height: auto;
+    object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #f8fafc; cursor: zoom-in; box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+    transition: box-shadow .15s ease;
+}
+.kr-img:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .14); }
+.kr-img-lightbox {
+    position: fixed; inset: 0; z-index: 2000; display: none;
+    align-items: center; justify-content: center; background: rgba(0, 0, 0, .82); padding: 24px;
+}
+.kr-img-lightbox.open { display: flex; }
+.kr-img-lightbox img {
+    max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+}
+.kr-img-lightbox .kr-img-close {
+    position: absolute; top: 18px; right: 24px; font-size: 34px; line-height: 1;
+    color: #fff; cursor: pointer; user-select: none;
+}

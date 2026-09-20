@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
 import com.mouhin.knowledge.repository.client.dto.ChunkDetail;
+import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.PageDetail;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
@@ -294,6 +295,36 @@ public class DocumentIngestionSupport {
             ));
         }
         return chunkDetails;
+    }
+
+    public List<DocumentChunk> buildCustomChunks(Document document, List<CustomChunkInput> customChunks) {
+        List<DocumentChunk> chunks = new ArrayList<>(customChunks.size());
+        int index = 0;
+        for (CustomChunkInput input : customChunks) {
+            if (input.content() == null || input.content().isBlank()) {
+                continue;
+            }
+            DocumentChunk chunk = new DocumentChunk();
+            chunk.setChunkKey(UUID.randomUUID().toString());
+            chunk.setDocumentId(document.getId());
+            chunk.setDocumentKey(document.getDocumentKey());
+            chunk.setChunkIndex(index++);
+            chunk.setStartPage(input.startPage());
+            chunk.setEndPage(input.endPage());
+            chunk.setContent(input.content());
+            chunk.setTokenCount(chunk.estimateTokenCount(input.content()));
+            chunk.setDepartmentId(document.getDepartmentId());
+            chunk.setVisibility(document.getVisibility() != null
+                    ? document.getVisibility().name()
+                    : DocumentVisibilityEnum.INTERNAL.name());
+            chunk.setAllowedRoles(document.getAllowedRoles());
+            chunk.setOwnerId(document.getOwnerId());
+            chunk.setDocumentName(document.getFileName());
+            chunk.setFileType(document.getFileType());
+            chunk.setTags(document.getTags());
+            chunks.add(chunk);
+        }
+        return chunks;
     }
 
     public DocumentGateway documentGateway() {
