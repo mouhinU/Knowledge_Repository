@@ -1,35 +1,36 @@
 # 技术选型（Technology Stack）
 
 > 本分册由根目录 `AGENTS.md` 拆分而来，映射原「引言技术栈」与「COLA 基线说明」。
-> 版本一经确定，AI 生成代码时**不得擅改框架 / JDK 版本**；如需升级须先确认。
+> 版本一经确定，AI 生成代码时**不得擅改框架 / JDK 版本**；如需升级须先确认，并以代码评审与版本治理为落地机制。
 > 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
+> 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。
 
 ---
 
 ## 1. 语言与框架基线
 
-| 组件 | 版本 | 说明 |
-|------|------|------|
-| Java | **21** | 高于 COLA 5.0 基线（JDK 17+），遵循 COLA 约定不改变版本 |
-| Spring Boot | **3.4.x** | COLA 5.0 基线要求 Spring Boot 3.x，本项目满足且高于基线 |
-| 架构规范 | **COLA 5.0** | 采用物理多模块分层（含独立 client 层），详见 [architecture-decisions.md](architecture-decisions.md) |
+| 组件        | 版本         | 说明                                                                                                |
+| ----------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| Java        | **21**       | 高于 COLA 5.0 基线（JDK 17+），遵循 COLA 约定不改变版本                                             |
+| Spring Boot | **3.4.x**    | COLA 5.0 基线要求 Spring Boot 3.x，本项目满足且高于基线                                             |
+| 架构规范    | **COLA 5.0** | 采用物理多模块分层（含独立 client 层），详见 [architecture-decisions.md](architecture-decisions.md) |
 
 > 编码手册基线：《Java 开发手册》v1.5.0（华山版）。
 
 ## 2. 核心依赖版本（root pom `<properties>`）
 
-| 能力 | 组件 | 版本 |
-|------|------|------|
-| ORM / 持久层 | MyBatis-Plus | 3.5.17 |
-| LLM 编排 | LangChain4j | 1.0.1 |
-| 向量数据库 | Milvus SDK | 2.5.4 |
-| PDF 解析 | Apache PDFBox | 3.0.4 |
-| 格式探测 / 通用解析 | Apache Tika | 3.1.0 |
-| Office 文档 | Apache POI | 5.3.0 |
-| 嵌入式 / 测试库 | H2 | 2.2.224 |
-| 生产数据库 | MySQL | 8.0 |
-| 数据库迁移 | Flyway | 由 Spring Boot BOM 统一管理 |
-| 样板代码 | Lombok | 1.18.36 |
+| 能力                | 组件          | 版本                        |
+| ------------------- | ------------- | --------------------------- |
+| ORM / 持久层        | MyBatis-Plus  | 3.5.17                      |
+| LLM 编排            | LangChain4j   | 1.0.1                       |
+| 向量数据库          | Milvus SDK    | 2.5.4                       |
+| PDF 解析            | Apache PDFBox | 3.0.4                       |
+| 格式探测 / 通用解析 | Apache Tika   | 3.1.0                       |
+| Office 文档         | Apache POI    | 5.3.0                       |
+| 嵌入式 / 测试库     | H2            | 2.2.224                     |
+| 生产数据库          | MySQL         | 8.0                         |
+| 数据库迁移          | Flyway        | 由 Spring Boot BOM 统一管理 |
+| 样板代码            | Lombok        | 1.18.36                     |
 
 ## 3. Maven 多模块（现状）
 

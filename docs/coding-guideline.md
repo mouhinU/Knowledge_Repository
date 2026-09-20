@@ -19,12 +19,12 @@
 
 ### 1.2 风格要求
 
-| 元素 | 风格 | 正例 | 反例 |
-|---------|----------------|----------------------------------------|-----------------------------------------|
-| 类名 | UpperCamelCase | `UserService`、`SearchResultVO` | `userService`、`SearchResultVo` |
-| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()` | `LocalValue`、`gethttpmessage()` |
-| 常量 | 全大写 + 下划线分隔 | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME` | `MAX_SIZE` |
-| 包名 | 全小写，单数形式 | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
+| 元素                                  | 风格                | 正例                                   | 反例                                    |
+| ------------------------------------- | ------------------- | -------------------------------------- | --------------------------------------- |
+| 类名                                  | UpperCamelCase      | `UserService`、`SearchResultVO`        | `userService`、`SearchResultVo`         |
+| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase      | `localValue`、`getHttpMessage()`       | `LocalValue`、`gethttpmessage()`        |
+| 常量                                  | 全大写 + 下划线分隔 | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME` | `MAX_SIZE`                              |
+| 包名                                  | 全小写，单数形式    | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
 
 - 类名例外（保持全大写后缀）：`DO` / `BO` / `DTO` / `VO` / `AO` / `PO` / `UID`。
 - 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test` 结尾（测试细则见 [testing-guideline.md](testing-guideline.md)）。
@@ -43,14 +43,14 @@
 
 ### 1.5 各层方法命名
 
-| 操作 | 前缀 |
-|--------|--------------------------------|
-| 获取单个对象 | `get` / `find` |
+| 操作         | 前缀                                   |
+| ------------ | -------------------------------------- |
+| 获取单个对象 | `get` / `find`                         |
 | 获取多个对象 | `list`（复数结尾，如 `listDocuments`） |
-| 获取统计值 | `count` |
-| 插入 | `save` / `insert` |
-| 删除 | `remove` / `delete` |
-| 修改 | `update` |
+| 获取统计值   | `count`                                |
+| 插入         | `save` / `insert`                      |
+| 删除         | `remove` / `delete`                    |
+| 修改         | `update`                               |
 
 ### 1.6 数据对象与领域模型命名
 
@@ -62,21 +62,21 @@
 
 **领域模型 / COLA 对象命名：**
 
-| 概念 | 后缀 | 正例 |
-|------|------|------|
-| 聚合根（Aggregate Root） | 直接用业务名词 | `Document` |
-| 实体（Entity） | 直接用业务名词 | `DocumentChunk`、`User` |
-| 值对象（Value Object） | 直接用业务名词 | `Permission`、`ChunkingConfig`、`SearchResult` |
-| 领域服务（Domain Service） | `DomainService` | `DocumentIngestionDomainService` |
-| 领域能力（Domain Ability） | `DomainAbility` | `ChunkingDomainAbility` |
-| 网关接口（Gateway，原 Repository） | `Gateway` | `DocumentGateway` |
-| 网关实现（infrastructure） | `GatewayImpl` | `DocumentGatewayImpl` |
-| 应用服务接口（client 层） | `ServiceI` | `DocumentServiceI` |
-| 应用服务实现（app 层） | `ServiceImpl` | `DocumentServiceImpl` |
-| 命令 / 查询执行器（app 层） | `CmdExe` / `QryExe` | `DocumentAddCmdExe` |
-| 命令 / 查询 DTO（client 层） | `Cmd` / `Qry` | `DocumentAddCmd`、`DocumentGetQry` |
-| 领域事件（Domain Event） | `Event`（过去式） | `DocumentCreatedEvent` |
-| 转换器（Converter） | `Converter` | `DocumentConverter` |
+| 概念                               | 后缀                | 正例                                           |
+| ---------------------------------- | ------------------- | ---------------------------------------------- |
+| 聚合根（Aggregate Root）           | 直接用业务名词      | `Document`                                     |
+| 实体（Entity）                     | 直接用业务名词      | `DocumentChunk`、`User`                        |
+| 值对象（Value Object）             | 直接用业务名词      | `Permission`、`ChunkingConfig`、`SearchResult` |
+| 领域服务（Domain Service）         | `DomainService`     | `DocumentIngestionDomainService`               |
+| 领域能力（Domain Ability）         | `DomainAbility`     | `ChunkingDomainAbility`                        |
+| 网关接口（Gateway，原 Repository） | `Gateway`           | `DocumentGateway`                              |
+| 网关实现（infrastructure）         | `GatewayImpl`       | `DocumentGatewayImpl`                          |
+| 应用服务接口（client 层）          | `ServiceI`          | `DocumentServiceI`                             |
+| 应用服务实现（app 层）             | `ServiceImpl`       | `DocumentServiceImpl`                          |
+| 命令 / 查询执行器（app 层）        | `CmdExe` / `QryExe` | `DocumentAddCmdExe`                            |
+| 命令 / 查询 DTO（client 层）       | `Cmd` / `Qry`       | `DocumentAddCmd`、`DocumentGetQry`             |
+| 领域事件（Domain Event）           | `Event`（过去式）   | `DocumentCreatedEvent`                         |
+| 转换器（Converter）                | `Converter`         | `DocumentConverter`                            |
 
 > 对象**所在分层**与**跨层传递禁令**见 [architecture-decisions.md](architecture-decisions.md) §2。
 
@@ -131,7 +131,7 @@
 ## 七、注释规约
 
 - 类、类属性、类方法注释使用 `/** Javadoc */` 格式。
-- **所有类必须添加 `@author` 和 `@date`**。
+- **新建或重点修改的 Java 类应补齐 `@author Knowledge-Repository` + `@date`**；已有类不强制一次性大改，但新增/关键改动需保持一致。
 - 推荐用中文注释，专有名词保持英文。
 - 作者信息统一填写 `@author Knowledge-Repository` + `@date`（原第十三章并入此处）。
 

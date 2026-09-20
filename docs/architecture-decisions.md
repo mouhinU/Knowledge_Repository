@@ -6,6 +6,7 @@
 > 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
 
 > 说明：以阿里巴巴 **COLA 5.0**（Clean Object-oriented and Layered Architecture）为权威架构框架。COLA 5.0 支持基于 package 的轻量级分层，但本项目采用**物理多模块**分层（含独立 client 层），二者取舍以本文件为准。
+> 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。新增代码以物理模块与本分册定义为准。
 
 ---
 
@@ -13,13 +14,13 @@
 
 COLA 将系统划分为 adapter / app / client / domain / infrastructure 五个职责单一的分层。
 
-| COLA 层 | 目标模块（规范名） | 现状模块 | 核心职责 |
-|------------------|--------------------|--------------------------|----------------------------------------------------------------------|
-| adapter 适配层 | `knowledge-adapter` | `knowledge-web` | 对外请求适配（HTTP/RPC），参数校验，调用 app 层，把结果组装为 **VO** 返回。不含业务逻辑。 |
-| app 应用层 | `knowledge-app` | `knowledge-application` | 用例编排、事务边界、**Cmd/Qry Executor**、DTO ↔ 领域对象转换、实现 client 暴露的 Service 接口。不含核心业务规则。 |
-| client 开放接口层 | `knowledge-client`（**必须独立**） | 现为独立物理模块 `knowledge-client` | 对外契约：Service 接口定义 + **DTO（Cmd/Qry/Response）**。仅被依赖，不反向依赖任何层。 |
-| domain 领域层 | `knowledge-domain` | `knowledge-domain` | 核心业务逻辑：Entity、DomainService、**Gateway 接口**、领域事件、DomainAbility。不依赖其它业务层。 |
-| infrastructure 基础设施层 | `knowledge-infrastructure` | `knowledge-infrastructure` | **Gateway 实现**、DAO/Mapper、DO、中间件（DB/向量库/缓存）、外部服务调用、DO ↔ Entity 转换。不含业务规则。 |
+| COLA 层                   | 目标模块（规范名）                 | 现状模块                            | 核心职责                                                                                                          |
+| ------------------------- | ---------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| adapter 适配层            | `knowledge-adapter`                | `knowledge-web`                     | 对外请求适配（HTTP/RPC），参数校验，调用 app 层，把结果组装为 **VO** 返回。不含业务逻辑。                         |
+| app 应用层                | `knowledge-app`                    | `knowledge-application`             | 用例编排、事务边界、**Cmd/Qry Executor**、DTO ↔ 领域对象转换、实现 client 暴露的 Service 接口。不含核心业务规则。 |
+| client 开放接口层         | `knowledge-client`（**必须独立**） | 现为独立物理模块 `knowledge-client` | 对外契约：Service 接口定义 + **DTO（Cmd/Qry/Response）**。仅被依赖，不反向依赖任何层。                            |
+| domain 领域层             | `knowledge-domain`                 | `knowledge-domain`                  | 核心业务逻辑：Entity、DomainService、**Gateway 接口**、领域事件、DomainAbility。不依赖其它业务层。                |
+| infrastructure 基础设施层 | `knowledge-infrastructure`         | `knowledge-infrastructure`          | **Gateway 实现**、DAO/Mapper、DO、中间件（DB/向量库/缓存）、外部服务调用、DO ↔ Entity 转换。不含业务规则。        |
 
 **依赖方向（COLA）：**
 
@@ -39,12 +40,12 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 
 ## 2. 对象模型分层（严禁跨层传递）
 
-| 层 | 对象类型 | 说明 |
-|---------------------|------|--------------------------------------------------------------------------|
-| adapter | VO | View Object，面向前端视图展示 |
-| client / app | DTO | 对外契约：`XxxCmd`（写）、`XxxQry`（读）、`Response/SingleResponse/MultiResponse/PageResponse` |
-| domain | Entity | 领域实体 / 值对象 / 聚合根 |
-| infrastructure | DO | Data Object，与数据库表一一对应，MyBatis-Plus 注解 |
+| 层             | 对象类型 | 说明                                                                                           |
+| -------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| adapter        | VO       | View Object，面向前端视图展示                                                                  |
+| client / app   | DTO      | 对外契约：`XxxCmd`（写）、`XxxQry`（读）、`Response/SingleResponse/MultiResponse/PageResponse` |
+| domain         | Entity   | 领域实体 / 值对象 / 聚合根                                                                     |
+| infrastructure | DO       | Data Object，与数据库表一一对应，MyBatis-Plus 注解                                             |
 
 - **DO 不得越过 infrastructure 出现在 app / adapter**；app 层出入参为 DTO，内部编排用 domain Entity。
 - 转换只在层边界发生：`VO ⇄ DTO`（adapter/app）、`DTO ⇄ Entity`（app）、`Entity ⇄ DO`（infrastructure，经 Converter）。
@@ -54,12 +55,12 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 
 ## 3. 术语映射（以 COLA 为准，覆盖旧命名）
 
-| 本项目旧术语（历史代码） | COLA 规范术语（新增代码必须采用） |
-|-------------|--------------------------------------------------------|
-| Repository（领域抽象） | **Gateway** |
-| RepositoryImpl | **GatewayImpl**（`@Repository` / `@Component` 实现） |
-| ApplicationService | client 层 `XxxServiceI` 接口 + app 层 `XxxServiceImpl` 实现 |
-| Service 方法内直接写用例流程 | **Executor**（一个用例一个 `XxxCmdExe` / `XxxQryExe`） |
+| 本项目旧术语（历史代码）     | COLA 规范术语（新增代码必须采用）                           |
+| ---------------------------- | ----------------------------------------------------------- |
+| Repository（领域抽象）       | **Gateway**                                                 |
+| RepositoryImpl               | **GatewayImpl**（`@Repository` / `@Component` 实现）        |
+| ApplicationService           | client 层 `XxxServiceI` 接口 + app 层 `XxxServiceImpl` 实现 |
+| Service 方法内直接写用例流程 | **Executor**（一个用例一个 `XxxCmdExe` / `XxxQryExe`）      |
 
 > 迁移约定：新增代码一律采用 Gateway / Executor / client DTO；存量 `*Repository` 视同 `*Gateway`，随迭代逐步更名，不强制一次性重构。
 
