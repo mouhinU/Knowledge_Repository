@@ -16,7 +16,7 @@
 
 - 使用 `count(*)` 统计行数。
 - **禁止使用 `SELECT *`**，明确写出需要的字段（MyBatis-Plus 的 `selectList(null)` 在管理端可接受）。
-- SQL 参数使用 `#{}`，**禁止 `${}`**（防 SQL 注入，安全侧说明见 [security-guideline.md](security-guideline.md) §1）。
+- SQL 参数使用 `#{}`，禁止把请求入参直接拼进 SQL；动态列名 / 排序须白名单校验后再拼，禁止裸 `${}`（见 [security-guideline.md](security-guideline.md) §1）。
 
 ## 三、H2 注意事项（跨方言兼容）
 

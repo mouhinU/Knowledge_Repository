@@ -4,6 +4,37 @@
 > 每条后括注对应细则文件；安全（19→23）与测试（24→27）条目为拆分时按新增维度补入的自检项。
 > 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
 
+## 风险分级（先判级，再决定动作）
+
+| 级别 | 典型改动 | 必做动作 |
+|---|---|---|
+| **高** | 鉴权 / 令牌 / 口令 / 权限模型、SQL 拼接面、Flyway 迁移链（尤其改历史脚本）、删除 / 清理 / 部署脚本、框架或依赖大版本 | 执行前复述影响面并**获用户确认**（[security-guideline.md](security-guideline.md) §7）；补门禁负向用例 + 迁移冒烟；给出回滚方案 |
+| **中** | 新增 / 修改用例（`CmdExe`/`QryExe`）、接口与分层对象调整、上传解析新格式、向量化 / 分块逻辑 | 相关单测全绿 + `./mvnw test`；行为改动补一条手工 E2E 记录 |
+| **低** | 命名、注释、日志级别、文案、前端样式 | 走下方逐条自检即可 |
+
+## 提交前工作流
+
+1. **定位分册**：按 `AGENTS.md` §2 决策树找到对应维度。
+2. **定分层落点**：新增 / 移动类先过 [architecture-decisions.md](architecture-decisions.md)（哪层、命名、依赖）。
+3. **编码**：遵循 [coding-guideline.md](coding-guideline.md) 与核心红线。
+4. **自测**：`./mvnw test` 全绿；涉库跑迁移冒烟（[testing-guideline.md](testing-guideline.md) §5/§6）。
+5. **高风险先确认**：命中上表"高"级别的，在第 1 步落地前即向用户确认。
+6. **逐条自检**：过本文件下方 A–E 清单。
+7. **写变更说明**：套用下一节模板。
+
+## 变更说明模板
+
+```
+类型：feat / fix / refactor / docs / test / chore
+影响层：adapter / app / client / domain / infrastructure / docs / migration
+变更点与动机：<做了什么，为什么>
+风险级别：高 / 中 / 低（高 → 附回滚方案）
+验证：./mvnw test <结果> ；迁移冒烟 <Y/N> ；手工 E2E <场景与结论>
+关联：<issue / PR 链接>
+```
+
+---
+
 AI 生成代码时，逐条自检：
 
 ## A. 编码规范类
@@ -22,8 +53,8 @@ AI 生成代码时，逐条自检：
 9. SQL 是否使用 `#{}` 参数绑定？（[data-and-migration-guideline.md](data-and-migration-guideline.md) §2）
 10. 领域模型是否放在 `domain` 层？DO 与领域对象是否分离、DO 未越过 infrastructure 层？（[architecture-decisions.md](architecture-decisions.md) §2）
 11. Gateway 接口是否定义在领域层、`GatewayImpl` 是否实现在基础设施层？（COLA 术语，等价原 Repository）（§3/§5/§6）
-12. app 层是否只做分发（Service → Executor），用例编排是否在单一 Executor、事务边界是否在 app 层？（§4）
-13. 对外契约（Service 接口 + Command/Query/Response DTO）是否归入 client 层、而非散落在 web？（§1）
+12. app 层是否只做分发（Service → Executor），用例编排是否在单一 Executor；写库事务是否在 Executor，长耗时 LLM / 外部 IO 是否未套大事务？（§4）
+13. 对外契约（Service 接口 + Cmd/Qry/Response DTO）是否归入 client 层、而非散落在 web？（§1）
 14. 分层依赖是否单向合规：domain 纯净不依赖其它业务层，infrastructure 反向实现 domain？（§1）
 15. 是否使用构造器注入、面向接口，杜绝字段 `@Autowired`？（§7）
 

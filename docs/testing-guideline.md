@@ -1,4 +1,4 @@
-# 测试要求（Testing Standards）
+# 测试要求（Testing Guideline）
 
 > 本分册**从仓库现有测试归纳而成**（原 `AGENTS.md` 未设测试章节），旨在固化项目已成型的测试风格与门禁。
 > 现状参考：27 个 `*Test.java`，JUnit 5 + Mockito + AssertJ（经 `spring-boot-starter-test` 引入）。

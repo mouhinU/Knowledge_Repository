@@ -37,7 +37,7 @@
 根 `pom.xml` 声明五个模块，与 COLA 五层一一对应：
 
 ```
-knowledge-client          对外契约：Service 接口 + Command/Query/Response DTO
+knowledge-client          对外契约：Service 接口 + Cmd/Qry/Response DTO
 knowledge-domain          领域层：Entity / DomainService / Gateway 接口 / 领域事件
 knowledge-infrastructure  基础设施层：GatewayImpl / Mapper / DO / 中间件适配
 knowledge-application     应用层：ServiceImpl（分发）+ CmdExe/QryExe（编排）
@@ -53,7 +53,15 @@ knowledge-web             适配层：Controller / 拦截器 / 静态资源 / Fl
 - **Milvus 集合名**由配置指定，默认 `knowledge_chunks`。
 - **双数据库方言**：生产 MySQL、测试 / 本地 H2（`MODE=MySQL`）。Flyway 迁移脚本须二者兼容，约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
 
-## 5. 版本纪律（红线）
+## 5. 本地运行与改动入口
+
+- 编译：`./mvnw -q -DskipTests compile`
+- 测试：`./mvnw test`（细则见 [testing-guideline.md](testing-guideline.md) §6）
+- 运行应用：`./mvnw spring-boot:run -pl knowledge-web`
+- 启动基础设施：`docker compose -f docker-compose.infra.yml up -d`
+- 改 API 看 `knowledge-web`，改用例看 `knowledge-application`，改领域看 `knowledge-domain`，改 DB / 向量 / 外部适配看 `knowledge-infrastructure`，改契约看 `knowledge-client`。
+
+## 6. 版本纪律（红线）
 
 1. 任何 AI 生成代码不得引入未在本文档列出的新框架 / 新主版本，除非经确认。
 2. 引入 COLA 组件（`cola-component-*`）依赖须经确认，且**不改动 Spring Boot / Java 版本**（见 [architecture-decisions.md](architecture-decisions.md) §组件复用约定）。

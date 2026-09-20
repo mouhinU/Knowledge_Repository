@@ -1,11 +1,11 @@
-# 编码规范（Coding Standards）
+# 编码规范（Coding Guideline）
 
 > 本分册由根目录 `AGENTS.md` 第一~九章 + 第十三章拆分而来，基于《Java 开发手册》v1.5.0（华山版）
 > 结合本项目技术栈（见 [tech-stack.md](tech-stack.md)）定制裁剪。
 > 分层归属 / 对象转化 / 依赖方向等**架构**规则见 [architecture-decisions.md](architecture-decisions.md)。
 > 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
 
-目录：一 命名 · 二 常量 · 三 格式 · 四 OOP · 五 集合 · 六 并发 · 七 注释 · 八 异常 · 九 日志 · 附 类注释模板
+目录：一 命名 · 二 常量 · 三 格式 · 四 OOP · 五 集合 · 六 并发 · 七 注释 · 八 异常 · 九 日志 · 十 常见反模式
 
 ---
 
@@ -176,3 +176,23 @@ private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
 - `trace` / `debug` / `info` 级别输出必须进行日志级别开关判断。
 - 异常日志包含堆栈信息：`logger.error("Failed to process: " + e.getMessage(), e)`。
 - **禁止记录敏感信息**（口令、令牌、身份证等），安全日志约束见 [security-guideline.md](security-guideline.md) §5。
+
+---
+
+## 十、常见反模式（反例 → 正解）
+
+以下均为本项目高频踩坑点，生成 / 审查代码时优先排查：
+
+| 反模式 | 危害 | 正解 |
+|---|---|---|
+| 字段 `@Autowired` 注入 | 隐藏依赖、难以测试、启动期 NPE | 构造器注入 + `final`，面向接口（[architecture-decisions.md](architecture-decisions.md) §7） |
+| `Executors.newXxxThreadPool` / 循环内 `new Thread` | 无界队列 / OOM、线程失控 | `ThreadPoolExecutor` 显式参数（§六） |
+| `foreach` 里 `remove` / `add` | `ConcurrentModificationException` | `Iterator.remove()` 或 `removeIf`（§五） |
+| SQL 用 `${}` 拼接、`SELECT *` | 注入 + 无谓 IO | 一律 `#{}`，动态列走白名单，显式列字段（§ data & migration / security §1） |
+| DO 出现在 app / adapter | 破坏分层、泄漏表结构 | 层边界转化 `Entity/DTO/VO`（architecture §2） |
+| 一个 Service 方法堆完整用例、事务里裹 LLM / 外部 IO | 长事务占连接、超时连锁回滚 | 一用例一 Executor，事务收窄，IO 移出事务（architecture §4） |
+| 日志用 `+` 拼接、或打印口令 / 令牌 | 性能损耗 + 泄密 | 占位符 `{}`，敏感信息脱敏（§九、security §5） |
+| 空 `catch` / 裸 `new RuntimeException` | 吞异常、无业务语义 | 记录或转译；用 `BizException` / `IllegalStateException`（§八、architecture §8） |
+| 魔法值散落各处 | 不可维护、易漂移 | 归类预定义常量（§二） |
+| POJO 布尔写成 `isDeleted` | 部分框架序列化歧义 | 去 `is` 前缀：`deleted`（§1.3） |
+| 类缺 `@author` / `@date` | 无法溯源 | 补 Javadoc（§七） |

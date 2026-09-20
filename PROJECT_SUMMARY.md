@@ -17,7 +17,7 @@ Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识�
 ```
 knowledge-web             adapter 适配层     Controller、安全过滤器、SSE 进度 Store、全局异常、静态管理页
 knowledge-application     app 应用层         用例编排（Executor）、事务边界、DTO ⇄ 领域对象转换，仅分发不含核心规则
-knowledge-client          client 契约层      对外 Service 接口（*ServiceI）+ Command/Query/DTO/VO，仅被依赖不反向依赖
+knowledge-client          client 契约层      对外 Service 接口（*ServiceI）+ Cmd/Qry/DTO/VO，仅被依赖不反向依赖
 knowledge-domain          domain 领域层      聚合根/实体/值对象、领域服务、Gateway 接口、领域事件，保持纯净
 knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、Milvus 向量存储、多格式解析、LLM/Embedding、黑板 Agent
 ```
@@ -28,7 +28,7 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 
 | 模块 | 文件数 | 核心职责 |
 |------|-------|---------|
-| knowledge-client | 55 | 13 个 `*ServiceI` 契约接口 + Command/Query/VO/DTO |
+| knowledge-client | 55 | 13 个 `*ServiceI` 契约接口 + Cmd/Qry/VO/DTO |
 | knowledge-domain | 62 | 1 聚合根 + 11 实体 + 17 值对象 + 13 领域服务 + 17 Gateway 接口 + 领域事件 |
 | knowledge-application | 131 | 14 个特性包的 Executor 用例编排 |
 | knowledge-infrastructure | 71 | Gateway 实现、Mapper/DO/Converter、Milvus、解析器、12 个黑板 Agent、LLM/Embedding |

@@ -1,4 +1,4 @@
-# 安全注意事项（Security Standards）
+# 安全注意事项（Security Guideline）
 
 > 本分册**聚合**根目录 `AGENTS.md` 中散落于第十章（SQL 注入）、第十二章 §12.1（文件限制）、
 > §12.3（权限隔离）的安全约束，并补充项目现有鉴权实现（管理员 / 考生令牌、口令哈希、上传上限）形成的既定规范。
@@ -9,8 +9,8 @@
 
 ## 1. 注入防护（最高优先级）
 
-- SQL 参数一律使用 MyBatis `#{}` 预编译占位，**严禁 `${}` 字符串拼接**（原第十章 §10.2）。
-- 动态排序 / 表名列名等确需拼接的场景，必须走**白名单枚举校验**后再拼装，禁止把任何请求入参直接拼进 SQL。
+- SQL 参数一律使用 MyBatis `#{}` 预编译占位；**禁止裸 `${}`** 以及把请求入参直接拼进 SQL（原第十章 §10.2）。
+- 动态排序 / 表名列名等确需拼接的场景，必须走**白名单枚举校验**后再拼装。
 - Milvus 过滤表达式由 `PermissionDomainService.buildFilterExpression()` 统一构建，**不接受调用方传入原始表达式字符串**（见 §4）。
 - 日志 / 响应回显避免拼接可控换行，防日志注入。
 
@@ -46,3 +46,21 @@
 ## 6. 错误处理对外的信息面
 
 - 业务态冲突统一经 `GlobalExceptionHandler` 映射：`IllegalStateException → 409 CONFLICT`、`IllegalArgumentException → 400`、越权 / 未认证 `→ 401`；泛化异常 `→ 500` 且**不回显内部信息**（`"An unexpected error occurred"`）。
+
+## 7. 高风险改动确认
+
+以下改动一旦触碰，**执行前必须向用户复述影响面并取得确认**，禁止擅自进行：
+
+- 鉴权 / 令牌 / 口令 / 权限模型的任何变更（§3、§4）；
+- 触及 SQL 拼接面，或新增动态列名 / 排序逻辑（§1）；
+- Flyway 迁移链改动，**尤其修改已发布的历史脚本**——迁移只增不改历史，新列遵循向前兼容（见 [data-and-migration-guideline.md](data-and-migration-guideline.md) §4）；
+- 文件上传 / 解析扩展：引入新格式或放开大小 / 类型限制（§2）；
+- `GlobalExceptionHandler` 对外信息面变更（§6）；
+- Milvus 权限过滤 `buildFilterExpression()` 逻辑改动（§4）；
+- `deploy.sh` / `docker-compose*.yml` / 镜像与数据卷清理。
+
+处置纪律：
+
+1. **不可逆 / 破坏性操作**（删库、清卷、`docker compose ... --remove-orphans`、`git reset --hard`、`push --force`、`rm`）一律先确认再执行，绝不擅自 skip 校验或绕过钩子。
+2. 改动前先备份并确认可回滚；修改用户目录文件（非版本控制内）前先复制留底。
+3. 涉密 / 高风险改动收尾须跑：**门禁负向用例 + 迁移冒烟**（[testing-guideline.md](testing-guideline.md) §4/§5），并把验证结论写进变更说明（模板见 [code-review-checklist.md](code-review-checklist.md) §三）。
