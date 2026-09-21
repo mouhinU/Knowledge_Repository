@@ -19,15 +19,21 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    /** 统一错误响应 map 的 timestamp 字段名（java:S1192 抽常量防 4 处漂移）。 */
+    private static final String FIELD_TIMESTAMP = "timestamp";
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Bad request: {}", e.getMessage());
         return ResponseEntity.badRequest()
                 .body(
                         Map.of(
-                                "errorCode", "BAD_REQUEST",
-                                "errorMessage", e.getMessage(),
-                                "timestamp", LocalDateTime.now().toString()));
+                                "errorCode",
+                                "BAD_REQUEST",
+                                "errorMessage",
+                                e.getMessage(),
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
@@ -36,9 +42,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(
                         Map.of(
-                                "errorCode", "CONFLICT",
-                                "errorMessage", e.getMessage(),
-                                "timestamp", LocalDateTime.now().toString()));
+                                "errorCode",
+                                "CONFLICT",
+                                "errorMessage",
+                                e.getMessage(),
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -47,9 +56,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(
                         Map.of(
-                                "errorCode", "FILE_TOO_LARGE",
-                                "errorMessage", "Upload file exceeds maximum size limit",
-                                "timestamp", LocalDateTime.now().toString()));
+                                "errorCode",
+                                "FILE_TOO_LARGE",
+                                "errorMessage",
+                                "Upload file exceeds maximum size limit",
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
     }
 
     @ExceptionHandler(Exception.class)
@@ -58,8 +70,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(
                         Map.of(
-                                "errorCode", "INTERNAL_ERROR",
-                                "errorMessage", "An unexpected error occurred",
-                                "timestamp", LocalDateTime.now().toString()));
+                                "errorCode",
+                                "INTERNAL_ERROR",
+                                "errorMessage",
+                                "An unexpected error occurred",
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
     }
 }

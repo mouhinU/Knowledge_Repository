@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class DepartmentAdminController {
 
+    /** 请求体 map 的父部门字段名（java:S1192 抽常量防 4 处漂移）。 */
+    private static final String FIELD_PARENT_ID = "parentId";
+
     private final DepartmentServiceI departmentService;
 
     public DepartmentAdminController(DepartmentServiceI departmentService) {
@@ -46,7 +49,9 @@ public class DepartmentAdminController {
         DepartmentCreateCmd cmd = new DepartmentCreateCmd();
         cmd.setDepartmentName((String) body.get("departmentName"));
         cmd.setParentId(
-                body.get("parentId") != null ? ((Number) body.get("parentId")).longValue() : null);
+                body.get(FIELD_PARENT_ID) != null
+                        ? ((Number) body.get(FIELD_PARENT_ID)).longValue()
+                        : null);
 
         return ResponseEntity.ok(departmentService.createDepartment(cmd));
     }
@@ -58,7 +63,9 @@ public class DepartmentAdminController {
         cmd.setDepartmentKey(departmentKey);
         cmd.setDepartmentName((String) body.get("departmentName"));
         cmd.setParentId(
-                body.get("parentId") != null ? ((Number) body.get("parentId")).longValue() : null);
+                body.get(FIELD_PARENT_ID) != null
+                        ? ((Number) body.get(FIELD_PARENT_ID)).longValue()
+                        : null);
 
         return ResponseEntity.ok(departmentService.updateDepartment(cmd));
     }

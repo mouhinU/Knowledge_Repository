@@ -19,6 +19,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
+    /** MyBatis-Plus .last() 前缀（java:S1192 抽常量防 4 处 SQL_LIMIT_PREFIX 漂移）。 */
+    private static final String SQL_LIMIT_PREFIX = "LIMIT ";
+
     private final ExamHistoryMapper examHistoryMapper;
 
     public ExamHistoryGatewayImpl(ExamHistoryMapper examHistoryMapper) {
@@ -56,7 +59,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     @Override
     public List<ExamHistory> listRecent(int limit) {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(ExamHistoryDO::getCreateTime).last("LIMIT " + limit);
+        wrapper.orderByDesc(ExamHistoryDO::getCreateTime).last(SQL_LIMIT_PREFIX + limit);
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
@@ -67,7 +70,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getStatus, ExamHistory.STATUS_PUBLISHED)
                 .orderByDesc(ExamHistoryDO::getCreateTime)
-                .last("LIMIT " + (limit > 0 ? limit : 20));
+                .last(SQL_LIMIT_PREFIX + (limit > 0 ? limit : 20));
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
@@ -83,7 +86,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
                         ExamHistory.STATUS_REVIEWABLE,
                         ExamHistory.STATUS_VALIDATION_FAILED)
                 .orderByDesc(ExamHistoryDO::getCreateTime)
-                .last("LIMIT " + safeLimit + " OFFSET " + safeOffset);
+                .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
@@ -105,7 +108,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
-                .last("LIMIT " + safeLimit + " OFFSET " + safeOffset);
+                .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();

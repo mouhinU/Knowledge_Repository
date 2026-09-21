@@ -30,6 +30,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class DocumentAdminController {
 
+    /** 异步任务响应 map 的公共 key（java:S1192 抽常量防 4×3 处漂移）。 */
+    private static final String FIELD_DOCUMENT_KEY = "documentKey";
+
+    private static final String FIELD_STATUS = "status";
+    private static final String STATUS_STARTED = "STARTED";
+
     private final DocumentServiceI documentService;
     private final DocumentIngestionServiceI ingestionService;
     private final IndexAsyncCmdExe indexAsyncCmdExe;
@@ -139,9 +145,12 @@ public class DocumentAdminController {
 
         return ResponseEntity.ok(
                 Map.of(
-                        "documentKey", documentKey,
-                        "status", "STARTED",
-                        "message", "Reindexing started. Connect to SSE for progress."));
+                        FIELD_DOCUMENT_KEY,
+                        documentKey,
+                        FIELD_STATUS,
+                        STATUS_STARTED,
+                        "message",
+                        "Reindexing started. Connect to SSE for progress."));
     }
 
     /**
@@ -163,9 +172,12 @@ public class DocumentAdminController {
 
         return ResponseEntity.ok(
                 Map.of(
-                        "documentKey", documentKey,
-                        "status", "STARTED",
-                        "message", "Reindexing started. Connect to SSE for progress."));
+                        FIELD_DOCUMENT_KEY,
+                        documentKey,
+                        FIELD_STATUS,
+                        STATUS_STARTED,
+                        "message",
+                        "Reindexing started. Connect to SSE for progress."));
     }
 
     /** 解析预览（基于已上传文档，不入库） */
@@ -208,9 +220,12 @@ public class DocumentAdminController {
 
         return ResponseEntity.ok(
                 Map.of(
-                        "documentKey", documentKey,
-                        "status", "STARTED",
-                        "message", "Indexing started. Connect to SSE for progress."));
+                        FIELD_DOCUMENT_KEY,
+                        documentKey,
+                        FIELD_STATUS,
+                        STATUS_STARTED,
+                        "message",
+                        "Indexing started. Connect to SSE for progress."));
     }
 
     /** 使用自定义分块入库（异步，通过 SSE 推送进度） */
@@ -228,9 +243,12 @@ public class DocumentAdminController {
 
         return ResponseEntity.ok(
                 Map.of(
-                        "documentKey", documentKey,
-                        "status", "STARTED",
-                        "message", "Indexing started. Connect to SSE for progress."));
+                        FIELD_DOCUMENT_KEY,
+                        documentKey,
+                        FIELD_STATUS,
+                        STATUS_STARTED,
+                        "message",
+                        "Indexing started. Connect to SSE for progress."));
     }
 
     /** 入库进度 SSE 端点 */
