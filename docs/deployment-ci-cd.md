@@ -52,7 +52,9 @@
 
 ### 3.2 新增/扩展 workflow
 
-新建 `.github/workflows/docker-image.yml`（与现有 `ci.yml` 并存，避免影响 CI 校验门禁）：
+已落地：[`.github/workflows/docker-image.yml`](../.github/workflows/docker-image.yml)（与现有 `ci.yml` 并存，避免影响 CI 校验门禁）。相较原始模板额外加了：`pull_request` 触发时只做 build 不 push（dry-run 校验 Dockerfile 可构建），main push / tag push 才真正推 GHCR；`APP_VERSION` build-arg 注入 `github.run_number`。
+
+参考 YAML 骨架（以仓库中实际文件为准）：
 
 ```yaml
 name: Build & Push Docker Image
@@ -61,6 +63,8 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  pull_request:
+    branches: [main]
   workflow_dispatch: {}   # 允许手动触发
 
 env:
@@ -83,14 +87,27 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "tags=${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME},${REGISTRY}/${IMAGE_NAME}:latest" >> "$GITHUB_OUTPUT"
-          else
+          elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             echo "tags=${REGISTRY}/${IMAGE_NAME}:sha-${SHORT_SHA},${REGISTRY}/${IMAGE_NAME}:latest" >> "$GITHUB_OUTPUT"
+          else
+            # PR / 其他分支：只计算标签用于本地构建，不推送
+            echo "tags=${REGISTRY}/${IMAGE_NAME}:pr-dryrun-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decide push flag
+        id: pushflag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: steps.pushflag.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -101,10 +118,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ steps.pushflag.outputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ github.run_number }}
 ```
 
 **要点说明**：
