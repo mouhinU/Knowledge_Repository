@@ -8,6 +8,13 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+# Workflow-level 最小权限声明：即使仓库 Settings → Actions → General 把默认
+# workflow permissions 改成 "Read repository contents and packages permissions"
+# 或 "Read-only"，本工作流仍可推 GHCR。避免依赖管理员的 UI 配置。
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -15,9 +22,6 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
