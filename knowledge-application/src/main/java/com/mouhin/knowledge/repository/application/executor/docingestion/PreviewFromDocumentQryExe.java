@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
@@ -37,7 +38,8 @@ public class PreviewFromDocumentQryExe {
         this.ingestionDomainService = ingestionDomainService;
     }
 
-    public PreviewResult execute(String documentKey, int chunkSize, int overlap, String strategy) {
+    public PreviewResult execute(PreviewDocumentQuery query) {
+        String documentKey = query.getDocumentKey();
         Document document =
                 documentGateway
                         .findByDocumentKey(documentKey)
@@ -49,7 +51,10 @@ public class PreviewFromDocumentQryExe {
         ExtractionResult extraction = extractionCache.getOrReextract(document);
 
         ChunkingConfig config =
-                support.buildConfig(chunkSize, overlap, support.resolveStrategy(strategy));
+                support.buildConfig(
+                        query.getChunkSize(),
+                        query.getOverlap(),
+                        support.resolveStrategy(query.getStrategy()));
 
         Document tempDoc = new Document();
         tempDoc.setDocumentKey(documentKey);

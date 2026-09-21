@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
 import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
+import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import java.util.List;
@@ -29,9 +30,11 @@ public class SearchImagesQryExe {
         this.documentImageSupport = documentImageSupport;
     }
 
-    public SearchResult execute(String keyword, String documentKey, int limit, int offset) {
-        int safeLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
-        int safeOffset = Math.max(0, offset);
+    public SearchResult execute(SearchImagesQuery query) {
+        String keyword = query.getKeyword();
+        String documentKey = query.getDocumentKey();
+        int safeLimit = Math.max(1, Math.min(query.getLimit(), MAX_LIMIT));
+        int safeOffset = Math.max(0, query.getOffset());
         List<ExamDocumentImageVO> records =
                 documentImageSupport
                         .searchImages(

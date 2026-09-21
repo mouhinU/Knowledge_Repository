@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkWindow;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
@@ -178,7 +179,8 @@ public class DocumentIngestionDomainService {
 
                 // 重叠处理
                 if (overlapTokens > 0 && chunkTokens > 0) {
-                    int overlapStart = findOverlapStart(text, chunkStart, paraStart, overlapTokens);
+                    int overlapStart =
+                            findOverlapStart(new ChunkWindow(chunkStart, paraStart, overlapTokens));
                     chunkStart = overlapStart;
                     chunkTokens = estimateTokenCount(text.substring(chunkStart, paraStart));
                 } else {
@@ -688,9 +690,10 @@ public class DocumentIngestionDomainService {
     }
 
     /** 查找重叠起始位置 */
-    private int findOverlapStart(String text, int chunkStart, int chunkEnd, int overlapTokens) {
-        int overlapChars = Math.min(overlapTokens * 3, chunkEnd - chunkStart);
-        return chunkEnd - overlapChars;
+    private int findOverlapStart(ChunkWindow window) {
+        int overlapChars =
+                Math.min(window.overlapTokens() * 3, window.chunkEnd() - window.chunkStart());
+        return window.chunkEnd() - overlapChars;
     }
 
     /** 构建分块对象，附加权限元数据 */

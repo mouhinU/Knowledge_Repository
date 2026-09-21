@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.application.dto.PreviewFileQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
@@ -39,7 +40,8 @@ public class PreviewFileQryExe {
         this.ingestionDomainService = ingestionDomainService;
     }
 
-    public PreviewResult execute(MultipartFile file, int chunkSize, int overlap, String strategy) {
+    public PreviewResult execute(PreviewFileQuery query) {
+        MultipartFile file = query.getFile();
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
@@ -57,7 +59,10 @@ public class PreviewFileQryExe {
                             tempFile, file.getSize(), file.getOriginalFilename());
 
             ChunkingConfig config =
-                    support.buildConfig(chunkSize, overlap, support.resolveStrategy(strategy));
+                    support.buildConfig(
+                            query.getChunkSize(),
+                            query.getOverlap(),
+                            support.resolveStrategy(query.getStrategy()));
 
             Document tempDoc = new Document();
             tempDoc.setDocumentKey("preview");

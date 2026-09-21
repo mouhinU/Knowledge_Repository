@@ -7,6 +7,8 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.Reindex
 import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.client.dto.IndexDocumentCmd;
+import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -39,9 +41,8 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionServiceI {
     }
 
     @Override
-    public PreviewResult previewFromDocument(
-            String documentKey, int chunkSize, int overlap, String strategy) {
-        return previewFromDocumentQryExe.execute(documentKey, chunkSize, overlap, strategy);
+    public PreviewResult previewFromDocument(PreviewDocumentQuery query) {
+        return previewFromDocumentQryExe.execute(query);
     }
 
     @Override
@@ -50,8 +51,8 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionServiceI {
     }
 
     @Override
-    public DocumentVO index(String documentKey, int chunkSize, int overlap, String strategy) {
-        return indexCmdExe.execute(documentKey, chunkSize, overlap, strategy);
+    public DocumentVO index(IndexDocumentCmd cmd) {
+        return indexCmdExe.execute(cmd);
     }
 
     @Override

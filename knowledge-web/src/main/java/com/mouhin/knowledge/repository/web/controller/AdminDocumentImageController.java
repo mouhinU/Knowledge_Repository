@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.Backfil
 import com.mouhin.knowledge.repository.application.executor.docingestion.ListDocumentImagesQryExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.SearchImagesQryExe;
 import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
+import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +63,12 @@ public class AdminDocumentImageController {
             @RequestParam(required = false) String documentKey,
             @RequestParam(defaultValue = "60") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        SearchImagesQryExe.SearchResult result =
-                searchImagesQryExe.execute(keyword, documentKey, limit, offset);
+        SearchImagesQuery query = new SearchImagesQuery();
+        query.setKeyword(keyword);
+        query.setDocumentKey(documentKey);
+        query.setLimit(limit);
+        query.setOffset(offset);
+        SearchImagesQryExe.SearchResult result = searchImagesQryExe.execute(query);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("records", result.records());
         body.put("total", result.total());

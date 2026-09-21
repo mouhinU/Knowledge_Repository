@@ -9,6 +9,7 @@ import com.mouhin.knowledge.repository.client.dto.ChunkingRequest;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
+import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import java.util.List;
@@ -177,12 +178,12 @@ public class DocumentAdminController {
                 documentKey,
                 chunkingRequest.getChunkSize(),
                 chunkingRequest.getStrategy());
-        PreviewResult result =
-                ingestionService.previewFromDocument(
-                        documentKey,
-                        chunkingRequest.getChunkSize(),
-                        chunkingRequest.getOverlap(),
-                        chunkingRequest.getStrategy());
+        PreviewDocumentQuery query = new PreviewDocumentQuery();
+        query.setDocumentKey(documentKey);
+        query.setChunkSize(chunkingRequest.getChunkSize());
+        query.setOverlap(chunkingRequest.getOverlap());
+        query.setStrategy(chunkingRequest.getStrategy());
+        PreviewResult result = ingestionService.previewFromDocument(query);
         return ResponseEntity.ok(result);
     }
 

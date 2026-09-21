@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 
 import com.mouhin.knowledge.repository.application.converter.DocumentConverter;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.client.dto.IndexDocumentCmd;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
@@ -39,7 +40,8 @@ public class IndexCmdExe {
         this.documentGateway = documentGateway;
     }
 
-    public DocumentVO execute(String documentKey, int chunkSize, int overlap, String strategy) {
+    public DocumentVO execute(IndexDocumentCmd cmd) {
+        String documentKey = cmd.getDocumentKey();
         Document document =
                 documentGateway
                         .findByDocumentKey(documentKey)
@@ -54,7 +56,10 @@ public class IndexCmdExe {
         }
 
         ChunkingConfig config =
-                support.buildConfig(chunkSize, overlap, support.resolveStrategy(strategy));
+                support.buildConfig(
+                        cmd.getChunkSize(),
+                        cmd.getOverlap(),
+                        support.resolveStrategy(cmd.getStrategy()));
         document.setChunkingConfig(config);
 
         ExtractionResult extraction = extractionCache.getOrReextract(document);
