@@ -2,8 +2,10 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,13 @@ public class BlackboardProgressStore {
     /** 每个 session 的事件缓冲（SSE 连接前的早期事件） */
     private final Map<String, List<BlackboardProgressEvent>> eventBuffers =
             new ConcurrentHashMap<>();
+
+    /**
+     * 每个 emitter 的推送锁（java:S2445：不能 synchronize 方法参数，改用 store 内维护的 per-emitter 锁）。 WeakHashMap 让
+     * emitter 无外部引用时条目自动回收；synchronizedMap 保护 map 自身。
+     */
+    private final Map<SseEmitter, Object> emitterLocks =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     /**
      * 创建 SseEmitter 并关联到指定 session。 回放已缓冲的事件，然后实时接收后续事件。
@@ -82,15 +91,8 @@ public class BlackboardProgressStore {
             }
         } else if (!"AGENT_TOKEN".equals(event.getType())) {
             // SSE 尚未连接，缓冲事件（AGENT_TOKEN 为瞬时增量，无连接时直接丢弃不缓冲）
-            eventBuffers
-                    .computeIfAbsent(
-                            sessionId,
-                            k -> {
-                                synchronized (new Object()) {
-                                    return new CopyOnWriteArrayList<>();
-                                }
-                            })
-                    .add(event);
+            // CopyOnWriteArrayList 自身线程安全，无需再套 synchronized(new Object()) 空锁。
+            eventBuffers.computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>()).add(event);
         }
 
         // 终态事件：延迟清理
@@ -100,8 +102,10 @@ public class BlackboardProgressStore {
     }
 
     private void sendToEmitter(SseEmitter emitter, BlackboardProgressEvent event) {
+        // java:S2445：不能 synchronize 方法参数，改从 store 维护的 per-emitter 锁表拿专属锁对象。
+        Object lock = emitterLocks.computeIfAbsent(emitter, k -> new Object());
         try {
-            synchronized (emitter) {
+            synchronized (lock) {
                 emitter.send(SseEmitter.event().name(event.getType()).data(eventToMap(event)));
             }
         } catch (IOException e) {

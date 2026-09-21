@@ -194,6 +194,12 @@ public class ExamReviewerAgent implements BlackboardAgent {
     };
 
     private int extractScore(String reviewOutput) {
+        // javabugs:S2259：LLM 返回 null / 空白时，后续 indexOf / substring 会 NPE；
+        //   回退 0 分并告警，交由上层按质量分不足处理（比崩溃更易恢复）。
+        if (reviewOutput == null) {
+            log.warn("[ExamReviewer] reviewOutput 为空，回退质量分 0");
+            return 0;
+        }
         try {
             int[] dims = parseDimensionScores(reviewOutput);
             if (dims != null) {

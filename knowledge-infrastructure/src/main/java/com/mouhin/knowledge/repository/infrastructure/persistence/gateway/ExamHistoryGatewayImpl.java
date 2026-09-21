@@ -27,6 +27,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
     @Override
     public void save(ExamHistory history) {
+        java.util.Objects.requireNonNull(history, "ExamHistory must not be null on save");
         ExamHistoryDO doObj = ExamHistoryConverter.toDO(history);
         examHistoryMapper.insert(doObj);
         history.setId(doObj.getId());

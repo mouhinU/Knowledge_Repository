@@ -62,6 +62,7 @@ public class UserGatewayImpl implements UserGateway {
 
     @Override
     public void save(User user) {
+        java.util.Objects.requireNonNull(user, "User must not be null on save");
         UserDO doObj = toDO(user);
         doObj.setCreateTime(LocalDateTime.now());
         doObj.setUpdateTime(LocalDateTime.now());
@@ -71,6 +72,7 @@ public class UserGatewayImpl implements UserGateway {
 
     @Override
     public void update(User user) {
+        java.util.Objects.requireNonNull(user, "User must not be null on update");
         UserDO doObj = toDO(user);
         doObj.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(doObj);

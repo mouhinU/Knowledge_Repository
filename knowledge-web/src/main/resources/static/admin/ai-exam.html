@@ -470,7 +470,7 @@
                             <th style="width:40%">主题</th>
                             <th style="width:10%">难度</th>
                             <th style="width:10%">状态</th>
-                            <th style="width:10%">评分 <span class="score-help" onclick="showScoreRuleModal()" title="点击查看分数计算规则">?</span></th>
+                            <th style="width:10%">评分 <button type="button" class="score-help" onclick="showScoreRuleModal()" title="点击查看分数计算规则">?</button></th>
                             <th style="width:18%">时间</th>
                             <th style="width:12%">操作</th>
                         </tr>
@@ -518,7 +518,9 @@
 </div>
 
 <!-- 分数计算规则弹窗 -->
-<div class="review-modal-overlay" id="score-rule-modal" onclick="if(event.target===this)closeScoreRuleModal()">
+<div class="review-modal-overlay" id="score-rule-modal" role="presentation" tabindex="-1"
+     onclick="if(event.target===this)closeScoreRuleModal()"
+     onkeydown="if(event.key==='Escape')closeScoreRuleModal()">
     <div class="review-modal" style="width:560px">
         <div class="review-modal-header">
             <div><h3 style="font-size:17px;font-weight:700;margin:0">质量评分计算规则</h3>

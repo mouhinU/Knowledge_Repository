@@ -65,7 +65,7 @@ public class EnhancedPdfTextExtractor {
     private static final Pattern PAGE_NUMBER_PATTERN =
             Pattern.compile(
                     "^\\s*(-?\\d+|-\\s*\\d+|\\d+\\s*/\\s*\\d+|第\\s*\\d+\\s*页|Page\\s+\\d+)\\s*$",
-                    Pattern.CASE_INSENSITIVE);
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private static Map<Character, String> createLigatureMap() {
         Map<Character, String> map = new HashMap<>();

@@ -29,6 +29,7 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
 
     @Override
     public void save(ExamAnswer answer) {
+        java.util.Objects.requireNonNull(answer, "ExamAnswer must not be null on save");
         ExamAnswerDO doObj = ExamAnswerConverter.toDO(answer);
         examAnswerMapper.insert(doObj);
         answer.setId(doObj.getId());

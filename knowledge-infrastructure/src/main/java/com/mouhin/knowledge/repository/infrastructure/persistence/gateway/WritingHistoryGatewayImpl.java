@@ -27,6 +27,7 @@ public class WritingHistoryGatewayImpl implements WritingHistoryGateway {
 
     @Override
     public void save(WritingHistory history) {
+        java.util.Objects.requireNonNull(history, "WritingHistory must not be null on save");
         WritingHistoryDO doObj = WritingHistoryConverter.toDO(history);
         writingHistoryMapper.insert(doObj);
         history.setId(doObj.getId());

@@ -654,6 +654,10 @@ public class ExamGradingSupport {
         }
         if ("SINGLE_CHOICE".equals(questionType) || "MULTI_CHOICE".equals(questionType)) {
             String head = ExamAnswerNormalizer.answerHead(raw);
+            // javabugs:S2259：answerHead 对纯解释 / 空 body 返回 null，回退空集合避免下游 toUpperCase NPE。
+            if (head == null) {
+                return normalizeChoiceSet("");
+            }
             return normalizeChoiceSet(toHalfWidth(head).toUpperCase());
         }
         return toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();

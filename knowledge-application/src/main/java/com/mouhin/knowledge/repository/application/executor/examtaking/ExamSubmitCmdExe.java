@@ -4,6 +4,8 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,8 +49,11 @@ public class ExamSubmitCmdExe {
         if (session.getDurationMinutes() != null
                 && session.getDurationMinutes() > 0
                 && session.getStartTime() != null) {
-            long elapsedSeconds =
-                    Duration.between(session.getStartTime(), LocalDateTime.now()).getSeconds();
+            // java:S8700：显式绑定 ZoneId，避免 DB / app 默认时区漂移导致 elapsed 计算虚高/虚低。
+            ZoneId zone = ZoneId.systemDefault();
+            ZonedDateTime startAt = session.getStartTime().atZone(zone);
+            ZonedDateTime nowAt = ZonedDateTime.now(zone);
+            long elapsedSeconds = Duration.between(startAt, nowAt).getSeconds();
             long allowedSeconds =
                     (long) session.getDurationMinutes() * SECONDS_PER_MINUTE + SUBMIT_GRACE_SECONDS;
             if (elapsedSeconds > allowedSeconds) {

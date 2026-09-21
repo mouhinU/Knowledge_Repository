@@ -64,6 +64,7 @@ public class DepartmentGatewayImpl implements DepartmentGateway {
 
     @Override
     public void save(Department department) {
+        java.util.Objects.requireNonNull(department, "Department must not be null on save");
         DepartmentDO doObj = toDO(department);
         doObj.setCreateTime(LocalDateTime.now());
         departmentMapper.insert(doObj);

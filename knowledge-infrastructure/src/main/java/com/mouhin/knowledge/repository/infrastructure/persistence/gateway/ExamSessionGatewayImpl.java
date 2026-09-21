@@ -36,6 +36,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
 
     @Override
     public void save(ExamSession session) {
+        java.util.Objects.requireNonNull(session, "ExamSession must not be null on save");
         ExamSessionDO doObj = ExamSessionConverter.toDO(session);
         examSessionMapper.insert(doObj);
         session.setId(doObj.getId());

@@ -29,6 +29,7 @@ public class StudentGatewayImpl implements StudentGateway {
 
     @Override
     public void save(Student student) {
+        java.util.Objects.requireNonNull(student, "Student must not be null on save");
         StudentDO doObj = StudentConverter.toDO(student);
         studentMapper.insert(doObj);
         student.setId(doObj.getId());
