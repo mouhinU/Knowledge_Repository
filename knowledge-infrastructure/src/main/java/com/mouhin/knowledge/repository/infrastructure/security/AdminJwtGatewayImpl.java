@@ -4,36 +4,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * 管理端令牌网关的 JWT 实现（infrastructure 层，标准 HS256）。
- * <p>
- * 采用 JDK 原生 {@link javax.crypto.Mac}（HmacSHA256）+ Jackson 手工拼装 / 解析，<b>不引入任何第三方
- * JWT 库</b>，以契合本项目离线镜像构建（DaoCloud 镜像源、无新增 Maven 依赖）的约束。令牌结构为标准
- * {@code base64url(header).base64url(payload).base64url(signature)} 三段式：
- * </p>
+ *
+ * <p>采用 JDK 原生 {@link javax.crypto.Mac}（HmacSHA256）+ Jackson 手工拼装 / 解析，<b>不引入任何第三方 JWT
+ * 库</b>，以契合本项目离线镜像构建（DaoCloud 镜像源、无新增 Maven 依赖）的约束。令牌结构为标准 {@code
+ * base64url(header).base64url(payload).base64url(signature)} 三段式：
+ *
  * <ul>
- *   <li>header：{@code {"alg":"HS256","typ":"JWT"}}</li>
- *   <li>payload：{@code {"sub":userKey,"username":..,"admin":..,"iat":..,"exp":..}}</li>
+ *   <li>header：{@code {"alg":"HS256","typ":"JWT"}}
+ *   <li>payload：{@code {"sub":userKey,"username":..,"admin":..,"iat":..,"exp":..}}
  * </ul>
- * <p>
- * 密钥经 {@code knowledge.admin.jwt.secret}（推荐由 {@code KNOWLEDGE_ADMIN_JWT_SECRET} 环境变量注入，
- * 缺省仅用于本地开发）配置；有效期 {@code knowledge.admin.jwt.expiration-hours}，默认 8 小时。
- * 校验时以常量时间比较签名，并检查 {@code exp}，任何篡改 / 过期 / 格式非法均返回
- * {@link Optional#empty()}。账号是否被禁用不在此判定（交由过滤器读库二次确认），保持职责分离。
- * </p>
+ *
+ * <p>密钥经 {@code knowledge.admin.jwt.secret}（推荐由 {@code KNOWLEDGE_ADMIN_JWT_SECRET} 环境变量注入，
+ * 缺省仅用于本地开发）配置；有效期 {@code knowledge.admin.jwt.expiration-hours}，默认 8 小时。 校验时以常量时间比较签名，并检查 {@code
+ * exp}，任何篡改 / 过期 / 格式非法均返回 {@link Optional#empty()}。账号是否被禁用不在此判定（交由过滤器读库二次确认），保持职责分离。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -61,7 +58,8 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AdminJwtGatewayImpl(
-            @Value("${knowledge.admin.jwt.secret:knowledge-repo-dev-admin-jwt-secret-change-me}") String secret,
+            @Value("${knowledge.admin.jwt.secret:knowledge-repo-dev-admin-jwt-secret-change-me}")
+                    String secret,
             @Value("${knowledge.admin.jwt.expiration-hours:8}") long expirationHours) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException("knowledge.admin.jwt.secret must not be blank");
@@ -123,7 +121,8 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             }
             String username = payload.path(CLAIM_USERNAME).asText(null);
             boolean admin = payload.path(CLAIM_ADMIN).asBoolean(false);
-            return Optional.of(new AdminTokenPayload(userKey, username, admin, Instant.ofEpochSecond(exp)));
+            return Optional.of(
+                    new AdminTokenPayload(userKey, username, admin, Instant.ofEpochSecond(exp)));
         } catch (Exception e) {
             logger.debug("Admin token verification failed: {}", e.getMessage());
             return Optional.empty();

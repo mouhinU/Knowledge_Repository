@@ -13,44 +13,28 @@ public class Student {
 
     private Long id;
 
-    /**
-     * 登录用户名
-     */
+    /** 登录用户名 */
     private String username;
 
-    /**
-     * 密码哈希（BCrypt）
-     */
+    /** 密码哈希（BCrypt） */
     private String passwordHash;
 
-    /**
-     * 显示名称
-     */
+    /** 显示名称 */
     private String displayName;
 
-    /**
-     * 学号 / 工号
-     */
+    /** 学号 / 工号 */
     private String studentNo;
 
-    /**
-     * 部门 ID
-     */
+    /** 部门 ID */
     private String departmentId;
 
-    /**
-     * 会话令牌
-     */
+    /** 会话令牌 */
     private String sessionToken;
 
-    /**
-     * 令牌过期时间
-     */
+    /** 令牌过期时间 */
     private LocalDateTime tokenExpiry;
 
-    /**
-     * 状态：ACTIVE / DISABLED
-     */
+    /** 状态：ACTIVE / DISABLED */
     private String status;
 
     private LocalDateTime createTime;
@@ -149,11 +133,10 @@ public class Student {
 
     // ==================== 业务方法 ====================
 
-    /**
-     * 判断令牌是否有效
-     */
+    /** 判断令牌是否有效 */
     public boolean isTokenValid() {
-        return sessionToken != null && tokenExpiry != null
+        return sessionToken != null
+                && tokenExpiry != null
                 && tokenExpiry.isAfter(LocalDateTime.now());
     }
 

@@ -13,98 +13,62 @@ public class DocumentChunk {
 
     private Long id;
 
-    /**
-     * 分块唯一标识（UUID）
-     */
+    /** 分块唯一标识（UUID） */
     private String chunkKey;
 
-    /**
-     * 所属文档 ID
-     */
+    /** 所属文档 ID */
     private Long documentId;
 
-    /**
-     * 所属文档 Key（冗余，方便 Milvus 过滤）
-     */
+    /** 所属文档 Key（冗余，方便 Milvus 过滤） */
     private String documentKey;
 
-    /**
-     * 分块在文档内的序号（从 0 开始）
-     */
+    /** 分块在文档内的序号（从 0 开始） */
     private Integer chunkIndex;
 
-    /**
-     * 起始页码（从 1 开始）
-     */
+    /** 起始页码（从 1 开始） */
     private Integer startPage;
 
-    /**
-     * 结束页码
-     */
+    /** 结束页码 */
     private Integer endPage;
 
-    /**
-     * 分块文本内容
-     */
+    /** 分块文本内容 */
     private String content;
 
-    /**
-     * 文本 token 数（估算）
-     */
+    /** 文本 token 数（估算） */
     private Integer tokenCount;
 
-    /**
-     * Milvus 中的向量 ID
-     */
+    /** Milvus 中的向量 ID */
     private String vectorId;
 
-    /**
-     * 所属部门 ID（冗余，用于权限过滤）
-     */
+    /** 所属部门 ID（冗余，用于权限过滤） */
     private String departmentId;
 
-    /**
-     * 文档可见性（冗余，用于权限过滤）
-     */
+    /** 文档可见性（冗余，用于权限过滤） */
     private String visibility;
 
-    /**
-     * 允许角色（冗余，JSON 数组字符串）
-     */
+    /** 允许角色（冗余，JSON 数组字符串） */
     private String allowedRoles;
 
-    /**
-     * 文档所有者 ID（冗余）
-     */
+    /** 文档所有者 ID（冗余） */
     private String ownerId;
 
-    /**
-     * 文档名称（冗余，用于 Milvus 元数据展示）
-     */
+    /** 文档名称（冗余，用于 Milvus 元数据展示） */
     private String documentName;
 
-    /**
-     * 文件类型（冗余，用于 Milvus 元数据过滤）
-     */
+    /** 文件类型（冗余，用于 Milvus 元数据过滤） */
     private String fileType;
 
-    /**
-     * 标签（冗余，用于 Milvus 元数据过滤）
-     */
+    /** 标签（冗余，用于 Milvus 元数据过滤） */
     private String tags;
 
-    /**
-     * 文档分类（冗余，用于 Milvus 元数据过滤）
-     */
+    /** 文档分类（冗余，用于 Milvus 元数据过滤） */
     private String category;
 
     private LocalDateTime createdTime;
 
     // ==================== 业务方法 ====================
 
-    /**
-     * 估算文本 token 数（中文约 1.5 字/token，英文约 4 字符/token）
-     */
+    /** 估算文本 token 数（中文约 1.5 字/token，英文约 4 字符/token） */
     public int estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) {
             return 0;
@@ -296,14 +260,22 @@ public class DocumentChunk {
 
     @Override
     public String toString() {
-        return "DocumentChunk{" +
-                "id=" + id +
-                ", chunkKey='" + chunkKey + '\'' +
-                ", documentId=" + documentId +
-                ", chunkIndex=" + chunkIndex +
-                ", startPage=" + startPage +
-                ", endPage=" + endPage +
-                ", tokenCount=" + tokenCount +
-                '}';
+        return "DocumentChunk{"
+                + "id="
+                + id
+                + ", chunkKey='"
+                + chunkKey
+                + '\''
+                + ", documentId="
+                + documentId
+                + ", chunkIndex="
+                + chunkIndex
+                + ", startPage="
+                + startPage
+                + ", endPage="
+                + endPage
+                + ", tokenCount="
+                + tokenCount
+                + '}';
     }
 }

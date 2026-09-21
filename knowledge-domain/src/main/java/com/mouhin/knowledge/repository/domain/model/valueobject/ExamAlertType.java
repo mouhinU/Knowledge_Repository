@@ -2,10 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 
 /**
  * 考试链路告警类型（2-F 可观测性）。
- * <p>
- * 覆盖出卷与评分链路中"机器无法自助兜底、需要人工 / 运维关注"的关键异常信号，
- * 用于统一指标埋点与结构化告警日志的维度标签。
- * </p>
+ *
+ * <p>覆盖出卷与评分链路中"机器无法自助兜底、需要人工 / 运维关注"的关键异常信号， 用于统一指标埋点与结构化告警日志的维度标签。
  *
  * @author Knowledge-Repository
  * @date 2026-09-18

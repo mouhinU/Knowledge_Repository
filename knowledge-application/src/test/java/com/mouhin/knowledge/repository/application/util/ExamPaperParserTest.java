@@ -1,24 +1,21 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 /**
  * 试卷 Markdown 解析器切分单测（锁定「题型分布方案 label 带括注」场景的类型识别与选项抽取）。
- * <p>
- * 复现一年级语文期末卷：试卷标题「我会选（单选题）」经 {@code extractSectionName} 剥离为「我会选」，
- * 而方案 label 为「我会选（单选题）」。回归点：二者须按 baseName 对齐命中 SINGLE_CHOICE，
- * 且把内联 A/B/C/D 选项抽进 options，避免整卷塌成 SHORT_ANSWER 导致校对页「只有答案字母、没有选项可判」。
+ *
+ * <p>复现一年级语文期末卷：试卷标题「我会选（单选题）」经 {@code extractSectionName} 剥离为「我会选」， 而方案 label 为「我会选（单选题）」。回归点：二者须按
+ * baseName 对齐命中 SINGLE_CHOICE， 且把内联 A/B/C/D 选项抽进 options，避免整卷塌成 SHORT_ANSWER 导致校对页「只有答案字母、没有选项可判」。
  * 另验证无方案时靠标题括注「（单选题）」的关键词回落也能识别单选。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -26,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DisplayName("试卷切分题型/选项 (ExamPaperParser)")
 class ExamPaperParserTest {
 
-    private static final String PAPER = """
+    private static final String PAPER =
+            """
             # 一年级语文期末试卷
 
             **考试时间：60分钟**
@@ -60,7 +58,8 @@ class ExamPaperParserTest {
             **5.** 看图写话：图上画着蓝天、白云、小鸟。请写一句话。（7分）
             """;
 
-    private static final String PLAN_JSON = """
+    private static final String PLAN_JSON =
+            """
             {"schoolLevel":"PRIMARY","totalFullMark":100,"combined":false,"subjects":["语文"],"types":[
             {"key":"SINGLE_CHOICE","label":"我会选（单选题）","count":2,"perQuestion":[2,2],"reason":"x"},
             {"key":"TRUE_FALSE","label":"我会判（判断题）","count":1,"perQuestion":[2],"reason":"x"},

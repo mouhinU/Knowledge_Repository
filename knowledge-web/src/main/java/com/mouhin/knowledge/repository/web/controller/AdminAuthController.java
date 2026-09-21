@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +18,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 /**
  * 管理端认证控制器（adapter 层）。
- * <p>
- * 提供登录 / 登出 / 当前身份 / 自助改密四个端点。{@code /login}、{@code /logout} 在过滤器放行清单内，
- * 无需令牌即可达；{@code /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌，
- * 控制器从请求属性读取已认证身份，其中改密的 {@code userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
- * </p>
+ *
+ * <p>提供登录 / 登出 / 当前身份 / 自助改密四个端点。{@code /login}、{@code /logout} 在过滤器放行清单内， 无需令牌即可达；{@code
+ * /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌， 控制器从请求属性读取已认证身份，其中改密的 {@code
+ * userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -42,31 +40,29 @@ public class AdminAuthController {
         this.adminAuthService = adminAuthService;
     }
 
-    /**
-     * 管理端登录：用户名密码换取访问令牌。
-     */
+    /** 管理端登录：用户名密码换取访问令牌。 */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody AdminLoginCmd cmd) {
         try {
             AdminLoginResultDTO data = adminAuthService.login(cmd).getData();
-            return ResponseEntity.ok(Map.of(
-                    "message", "登录成功",
-                    "token", data.getToken(),
-                    "userKey", data.getUserKey(),
-                    "username", data.getUsername(),
-                    "admin", Boolean.TRUE.equals(data.getAdmin()),
-                    "expiresAt", data.getExpiresAt()));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message", "登录成功",
+                            "token", data.getToken(),
+                            "userKey", data.getUserKey(),
+                            "username", data.getUsername(),
+                            "admin", Boolean.TRUE.equals(data.getAdmin()),
+                            "expiresAt", data.getExpiresAt()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(Map.of("error", e.getMessage(), "code", 401));
         }
     }
 
-    /**
-     * 管理端登出：JWT 无状态，服务端仅审计，前端丢弃本地令牌。
-     */
+    /** 管理端登出：JWT 无状态，服务端仅审计，前端丢弃本地令牌。 */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
-            @RequestHeader(value = AdminTokenAuthFilter.TOKEN_HEADER, required = false) String headerToken,
+            @RequestHeader(value = AdminTokenAuthFilter.TOKEN_HEADER, required = false)
+                    String headerToken,
             @RequestBody(required = false) Map<String, String> body) {
         String token = headerToken;
         if (token == null && body != null) {
@@ -78,24 +74,21 @@ public class AdminAuthController {
         return ResponseEntity.ok(Map.of("message", "已退出"));
     }
 
-    /**
-     * 获取当前登录者身份（令牌已由过滤器校验，直接取回属性）。
-     */
+    /** 获取当前登录者身份（令牌已由过滤器校验，直接取回属性）。 */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(HttpServletRequest request) {
         AdminPrincipalDTO principal = currentPrincipal(request);
         if (principal == null) {
             return ResponseEntity.status(401).body(Map.of("error", "未登录", "code", 401));
         }
-        return ResponseEntity.ok(Map.of(
-                "userKey", principal.getUserKey(),
-                "username", principal.getUsername(),
-                "admin", Boolean.TRUE.equals(principal.getAdmin())));
+        return ResponseEntity.ok(
+                Map.of(
+                        "userKey", principal.getUserKey(),
+                        "username", principal.getUsername(),
+                        "admin", Boolean.TRUE.equals(principal.getAdmin())));
     }
 
-    /**
-     * 自助修改密码：以令牌身份为准，校验旧密码后设置新密码。
-     */
+    /** 自助修改密码：以令牌身份为准，校验旧密码后设置新密码。 */
     @PostMapping("/change-password")
     public ResponseEntity<Map<String, Object>> changePassword(
             @RequestBody AdminChangePasswordCmd cmd, HttpServletRequest request) {

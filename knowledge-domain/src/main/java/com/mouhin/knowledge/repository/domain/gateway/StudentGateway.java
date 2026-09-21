@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -26,9 +25,9 @@ public interface StudentGateway {
     /**
      * 清空指定考生的会话令牌与令牌过期时间（退出登录使用）。
      *
-     * <p>与通用 {@link #update(Student)} 分离：MyBatis-Plus 默认 NOT_NULL 更新策略会跳过 null 字段，
-     * 通用 update 无法把 {@code session_token} / {@code token_expiry} 真正置空。本实现通过
-     * {@code LambdaUpdateWrapper.set(..., null)} 显式写入 NULL，保证令牌即刻失效。</p>
+     * <p>与通用 {@link #update(Student)} 分离：MyBatis-Plus 默认 NOT_NULL 更新策略会跳过 null 字段， 通用 update 无法把
+     * {@code session_token} / {@code token_expiry} 真正置空。本实现通过 {@code LambdaUpdateWrapper.set(...,
+     * null)} 显式写入 NULL，保证令牌即刻失效。
      *
      * @param id 考生主键
      */

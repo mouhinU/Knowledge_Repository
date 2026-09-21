@@ -4,18 +4,15 @@ import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * 文档配图列表查询执行器（app 层）。
- * <p>
- * 返回某文档已提取并落库的图片清单（含展示 URL 与元信息），供管理端校对选图界面渲染缩略图网格。
- * 文档不存在时返回空列表。
- * </p>
+ *
+ * <p>返回某文档已提取并落库的图片清单（含展示 URL 与元信息），供管理端校对选图界面渲染缩略图网格。 文档不存在时返回空列表。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -28,8 +25,8 @@ public class ListDocumentImagesQryExe {
     private final DocumentGateway documentGateway;
     private final DocumentImageSupport documentImageSupport;
 
-    public ListDocumentImagesQryExe(DocumentGateway documentGateway,
-                                    DocumentImageSupport documentImageSupport) {
+    public ListDocumentImagesQryExe(
+            DocumentGateway documentGateway, DocumentImageSupport documentImageSupport) {
         this.documentGateway = documentGateway;
         this.documentImageSupport = documentImageSupport;
     }

@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.department;
 import com.mouhin.knowledge.repository.application.converter.DepartmentConverter;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 部门列表查询执行器（app 层用例）
@@ -23,8 +22,6 @@ public class DepartmentListQryExe {
     }
 
     public List<DepartmentVO> execute() {
-        return departmentGateway.listAll().stream()
-                .map(DepartmentConverter::toVO)
-                .toList();
+        return departmentGateway.listAll().stream().map(DepartmentConverter::toVO).toList();
     }
 }

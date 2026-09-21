@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * 题型分布方案分值自动平衡执行器（出入参为领域 VO，返回 BalanceResult）
- * <p>因出入参含领域类型，不纳入 client 契约，由适配层直接调用并映射为响应。</p>
+ *
+ * <p>因出入参含领域类型，不纳入 client 契约，由适配层直接调用并映射为响应。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17

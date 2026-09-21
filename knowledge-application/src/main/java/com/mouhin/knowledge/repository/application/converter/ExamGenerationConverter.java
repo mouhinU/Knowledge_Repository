@@ -6,15 +6,14 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 /**
  * 出卷历史 领域实体 → 视图对象 转换器（app 层）
  *
- * <p>22 个属性逐一映射，力求与原实体 Jackson 序列化结果保持键集合、顺序与取值一致。</p>
+ * <p>22 个属性逐一映射，力求与原实体 Jackson 序列化结果保持键集合、顺序与取值一致。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
  */
 public final class ExamGenerationConverter {
 
-    private ExamGenerationConverter() {
-    }
+    private ExamGenerationConverter() {}
 
     public static ExamHistoryDTO toHistoryDTO(ExamHistory history) {
         if (history == null) {

@@ -13,34 +13,22 @@ public class User {
 
     private Long id;
 
-    /**
-     * 用户唯一标识（UUID）
-     */
+    /** 用户唯一标识（UUID） */
     private String userKey;
 
-    /**
-     * 用户名
-     */
+    /** 用户名 */
     private String username;
 
-    /**
-     * 所属部门 ID
-     */
+    /** 所属部门 ID */
     private String departmentId;
 
-    /**
-     * 是否为超级管理员
-     */
+    /** 是否为超级管理员 */
     private Boolean admin;
 
-    /**
-     * 登录密码 BCrypt 哈希（$2a）。为 null 表示该账号尚未设置密码、不可通过密码登录。
-     */
+    /** 登录密码 BCrypt 哈希（$2a）。为 null 表示该账号尚未设置密码、不可通过密码登录。 */
     private String passwordHash;
 
-    /**
-     * 账号状态：ACTIVE / DISABLED。禁用账号登录与被拦截的令牌校验均实时读此字段。
-     */
+    /** 账号状态：ACTIVE / DISABLED。禁用账号登录与被拦截的令牌校验均实时读此字段。 */
     private String status;
 
     private LocalDateTime createdTime;
@@ -159,12 +147,20 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", userKey='" + userKey + '\'' +
-                ", username='" + username + '\'' +
-                ", departmentId='" + departmentId + '\'' +
-                ", admin=" + admin +
-                '}';
+        return "User{"
+                + "id="
+                + id
+                + ", userKey='"
+                + userKey
+                + '\''
+                + ", username='"
+                + username
+                + '\''
+                + ", departmentId='"
+                + departmentId
+                + '\''
+                + ", admin="
+                + admin
+                + '}';
     }
 }

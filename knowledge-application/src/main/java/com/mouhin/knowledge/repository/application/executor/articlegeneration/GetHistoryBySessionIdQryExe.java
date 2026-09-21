@@ -21,7 +21,8 @@ public class GetHistoryBySessionIdQryExe {
     }
 
     public WritingHistoryDTO execute(String sessionId) {
-        return writingHistoryGateway.findBySessionId(sessionId)
+        return writingHistoryGateway
+                .findBySessionId(sessionId)
                 .map(ArticleConverter::toHistoryDTO)
                 .orElse(null);
     }

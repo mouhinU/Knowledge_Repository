@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.WritingHistoryConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.WritingHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.WritingHistoryMapper;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * AI 写作历史仓储实现
@@ -50,8 +49,7 @@ public class WritingHistoryGatewayImpl implements WritingHistoryGateway {
     @Override
     public List<WritingHistory> listRecent(int limit) {
         LambdaQueryWrapper<WritingHistoryDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(WritingHistoryDO::getCreateTime)
-                .last("LIMIT " + limit);
+        wrapper.orderByDesc(WritingHistoryDO::getCreateTime).last("LIMIT " + limit);
         return writingHistoryMapper.selectList(wrapper).stream()
                 .map(WritingHistoryConverter::toDomain)
                 .toList();

@@ -12,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 修改用户命令执行器（app 层用例，事务边界）
  *
- * <p>username / departmentId / admin / status / password 为 null（或 password 为空串）时保持原值不变；
- * password 提供时 BCrypt 后重置，status 仅接受 ACTIVE / DISABLED。</p>
+ * <p>username / departmentId / admin / status / password 为 null（或 password 为空串）时保持原值不变； password
+ * 提供时 BCrypt 后重置，status 仅接受 ACTIVE / DISABLED。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -31,8 +31,13 @@ public class UserUpdateCmdExe {
 
     @Transactional
     public UserVO execute(UserUpdateCmd cmd) {
-        User user = userGateway.findByUserKey(cmd.getUserKey())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.getUserKey()));
+        User user =
+                userGateway
+                        .findByUserKey(cmd.getUserKey())
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "User not found: " + cmd.getUserKey()));
         if (cmd.getUsername() != null) {
             user.setUsername(cmd.getUsername());
         }

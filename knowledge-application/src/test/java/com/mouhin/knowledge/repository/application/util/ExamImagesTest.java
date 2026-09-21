@@ -1,21 +1,18 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 /**
  * 看图题配图 assetKey 解析工具单测（阶段 4）。
- * <p>
- * 锁定跨链路共享的解析口径：正常数组按序保留、逐项 trim 且跳过空白、null / 空 / 脏 JSON 安全降级为
- * 空列表（不抛异常），以及 {@code parseOrNull} 把「无有效配图」归一化为 null 以便 {@code @JsonInclude} 省略字段。
- * 纯函数测试，确定且离线。
- * </p>
+ *
+ * <p>锁定跨链路共享的解析口径：正常数组按序保留、逐项 trim 且跳过空白、null / 空 / 脏 JSON 安全降级为 空列表（不抛异常），以及 {@code parseOrNull}
+ * 把「无有效配图」归一化为 null 以便 {@code @JsonInclude} 省略字段。 纯函数测试，确定且离线。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -32,7 +29,8 @@ class ExamImagesTest {
     @Test
     @DisplayName("逐项 trim 且跳过空白项")
     void trimsAndSkipsBlank() {
-        assertEquals(List.of("k1", "k2"), ExamImages.parseAssetKeys("[\" k1 \", \"\", null, \"k2\"]"));
+        assertEquals(
+                List.of("k1", "k2"), ExamImages.parseAssetKeys("[\" k1 \", \"\", null, \"k2\"]"));
     }
 
     @Test

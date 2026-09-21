@@ -9,20 +9,18 @@ import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 /**
  * 重新入库已有文档用例执行器（app 层，清理旧向量 / 分块后重新提取、分块、向量化）。
- * <p>
- * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.reindex}。
- * </p>
+ *
+ * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.reindex}。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -39,12 +37,13 @@ public class ReindexCmdExe {
     private final DocumentExtractionGateway documentExtractionService;
     private final TransactionTemplate transactionTemplate;
 
-    public ReindexCmdExe(DocumentIngestionSupport support,
-                         DocumentGateway documentGateway,
-                         DocumentChunkGateway chunkGateway,
-                         VectorStoreGateway vectorStoreService,
-                         DocumentExtractionGateway documentExtractionService,
-                         TransactionTemplate transactionTemplate) {
+    public ReindexCmdExe(
+            DocumentIngestionSupport support,
+            DocumentGateway documentGateway,
+            DocumentChunkGateway chunkGateway,
+            VectorStoreGateway vectorStoreService,
+            DocumentExtractionGateway documentExtractionService,
+            TransactionTemplate transactionTemplate) {
         this.support = support;
         this.documentGateway = documentGateway;
         this.chunkGateway = chunkGateway;
@@ -54,8 +53,13 @@ public class ReindexCmdExe {
     }
 
     public DocumentVO execute(String documentKey) {
-        Document document = documentGateway.findByDocumentKey(documentKey)
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
+        Document document =
+                documentGateway
+                        .findByDocumentKey(documentKey)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "Document not found: " + documentKey));
 
         Path storagePath = Path.of(document.getStoragePath());
         if (!Files.exists(storagePath)) {
@@ -67,14 +71,15 @@ public class ReindexCmdExe {
         vectorStoreService.deleteByDocumentKey(documentKey);
 
         // 快 IO：关系库清理 + 状态重置置于短事务，保证 chunk 行删除与文档状态回退原子发生。
-        transactionTemplate.executeWithoutResult(status -> {
-            chunkGateway.deleteByDocumentId(document.getId());
-            document.setStatus(DocumentStatusEnum.UPLOADED);
-            document.setErrorMessage(null);
-            documentGateway.update(document);
-            // updateById 在 NOT_NULL 策略下不会把 error_message 写回 null，须走专用清列通道（DATA-3）
-            documentGateway.clearErrorMessage(document.getId());
-        });
+        transactionTemplate.executeWithoutResult(
+                status -> {
+                    chunkGateway.deleteByDocumentId(document.getId());
+                    document.setStatus(DocumentStatusEnum.UPLOADED);
+                    document.setErrorMessage(null);
+                    documentGateway.update(document);
+                    // updateById 在 NOT_NULL 策略下不会把 error_message 写回 null，须走专用清列通道（DATA-3）
+                    documentGateway.clearErrorMessage(document.getId());
+                });
 
         logger.info("Reindexing document {}: {}", documentKey, document.getFileName());
 

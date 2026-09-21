@@ -8,34 +8,22 @@ package com.mouhin.knowledge.repository.client.dto;
  */
 public class DocumentUploadRequest {
 
-    /**
-     * 所有者用户 ID
-     */
+    /** 所有者用户 ID */
     private String ownerId;
 
-    /**
-     * 所属部门 ID
-     */
+    /** 所属部门 ID */
     private String departmentId;
 
-    /**
-     * 可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE）
-     */
+    /** 可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE） */
     private String visibility;
 
-    /**
-     * 允许访问的角色（逗号分隔）
-     */
+    /** 允许访问的角色（逗号分隔） */
     private String allowedRoles;
 
-    /**
-     * 标签（逗号分隔）
-     */
+    /** 标签（逗号分隔） */
     private String tags;
 
-    /**
-     * 文档分类（如：工作、学习、休闲）
-     */
+    /** 文档分类（如：工作、学习、休闲） */
     private String category;
 
     public String getOwnerId() {

@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.student;
 import com.mouhin.knowledge.repository.application.converter.StudentConverter;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 /**
  * 按 ID 查询考生执行器（app 层用例）

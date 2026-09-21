@@ -1,29 +1,28 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * 考试评分进度存储与 SSE 推送
- * <p>
- * 由 {@link ExamReviewController} 与评分流程桥接：Web 层建立 SSE 连接，
- * 通过 {@link #createCallback(String)} 得到回调注入到应用层，评分过程按题上报。
- * </p>
  *
- * <p>事件名（{@code event.name}）：</p>
+ * <p>由 {@link ExamReviewController} 与评分流程桥接：Web 层建立 SSE 连接， 通过 {@link #createCallback(String)}
+ * 得到回调注入到应用层，评分过程按题上报。
+ *
+ * <p>事件名（{@code event.name}）：
+ *
  * <ul>
- *     <li>START — 单题开始，携带 questionIndex / questionType / input</li>
- *     <li>DONE — 单题结束，携带 rawOutput / score / maxScore / feedback / elapsed</li>
- *     <li>ERROR — 单题异常，携带 questionIndex / error</li>
- *     <li>COMPLETE — 整场结束，携带 totalQuestions / totalAiScore</li>
- *     <li>FATAL — 整场启动失败，携带 error</li>
+ *   <li>START — 单题开始，携带 questionIndex / questionType / input
+ *   <li>DONE — 单题结束，携带 rawOutput / score / maxScore / feedback / elapsed
+ *   <li>ERROR — 单题异常，携带 questionIndex / error
+ *   <li>COMPLETE — 整场结束，携带 totalQuestions / totalAiScore
+ *   <li>FATAL — 整场启动失败，携带 error
  * </ul>
  *
  * @author Knowledge-Repository
@@ -34,14 +33,10 @@ public class ExamGradingProgressStore {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamGradingProgressStore.class);
 
-    /**
-     * SSE 超时：10 分钟
-     */
+    /** SSE 超时：10 分钟 */
     private static final long SSE_TIMEOUT_MS = 600_000L;
 
-    /**
-     * 每场考试的 SSE 连接（同一 streamId 只允许一个客户端）
-     */
+    /** 每场考试的 SSE 连接（同一 streamId 只允许一个客户端） */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**
@@ -80,9 +75,10 @@ public class ExamGradingProgressStore {
 
     /**
      * 构造带 sessionId 标签的评分回调。
-     * <p>批量评分时同一 SSE 通道会承载多个场次的进度事件，前端按 sessionId 分派到对应卡片。</p>
      *
-     * @param streamId  SSE 通道 ID
+     * <p>批量评分时同一 SSE 通道会承载多个场次的进度事件，前端按 sessionId 分派到对应卡片。
+     *
+     * @param streamId SSE 通道 ID
      * @param sessionId 若不为 null，事件 payload 中会附带 sessionId
      * @return 评分进度回调
      */
@@ -116,8 +112,13 @@ public class ExamGradingProgressStore {
             }
 
             @Override
-            public void onQuestionDone(int questionIndex, String aiRawOutput, int aiScore, int maxScore,
-                                       String aiFeedback, long elapsedMs) {
+            public void onQuestionDone(
+                    int questionIndex,
+                    String aiRawOutput,
+                    int aiScore,
+                    int maxScore,
+                    String aiFeedback,
+                    long elapsedMs) {
                 Map<String, Object> payload = new java.util.LinkedHashMap<>();
                 if (sessionId != null) {
                     payload.put("sessionId", sessionId);
@@ -184,7 +185,7 @@ public class ExamGradingProgressStore {
     /**
      * 推送批量收尾事件并关闭 SSE 通道
      *
-     * @param streamId     SSE 通道 ID
+     * @param streamId SSE 通道 ID
      * @param sessionCount 本次批量评分覆盖的场次数
      */
     public void emitBatchComplete(String streamId, int sessionCount) {

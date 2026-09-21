@@ -2,6 +2,20 @@ package com.mouhin.knowledge.repository.infrastructure.image;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import javax.imageio.ImageIO;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSName;
@@ -10,11 +24,11 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
-import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xssf.usermodel.XSSFPictureData;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
@@ -29,33 +43,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import javax.imageio.ImageIO;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
 /**
  * 文档内嵌图片提取服务（基础设施层）。
- * <p>
- * 与文本提取服务平行，从 PDF / Word(.docx) / Excel(.xlsx) / PowerPoint(.pptx) 中抽取位图：
+ *
+ * <p>与文本提取服务平行，从 PDF / Word(.docx) / Excel(.xlsx) / PowerPoint(.pptx) 中抽取位图：
+ *
  * <ul>
- *     <li>PDF：PDFBox 逐页遍历 {@code /XObject} 图像资源，按对象身份跨页去重；</li>
- *     <li>Word：POI 按正文顺序（段落 / 表格）解析内联图片，保留出现次序与近似页序；</li>
- *     <li>Excel / PPT：POI 遍历工作表 / 幻灯片中的图片。</li>
+ *   <li>PDF：PDFBox 逐页遍历 {@code /XObject} 图像资源，按对象身份跨页去重；
+ *   <li>Word：POI 按正文顺序（段落 / 表格）解析内联图片，保留出现次序与近似页序；
+ *   <li>Excel / PPT：POI 遍历工作表 / 幻灯片中的图片。
  * </ul>
- * 过滤过小装饰图（默认 {@code >=80x80}）并限制单文档上限，异常按格式吞掉、绝不中断文本摄入主流程。
- * 仅返回二进制与元信息，落盘与持久化由应用层完成。
- * </p>
+ *
+ * 过滤过小装饰图（默认 {@code >=80x80}）并限制单文档上限，异常按格式吞掉、绝不中断文本摄入主流程。 仅返回二进制与元信息，落盘与持久化由应用层完成。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -63,7 +62,8 @@ import java.util.Set;
 @Service
 public class DocumentImageExtractorService implements DocumentImageExtractorGateway {
 
-    private static final Logger logger = LoggerFactory.getLogger(DocumentImageExtractorService.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(DocumentImageExtractorService.class);
 
     /** 过滤边长小于该值的装饰性小图（px） */
     private static final int MIN_EDGE = 80;
@@ -86,20 +86,22 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         }
         logger.info("Extracting images from: {} (type={})", fileName, mimeType);
         try {
-            List<ExtractedImage> images = switch (mimeType) {
-                case "application/pdf" -> extractFromPdf(filePath);
-                case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                        extractFromDocx(filePath);
-                case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-                        extractFromXlsx(filePath);
-                case "application/vnd.openxmlformats-officedocument.presentationml.presentation" ->
-                        extractFromPptx(filePath);
-                default -> List.of();
-            };
+            List<ExtractedImage> images =
+                    switch (mimeType) {
+                        case "application/pdf" -> extractFromPdf(filePath);
+                        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
+                                extractFromDocx(filePath);
+                        case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
+                                extractFromXlsx(filePath);
+                        case "application/vnd.openxmlformats-officedocument.presentationml.presentation" ->
+                                extractFromPptx(filePath);
+                        default -> List.of();
+                    };
             logger.info("Image extraction done: {} -> {} image(s)", fileName, images.size());
             return images;
         } catch (Exception e) {
-            logger.warn("Image extraction failed for {} ({}): {}", fileName, mimeType, e.getMessage());
+            logger.warn(
+                    "Image extraction failed for {} ({}): {}", fileName, mimeType, e.getMessage());
             return List.of();
         }
     }
@@ -140,8 +142,14 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                     }
                     if (accept(awt) && result.size() < MAX_IMAGES_PER_DOC) {
                         byte[] bytes = toPng(awt);
-                        result.add(new ExtractedImage(bytes, "image/png",
-                                awt.getWidth(), awt.getHeight(), pageNo, seq++));
+                        result.add(
+                                new ExtractedImage(
+                                        bytes,
+                                        "image/png",
+                                        awt.getWidth(),
+                                        awt.getHeight(),
+                                        pageNo,
+                                        seq++));
                     }
                 }
             }
@@ -154,7 +162,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromDocx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-             XWPFDocument doc = new XWPFDocument(is)) {
+                XWPFDocument doc = new XWPFDocument(is)) {
 
             // 按正文顺序采集内联图片（含表格），无法定位时回退 getAllPictures
             List<DocxPic> collected = new ArrayList<>();
@@ -177,17 +185,28 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                 if (!accept(awt)) {
                     continue;
                 }
-                String mt = resolveMime(bytes, data.getPackagePart() != null
-                        ? data.getPackagePart().getContentType() : null, data.suggestFileExtension());
-                result.add(new ExtractedImage(bytes, mt,
-                        awt != null ? awt.getWidth() : null,
-                        awt != null ? awt.getHeight() : null, pic.page(), seq++));
+                String mt =
+                        resolveMime(
+                                bytes,
+                                data.getPackagePart() != null
+                                        ? data.getPackagePart().getContentType()
+                                        : null,
+                                data.suggestFileExtension());
+                result.add(
+                        new ExtractedImage(
+                                bytes,
+                                mt,
+                                awt != null ? awt.getWidth() : null,
+                                awt != null ? awt.getHeight() : null,
+                                pic.page(),
+                                seq++));
             }
         }
         return result;
     }
 
-    private void collectDocxPictures(List<IBodyElement> bodyElements, List<DocxPic> out, int[] counter) {
+    private void collectDocxPictures(
+            List<IBodyElement> bodyElements, List<DocxPic> out, int[] counter) {
         if (bodyElements == null) {
             return;
         }
@@ -207,8 +226,16 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                     }
                 }
             } else if (el instanceof XWPFTable table) {
-                table.getRows().forEach(row -> row.getTableCells().forEach(cell ->
-                        collectDocxPictures(cell.getBodyElements(), out, counter)));
+                table.getRows()
+                        .forEach(
+                                row ->
+                                        row.getTableCells()
+                                                .forEach(
+                                                        cell ->
+                                                                collectDocxPictures(
+                                                                        cell.getBodyElements(),
+                                                                        out,
+                                                                        counter)));
             }
         }
     }
@@ -218,7 +245,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromXlsx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-             XSSFWorkbook wb = new XSSFWorkbook(is)) {
+                XSSFWorkbook wb = new XSSFWorkbook(is)) {
 
             List<XSSFPictureData> pictures = wb.getAllPictures();
             int sheetPages = Math.max(1, wb.getNumberOfSheets());
@@ -234,12 +261,24 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                     continue;
                 }
                 // xlsx 图片与工作表映射不精确，按数量分摊估算页序
-                int approxSheet = (int) Math.floor((double) i / Math.max(1, pictures.size()) * sheetPages) + 1;
-                String mt = resolveMime(bytes, data.getPackagePart() != null
-                        ? data.getPackagePart().getContentType() : null, data.suggestFileExtension());
-                result.add(new ExtractedImage(bytes, mt,
-                        awt != null ? awt.getWidth() : null,
-                        awt != null ? awt.getHeight() : null, approxSheet, seq++));
+                int approxSheet =
+                        (int) Math.floor((double) i / Math.max(1, pictures.size()) * sheetPages)
+                                + 1;
+                String mt =
+                        resolveMime(
+                                bytes,
+                                data.getPackagePart() != null
+                                        ? data.getPackagePart().getContentType()
+                                        : null,
+                                data.suggestFileExtension());
+                result.add(
+                        new ExtractedImage(
+                                bytes,
+                                mt,
+                                awt != null ? awt.getWidth() : null,
+                                awt != null ? awt.getHeight() : null,
+                                approxSheet,
+                                seq++));
             }
         }
         return result;
@@ -250,7 +289,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromPptx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-             XMLSlideShow ppt = new XMLSlideShow(is)) {
+                XMLSlideShow ppt = new XMLSlideShow(is)) {
 
             int slideNo = 0;
             for (XSLFSlide slide : ppt.getSlides()) {
@@ -270,11 +309,21 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                         if (!accept(awt)) {
                             continue;
                         }
-                        String mt = resolveMime(bytes, data.getPackagePart() != null
-                                ? data.getPackagePart().getContentType() : null, null);
-                        result.add(new ExtractedImage(bytes, mt,
-                                awt != null ? awt.getWidth() : null,
-                                awt != null ? awt.getHeight() : null, slideNo, seq++));
+                        String mt =
+                                resolveMime(
+                                        bytes,
+                                        data.getPackagePart() != null
+                                                ? data.getPackagePart().getContentType()
+                                                : null,
+                                        null);
+                        result.add(
+                                new ExtractedImage(
+                                        bytes,
+                                        mt,
+                                        awt != null ? awt.getWidth() : null,
+                                        awt != null ? awt.getHeight() : null,
+                                        slideNo,
+                                        seq++));
                     }
                 }
             }
@@ -284,8 +333,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
 
     // ==================== 工具 ====================
 
-    private record DocxPic(XWPFPictureData data, int page) {
-    }
+    private record DocxPic(XWPFPictureData data, int page) {}
 
     private boolean accept(BufferedImage img) {
         return img != null && img.getWidth() >= MIN_EDGE && img.getHeight() >= MIN_EDGE;
@@ -304,7 +352,8 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
 
     private byte[] toPng(BufferedImage img) throws IOException {
         BufferedImage rgb = img;
-        if (img.getType() != BufferedImage.TYPE_INT_RGB && img.getType() != BufferedImage.TYPE_INT_ARGB) {
+        if (img.getType() != BufferedImage.TYPE_INT_RGB
+                && img.getType() != BufferedImage.TYPE_INT_ARGB) {
             rgb = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = rgb.createGraphics();
             g.drawImage(img, 0, 0, null);
@@ -315,9 +364,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         return baos.toByteArray();
     }
 
-    /**
-     * 解析图片 MIME：优先内容类型（image/*），其次文件扩展名，最后按字节魔数嗅探。
-     */
+    /** 解析图片 MIME：优先内容类型（image/*），其次文件扩展名，最后按字节魔数嗅探。 */
     private String resolveMime(byte[] bytes, String contentType, String fileExt) {
         if (contentType != null) {
             String lower = contentType.toLowerCase(Locale.ROOT);
@@ -326,14 +373,15 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
             }
         }
         if (fileExt != null) {
-            String byExt = switch (fileExt.toLowerCase(Locale.ROOT)) {
-                case "png" -> "image/png";
-                case "jpg", "jpeg" -> "image/jpeg";
-                case "gif" -> "image/gif";
-                case "bmp" -> "image/bmp";
-                case "tif", "tiff" -> "image/tiff";
-                default -> null;
-            };
+            String byExt =
+                    switch (fileExt.toLowerCase(Locale.ROOT)) {
+                        case "png" -> "image/png";
+                        case "jpg", "jpeg" -> "image/jpeg";
+                        case "gif" -> "image/gif";
+                        case "bmp" -> "image/bmp";
+                        case "tif", "tiff" -> "image/tiff";
+                        default -> null;
+                    };
             if (byExt != null) {
                 return byExt;
             }
@@ -354,8 +402,15 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         if (b[0] == 'G' && b[1] == 'I' && b[2] == 'F') {
             return "image/gif";
         }
-        if (b.length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
-                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') {
+        if (b.length >= 12
+                && b[0] == 'R'
+                && b[1] == 'I'
+                && b[2] == 'F'
+                && b[3] == 'F'
+                && b[8] == 'W'
+                && b[9] == 'E'
+                && b[10] == 'B'
+                && b[11] == 'P') {
             return "image/webp";
         }
         if ((b[0] & 0xFF) == 0x42 && (b[1] & 0xFF) == 0x4D) {

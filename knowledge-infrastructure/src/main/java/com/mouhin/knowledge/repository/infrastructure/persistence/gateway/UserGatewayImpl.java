@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.UserDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserRoleMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 用户仓储实现
@@ -53,9 +52,7 @@ public class UserGatewayImpl implements UserGateway {
 
     @Override
     public List<User> listAll() {
-        return userMapper.selectList(null).stream()
-                .map(this::toDomain)
-                .toList();
+        return userMapper.selectList(null).stream().map(this::toDomain).toList();
     }
 
     @Override

@@ -10,22 +10,20 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-
 /**
  * 从已组装文件创建文档用例执行器（app 层，分片上传完成后调用，不入库）。
- * <p>
- * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadFromFile}。出入参为
- * {@link Path} + 元数据，无 HTTP 传输类型，但当前由适配层分片上传完成流程直接调用。
- * </p>
+ *
+ * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadFromFile}。出入参为 {@link Path} + 元数据，无
+ * HTTP 传输类型，但当前由适配层分片上传完成流程直接调用。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -42,12 +40,13 @@ public class UploadFromFileCmdExe {
     private final ApplicationEventPublisher eventPublisher;
     private final DocumentImageSupport documentImageSupport;
 
-    public UploadFromFileCmdExe(DocumentIngestionSupport support,
-                                ExtractionCacheHolder extractionCache,
-                                DocumentGateway documentGateway,
-                                DocumentExtractionGateway documentExtractionService,
-                                ApplicationEventPublisher eventPublisher,
-                                DocumentImageSupport documentImageSupport) {
+    public UploadFromFileCmdExe(
+            DocumentIngestionSupport support,
+            ExtractionCacheHolder extractionCache,
+            DocumentGateway documentGateway,
+            DocumentExtractionGateway documentExtractionService,
+            ApplicationEventPublisher eventPublisher,
+            DocumentImageSupport documentImageSupport) {
         this.support = support;
         this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
@@ -56,9 +55,15 @@ public class UploadFromFileCmdExe {
         this.documentImageSupport = documentImageSupport;
     }
 
-    public DocumentVO execute(Path assembledFile, String fileName, String ownerId,
-                              String departmentId, DocumentVisibilityEnum visibility,
-                              String allowedRoles, String tags, String category) {
+    public DocumentVO execute(
+            Path assembledFile,
+            String fileName,
+            String ownerId,
+            String departmentId,
+            DocumentVisibilityEnum visibility,
+            String allowedRoles,
+            String tags,
+            String category) {
         ExtractionResult result;
         try {
             long fileSize = Files.size(assembledFile);
@@ -67,10 +72,14 @@ public class UploadFromFileCmdExe {
             throw new IllegalStateException("Failed to extract text from assembled file", e);
         }
 
-        documentGateway.findByFileChecksum(result.checksum()).ifPresent(existing -> {
-            throw new IllegalArgumentException(
-                    "Duplicate file detected. Existing document: " + existing.getDocumentKey());
-        });
+        documentGateway
+                .findByFileChecksum(result.checksum())
+                .ifPresent(
+                        existing -> {
+                            throw new IllegalArgumentException(
+                                    "Duplicate file detected. Existing document: "
+                                            + existing.getDocumentKey());
+                        });
 
         String documentKey = support.newDocumentKey();
         Document document = new Document();
@@ -96,16 +105,19 @@ public class UploadFromFileCmdExe {
         try {
             documentImageSupport.extractAndPersist(document, assembledFile);
         } catch (Exception imgEx) {
-            logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}",
-                    documentKey, imgEx.getMessage());
+            logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}", documentKey, imgEx.getMessage());
         }
 
-        eventPublisher.publishEvent(new DocumentCreatedEvent(
-                documentKey, fileName, ownerId, departmentId, LocalDateTime.now()));
+        eventPublisher.publishEvent(
+                new DocumentCreatedEvent(
+                        documentKey, fileName, ownerId, departmentId, LocalDateTime.now()));
 
         extractionCache.put(documentKey, result);
 
-        logger.info("Document uploaded from assembled file (pending index): {} -> {}", documentKey, fileName);
+        logger.info(
+                "Document uploaded from assembled file (pending index): {} -> {}",
+                documentKey,
+                fileName);
         return DocumentConverter.toVO(document);
     }
 }

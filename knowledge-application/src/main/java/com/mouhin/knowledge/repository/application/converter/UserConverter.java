@@ -6,16 +6,15 @@ import com.mouhin.knowledge.repository.domain.model.entity.User;
 /**
  * 用户 领域实体 → 视图对象 转换器（app 层）
  *
- * <p>映射与原 {@code UserAdminController.toResponse} 一致：departmentId null→""，
- * admin null→false，createdTime 使用 {@code LocalDateTime#toString}（null→""）。</p>
+ * <p>映射与原 {@code UserAdminController.toResponse} 一致：departmentId null→""， admin
+ * null→false，createdTime 使用 {@code LocalDateTime#toString}（null→""）。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
  */
 public final class UserConverter {
 
-    private UserConverter() {
-    }
+    private UserConverter() {}
 
     public static UserVO toVO(User user) {
         UserVO vo = new UserVO();

@@ -16,13 +16,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,13 +25,18 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 文档摄入共享支撑（app 层）
- * <p>
- * 收敛原 {@code DocumentIngestionApplicationService} 中被多个用例复用的协作逻辑：
- * 临时文件 / 存储管理、文档聚合构建、分块→向量化→存储处理流水线、分块策略解析、JSON 文本清洗。
- * </p>
+ *
+ * <p>收敛原 {@code DocumentIngestionApplicationService} 中被多个用例复用的协作逻辑： 临时文件 /
+ * 存储管理、文档聚合构建、分块→向量化→存储处理流水线、分块策略解析、JSON 文本清洗。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -75,9 +73,7 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /**
-     * 解析分块策略枚举，无效值回退为 FIXED_SIZE（原适配层 resolveStrategy 逻辑下沉至 app 层）。
-     */
+    /** 解析分块策略枚举，无效值回退为 FIXED_SIZE（原适配层 resolveStrategy 逻辑下沉至 app 层）。 */
     public ChunkingStrategyEnum resolveStrategy(String strategy) {
         if (strategy == null || strategy.isBlank()) {
             return ChunkingStrategyEnum.FIXED_SIZE;
@@ -91,32 +87,35 @@ public class DocumentIngestionSupport {
 
     /** 依据分块参数构建 ChunkingConfig（strategy 为空回退 FIXED_SIZE）。 */
     public ChunkingConfig buildConfig(int chunkSize, int overlap, ChunkingStrategyEnum strategy) {
-        return new ChunkingConfig(chunkSize, overlap,
-                strategy != null ? strategy : ChunkingStrategyEnum.FIXED_SIZE, true, true);
+        return new ChunkingConfig(
+                chunkSize,
+                overlap,
+                strategy != null ? strategy : ChunkingStrategyEnum.FIXED_SIZE,
+                true,
+                true);
     }
 
-    /**
-     * 处理文档：分块 → 向量化 → 存储（无进度回调）。
-     */
+    /** 处理文档：分块 → 向量化 → 存储（无进度回调）。 */
     public void processDocument(Document document, ExtractionResult result) {
         processDocument(document, result, null);
     }
 
-    /**
-     * 处理文档：分块 → 向量化 → 存储（带进度回调）。
-     */
-    public void processDocument(Document document, ExtractionResult result, IndexProgressCallback callback) {
+    /** 处理文档：分块 → 向量化 → 存储（带进度回调）。 */
+    public void processDocument(
+            Document document, ExtractionResult result, IndexProgressCallback callback) {
         try {
             document.markProcessing();
             documentGateway.update(document);
 
             if (result.likelyScanned()) {
-                logger.warn("Document {} appears to be a scanned PDF. Text extraction may be incomplete.",
+                logger.warn(
+                        "Document {} appears to be a scanned PDF. Text extraction may be incomplete.",
                         document.getDocumentKey());
             }
 
-            List<DocumentChunk> chunks = ingestionDomainService.chunkDocument(
-                    document, result.pageTexts(), document.getChunkingConfig());
+            List<DocumentChunk> chunks =
+                    ingestionDomainService.chunkDocument(
+                            document, result.pageTexts(), document.getChunkingConfig());
 
             if (chunks.isEmpty()) {
                 document.markFailed("No content extracted from PDF");
@@ -134,20 +133,32 @@ public class DocumentIngestionSupport {
             document.setFileChecksum(result.checksum());
             documentGateway.update(document);
 
-            eventPublisher.publishEvent(new DocumentProcessedEvent(
-                    document.getDocumentKey(), document.getFileName(),
-                    result.totalPages(), chunks.size(),
-                    document.getOwnerId(), document.getDepartmentId(), LocalDateTime.now()));
+            eventPublisher.publishEvent(
+                    new DocumentProcessedEvent(
+                            document.getDocumentKey(),
+                            document.getFileName(),
+                            result.totalPages(),
+                            chunks.size(),
+                            document.getOwnerId(),
+                            document.getDepartmentId(),
+                            LocalDateTime.now()));
 
-            logger.info("Document {} processed successfully: {} pages, {} chunks",
-                    document.getDocumentKey(), result.totalPages(), chunks.size());
+            logger.info(
+                    "Document {} processed successfully: {} pages, {} chunks",
+                    document.getDocumentKey(),
+                    result.totalPages(),
+                    chunks.size());
 
             if (callback != null) {
                 callback.onComplete();
             }
 
         } catch (Exception e) {
-            logger.error("Failed to process document {}: {}", document.getDocumentKey(), e.getMessage(), e);
+            logger.error(
+                    "Failed to process document {}: {}",
+                    document.getDocumentKey(),
+                    e.getMessage(),
+                    e);
             document.markFailed(e.getMessage());
             documentGateway.update(document);
             if (callback != null) {
@@ -156,14 +167,18 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /**
-     * 构建上传文档聚合（默认分块配置，后续入库时可覆盖）。
-     */
-    public Document buildDocument(String documentKey, MultipartFile file, String storagePath,
-                                  String ownerId, String departmentId,
-                                  DocumentVisibilityEnum visibility,
-                                  String allowedRoles, String tags, String category,
-                                  ChunkingConfig chunkingConfig) {
+    /** 构建上传文档聚合（默认分块配置，后续入库时可覆盖）。 */
+    public Document buildDocument(
+            String documentKey,
+            MultipartFile file,
+            String storagePath,
+            String ownerId,
+            String departmentId,
+            DocumentVisibilityEnum visibility,
+            String allowedRoles,
+            String tags,
+            String category,
+            ChunkingConfig chunkingConfig) {
         Document document = new Document();
         document.setDocumentKey(documentKey);
         document.setFileName(file.getOriginalFilename());
@@ -177,7 +192,8 @@ public class DocumentIngestionSupport {
         document.setAllowedRoles(allowedRoles);
         document.setTags(tags);
         document.setCategory(category);
-        document.setChunkingConfig(chunkingConfig != null ? chunkingConfig : ChunkingConfig.defaultConfig());
+        document.setChunkingConfig(
+                chunkingConfig != null ? chunkingConfig : ChunkingConfig.defaultConfig());
         return document;
     }
 
@@ -232,7 +248,8 @@ public class DocumentIngestionSupport {
             if (name.endsWith(".docx"))
                 return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             if (name.endsWith(".doc")) return "application/msword";
-            if (name.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            if (name.endsWith(".xlsx"))
+                return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             if (name.endsWith(".xls")) return "application/vnd.ms-excel";
             if (name.endsWith(".pptx"))
                 return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
@@ -246,9 +263,7 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /**
-     * 清理文本中的控制字符，避免 JSON 序列化失败。保留换行 / 回车 / 制表符，移除其他 ASCII 控制字符。
-     */
+    /** 清理文本中的控制字符，避免 JSON 序列化失败。保留换行 / 回车 / 制表符，移除其他 ASCII 控制字符。 */
     public String sanitizeForJson(String text) {
         if (text == null || text.isEmpty()) {
             return text;
@@ -263,41 +278,47 @@ public class DocumentIngestionSupport {
         return sb.toString();
     }
 
-    /**
-     * 组装页明细（1 起始页号 / 清洗后字符数 / 前 500 字符预览）。
-     */
+    /** 组装页明细（1 起始页号 / 清洗后字符数 / 前 500 字符预览）。 */
     public List<PageDetail> buildPages(List<String> pageTexts) {
         List<PageDetail> pages = new ArrayList<>();
         for (int i = 0; i < pageTexts.size(); i++) {
             String text = pageTexts.get(i);
             String sanitized = sanitizeForJson(text);
-            pages.add(new PageDetail(i + 1, sanitized != null ? sanitized.length() : 0,
-                    sanitized != null ? sanitized.substring(0, Math.min(sanitized.length(), 500)) : ""));
+            pages.add(
+                    new PageDetail(
+                            i + 1,
+                            sanitized != null ? sanitized.length() : 0,
+                            sanitized != null
+                                    ? sanitized.substring(0, Math.min(sanitized.length(), 500))
+                                    : ""));
         }
         return pages;
     }
 
-    /**
-     * 组装分块明细（前 300 字符预览 + 全文）。
-     */
+    /** 组装分块明细（前 300 字符预览 + 全文）。 */
     public List<ChunkDetail> buildChunkDetails(List<DocumentChunk> chunks) {
         List<ChunkDetail> chunkDetails = new ArrayList<>();
         for (DocumentChunk chunk : chunks) {
-            String preview = chunk.getContent() != null
-                    ? chunk.getContent().substring(0, Math.min(chunk.getContent().length(), 300))
-                    : "";
-            chunkDetails.add(new ChunkDetail(
-                    chunk.getChunkIndex(), chunk.getStartPage(), chunk.getEndPage(),
-                    chunk.getTokenCount(),
-                    chunk.getContent() != null ? chunk.getContent().length() : 0,
-                    preview,
-                    chunk.getContent()
-            ));
+            String preview =
+                    chunk.getContent() != null
+                            ? chunk.getContent()
+                                    .substring(0, Math.min(chunk.getContent().length(), 300))
+                            : "";
+            chunkDetails.add(
+                    new ChunkDetail(
+                            chunk.getChunkIndex(),
+                            chunk.getStartPage(),
+                            chunk.getEndPage(),
+                            chunk.getTokenCount(),
+                            chunk.getContent() != null ? chunk.getContent().length() : 0,
+                            preview,
+                            chunk.getContent()));
         }
         return chunkDetails;
     }
 
-    public List<DocumentChunk> buildCustomChunks(Document document, List<CustomChunkInput> customChunks) {
+    public List<DocumentChunk> buildCustomChunks(
+            Document document, List<CustomChunkInput> customChunks) {
         List<DocumentChunk> chunks = new ArrayList<>(customChunks.size());
         int index = 0;
         for (CustomChunkInput input : customChunks) {
@@ -314,9 +335,10 @@ public class DocumentIngestionSupport {
             chunk.setContent(input.content());
             chunk.setTokenCount(chunk.estimateTokenCount(input.content()));
             chunk.setDepartmentId(document.getDepartmentId());
-            chunk.setVisibility(document.getVisibility() != null
-                    ? document.getVisibility().name()
-                    : DocumentVisibilityEnum.INTERNAL.name());
+            chunk.setVisibility(
+                    document.getVisibility() != null
+                            ? document.getVisibility().name()
+                            : DocumentVisibilityEnum.INTERNAL.name());
             chunk.setAllowedRoles(document.getAllowedRoles());
             chunk.setOwnerId(document.getOwnerId());
             chunk.setDocumentName(document.getFileName());

@@ -6,8 +6,7 @@ import lombok.Setter;
 /**
  * 系统状态概览视图对象（adapter 响应体）
  *
- * <p>结构与既有 /api/admin/system/status 的 JSON 完全一致：embedding / milvus / knowledgeBase
- * 三段，字段顺序亦保持一致。</p>
+ * <p>结构与既有 /api/admin/system/status 的 JSON 完全一致：embedding / milvus / knowledgeBase 三段，字段顺序亦保持一致。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -20,9 +19,7 @@ public class SystemStatusVO {
     private MilvusInfo milvus;
     private KnowledgeBaseStats knowledgeBase;
 
-    /**
-     * Embedding 模型信息
-     */
+    /** Embedding 模型信息 */
     @Getter
     @Setter
     public static class EmbeddingInfo {
@@ -30,9 +27,7 @@ public class SystemStatusVO {
         private String modelClass;
     }
 
-    /**
-     * Milvus 连接信息
-     */
+    /** Milvus 连接信息 */
     @Getter
     @Setter
     public static class MilvusInfo {
@@ -42,9 +37,7 @@ public class SystemStatusVO {
         private String status;
     }
 
-    /**
-     * 知识库统计
-     */
+    /** 知识库统计 */
     @Getter
     @Setter
     public static class KnowledgeBaseStats {

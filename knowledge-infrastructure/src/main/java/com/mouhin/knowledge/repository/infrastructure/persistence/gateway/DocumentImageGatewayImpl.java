@@ -6,13 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.DocumentImageConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageDO;
-import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageSearchRowDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentImageMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 文档图片仓储实现（基础设施层）
@@ -59,9 +57,14 @@ public class DocumentImageGatewayImpl implements DocumentImageGateway {
     }
 
     @Override
-    public List<DocumentImageHit> search(String keyword, String documentKey, int limit, int offset) {
+    public List<DocumentImageHit> search(
+            String keyword, String documentKey, int limit, int offset) {
         return imageMapper.searchRows(keyword, documentKey, limit, offset).stream()
-                .map(row -> new DocumentImageHit(DocumentImageConverter.toDomain(row), row.getSourceDocumentName()))
+                .map(
+                        row ->
+                                new DocumentImageHit(
+                                        DocumentImageConverter.toDomain(row),
+                                        row.getSourceDocumentName()))
                 .toList();
     }
 

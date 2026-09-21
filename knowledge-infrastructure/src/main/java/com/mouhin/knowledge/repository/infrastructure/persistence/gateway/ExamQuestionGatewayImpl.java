@@ -7,11 +7,10 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamQuestionConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamQuestionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamQuestionMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 结构化题目仓储实现
@@ -39,7 +38,8 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
     }
 
     @Override
-    public Optional<ExamQuestion> findBySessionKeyAndNumber(String sessionKey, Integer questionNumber) {
+    public Optional<ExamQuestion> findBySessionKeyAndNumber(
+            String sessionKey, Integer questionNumber) {
         LambdaQueryWrapper<ExamQuestionDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey)
                 .eq(ExamQuestionDO::getQuestionNumber, questionNumber)
@@ -61,7 +61,8 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
     }
 
     @Override
-    public void updateCorrectAnswer(String sessionKey, Integer questionNumber, String correctAnswer) {
+    public void updateCorrectAnswer(
+            String sessionKey, Integer questionNumber, String correctAnswer) {
         LambdaUpdateWrapper<ExamQuestionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey)
                 .eq(ExamQuestionDO::getQuestionNumber, questionNumber)
@@ -71,8 +72,12 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
     }
 
     @Override
-    public void updateCorrection(String sessionKey, Integer questionNumber,
-                                 String correctAnswer, String analysis, Integer maxScore) {
+    public void updateCorrection(
+            String sessionKey,
+            Integer questionNumber,
+            String correctAnswer,
+            String analysis,
+            Integer maxScore) {
         LambdaUpdateWrapper<ExamQuestionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey)
                 .eq(ExamQuestionDO::getQuestionNumber, questionNumber)

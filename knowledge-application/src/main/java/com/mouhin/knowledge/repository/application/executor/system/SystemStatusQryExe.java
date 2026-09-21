@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 /**
  * 系统状态查询执行器（app 层用例）
  *
- * <p>组装逻辑与原 {@code SystemConfigApplicationService.getSystemStatus()} 一致：
- * Embedding 信息、Milvus 连接探测、知识库统计。返回值结构与既有 JSON 完全对应。</p>
+ * <p>组装逻辑与原 {@code SystemConfigApplicationService.getSystemStatus()} 一致： Embedding 信息、Milvus
+ * 连接探测、知识库统计。返回值结构与既有 JSON 完全对应。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -40,9 +40,10 @@ public class SystemStatusQryExe {
     @Value("${knowledge.milvus.collection-name:knowledge_chunks}")
     private String milvusCollection;
 
-    public SystemStatusQryExe(EmbeddingModel embeddingModel,
-                              VectorStoreGateway vectorStoreGateway,
-                              DocumentGateway documentGateway) {
+    public SystemStatusQryExe(
+            EmbeddingModel embeddingModel,
+            VectorStoreGateway vectorStoreGateway,
+            DocumentGateway documentGateway) {
         this.embeddingModel = embeddingModel;
         this.vectorStoreGateway = vectorStoreGateway;
         this.documentGateway = documentGateway;
@@ -76,9 +77,7 @@ public class SystemStatusQryExe {
         return status;
     }
 
-    /**
-     * 检查 Milvus 连接状态（轻量向量检索探测）
-     */
+    /** 检查 Milvus 连接状态（轻量向量检索探测） */
     private String checkMilvusConnection() {
         try {
             vectorStoreGateway.search("health_check", 1, 0.0, null);

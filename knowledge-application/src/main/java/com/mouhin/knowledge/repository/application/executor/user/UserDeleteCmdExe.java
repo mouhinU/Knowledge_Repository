@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 删除用户命令执行器（app 层用例，事务边界）
  *
  * <p>注意：本实现严格保持原 {@code UserManagementApplicationService.delete} 的既有行为
- * （校验用户存在后当前并不执行实际删除），迁移不改变运行语义；如需真正删除应另行评估。</p>
+ * （校验用户存在后当前并不执行实际删除），迁移不改变运行语义；如需真正删除应另行评估。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -29,8 +29,11 @@ public class UserDeleteCmdExe {
 
     @Transactional
     public void execute(String userKey) {
-        User user = userGateway.findByUserKey(userKey)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userKey));
+        User user =
+                userGateway
+                        .findByUserKey(userKey)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("User not found: " + userKey));
         userGateway.findByUserKey(user.getUserKey());
         logger.info("User deleted: {}", userKey);
     }

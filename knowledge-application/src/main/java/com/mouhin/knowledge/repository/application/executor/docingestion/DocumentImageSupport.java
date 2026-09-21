@@ -6,28 +6,25 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 /**
  * 文档图片落盘 / 读取 / 回填共享支撑（app 层）。
- * <p>
- * 收敛「抽取 → 去重 → 落盘 → 持久化」与「按句柄回读字节」两类跨用例复用的协作逻辑：上传摄入用例在
- * 文本提取后调用 {@link #extractAndPersist} 顺带处理配图（内部吞异常，绝不阻断文本入库）；管理端回填
- * 用例调用 {@link #backfill} 对已入库文档按其 {@code storage_path} 重跑一次图片提取；图片流接口调用
- * {@link #findByAssetKey} + {@link #readBytes} 回读。二进制落 {@code knowledge.exam.asset-path} 独立目录。
- * </p>
+ *
+ * <p>收敛「抽取 → 去重 → 落盘 → 持久化」与「按句柄回读字节」两类跨用例复用的协作逻辑：上传摄入用例在 文本提取后调用 {@link #extractAndPersist}
+ * 顺带处理配图（内部吞异常，绝不阻断文本入库）；管理端回填 用例调用 {@link #backfill} 对已入库文档按其 {@code storage_path}
+ * 重跑一次图片提取；图片流接口调用 {@link #findByAssetKey} + {@link #readBytes} 回读。二进制落 {@code
+ * knowledge.exam.asset-path} 独立目录。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -41,9 +38,10 @@ public class DocumentImageSupport {
     private final DocumentImageGateway imageGateway;
     private final Path assetRoot;
 
-    public DocumentImageSupport(DocumentImageExtractorGateway extractor,
-                                DocumentImageGateway imageGateway,
-                                @Value("${knowledge.exam.asset-path:./data/exam-assets}") String assetDir) {
+    public DocumentImageSupport(
+            DocumentImageExtractorGateway extractor,
+            DocumentImageGateway imageGateway,
+            @Value("${knowledge.exam.asset-path:./data/exam-assets}") String assetDir) {
         this.extractor = extractor;
         this.imageGateway = imageGateway;
         this.assetRoot = Path.of(assetDir);
@@ -56,7 +54,8 @@ public class DocumentImageSupport {
 
     /**
      * 从源文件抽取内嵌图片并落盘 + 持久化，返回新增图片数。
-     * <p>文档内按 SHA-256 去重；任何异常吞掉并记日志，返回已处理数，避免影响调用方主流程。</p>
+     *
+     * <p>文档内按 SHA-256 去重；任何异常吞掉并记日志，返回已处理数，避免影响调用方主流程。
      */
     public int extractAndPersist(Document doc, Path sourcePath) {
         if (doc == null || doc.getId() == null || sourcePath == null || !Files.exists(sourcePath)) {
@@ -115,8 +114,9 @@ public class DocumentImageSupport {
 
     /**
      * 清除某文档的全部配图：先删落盘文件（仅 assetRoot 之内，越界跳过），再删关系表记录。
-     * <p>用于「重新入库」前清理旧配图（用户选定「删图并重抽」）。文件删除为尽力而为，单个失败仅记日志，
-     * 不阻断主流程；记录删除始终执行。此处删除的是应用生成的 asset 文件（非用户上传源文档），符合重抽语义。</p>
+     *
+     * <p>用于「重新入库」前清理旧配图（用户选定「删图并重抽」）。文件删除为尽力而为，单个失败仅记日志， 不阻断主流程；记录删除始终执行。此处删除的是应用生成的 asset
+     * 文件（非用户上传源文档），符合重抽语义。
      *
      * @return 成功删除的磁盘文件数
      */
@@ -133,19 +133,26 @@ public class DocumentImageSupport {
             try {
                 Path file = Path.of(image.getStoragePath()).normalize();
                 if (!file.startsWith(assetRoot.normalize())) {
-                    logger.warn("配图文件越界，跳过删除 [assetKey={}, path={}]", image.getAssetKey(), image.getStoragePath());
+                    logger.warn(
+                            "配图文件越界，跳过删除 [assetKey={}, path={}]",
+                            image.getAssetKey(),
+                            image.getStoragePath());
                     continue;
                 }
                 if (Files.deleteIfExists(file)) {
                     filesRemoved++;
                 }
             } catch (IOException e) {
-                logger.warn("删除配图文件失败 [assetKey={}, path={}]: {}",
-                        image.getAssetKey(), image.getStoragePath(), e.getMessage());
+                logger.warn(
+                        "删除配图文件失败 [assetKey={}, path={}]: {}",
+                        image.getAssetKey(),
+                        image.getStoragePath(),
+                        e.getMessage());
             }
         }
         imageGateway.deleteByDocumentId(doc.getId());
-        logger.info("文档配图已清除 [documentKey={}, filesRemoved={}]", doc.getDocumentKey(), filesRemoved);
+        logger.info(
+                "文档配图已清除 [documentKey={}, filesRemoved={}]", doc.getDocumentKey(), filesRemoved);
         return filesRemoved;
     }
 
@@ -166,16 +173,12 @@ public class DocumentImageSupport {
         return extractAndPersist(doc, source);
     }
 
-    /**
-     * 按对外句柄查找图片元数据。
-     */
+    /** 按对外句柄查找图片元数据。 */
     public Optional<DocumentImage> findByAssetKey(String assetKey) {
         return imageGateway.findByAssetKey(assetKey);
     }
 
-    /**
-     * 回读图片二进制；文件缺失 / 越权访问时返回空。
-     */
+    /** 回读图片二进制；文件缺失 / 越权访问时返回空。 */
     public Optional<byte[]> readBytes(DocumentImage image) {
         if (image == null || image.getStoragePath() == null) {
             return Optional.empty();
@@ -193,9 +196,7 @@ public class DocumentImageSupport {
         }
     }
 
-    /**
-     * 列出某文档全部图片。
-     */
+    /** 列出某文档全部图片。 */
     public List<DocumentImage> listByDocument(Document doc) {
         if (doc == null || doc.getId() == null) {
             return List.of();
@@ -203,16 +204,13 @@ public class DocumentImageSupport {
         return imageGateway.listByDocumentId(doc.getId());
     }
 
-    /**
-     * 全局图片检索（校对页选图），命中项携带来源文档名。
-     */
-    public List<DocumentImageHit> searchImages(String keyword, String documentKey, int limit, int offset) {
+    /** 全局图片检索（校对页选图），命中项携带来源文档名。 */
+    public List<DocumentImageHit> searchImages(
+            String keyword, String documentKey, int limit, int offset) {
         return imageGateway.search(keyword, documentKey, limit, offset);
     }
 
-    /**
-     * 统计全局图片检索同条件命中总数。
-     */
+    /** 统计全局图片检索同条件命中总数。 */
     public long countImages(String keyword, String documentKey) {
         return imageGateway.countSearch(keyword, documentKey);
     }

@@ -1,19 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
-import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
-import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,13 +9,24 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
+import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
+import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
+import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 /**
  * 重新入库配图清理支撑单测（{@link DocumentImageSupport#deleteImages}）。
- * <p>
- * 锁定「删图并重抽」前置清理行为：（1）assetRoot 之内落盘文件被删除、并删除全部关系记录；
- * （2）越界（非 assetRoot 之下）文件跳过删除，但记录仍被删除；（3）空 / 空白 storagePath 跳过；
- * （4）doc / id 为空直接返回 0 且不动记录。
- * </p>
+ *
+ * <p>锁定「删图并重抽」前置清理行为：（1）assetRoot 之内落盘文件被删除、并删除全部关系记录； （2）越界（非 assetRoot 之下）文件跳过删除，但记录仍被删除；（3）空 /
+ * 空白 storagePath 跳过； （4）doc / id 为空直接返回 0 且不动记录。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -37,10 +34,10 @@ import static org.mockito.Mockito.when;
 @DisplayName("重新入库配图清理 (DocumentImageSupport.deleteImages)")
 class DocumentImageSupportDeleteImagesTest {
 
-    @TempDir
-    Path assetRoot;
+    @TempDir Path assetRoot;
 
-    private final DocumentImageExtractorGateway extractor = mock(DocumentImageExtractorGateway.class);
+    private final DocumentImageExtractorGateway extractor =
+            mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
     private DocumentImageSupport support;
 
@@ -62,7 +59,7 @@ class DocumentImageSupportDeleteImagesTest {
     void deletesInRootFilesAndRows() throws IOException {
         Path inside = assetRoot.resolve("doc-1").resolve("a.png");
         Files.createDirectories(inside.getParent());
-        Files.write(inside, new byte[]{1, 2, 3});
+        Files.write(inside, new byte[] {1, 2, 3});
         when(imageGateway.listByDocumentId(1L))
                 .thenReturn(List.of(imageAt(10L, inside.toString())));
 
@@ -102,8 +99,8 @@ class DocumentImageSupportDeleteImagesTest {
     @Test
     @DisplayName("空 / 空白 storagePath 跳过文件处理")
     void skipsBlankPaths() {
-        when(imageGateway.listByDocumentId(3L)).thenReturn(List.of(
-                imageAt(31L, null), imageAt(32L, "  ")));
+        when(imageGateway.listByDocumentId(3L))
+                .thenReturn(List.of(imageAt(31L, null), imageAt(32L, "  ")));
 
         Document doc = new Document();
         doc.setId(3L);

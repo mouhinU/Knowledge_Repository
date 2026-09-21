@@ -7,7 +7,7 @@ import lombok.Setter;
  * 用户视图对象
  *
  * <p>字段与原 {@code UserAdminController.toResponse} 完全一致：userKey、username、
- * departmentId（null→""）、admin（null→false）、createdTime（LocalDateTime#toString，null→""）。</p>
+ * departmentId（null→""）、admin（null→false）、createdTime（LocalDateTime#toString，null→""）。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17

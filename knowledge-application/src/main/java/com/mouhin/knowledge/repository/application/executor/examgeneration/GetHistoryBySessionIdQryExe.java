@@ -21,7 +21,8 @@ public class GetHistoryBySessionIdQryExe {
     }
 
     public ExamHistoryDTO execute(String sessionId) {
-        return examHistoryGateway.findBySessionId(sessionId)
+        return examHistoryGateway
+                .findBySessionId(sessionId)
                 .map(ExamGenerationConverter::toHistoryDTO)
                 .orElse(null);
     }

@@ -11,14 +11,13 @@ import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 文档管理控制器
@@ -39,12 +38,13 @@ public class DocumentAdminController {
     private final ReindexAsyncCmdExe reindexAsyncCmdExe;
     private final IndexProgressStore indexProgressStore;
 
-    public DocumentAdminController(DocumentServiceI documentService,
-                                   DocumentIngestionServiceI ingestionService,
-                                   IndexAsyncCmdExe indexAsyncCmdExe,
-                                   IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe,
-                                   ReindexAsyncCmdExe reindexAsyncCmdExe,
-                                   IndexProgressStore indexProgressStore) {
+    public DocumentAdminController(
+            DocumentServiceI documentService,
+            DocumentIngestionServiceI ingestionService,
+            IndexAsyncCmdExe indexAsyncCmdExe,
+            IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe,
+            ReindexAsyncCmdExe reindexAsyncCmdExe,
+            IndexProgressStore indexProgressStore) {
         this.documentService = documentService;
         this.ingestionService = ingestionService;
         this.indexAsyncCmdExe = indexAsyncCmdExe;
@@ -53,17 +53,13 @@ public class DocumentAdminController {
         this.indexProgressStore = indexProgressStore;
     }
 
-    /**
-     * 获取文档详情
-     */
+    /** 获取文档详情 */
     @GetMapping("/{documentKey}")
     public ResponseEntity<DocumentVO> getDocument(@PathVariable String documentKey) {
         return ResponseEntity.ok(documentService.getDocument(documentKey));
     }
 
-    /**
-     * 按所有者查询文档列表
-     */
+    /** 按所有者查询文档列表 */
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<DocumentVO>> listByOwner(
             @PathVariable String ownerId,
@@ -72,9 +68,7 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByOwner(ownerId, page, size));
     }
 
-    /**
-     * 按部门查询文档列表
-     */
+    /** 按部门查询文档列表 */
     @GetMapping("/department/{departmentId}")
     public ResponseEntity<List<DocumentVO>> listByDepartment(
             @PathVariable String departmentId,
@@ -83,17 +77,13 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByDepartment(departmentId, page, size));
     }
 
-    /**
-     * 查询全部文档列表
-     */
+    /** 查询全部文档列表 */
     @GetMapping("/list")
     public ResponseEntity<List<DocumentVO>> listAll() {
         return ResponseEntity.ok(documentService.listDocuments());
     }
 
-    /**
-     * 按状态查询文档列表
-     */
+    /** 按状态查询文档列表 */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<DocumentVO>> listByStatus(@PathVariable String status) {
         DocumentStatusEnum statusEnum;
@@ -105,25 +95,19 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByStatus(statusEnum.name()));
     }
 
-    /**
-     * 获取知识库统计
-     */
+    /** 获取知识库统计 */
     @GetMapping("/stats")
     public ResponseEntity<KnowledgeStatsVO> getStats() {
         return ResponseEntity.ok(documentService.getStats());
     }
 
-    /**
-     * 获取各分类文档数量统计
-     */
+    /** 获取各分类文档数量统计 */
     @GetMapping("/category-stats")
     public ResponseEntity<Map<String, Long>> getCategoryStats() {
         return ResponseEntity.ok(documentService.getCategoryStats());
     }
 
-    /**
-     * 归档文档
-     */
+    /** 归档文档 */
     @PutMapping("/{documentKey}/archive")
     public ResponseEntity<Map<String, String>> archive(@PathVariable String documentKey) {
         documentService.archive(documentKey);
@@ -132,121 +116,131 @@ public class DocumentAdminController {
 
     /**
      * 重新入库（异步，通过 SSE 推送进度）
-     * <p>清理旧向量 / 分块 / 配图并重新提取、分块、向量化存储，进度复用 {@code /index/progress}。</p>
+     *
+     * <p>清理旧向量 / 分块 / 配图并重新提取、分块、向量化存储，进度复用 {@code /index/progress}。
      */
     @PostMapping("/{documentKey}/reindex")
     public ResponseEntity<Map<String, Object>> reindex(
-            @PathVariable String documentKey,
-            ChunkingRequest chunkingRequest) {
+            @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info("Async reindexing document {}: chunkSize={}, strategy={}", documentKey,
-                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
+        logger.info(
+                "Async reindexing document {}: chunkSize={}, strategy={}",
+                documentKey,
+                chunkingRequest.getChunkSize(),
+                chunkingRequest.getStrategy());
 
         var callback = indexProgressStore.createCallback(documentKey);
         reindexAsyncCmdExe.execute(
-                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
-                chunkingRequest.getStrategy(), null, callback);
+                documentKey,
+                chunkingRequest.getChunkSize(),
+                chunkingRequest.getOverlap(),
+                chunkingRequest.getStrategy(),
+                null,
+                callback);
 
-        return ResponseEntity.ok(Map.of(
-                "documentKey", documentKey,
-                "status", "STARTED",
-                "message", "Reindexing started. Connect to SSE for progress."
-        ));
+        return ResponseEntity.ok(
+                Map.of(
+                        "documentKey", documentKey,
+                        "status", "STARTED",
+                        "message", "Reindexing started. Connect to SSE for progress."));
     }
 
     /**
      * 使用自定义分块重新入库（异步，通过 SSE 推送进度）
-     * <p>先清理旧向量 / 分块 / 配图，再以手动调整后的分块重新向量化存储。</p>
+     *
+     * <p>先清理旧向量 / 分块 / 配图，再以手动调整后的分块重新向量化存储。
      */
     @PostMapping("/{documentKey}/reindex-custom")
     public ResponseEntity<Map<String, Object>> reindexWithCustomChunks(
-            @PathVariable String documentKey,
-            @RequestBody List<CustomChunkInput> customChunks) {
+            @PathVariable String documentKey, @RequestBody List<CustomChunkInput> customChunks) {
 
-        logger.info("Async reindexing document {} with {} custom chunks", documentKey,
+        logger.info(
+                "Async reindexing document {} with {} custom chunks",
+                documentKey,
                 customChunks != null ? customChunks.size() : 0);
 
         var callback = indexProgressStore.createCallback(documentKey);
         reindexAsyncCmdExe.execute(documentKey, 0, 0, null, customChunks, callback);
 
-        return ResponseEntity.ok(Map.of(
-                "documentKey", documentKey,
-                "status", "STARTED",
-                "message", "Reindexing started. Connect to SSE for progress."
-        ));
+        return ResponseEntity.ok(
+                Map.of(
+                        "documentKey", documentKey,
+                        "status", "STARTED",
+                        "message", "Reindexing started. Connect to SSE for progress."));
     }
 
-    /**
-     * 解析预览（基于已上传文档，不入库）
-     */
+    /** 解析预览（基于已上传文档，不入库） */
     @GetMapping("/{documentKey}/preview")
     public ResponseEntity<PreviewResult> preview(
-            @PathVariable String documentKey,
-            ChunkingRequest chunkingRequest) {
+            @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info("Preview document {}: chunkSize={}, strategy={}", documentKey,
-                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
-        PreviewResult result = ingestionService.previewFromDocument(
-                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
+        logger.info(
+                "Preview document {}: chunkSize={}, strategy={}",
+                documentKey,
+                chunkingRequest.getChunkSize(),
                 chunkingRequest.getStrategy());
+        PreviewResult result =
+                ingestionService.previewFromDocument(
+                        documentKey,
+                        chunkingRequest.getChunkSize(),
+                        chunkingRequest.getOverlap(),
+                        chunkingRequest.getStrategy());
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 确认入库（异步，通过 SSE 推送进度）
-     */
+    /** 确认入库（异步，通过 SSE 推送进度） */
     @PostMapping("/{documentKey}/index")
     public ResponseEntity<Map<String, Object>> indexDocument(
-            @PathVariable String documentKey,
-            ChunkingRequest chunkingRequest) {
+            @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info("Async indexing document {}: chunkSize={}, strategy={}", documentKey,
-                chunkingRequest.getChunkSize(), chunkingRequest.getStrategy());
+        logger.info(
+                "Async indexing document {}: chunkSize={}, strategy={}",
+                documentKey,
+                chunkingRequest.getChunkSize(),
+                chunkingRequest.getStrategy());
 
         var callback = indexProgressStore.createCallback(documentKey);
         indexAsyncCmdExe.execute(
-                documentKey, chunkingRequest.getChunkSize(), chunkingRequest.getOverlap(),
-                chunkingRequest.getStrategy(), callback);
+                documentKey,
+                chunkingRequest.getChunkSize(),
+                chunkingRequest.getOverlap(),
+                chunkingRequest.getStrategy(),
+                callback);
 
-        return ResponseEntity.ok(Map.of(
-                "documentKey", documentKey,
-                "status", "STARTED",
-                "message", "Indexing started. Connect to SSE for progress."
-        ));
+        return ResponseEntity.ok(
+                Map.of(
+                        "documentKey", documentKey,
+                        "status", "STARTED",
+                        "message", "Indexing started. Connect to SSE for progress."));
     }
 
-    /**
-     * 使用自定义分块入库（异步，通过 SSE 推送进度）
-     */
+    /** 使用自定义分块入库（异步，通过 SSE 推送进度） */
     @PostMapping("/{documentKey}/index-custom")
     public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
-            @PathVariable String documentKey,
-            @RequestBody List<CustomChunkInput> customChunks) {
+            @PathVariable String documentKey, @RequestBody List<CustomChunkInput> customChunks) {
 
-        logger.info("Async indexing document {} with {} custom chunks", documentKey,
+        logger.info(
+                "Async indexing document {} with {} custom chunks",
+                documentKey,
                 customChunks != null ? customChunks.size() : 0);
 
         var callback = indexProgressStore.createCallback(documentKey);
         indexCustomChunksAsyncCmdExe.execute(documentKey, customChunks, callback);
 
-        return ResponseEntity.ok(Map.of(
-                "documentKey", documentKey,
-                "status", "STARTED",
-                "message", "Indexing started. Connect to SSE for progress."
-        ));
+        return ResponseEntity.ok(
+                Map.of(
+                        "documentKey", documentKey,
+                        "status", "STARTED",
+                        "message", "Indexing started. Connect to SSE for progress."));
     }
 
-    /**
-     * 入库进度 SSE 端点
-     */
+    /** 入库进度 SSE 端点 */
     @GetMapping("/{documentKey}/index/progress")
     public SseEmitter indexProgress(@PathVariable String documentKey) {
         return indexProgressStore.createEmitter(documentKey);
     }
 
-    /**
-     * 删除文档
-     */
+    /** 删除文档 */
     @DeleteMapping("/{documentKey}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String documentKey) {
         documentService.delete(documentKey);

@@ -2,6 +2,14 @@ package com.mouhin.knowledge.repository.infrastructure.pdf;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -19,28 +27,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 多格式文档提取服务
- * <p>
- * 支持的文件格式：
+ *
+ * <p>支持的文件格式：
+ *
  * <ul>
- *     <li>PDF (.pdf) — PDFBox 按页提取</li>
- *     <li>Word (.docx) — Apache POI 按段落提取</li>
- *     <li>Excel (.xlsx) — Apache POI 按工作表提取</li>
- *     <li>PowerPoint (.pptx) — Apache POI 按幻灯片提取</li>
- *     <li>其他格式 — Apache Tika 通用解析（TXT/HTML/CSV/RTF 等）</li>
+ *   <li>PDF (.pdf) — PDFBox 按页提取
+ *   <li>Word (.docx) — Apache POI 按段落提取
+ *   <li>Excel (.xlsx) — Apache POI 按工作表提取
+ *   <li>PowerPoint (.pptx) — Apache POI 按幻灯片提取
+ *   <li>其他格式 — Apache Tika 通用解析（TXT/HTML/CSV/RTF 等）
  * </ul>
- * <p>
- * 每种格式都尽量保留结构边界（页/幻灯片/工作表），以便下游分块时保持语义完整性。
+ *
+ * <p>每种格式都尽量保留结构边界（页/幻灯片/工作表），以便下游分块时保持语义完整性。
  *
  * @author Knowledge-Repository
  * @date 2026-09-02
@@ -50,34 +50,24 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentExtractionService.class);
 
-    /**
-     * 最大文件大小：200MB
-     */
+    /** 最大文件大小：200MB */
     private static final long MAX_FILE_SIZE = 200L * 1024 * 1024;
 
-    /**
-     * 扫描型 PDF 检测阈值：每页少于 50 字符视为扫描页
-     */
+    /** 扫描型 PDF 检测阈值：每页少于 50 字符视为扫描页 */
     private static final int SCAN_PAGE_CHAR_THRESHOLD = 50;
 
-    /**
-     * 扫描型 PDF 检测：超过 30% 的页面为扫描页则整体标记
-     */
+    /** 扫描型 PDF 检测：超过 30% 的页面为扫描页则整体标记 */
     private static final double SCAN_DOCUMENT_RATIO = 0.3;
 
-    /**
-     * 支持的文件扩展名
-     */
-    private static final List<String> SUPPORTED_EXTENSIONS = List.of(
-            "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
-            "txt", "csv", "md", "html", "htm", "rtf"
-    );
+    /** 支持的文件扩展名 */
+    private static final List<String> SUPPORTED_EXTENSIONS =
+            List.of(
+                    "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "txt", "csv", "md", "html",
+                    "htm", "rtf");
 
     private final Tika tika = new Tika();
 
-    /**
-     * 校验文件
-     */
+    /** 校验文件 */
     @Override
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null || !Files.exists(filePath)) {
@@ -88,7 +78,8 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
         }
         if (fileSize > MAX_FILE_SIZE) {
             throw new IllegalArgumentException(
-                    String.format("File size %d exceeds maximum %d bytes", fileSize, MAX_FILE_SIZE));
+                    String.format(
+                            "File size %d exceeds maximum %d bytes", fileSize, MAX_FILE_SIZE));
         }
         if (fileName != null) {
             String ext = getExtension(fileName);
@@ -110,7 +101,8 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
      * @return 提取结果
      */
     @Override
-    public ExtractionResult extractText(Path filePath, long fileSize, String fileName) throws IOException {
+    public ExtractionResult extractText(Path filePath, long fileSize, String fileName)
+            throws IOException {
         validateFile(filePath, fileSize, fileName);
         String checksum = calculateChecksum(filePath);
         String mimeType = tika.detect(filePath);
@@ -120,19 +112,21 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
         return switch (mimeType) {
             case "application/pdf" -> extractPdf(filePath);
             case "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                 "application/msword" -> extractWord(filePath);
+                            "application/msword" ->
+                    extractWord(filePath);
             case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                 "application/vnd.ms-excel" -> extractExcel(filePath);
+                            "application/vnd.ms-excel" ->
+                    extractExcel(filePath);
             case "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                 "application/vnd.ms-powerpoint" -> extractPowerPoint(filePath);
-            case "text/plain", "text/csv", "text/html", "text/markdown" -> extractPlainText(filePath, mimeType);
+                            "application/vnd.ms-powerpoint" ->
+                    extractPowerPoint(filePath);
+            case "text/plain", "text/csv", "text/html", "text/markdown" ->
+                    extractPlainText(filePath, mimeType);
             default -> extractGeneric(filePath, mimeType);
         };
     }
 
-    /**
-     * 从文件路径提取（简化版）
-     */
+    /** 从文件路径提取（简化版） */
     @Override
     public ExtractionResult extractFromPath(Path filePath) throws IOException {
         long fileSize = Files.size(filePath);
@@ -145,17 +139,22 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
         EnhancedPdfTextExtractor.PdfExtractionResult result = extractor.extract(filePath);
 
         // 使用过滤后的文本（已去除页眉页脚）
-        List<String> pageTexts = result.pages().stream()
-                .map(EnhancedPdfTextExtractor.PageContent::filteredText)
-                .toList();
+        List<String> pageTexts =
+                result.pages().stream()
+                        .map(EnhancedPdfTextExtractor.PageContent::filteredText)
+                        .toList();
 
         // 记录警告
         for (String warning : result.warnings()) {
             logger.warn("PDF extraction warning: {}", warning);
         }
 
-        logger.info("PDF extracted (enhanced): {} pages, encrypted={}, ocrRecommended={}, warnings={}",
-                result.getTotalPages(), result.encrypted(), result.ocrRecommended(), result.warnings().size());
+        logger.info(
+                "PDF extracted (enhanced): {} pages, encrypted={}, ocrRecommended={}, warnings={}",
+                result.getTotalPages(),
+                result.encrypted(),
+                result.ocrRecommended(),
+                result.warnings().size());
 
         return new ExtractionResult(
                 pageTexts,
@@ -166,15 +165,14 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 result.warnings(),
                 result.encrypted(),
                 result.metadata().title(),
-                result.metadata().author()
-        );
+                result.metadata().author());
     }
 
     // ==================== PDF 提取 ====================
 
     private ExtractionResult extractWord(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
-             XWPFDocument document = new XWPFDocument(is)) {
+                XWPFDocument document = new XWPFDocument(is)) {
 
             List<XWPFParagraph> paragraphs = document.getParagraphs();
             List<String> sections = new ArrayList<>();
@@ -209,9 +207,12 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 sections.add("");
             }
 
-            logger.info("Word document extracted: {} paragraphs, {} sections",
-                    paragraphs.size(), sections.size());
-            return new ExtractionResult(sections, sections.size(), false, calculateChecksum(filePath), "docx");
+            logger.info(
+                    "Word document extracted: {} paragraphs, {} sections",
+                    paragraphs.size(),
+                    sections.size());
+            return new ExtractionResult(
+                    sections, sections.size(), false, calculateChecksum(filePath), "docx");
         }
     }
 
@@ -219,7 +220,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
 
     private ExtractionResult extractExcel(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
-             XSSFWorkbook workbook = new XSSFWorkbook(is)) {
+                XSSFWorkbook workbook = new XSSFWorkbook(is)) {
 
             List<String> sheetTexts = new ArrayList<>();
             int totalSheets = workbook.getNumberOfSheets();
@@ -255,7 +256,8 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
             }
 
             logger.info("Excel extracted: {} sheets", totalSheets);
-            return new ExtractionResult(sheetTexts, totalSheets, false, calculateChecksum(filePath), "xlsx");
+            return new ExtractionResult(
+                    sheetTexts, totalSheets, false, calculateChecksum(filePath), "xlsx");
         }
     }
 
@@ -263,7 +265,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
 
     private ExtractionResult extractPowerPoint(Path filePath) throws IOException {
         try (InputStream is = Files.newInputStream(filePath);
-             XMLSlideShow slideShow = new XMLSlideShow(is)) {
+                XMLSlideShow slideShow = new XMLSlideShow(is)) {
 
             List<XSLFSlide> slides = slideShow.getSlides();
             List<String> slideTexts = new ArrayList<>(slides.size());
@@ -273,14 +275,18 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 StringBuilder slideContent = new StringBuilder();
                 slideContent.append("[Slide ").append(i + 1).append("]\n");
 
-                slide.getShapes().forEach(shape -> {
-                    if (shape instanceof org.apache.poi.xslf.usermodel.XSLFTextShape textShape) {
-                        String text = textShape.getText();
-                        if (text != null && !text.isBlank()) {
-                            slideContent.append(text.trim()).append("\n");
-                        }
-                    }
-                });
+                slide.getShapes()
+                        .forEach(
+                                shape -> {
+                                    if (shape
+                                            instanceof
+                                            org.apache.poi.xslf.usermodel.XSLFTextShape textShape) {
+                                        String text = textShape.getText();
+                                        if (text != null && !text.isBlank()) {
+                                            slideContent.append(text.trim()).append("\n");
+                                        }
+                                    }
+                                });
 
                 slideTexts.add(slideContent.toString().trim());
             }
@@ -290,7 +296,8 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
             }
 
             logger.info("PowerPoint extracted: {} slides", slides.size());
-            return new ExtractionResult(slideTexts, slides.size(), false, calculateChecksum(filePath), "pptx");
+            return new ExtractionResult(
+                    slideTexts, slides.size(), false, calculateChecksum(filePath), "pptx");
         }
     }
 
@@ -314,8 +321,13 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
             sections.add(fullText.isEmpty() ? "" : fullText);
         }
 
-        logger.info("Plain text extraction ({}): {} sections, {} chars", mimeType, sections.size(), fullText.length());
-        return new ExtractionResult(sections, sections.size(), false, calculateChecksum(filePath), "text");
+        logger.info(
+                "Plain text extraction ({}): {} sections, {} chars",
+                mimeType,
+                sections.size(),
+                fullText.length());
+        return new ExtractionResult(
+                sections, sections.size(), false, calculateChecksum(filePath), "text");
     }
 
     // ==================== 纯文本格式提取 ====================
@@ -346,8 +358,13 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 sections.add(fullText.isEmpty() ? "" : fullText);
             }
 
-            logger.info("Generic extraction ({}): {} sections, {} chars", mimeType, sections.size(), fullText.length());
-            return new ExtractionResult(sections, sections.size(), false, calculateChecksum(filePath), "generic");
+            logger.info(
+                    "Generic extraction ({}): {} sections, {} chars",
+                    mimeType,
+                    sections.size(),
+                    fullText.length());
+            return new ExtractionResult(
+                    sections, sections.size(), false, calculateChecksum(filePath), "generic");
         } catch (Exception e) {
             throw new IOException("Failed to parse file with Tika: " + e.getMessage(), e);
         }
@@ -376,9 +393,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
         return dotIndex >= 0 ? fileName.substring(dotIndex + 1) : "";
     }
 
-    /**
-     * 计算文件 MD5 校验和
-     */
+    /** 计算文件 MD5 校验和 */
     @Override
     public String calculateChecksum(Path filePath) throws IOException {
         try {

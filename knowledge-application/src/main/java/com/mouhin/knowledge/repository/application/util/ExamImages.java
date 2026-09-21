@@ -2,20 +2,17 @@ package com.mouhin.knowledge.repository.application.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 看图题配图 assetKey 解析工具（app 层共享）。
- * <p>
- * {@code kb_exam_question.images_json} 以 JSON 字符串数组形式存储教师在校对页绑定的图片句柄
- * （如 {@code ["k1","k2"]}）。开考快照注入、错题本、成绩复核等多条链路都需把它解析为 assetKey 列表，
- * 统一收敛到本工具，避免各处重复实现导致口径漂移。解析失败 / 空白项一律安全降级为空列表或跳过，
- * 绝不抛出异常阻断上层展示流程。
- * </p>
+ *
+ * <p>{@code kb_exam_question.images_json} 以 JSON 字符串数组形式存储教师在校对页绑定的图片句柄 （如 {@code
+ * ["k1","k2"]}）。开考快照注入、错题本、成绩复核等多条链路都需把它解析为 assetKey 列表， 统一收敛到本工具，避免各处重复实现导致口径漂移。解析失败 /
+ * 空白项一律安全降级为空列表或跳过， 绝不抛出异常阻断上层展示流程。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -26,8 +23,7 @@ public final class ExamImages {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private ExamImages() {
-    }
+    private ExamImages() {}
 
     /**
      * 解析 {@code images_json}（assetKey 字符串数组）为有序列表；逐个 trim 并跳过空白项。
@@ -40,8 +36,8 @@ public final class ExamImages {
             return List.of();
         }
         try {
-            List<String> raw = OBJECT_MAPPER.readValue(imagesJson, new TypeReference<List<String>>() {
-            });
+            List<String> raw =
+                    OBJECT_MAPPER.readValue(imagesJson, new TypeReference<List<String>>() {});
             List<String> keys = new ArrayList<>();
             for (String k : raw) {
                 if (k != null && !k.isBlank()) {
@@ -56,8 +52,8 @@ public final class ExamImages {
     }
 
     /**
-     * 解析并「归一化」为可持久 / 可下发值：有效 assetKey 非空时返回列表，否则返回 {@code null}
-     * （便于配合 {@code @JsonInclude(NON_NULL)} 在无配图时省略字段，保持既有 JSON 载荷字节不变）。
+     * 解析并「归一化」为可持久 / 可下发值：有效 assetKey 非空时返回列表，否则返回 {@code null} （便于配合
+     * {@code @JsonInclude(NON_NULL)} 在无配图时省略字段，保持既有 JSON 载荷字节不变）。
      *
      * @param imagesJson 数据库 {@code images_json} 原文
      * @return 非空 assetKey 列表；无有效项时返回 null

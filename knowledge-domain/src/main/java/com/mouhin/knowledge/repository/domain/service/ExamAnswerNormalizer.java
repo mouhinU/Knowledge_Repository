@@ -7,46 +7,34 @@ import java.util.regex.Pattern;
 
 /**
  * 客观题标准答案规范化器（domain 层，纯逻辑无技术依赖）
- * <p>
- * AI 出卷的标准答案常把「结论 + 解释」写在同一行，例如判断题 {@code 正确。理由：……}、
- * 单选题 {@code B【解析】因为……}。若直接把这些整串当作答案，契约校验与客观题自动比对都会误判。
- * 本工具统一负责：从答案串中剥离解释标记、只保留客观题的「答案头部」，并把判断题 / 选择题答案
- * 归一为可比对的规范形式。出卷契约校验（{@link ExamContractValidator}）与评分比对（app 层）共用本类，
- * 避免两处判定口径分叉。
- * </p>
+ *
+ * <p>AI 出卷的标准答案常把「结论 + 解释」写在同一行，例如判断题 {@code 正确。理由：……}、 单选题 {@code
+ * B【解析】因为……}。若直接把这些整串当作答案，契约校验与客观题自动比对都会误判。 本工具统一负责：从答案串中剥离解释标记、只保留客观题的「答案头部」，并把判断题 / 选择题答案
+ * 归一为可比对的规范形式。出卷契约校验（{@link ExamContractValidator}）与评分比对（app 层）共用本类， 避免两处判定口径分叉。
  *
  * @author Knowledge-Repository
  * @date 2026-09-18
  */
 public final class ExamAnswerNormalizer {
 
-    private ExamAnswerNormalizer() {
-    }
+    private ExamAnswerNormalizer() {}
 
-    /**
-     * 解释性标记：出现在答案串中时，标记及其之后的内容视为「解析 / 理由」，不属于答案本体。
-     * 覆盖【解析】/【分析】/【解答】括号式与「解析：」「理由：」等带冒号写法。
-     */
-    private static final Pattern EXPLANATION_MARKER = Pattern.compile(
-            "(?:【\\s*(?:答案)?(?:解析|分析|解答|说明|理由)\\s*】"
-                    + "|(?:答案解释|参考解析|本题解析|解析|分析|解答|说明|理由|为什么)\\s*[：:])");
+    /** 解释性标记：出现在答案串中时，标记及其之后的内容视为「解析 / 理由」，不属于答案本体。 覆盖【解析】/【分析】/【解答】括号式与「解析：」「理由：」等带冒号写法。 */
+    private static final Pattern EXPLANATION_MARKER =
+            Pattern.compile(
+                    "(?:【\\s*(?:答案)?(?:解析|分析|解答|说明|理由)\\s*】"
+                            + "|(?:答案解释|参考解析|本题解析|解析|分析|解答|说明|理由|为什么)\\s*[：:])");
 
-    /**
-     * 答案本体尾部残留的分隔 / 标点，予以剥离。
-     */
+    /** 答案本体尾部残留的分隔 / 标点，予以剥离。 */
     private static final Pattern TRAILING_PUNCT = Pattern.compile("[\\s。.，,、；;：:（）()【】*＊]+$");
 
-    /**
-     * 判断题「正确」同义记号（归一到 TRUE）。
-     */
-    private static final Set<String> TRUE_TOKENS = Set.of(
-            "正确", "对", "是", "√", "✓", "T", "TRUE", "YES", "Y");
+    /** 判断题「正确」同义记号（归一到 TRUE）。 */
+    private static final Set<String> TRUE_TOKENS =
+            Set.of("正确", "对", "是", "√", "✓", "T", "TRUE", "YES", "Y");
 
-    /**
-     * 判断题「错误」同义记号（归一到 FALSE）。
-     */
-    private static final Set<String> FALSE_TOKENS = Set.of(
-            "错误", "错", "否", "×", "✗", "✕", "X", "F", "FALSE", "NO", "N");
+    /** 判断题「错误」同义记号（归一到 FALSE）。 */
+    private static final Set<String> FALSE_TOKENS =
+            Set.of("错误", "错", "否", "×", "✗", "✕", "X", "F", "FALSE", "NO", "N");
 
     /**
      * 提取答案头部：截断到第一个解释标记之前，并剥离尾随标点 / 空白。
@@ -87,8 +75,8 @@ public final class ExamAnswerNormalizer {
     }
 
     /**
-     * 判断题答案归一：返回 {@code "TRUE"} / {@code "FALSE"}，无法判定返回 {@code null}。
-     * 采用「答案头部以某个记号开头」判定，兼容 {@code 正确（√）}、{@code 对。} 等带尾注写法。
+     * 判断题答案归一：返回 {@code "TRUE"} / {@code "FALSE"}，无法判定返回 {@code null}。 采用「答案头部以某个记号开头」判定，兼容 {@code
+     * 正确（√）}、{@code 对。} 等带尾注写法。
      *
      * @param raw 原始答案串
      * @return TRUE / FALSE / null
@@ -116,8 +104,7 @@ public final class ExamAnswerNormalizer {
     }
 
     /**
-     * 选择题答案归一：仅取答案头部中的 A~Z 选项字母，按首次出现顺序去重。
-     * 单选判定「恰 1 个」、多选判定「≥ 2 个」均基于此结果。上界取 A~Z 以兼容 5 选及以上题型，
+     * 选择题答案归一：仅取答案头部中的 A~Z 选项字母，按首次出现顺序去重。 单选判定「恰 1 个」、多选判定「≥ 2 个」均基于此结果。上界取 A~Z 以兼容 5 选及以上题型，
      * 且与评分侧归一口径一致；解释文字中的字母不会污染（已由 {@link #answerHead(String)} 按标记截断）。
      *
      * @param raw 原始答案串

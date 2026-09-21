@@ -27,10 +27,11 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
     private final AdminValidateTokenQryExe adminValidateTokenQryExe;
     private final AdminChangePasswordCmdExe adminChangePasswordCmdExe;
 
-    public AdminAuthServiceImpl(AdminLoginCmdExe adminLoginCmdExe,
-                                AdminLogoutCmdExe adminLogoutCmdExe,
-                                AdminValidateTokenQryExe adminValidateTokenQryExe,
-                                AdminChangePasswordCmdExe adminChangePasswordCmdExe) {
+    public AdminAuthServiceImpl(
+            AdminLoginCmdExe adminLoginCmdExe,
+            AdminLogoutCmdExe adminLogoutCmdExe,
+            AdminValidateTokenQryExe adminValidateTokenQryExe,
+            AdminChangePasswordCmdExe adminChangePasswordCmdExe) {
         this.adminLoginCmdExe = adminLoginCmdExe;
         this.adminLogoutCmdExe = adminLogoutCmdExe;
         this.adminValidateTokenQryExe = adminValidateTokenQryExe;

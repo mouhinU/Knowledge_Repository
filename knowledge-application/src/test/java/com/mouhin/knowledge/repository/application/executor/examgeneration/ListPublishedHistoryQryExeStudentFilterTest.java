@@ -1,17 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
-import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
-import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
-import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,10 +8,19 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
+import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 /**
- * 可用考试列表按学生过滤单测：
- * （1）token 有效 → 剔除该考生已考过的 examHistoryId；
- * （2）token 为空 / 无效 → 走原全量语义（不查考生场次）；
+ * 可用考试列表按学生过滤单测： （1）token 有效 → 剔除该考生已考过的 examHistoryId； （2）token 为空 / 无效 → 走原全量语义（不查考生场次）；
  * （3）已考卷过多导致过滤后不足 limit 时仍从放大窗口内取满。
  *
  * @author Knowledge-Repository
@@ -72,8 +69,10 @@ class ListPublishedHistoryQryExeStudentFilterTest {
         List<ExamHistoryDTO> result = exe.execute(5, null);
 
         assertEquals(2, result.size());
-        verify(sessionGateway, never()).listExamHistoryIdsByStudentId(org.mockito.ArgumentMatchers.anyLong());
-        verify(studentGateway, never()).findBySessionToken(org.mockito.ArgumentMatchers.anyString());
+        verify(sessionGateway, never())
+                .listExamHistoryIdsByStudentId(org.mockito.ArgumentMatchers.anyLong());
+        verify(studentGateway, never())
+                .findBySessionToken(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
@@ -85,7 +84,8 @@ class ListPublishedHistoryQryExeStudentFilterTest {
         List<ExamHistoryDTO> result = exe.execute(4, "bad");
 
         assertEquals(1, result.size());
-        verify(sessionGateway, never()).listExamHistoryIdsByStudentId(org.mockito.ArgumentMatchers.anyLong());
+        verify(sessionGateway, never())
+                .listExamHistoryIdsByStudentId(org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -97,8 +97,8 @@ class ListPublishedHistoryQryExeStudentFilterTest {
         s.setTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
         when(studentGateway.findBySessionToken("t")).thenReturn(Optional.of(s));
         // 4 条 PUBLISHED 中第 1 条被考过，窗口 limit=2 会放大到 8 后过滤剩 3，再截断到 2 条
-        when(historyGateway.listPublished(8)).thenReturn(List.of(
-                published(1), published(2), published(3), published(4)));
+        when(historyGateway.listPublished(8))
+                .thenReturn(List.of(published(1), published(2), published(3), published(4)));
         when(sessionGateway.listExamHistoryIdsByStudentId(9L)).thenReturn(List.of(1L));
 
         List<ExamHistoryDTO> result = exe.execute(2, "t");

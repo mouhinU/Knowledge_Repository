@@ -3,11 +3,8 @@ package com.mouhin.knowledge.repository.application.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -15,19 +12,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 试卷 Markdown 解析器
- * <p>
- * 将 AI 生成的 Markdown 格式试卷解析为结构化 JSON，供在线做题 UI 使用。
- * 支持六大内核题型：单选题、多选题、判断题、填空题、简答题、论述题；同时兼容
+ *
+ * <p>将 AI 生成的 Markdown 格式试卷解析为结构化 JSON，供在线做题 UI 使用。 支持六大内核题型：单选题、多选题、判断题、填空题、简答题、论述题；同时兼容
  * 「题型分布方案」里的自定义学科标签（如 阅读理解、看图写话、实验与简答题、综合解答题）。
- * </p>
- * <p>
- * 解析以「大题分节」为单位：先按大题标题（{@code ## 一、<标签>（…）}）把试卷切成若干 section，
- * 再把每个 section 映射回题型分布方案中的内核类型与分值，保证考试端渲染的
- * 题型分布 == 出卷方案 == 试卷，三者一致。当方案缺省时回退到关键词启发式判定。
- * </p>
+ *
+ * <p>解析以「大题分节」为单位：先按大题标题（{@code ## 一、<标签>（…）}）把试卷切成若干 section， 再把每个 section
+ * 映射回题型分布方案中的内核类型与分值，保证考试端渲染的 题型分布 == 出卷方案 == 试卷，三者一致。当方案缺省时回退到关键词启发式判定。
  *
  * @author Knowledge-Repository
  * @date 2026-09-16
@@ -37,86 +32,69 @@ public final class ExamPaperParser {
     private static final Logger logger = LoggerFactory.getLogger(ExamPaperParser.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /**
-     * 六大内核题型 → 枚举 key
-     */
+    /** 六大内核题型 → 枚举 key */
     private static final Map<String, String> SECTION_TYPE_MAP = new LinkedHashMap<>();
 
-    /**
-     * 匹配大题标题（泛化）：{@code #~#### 一、<任意标签>（…）} 或无括号形式。
-     * group(1)=中文序号，group(2)=标题正文（含可能的括注分值）。
-     */
-    private static final Pattern SECTION_PATTERN = Pattern.compile(
-            "^#{1,4}\\s*[一二三四五六七八九十]+\s*[、.．]\\s*(.+?)\\s*$");
+    /** 匹配大题标题（泛化）：{@code #~#### 一、<任意标签>（…）} 或无括号形式。 group(1)=中文序号，group(2)=标题正文（含可能的括注分值）。 */
+    private static final Pattern SECTION_PATTERN =
+            Pattern.compile("^#{1,4}\\s*[一二三四五六七八九十]+\s*[、.．]\\s*(.+?)\\s*$");
 
-    /**
-     * 匹配"每题X分"
-     */
+    /** 匹配"每题X分" */
     private static final Pattern SCORE_PATTERN = Pattern.compile("每题\\s*(\\d+)\\s*分");
-    /**
-     * 匹配"共X分"（大题总分）
-     */
-    private static final Pattern SECTION_TOTAL_GONG_PATTERN = Pattern.compile("共\\s*(\\d+)\\s*分");
-    /**
-     * 匹配独立"X分"（无每题/共前缀的大题总分，如「看图写话（14分）」剥离后为 "14分"）
-     */
-    private static final Pattern SECTION_TOTAL_BARE_PATTERN = Pattern.compile("^\\s*(\\d+)\\s*分");
-    /**
-     * 匹配小题分值标记：（5分）/（本题 3 分）/【2分】，通常紧跟在题干末尾
-     */
-    private static final Pattern QUESTION_SCORE_PATTERN = Pattern.compile(
-            "[（(【]\\s*(?:本题)?\\s*(\\d+)\\s*分\\s*[）)】]");
-    /**
-     * 小题分值标记的整段（含前后空白），用于从正文/选项中剥离
-     */
-    private static final Pattern QUESTION_SCORE_STRIP = Pattern.compile(
-            "\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*");
-    /**
-     * 匹配单个选项：A. xxx 或 A、xxx 或 **A.** xxx
-     */
-    private static final Pattern SINGLE_OPTION_PATTERN = Pattern.compile(
-            "([A-Da-d])\\s*[.、．]\\s*");
-    /**
-     * 匹配考试时长：**考试时间：XX分钟** 或 考试时间：XX分钟
-     */
-    private static final Pattern DURATION_PATTERN = Pattern.compile(
-            "考试时间[：:]\\s*(\\d+)\\s*分钟?");
 
-    /**
-     * 无方案时：关键词 → 内核题型 的启发式映射（按声明顺序优先匹配，故 多选/判断 在前）
-     */
-    private static final List<String[]> KEYWORD_TYPE_RULES = List.of(
-            new String[]{"多选", "MULTI_CHOICE"},
-            new String[]{"单选", "SINGLE_CHOICE"},
-            new String[]{"选择", "SINGLE_CHOICE"},
-            new String[]{"听力", "SINGLE_CHOICE"},
-            new String[]{"口语", "SINGLE_CHOICE"},
-            new String[]{"判断", "TRUE_FALSE"},
-            new String[]{"对错", "TRUE_FALSE"},
-            new String[]{"填空", "FILL_BLANK"},
-            new String[]{"补写", "FILL_BLANK"},
-            new String[]{"默写", "FILL_BLANK"},
-            new String[]{"词", "FILL_BLANK"},
-            new String[]{"完形", "FILL_BLANK"},
-            new String[]{"论述", "ESSAY"},
-            new String[]{"作文", "ESSAY"},
-            new String[]{"写作", "ESSAY"},
-            new String[]{"写话", "ESSAY"},
-            new String[]{"表达", "ESSAY"},
-            new String[]{"解答", "ESSAY"},
-            new String[]{"计算", "SHORT_ANSWER"},
-            new String[]{"应用", "SHORT_ANSWER"},
-            new String[]{"综合", "SHORT_ANSWER"},
-            new String[]{"实验", "SHORT_ANSWER"},
-            new String[]{"探究", "SHORT_ANSWER"},
-            new String[]{"操作", "SHORT_ANSWER"},
-            new String[]{"阅读", "SHORT_ANSWER"},
-            new String[]{"理解", "SHORT_ANSWER"},
-            new String[]{"材料", "SHORT_ANSWER"},
-            new String[]{"简答", "SHORT_ANSWER"},
-            new String[]{"问答", "SHORT_ANSWER"},
-            new String[]{"分析", "SHORT_ANSWER"}
-    );
+    /** 匹配"共X分"（大题总分） */
+    private static final Pattern SECTION_TOTAL_GONG_PATTERN = Pattern.compile("共\\s*(\\d+)\\s*分");
+
+    /** 匹配独立"X分"（无每题/共前缀的大题总分，如「看图写话（14分）」剥离后为 "14分"） */
+    private static final Pattern SECTION_TOTAL_BARE_PATTERN = Pattern.compile("^\\s*(\\d+)\\s*分");
+
+    /** 匹配小题分值标记：（5分）/（本题 3 分）/【2分】，通常紧跟在题干末尾 */
+    private static final Pattern QUESTION_SCORE_PATTERN =
+            Pattern.compile("[（(【]\\s*(?:本题)?\\s*(\\d+)\\s*分\\s*[）)】]");
+
+    /** 小题分值标记的整段（含前后空白），用于从正文/选项中剥离 */
+    private static final Pattern QUESTION_SCORE_STRIP =
+            Pattern.compile("\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*");
+
+    /** 匹配单个选项：A. xxx 或 A、xxx 或 **A.** xxx */
+    private static final Pattern SINGLE_OPTION_PATTERN = Pattern.compile("([A-Da-d])\\s*[.、．]\\s*");
+
+    /** 匹配考试时长：**考试时间：XX分钟** 或 考试时间：XX分钟 */
+    private static final Pattern DURATION_PATTERN = Pattern.compile("考试时间[：:]\\s*(\\d+)\\s*分钟?");
+
+    /** 无方案时：关键词 → 内核题型 的启发式映射（按声明顺序优先匹配，故 多选/判断 在前） */
+    private static final List<String[]> KEYWORD_TYPE_RULES =
+            List.of(
+                    new String[] {"多选", "MULTI_CHOICE"},
+                    new String[] {"单选", "SINGLE_CHOICE"},
+                    new String[] {"选择", "SINGLE_CHOICE"},
+                    new String[] {"听力", "SINGLE_CHOICE"},
+                    new String[] {"口语", "SINGLE_CHOICE"},
+                    new String[] {"判断", "TRUE_FALSE"},
+                    new String[] {"对错", "TRUE_FALSE"},
+                    new String[] {"填空", "FILL_BLANK"},
+                    new String[] {"补写", "FILL_BLANK"},
+                    new String[] {"默写", "FILL_BLANK"},
+                    new String[] {"词", "FILL_BLANK"},
+                    new String[] {"完形", "FILL_BLANK"},
+                    new String[] {"论述", "ESSAY"},
+                    new String[] {"作文", "ESSAY"},
+                    new String[] {"写作", "ESSAY"},
+                    new String[] {"写话", "ESSAY"},
+                    new String[] {"表达", "ESSAY"},
+                    new String[] {"解答", "ESSAY"},
+                    new String[] {"计算", "SHORT_ANSWER"},
+                    new String[] {"应用", "SHORT_ANSWER"},
+                    new String[] {"综合", "SHORT_ANSWER"},
+                    new String[] {"实验", "SHORT_ANSWER"},
+                    new String[] {"探究", "SHORT_ANSWER"},
+                    new String[] {"操作", "SHORT_ANSWER"},
+                    new String[] {"阅读", "SHORT_ANSWER"},
+                    new String[] {"理解", "SHORT_ANSWER"},
+                    new String[] {"材料", "SHORT_ANSWER"},
+                    new String[] {"简答", "SHORT_ANSWER"},
+                    new String[] {"问答", "SHORT_ANSWER"},
+                    new String[] {"分析", "SHORT_ANSWER"});
 
     static {
         SECTION_TYPE_MAP.put("单选题", "SINGLE_CHOICE");
@@ -127,8 +105,7 @@ public final class ExamPaperParser {
         SECTION_TYPE_MAP.put("论述题", "ESSAY");
     }
 
-    private ExamPaperParser() {
-    }
+    private ExamPaperParser() {}
 
     /**
      * 从试卷 Markdown 中解析考试时长（分钟）
@@ -150,9 +127,7 @@ public final class ExamPaperParser {
         return null;
     }
 
-    /**
-     * 解析试卷 Markdown 为结构化 JSON 字符串（无方案，回退关键词判定）
-     */
+    /** 解析试卷 Markdown 为结构化 JSON 字符串（无方案，回退关键词判定） */
     public static String parseToJson(String examPaper) {
         return toJsonString(parse(examPaper, null));
     }
@@ -161,7 +136,7 @@ public final class ExamPaperParser {
      * 解析试卷 Markdown 为结构化 JSON 字符串（带题型分布方案）
      *
      * @param examPaper 试卷 Markdown
-     * @param planJson  题型分布方案 JSON（可为 null）
+     * @param planJson 题型分布方案 JSON（可为 null）
      * @return 结构化题目 JSON
      */
     public static String parseToJson(String examPaper, String planJson) {
@@ -177,9 +152,7 @@ public final class ExamPaperParser {
         }
     }
 
-    /**
-     * 反序列化题型分布方案；失败返回 null（调用方据此回退）。
-     */
+    /** 反序列化题型分布方案；失败返回 null（调用方据此回退）。 */
     public static ExamPlan readPlan(String planJson) {
         if (planJson == null || planJson.isBlank()) {
             return null;
@@ -192,9 +165,7 @@ public final class ExamPaperParser {
         }
     }
 
-    /**
-     * 解析试卷 Markdown 为结构化题目列表（无方案）
-     */
+    /** 解析试卷 Markdown 为结构化题目列表（无方案） */
     public static List<Map<String, Object>> parse(String examPaper) {
         return parse(examPaper, null);
     }
@@ -203,7 +174,7 @@ public final class ExamPaperParser {
      * 解析试卷 Markdown 为结构化题目列表。
      *
      * @param examPaper 试卷 Markdown
-     * @param plan      题型分布方案（可为 null；存在时以其为题型/分值真源）
+     * @param plan 题型分布方案（可为 null；存在时以其为题型/分值真源）
      */
     public static List<Map<String, Object>> parse(String examPaper, ExamPlan plan) {
         List<Map<String, Object>> questions = new ArrayList<>();
@@ -219,8 +190,8 @@ public final class ExamPaperParser {
             return parseLoose(lines, plan);
         }
 
-        List<TypePlan> planTypes = plan != null && plan.getTypes() != null
-                ? plan.getTypes() : new ArrayList<>();
+        List<TypePlan> planTypes =
+                plan != null && plan.getTypes() != null ? plan.getTypes() : new ArrayList<>();
         int sectionCursor = 0;
         int globalIndex = 0;
 
@@ -234,12 +205,13 @@ public final class ExamPaperParser {
                 sectionCursor++;
             }
             String kernel = resolveKernel(sec.name, matched, sec.rawHeading);
-            String displayLabel = matched != null && notBlank(matched.getLabel())
-                    ? matched.getLabel() : sec.name;
+            String displayLabel =
+                    matched != null && notBlank(matched.getLabel()) ? matched.getLabel() : sec.name;
             int defaultScore = resolveDefaultScore(sec, matched, kernel);
 
             List<Map<String, Object>> secQuestions =
-                    collectQuestions(sec.lines, sec.scoreInfo, kernel, displayLabel, defaultScore, matched);
+                    collectQuestions(
+                            sec.lines, sec.scoreInfo, kernel, displayLabel, defaultScore, matched);
             for (Map<String, Object> q : secQuestions) {
                 globalIndex++;
                 q.put("index", globalIndex);
@@ -254,9 +226,7 @@ public final class ExamPaperParser {
 
     // ==================== 分节 ====================
 
-    /**
-     * 一个"大题"分节
-     */
+    /** 一个"大题"分节 */
     private static final class Section {
         final String name;
         final String rawHeading;
@@ -270,9 +240,7 @@ public final class ExamPaperParser {
         }
     }
 
-    /**
-     * 按大题标题把整卷切成 section；第一段（标题前）name 为 null。
-     */
+    /** 按大题标题把整卷切成 section；第一段（标题前）name 为 null。 */
     private static List<Section> splitSections(String[] lines) {
         List<Section> sections = new ArrayList<>();
         Section current = new Section(null, null, null);
@@ -293,18 +261,14 @@ public final class ExamPaperParser {
         return sections;
     }
 
-    /**
-     * 从标题正文里取题型名（第一个括号/空格之前），如 "阅读理解（共17分）" → "阅读理解"。
-     */
+    /** 从标题正文里取题型名（第一个括号/空格之前），如 "阅读理解（共17分）" → "阅读理解"。 */
     private static String extractSectionName(String head) {
         int idx = indexOfFirstBracket(head);
         String name = idx >= 0 ? head.substring(0, idx) : head;
         return name.trim();
     }
 
-    /**
-     * 收集标题正文里所有括号内容拼成分值信息串，便于后续正则。
-     */
+    /** 收集标题正文里所有括号内容拼成分值信息串，便于后续正则。 */
     private static String extractScoreInfo(String head) {
         Matcher bm = Pattern.compile("[（(【]([^）)】]*)[）)】]").matcher(head);
         StringBuilder sb = new StringBuilder();
@@ -316,7 +280,7 @@ public final class ExamPaperParser {
 
     private static int indexOfFirstBracket(String s) {
         int min = -1;
-        for (char c : new char[]{'（', '(', '【'}) {
+        for (char c : new char[] {'（', '(', '【'}) {
             int i = s.indexOf(c);
             if (i >= 0 && (min < 0 || i < min)) {
                 min = i;
@@ -329,12 +293,12 @@ public final class ExamPaperParser {
 
     /**
      * 按标签匹配方案中的 TypePlan。匹配路径（按优先级）：
+     *
      * <ol>
-     *     <li>{@code baseName} 相等：剥离方案 label 与试卷标题里的括注（如「（单选题）」），
-     *         让「我会选（单选题）」与试卷标题「我会选」对齐；</li>
-     *     <li>试卷标题关键词精确命中某内核题型中文名，且方案中同 key 项存在；</li>
-     *     <li>顺序兜底：section 数与 plan 数一一对应且 label 的 baseName 相同；或
-     *         cursor 处仍有未匹配项且试卷端关键词回落到同 key（避免整卷全部走关键词导致答案漂移）。</li>
+     *   <li>{@code baseName} 相等：剥离方案 label 与试卷标题里的括注（如「（单选题）」）， 让「我会选（单选题）」与试卷标题「我会选」对齐；
+     *   <li>试卷标题关键词精确命中某内核题型中文名，且方案中同 key 项存在；
+     *   <li>顺序兜底：section 数与 plan 数一一对应且 label 的 baseName 相同；或 cursor 处仍有未匹配项且试卷端关键词回落到同
+     *       key（避免整卷全部走关键词导致答案漂移）。
      * </ol>
      */
     private static TypePlan matchPlanType(List<TypePlan> planTypes, String name, int cursor) {
@@ -372,9 +336,7 @@ public final class ExamPaperParser {
         return null;
     }
 
-    /**
-     * 解析大题的内核题型 key：方案优先，其次关键词启发式，最后默认简答题。
-     */
+    /** 解析大题的内核题型 key：方案优先，其次关键词启发式，最后默认简答题。 */
     private static String resolveKernel(String name, TypePlan matched) {
         return resolveKernel(name, matched, null);
     }
@@ -382,10 +344,9 @@ public final class ExamPaperParser {
     /**
      * 解析大题的内核题型 key：方案优先，其次关键词启发式，最后默认简答题。
      *
-     * @param name        剥离括注后的大题标题名
-     * @param matched     匹配到的方案题型（可为 null）
-     * @param keywordHint 关键词启发式的额外扫描文本，通常传入含括注的完整标题，
-     *                    使「我会选（单选题）」这类被剥离的类型提示仍能被识别；为 null 时仅扫描 name
+     * @param name 剥离括注后的大题标题名
+     * @param matched 匹配到的方案题型（可为 null）
+     * @param keywordHint 关键词启发式的额外扫描文本，通常传入含括注的完整标题， 使「我会选（单选题）」这类被剥离的类型提示仍能被识别；为 null 时仅扫描 name
      */
     private static String resolveKernel(String name, TypePlan matched, String keywordHint) {
         if (matched != null && notBlank(matched.getKey())) {
@@ -406,8 +367,8 @@ public final class ExamPaperParser {
     }
 
     /**
-     * 计算大题默认分值：每题X分 → X；共X分/(X分) → 均分（此处先给 0，交由 collectQuestions 按题数分摊）；
-     * 方案有每题数组且与题数吻合时优先方案值。返回 0 表示"需在知道题数后再分摊"。
+     * 计算大题默认分值：每题X分 → X；共X分/(X分) → 均分（此处先给 0，交由 collectQuestions 按题数分摊）； 方案有每题数组且与题数吻合时优先方案值。返回 0
+     * 表示"需在知道题数后再分摊"。
      */
     private static int resolveDefaultScore(Section sec, TypePlan matched, String kernel) {
         if (sec.scoreInfo != null) {
@@ -419,12 +380,14 @@ public final class ExamPaperParser {
         return 0;
     }
 
-    /**
-     * 在一个 section 的行集合里抽取题目，填充题型/分值/内容/选项/标签。
-     */
+    /** 在一个 section 的行集合里抽取题目，填充题型/分值/内容/选项/标签。 */
     private static List<Map<String, Object>> collectQuestions(
-            List<String> secLines, String scoreInfo, String kernel, String label,
-            int perQuestionUniform, TypePlan matched) {
+            List<String> secLines,
+            String scoreInfo,
+            String kernel,
+            String label,
+            int perQuestionUniform,
+            TypePlan matched) {
         List<Map<String, Object>> result = new ArrayList<>();
         // 先按题号切成块
         List<List<String>> blocks = new ArrayList<>();
@@ -456,10 +419,15 @@ public final class ExamPaperParser {
             sectionTotal = parseSectionTotal(scoreInfo);
         }
         // 每题分值判定：区分"有方案(整题真源)"与"无方案(内联优先)"
-        boolean havePlanScores = matched != null && matched.getPerQuestion() != null
-                && matched.getPerQuestion().size() == n && n > 0;
-        int[] spread = (sectionTotal != null && sectionTotal > 0 && n > 0)
-                ? distribute(sectionTotal, n) : null;
+        boolean havePlanScores =
+                matched != null
+                        && matched.getPerQuestion() != null
+                        && matched.getPerQuestion().size() == n
+                        && n > 0;
+        int[] spread =
+                (sectionTotal != null && sectionTotal > 0 && n > 0)
+                        ? distribute(sectionTotal, n)
+                        : null;
 
         for (int bi = 0; bi < n; bi++) {
             List<String> block = blocks.get(bi);
@@ -537,9 +505,7 @@ public final class ExamPaperParser {
         return result;
     }
 
-    /**
-     * 松散解析：无大题标题时按题号顺序推进，从题型分布方案的扁平化结果还原每题题型/分值。
-     */
+    /** 松散解析：无大题标题时按题号顺序推进，从题型分布方案的扁平化结果还原每题题型/分值。 */
     private static List<Map<String, Object>> parseLoose(String[] lines, ExamPlan plan) {
         List<Map<String, Object>> questions = new ArrayList<>();
         List<String[]> flatTypes = flattenPlanTypes(plan);
@@ -547,11 +513,16 @@ public final class ExamPaperParser {
         List<Integer> planScores = new ArrayList<>();
         if (plan != null) {
             for (TypePlan t : safeTypes(plan)) {
-                int c = Math.max(t.getCount(), t.getPerQuestion() != null ? t.getPerQuestion().size() : 0);
+                int c =
+                        Math.max(
+                                t.getCount(),
+                                t.getPerQuestion() != null ? t.getPerQuestion().size() : 0);
                 for (int j = 0; j < c; j++) {
                     labels.add(notBlank(t.getLabel()) ? t.getLabel() : t.getKey());
-                    planScores.add(t.getPerQuestion() != null && j < t.getPerQuestion().size()
-                            ? t.getPerQuestion().get(j) : 0);
+                    planScores.add(
+                            t.getPerQuestion() != null && j < t.getPerQuestion().size()
+                                    ? t.getPerQuestion().get(j)
+                                    : 0);
                 }
             }
         }
@@ -587,19 +558,23 @@ public final class ExamPaperParser {
         return questions;
     }
 
-    /**
-     * 把方案展开成 [label, kernel] 数组，按题型顺序每题一项（count 与 perQuestion 取较大者）。
-     */
+    /** 把方案展开成 [label, kernel] 数组，按题型顺序每题一项（count 与 perQuestion 取较大者）。 */
     private static List<String[]> flattenPlanTypes(ExamPlan plan) {
         List<String[]> list = new ArrayList<>();
         if (plan == null) {
             return list;
         }
         for (TypePlan t : safeTypes(plan)) {
-            String kernel = notBlank(t.getKey()) ? t.getKey().toUpperCase() : resolveKernel(t.getLabel(), t);
-            int c = Math.max(t.getCount(), t.getPerQuestion() != null ? t.getPerQuestion().size() : 0);
+            String kernel =
+                    notBlank(t.getKey())
+                            ? t.getKey().toUpperCase()
+                            : resolveKernel(t.getLabel(), t);
+            int c =
+                    Math.max(
+                            t.getCount(),
+                            t.getPerQuestion() != null ? t.getPerQuestion().size() : 0);
             for (int j = 0; j < c; j++) {
-                list.add(new String[]{t.getLabel(), kernel});
+                list.add(new String[] {t.getLabel(), kernel});
             }
         }
         return list;
@@ -660,9 +635,7 @@ public final class ExamPaperParser {
         return plan != null && plan.getTypes() != null ? plan.getTypes() : new ArrayList<>();
     }
 
-    /**
-     * 解析大题标题里的"共X分"或独立"（X分）"。
-     */
+    /** 解析大题标题里的"共X分"或独立"（X分）"。 */
     private static Integer parseSectionTotal(String head) {
         if (head == null) {
             return null;
@@ -678,9 +651,7 @@ public final class ExamPaperParser {
         return null;
     }
 
-    /**
-     * 把 total 以最大余数法分成 n 份（每份>=1，和==total）。
-     */
+    /** 把 total 以最大余数法分成 n 份（每份>=1，和==total）。 */
     private static int[] distribute(int total, int n) {
         int[] r = new int[n];
         if (n <= 0) {
@@ -711,9 +682,7 @@ public final class ExamPaperParser {
         return s != null && !s.isBlank();
     }
 
-    /**
-     * 归一化题型标签：去空白、去全角空格、去尾部"题"字差异容错。
-     */
+    /** 归一化题型标签：去空白、去全角空格、去尾部"题"字差异容错。 */
     private static String normalizeLabel(String s) {
         if (s == null) {
             return "";
@@ -721,10 +690,7 @@ public final class ExamPaperParser {
         return s.replaceAll("[\\s　]", "").trim();
     }
 
-    /**
-     * 取标签的基础名：剥离首个括号起的括注（如「我会选（单选题）」→「我会选」），
-     * 使方案 label 与试卷标题在题型对齐时忽略类型标注差异。
-     */
+    /** 取标签的基础名：剥离首个括号起的括注（如「我会选（单选题）」→「我会选」）， 使方案 label 与试卷标题在题型对齐时忽略类型标注差异。 */
     private static String baseName(String s) {
         if (s == null) {
             return "";
@@ -733,31 +699,23 @@ public final class ExamPaperParser {
         return (idx >= 0 ? s.substring(0, idx) : s).trim();
     }
 
-    /**
-     * 判断一行是否是新题目的开始
-     */
+    /** 判断一行是否是新题目的开始 */
     private static boolean isQuestionStart(String line) {
         return line.matches("^\\*{0,2}\\d+[.、．]\\s*.+");
     }
 
-    /**
-     * 判断一行是否为水平分隔线（--- / *** / ___）
-     */
+    /** 判断一行是否为水平分隔线（--- / *** / ___） */
     private static boolean isHorizontalRule(String line) {
         return line != null && line.trim().matches("^[-*_]{3,}$");
     }
 
-    /**
-     * 判断一行是否以选项标记开头（允许前置 markdown 列表符号与加粗符号）
-     */
+    /** 判断一行是否以选项标记开头（允许前置 markdown 列表符号与加粗符号） */
     private static boolean startsOption(String line) {
         String cleaned = stripLeadingBullet(line).replaceAll("^\\*{0,2}", "").trim();
         return SINGLE_OPTION_PATTERN.matcher(cleaned).lookingAt();
     }
 
-    /**
-     * 去掉行首的 markdown 列表符号（- / * / + 加空格）
-     */
+    /** 去掉行首的 markdown 列表符号（- / * / + 加空格） */
     private static String stripLeadingBullet(String line) {
         if (line == null) {
             return "";
@@ -765,15 +723,11 @@ public final class ExamPaperParser {
         return line.replaceFirst("^\\s*[-*+]\\s+", "").trim();
     }
 
-    /**
-     * 匹配题目行首的印刷题号（可选前置加粗 + 1~3 位数字 + 分隔符 + 可选后置加粗），group(1)=题号
-     */
-    private static final Pattern QUESTION_NUMBER_STRIP = Pattern.compile(
-            "^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*\\*{0,2}");
+    /** 匹配题目行首的印刷题号（可选前置加粗 + 1~3 位数字 + 分隔符 + 可选后置加粗），group(1)=题号 */
+    private static final Pattern QUESTION_NUMBER_STRIP =
+            Pattern.compile("^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*\\*{0,2}");
 
-    /**
-     * 移除题目行中的序号
-     */
+    /** 移除题目行中的序号 */
     private static String removeQuestionNumber(String line) {
         return line.replaceFirst("^\\*{0,2}\\d+[.、．]\\s*\\*{0,2}", "").trim();
     }
@@ -799,9 +753,7 @@ public final class ExamPaperParser {
         return null;
     }
 
-    /**
-     * 提取题目内容中选项之前的部分
-     */
+    /** 提取题目内容中选项之前的部分 */
     private static String extractContentBeforeOptions(String line) {
         String cleaned = line.replaceAll("\\*{0,2}", "");
         Matcher matcher = SINGLE_OPTION_PATTERN.matcher(cleaned);
@@ -812,9 +764,7 @@ public final class ExamPaperParser {
         return line;
     }
 
-    /**
-     * 提取行内选项部分（如 "A. xxx B. xxx C. xxx"）
-     */
+    /** 提取行内选项部分（如 "A. xxx B. xxx C. xxx"） */
     private static String extractInlineOptions(String line) {
         String cleaned = line.replaceAll("\\*{0,2}", "");
         Matcher matcher = SINGLE_OPTION_PATTERN.matcher(cleaned);
@@ -824,9 +774,7 @@ public final class ExamPaperParser {
         return "";
     }
 
-    /**
-     * 提取题干/选项中显式标注的小题分值（如（5分）/（本题 3 分）），无则返回 0。
-     */
+    /** 提取题干/选项中显式标注的小题分值（如（5分）/（本题 3 分）），无则返回 0。 */
     private static int extractQuestionScore(String text) {
         if (text == null || text.isBlank()) {
             return 0;
@@ -845,9 +793,7 @@ public final class ExamPaperParser {
         return 0;
     }
 
-    /**
-     * 清理题目内容（移除尾部的选项标记、小题分值标记与 markdown 格式符号）
-     */
+    /** 清理题目内容（移除尾部的选项标记、小题分值标记与 markdown 格式符号） */
     private static String cleanContent(String content) {
         return QUESTION_SCORE_STRIP
                 .matcher(content)
@@ -859,9 +805,8 @@ public final class ExamPaperParser {
 
     /**
      * 解析选项文本为选项列表
-     * <p>
-     * 能处理：每个选项一行 / 所有选项在一行 / 选项间多个空格。
-     * </p>
+     *
+     * <p>能处理：每个选项一行 / 所有选项在一行 / 选项间多个空格。
      */
     private static List<Map<String, String>> parseOptions(String optionsText) {
         List<Map<String, String>> options = new ArrayList<>();
@@ -869,23 +814,21 @@ public final class ExamPaperParser {
             return options;
         }
 
-        String normalized = optionsText
-                .replaceAll("\\n", " ")
-                .replaceAll("\\*{1,2}", "")
-                .replaceAll("　", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        String normalized =
+                optionsText
+                        .replaceAll("\\n", " ")
+                        .replaceAll("\\*{1,2}", "")
+                        .replaceAll("　", " ")
+                        .replaceAll("\\s+", " ")
+                        .trim();
 
-        Pattern optionPattern = Pattern.compile(
-                "([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
+        Pattern optionPattern =
+                Pattern.compile("([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
         Matcher matcher = optionPattern.matcher(normalized);
 
         while (matcher.find()) {
             String key = matcher.group(1).toUpperCase();
-            String value = QUESTION_SCORE_STRIP
-                    .matcher(matcher.group(2))
-                    .replaceAll(" ")
-                    .trim();
+            String value = QUESTION_SCORE_STRIP.matcher(matcher.group(2)).replaceAll(" ").trim();
             if (!value.isEmpty()) {
                 Map<String, String> option = new LinkedHashMap<>();
                 option.put("key", key);
@@ -901,10 +844,11 @@ public final class ExamPaperParser {
                 Matcher lineMatcher = SINGLE_OPTION_PATTERN.matcher(trimmed);
                 if (lineMatcher.find()) {
                     String key = lineMatcher.group(1).toUpperCase();
-                    String value = QUESTION_SCORE_STRIP
-                            .matcher(trimmed.substring(lineMatcher.end()))
-                            .replaceAll(" ")
-                            .trim();
+                    String value =
+                            QUESTION_SCORE_STRIP
+                                    .matcher(trimmed.substring(lineMatcher.end()))
+                                    .replaceAll(" ")
+                                    .trim();
                     if (!value.isEmpty()) {
                         Map<String, String> option = new LinkedHashMap<>();
                         option.put("key", key);

@@ -3,13 +3,12 @@ package com.mouhin.knowledge.repository.web.controller;
 import com.mouhin.knowledge.repository.client.api.KnowledgeQueryServiceI;
 import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 知识库查询控制器（adapter 层）
@@ -47,15 +46,20 @@ public class KnowledgeQueryController {
             roles = (String) rolesObj;
         }
         boolean admin = body.get("admin") != null && (Boolean) body.get("admin");
-        Integer maxResults = body.get("maxResults") != null ? ((Number) body.get("maxResults")).intValue() : null;
-        Double minScore = body.get("minScore") != null ? ((Number) body.get("minScore")).doubleValue() : null;
+        Integer maxResults =
+                body.get("maxResults") != null
+                        ? ((Number) body.get("maxResults")).intValue()
+                        : null;
+        Double minScore =
+                body.get("minScore") != null ? ((Number) body.get("minScore")).doubleValue() : null;
         String category = (String) body.get("category");
 
         if (userId == null || userId.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "errorCode", "BAD_REQUEST",
-                    "errorMessage", "userId is required"
-            ));
+            return ResponseEntity.badRequest()
+                    .body(
+                            Map.of(
+                                    "errorCode", "BAD_REQUEST",
+                                    "errorMessage", "userId is required"));
         }
 
         SearchCmd cmd = new SearchCmd();
@@ -73,17 +77,15 @@ public class KnowledgeQueryController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 获取知识库分类列表
-     */
+    /** 获取知识库分类列表 */
     @GetMapping("/categories")
     public ResponseEntity<List<Map<String, Object>>> listCategories() {
-        List<Map<String, Object>> categories = List.of(
-                Map.of("name", "工作", "sortOrder", 1),
-                Map.of("name", "学习", "sortOrder", 2),
-                Map.of("name", "休闲", "sortOrder", 3),
-                Map.of("name", "其他", "sortOrder", 4)
-        );
+        List<Map<String, Object>> categories =
+                List.of(
+                        Map.of("name", "工作", "sortOrder", 1),
+                        Map.of("name", "学习", "sortOrder", 2),
+                        Map.of("name", "休闲", "sortOrder", 3),
+                        Map.of("name", "其他", "sortOrder", 4));
         return ResponseEntity.ok(categories);
     }
 }

@@ -1,25 +1,22 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 智能体线程池工厂饱和策略回归测试（定向审计 CONC-2）。
- * <p>
- * 锁定 {@link AgentExecutorFactory} 的溢出语义：池满时走 {@code AbortPolicy} 快速失败，
- * 抛出 {@link RejectedExecutionException}，而 <b>绝不</b>回退到 {@code CallerRunsPolicy}
- * ——后者会让提交任务所在的调用线程（HTTP servlet 线程）同步执行整条 LLM / 出卷 / 评分流水线，
- * 分钟级阻塞请求线程并放大对上游模型服务的踩踏。用例通过在调用线程上运行拒绝探针，
- * 验证拒绝发生在调用线程本身（抛出 REE）而非被就地执行。
- * </p>
+ *
+ * <p>锁定 {@link AgentExecutorFactory} 的溢出语义：池满时走 {@code AbortPolicy} 快速失败， 抛出 {@link
+ * RejectedExecutionException}，而 <b>绝不</b>回退到 {@code CallerRunsPolicy} ——后者会让提交任务所在的调用线程（HTTP
+ * servlet 线程）同步执行整条 LLM / 出卷 / 评分流水线， 分钟级阻塞请求线程并放大对上游模型服务的踩踏。用例通过在调用线程上运行拒绝探针， 验证拒绝发生在调用线程本身（抛出
+ * REE）而非被就地执行。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -62,8 +59,8 @@ class AgentExecutorFactoryTest {
 
     /**
      * 任务体断言：任务绝不运行在提交它的调用线程上。
-     * <p>若工厂仍采用 {@code CallerRunsPolicy}，饱和时任务会在调用线程就地运行，
-     * 本断言即失败——以此锁死“溢出不在请求线程跑”的修复意图。</p>
+     *
+     * <p>若工厂仍采用 {@code CallerRunsPolicy}，饱和时任务会在调用线程就地运行， 本断言即失败——以此锁死“溢出不在请求线程跑”的修复意图。
      */
     private static void assertTaskNotRunOnCallerThread(int taskId, Thread caller) {
         if (Thread.currentThread() == caller) {

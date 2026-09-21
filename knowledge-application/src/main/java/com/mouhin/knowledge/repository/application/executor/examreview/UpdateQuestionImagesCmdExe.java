@@ -4,21 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 校对页绑定配图命令执行器（app 层用例，事务边界，阶段 2）
- * <p>
- * 接收一组有序的配图 assetKey（可空表示清除），做基本清洗（去空白、去重、限量）后序列化为
- * {@code images_json} 数组，按「试卷标识 + 印刷题号」就地回写 {@code kb_exam_question.images_json}，
- * 不改变试卷状态。图片本体经公开的 {@code /api/exam/assets/{assetKey}} 端点由浏览器加载。
- * </p>
+ *
+ * <p>接收一组有序的配图 assetKey（可空表示清除），做基本清洗（去空白、去重、限量）后序列化为 {@code images_json} 数组，按「试卷标识 + 印刷题号」就地回写
+ * {@code kb_exam_question.images_json}， 不改变试卷状态。图片本体经公开的 {@code /api/exam/assets/{assetKey}}
+ * 端点由浏览器加载。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -36,8 +34,8 @@ public class UpdateQuestionImagesCmdExe {
     private final PaperReviewSupport support;
     private final ExamQuestionGateway examQuestionGateway;
 
-    public UpdateQuestionImagesCmdExe(PaperReviewSupport support,
-                                      ExamQuestionGateway examQuestionGateway) {
+    public UpdateQuestionImagesCmdExe(
+            PaperReviewSupport support, ExamQuestionGateway examQuestionGateway) {
         this.support = support;
         this.examQuestionGateway = examQuestionGateway;
     }
@@ -45,9 +43,9 @@ public class UpdateQuestionImagesCmdExe {
     /**
      * 保存某题的配图绑定。
      *
-     * @param sessionKey     试卷标识
+     * @param sessionKey 试卷标识
      * @param questionNumber 印刷题号
-     * @param assetKeys      有序 assetKey 列表（可空 / 空集合表示清除绑定）
+     * @param assetKeys 有序 assetKey 列表（可空 / 空集合表示清除绑定）
      * @return 实际持久化的 assetKey 列表（清洗后）
      */
     @Transactional
@@ -59,8 +57,11 @@ public class UpdateQuestionImagesCmdExe {
         List<String> cleaned = sanitize(assetKeys);
         String imagesJson = writeJson(cleaned);
         examQuestionGateway.updateImagesJson(history.getSessionId(), questionNumber, imagesJson);
-        logger.info("校对页配图绑定 [session={}, number={}, images={}]",
-                history.getSessionId(), questionNumber, cleaned.size());
+        logger.info(
+                "校对页配图绑定 [session={}, number={}, images={}]",
+                history.getSessionId(),
+                questionNumber,
+                cleaned.size());
         return cleaned;
     }
 

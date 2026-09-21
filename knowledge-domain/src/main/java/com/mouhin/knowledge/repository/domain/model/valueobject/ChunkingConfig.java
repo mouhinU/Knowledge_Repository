@@ -12,38 +12,40 @@ public final class ChunkingConfig {
     private static final int DEFAULT_OVERLAP_SIZE = 50;
     private static final ChunkingStrategyEnum DEFAULT_STRATEGY = ChunkingStrategyEnum.FIXED_SIZE;
 
-    /**
-     * 每个分块最大 token 数
-     */
+    /** 每个分块最大 token 数 */
     private final int maxChunkSize;
 
-    /**
-     * 相邻分块重叠 token 数
-     */
+    /** 相邻分块重叠 token 数 */
     private final int overlapSize;
 
-    /**
-     * 切分策略
-     */
+    /** 切分策略 */
     private final ChunkingStrategyEnum strategy;
 
-    /**
-     * 是否按段落边界分块（仅 FIXED_SIZE 策略兼容）
-     */
+    /** 是否按段落边界分块（仅 FIXED_SIZE 策略兼容） */
     private final boolean respectParagraphBoundary;
 
-    /**
-     * 是否按页面边界分块
-     */
+    /** 是否按页面边界分块 */
     private final boolean respectPageBoundary;
 
-    public ChunkingConfig(int maxChunkSize, int overlapSize,
-                          boolean respectParagraphBoundary, boolean respectPageBoundary) {
-        this(maxChunkSize, overlapSize, DEFAULT_STRATEGY, respectParagraphBoundary, respectPageBoundary);
+    public ChunkingConfig(
+            int maxChunkSize,
+            int overlapSize,
+            boolean respectParagraphBoundary,
+            boolean respectPageBoundary) {
+        this(
+                maxChunkSize,
+                overlapSize,
+                DEFAULT_STRATEGY,
+                respectParagraphBoundary,
+                respectPageBoundary);
     }
 
-    public ChunkingConfig(int maxChunkSize, int overlapSize, ChunkingStrategyEnum strategy,
-                          boolean respectParagraphBoundary, boolean respectPageBoundary) {
+    public ChunkingConfig(
+            int maxChunkSize,
+            int overlapSize,
+            ChunkingStrategyEnum strategy,
+            boolean respectParagraphBoundary,
+            boolean respectPageBoundary) {
         if (maxChunkSize <= 0) {
             throw new IllegalArgumentException("maxChunkSize must be positive");
         }
@@ -58,8 +60,8 @@ public final class ChunkingConfig {
     }
 
     public static ChunkingConfig defaultConfig() {
-        return new ChunkingConfig(DEFAULT_MAX_CHUNK_SIZE, DEFAULT_OVERLAP_SIZE,
-                DEFAULT_STRATEGY, true, true);
+        return new ChunkingConfig(
+                DEFAULT_MAX_CHUNK_SIZE, DEFAULT_OVERLAP_SIZE, DEFAULT_STRATEGY, true, true);
     }
 
     public int getMaxChunkSize() {

@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.application.executor.examgrading.CountPendingGradingQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgrading.CountPendingReviewQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgrading.GetSessionByIdQryExe;
@@ -13,16 +16,13 @@ import com.mouhin.knowledge.repository.application.executor.examgrading.TriggerG
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
-import com.alibaba.cola.dto.MultiResponse;
-import com.alibaba.cola.dto.Response;
-import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
 
 /**
  * 考试评分应用服务实现（app 层，仅分发到执行器）
  *
- * <p>回调 / SSE 耦合的异步评分路径不经此契约，由适配层直接调用
- * {@code GradeExamAsyncCmdExe} / {@code TriggerGradingAsyncCmdExe}。</p>
+ * <p>回调 / SSE 耦合的异步评分路径不经此契约，由适配层直接调用 {@code GradeExamAsyncCmdExe} / {@code
+ * TriggerGradingAsyncCmdExe}。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -41,16 +41,17 @@ public class ExamGradingServiceImpl implements ExamGradingServiceI {
     private final ReviewAnswerCmdExe reviewAnswerCmdExe;
     private final PublishScoreCmdExe publishScoreCmdExe;
 
-    public ExamGradingServiceImpl(ListPendingGradingSessionsQryExe listPendingGradingSessionsQryExe,
-                                  CountPendingGradingQryExe countPendingGradingQryExe,
-                                  ListPendingGradingSessionIdsQryExe listPendingGradingSessionIdsQryExe,
-                                  ListPendingReviewQryExe listPendingReviewQryExe,
-                                  CountPendingReviewQryExe countPendingReviewQryExe,
-                                  GetSessionByIdQryExe getSessionByIdQryExe,
-                                  ListAnswersWithGradingQryExe listAnswersWithGradingQryExe,
-                                  TriggerGradingCmdExe triggerGradingCmdExe,
-                                  ReviewAnswerCmdExe reviewAnswerCmdExe,
-                                  PublishScoreCmdExe publishScoreCmdExe) {
+    public ExamGradingServiceImpl(
+            ListPendingGradingSessionsQryExe listPendingGradingSessionsQryExe,
+            CountPendingGradingQryExe countPendingGradingQryExe,
+            ListPendingGradingSessionIdsQryExe listPendingGradingSessionIdsQryExe,
+            ListPendingReviewQryExe listPendingReviewQryExe,
+            CountPendingReviewQryExe countPendingReviewQryExe,
+            GetSessionByIdQryExe getSessionByIdQryExe,
+            ListAnswersWithGradingQryExe listAnswersWithGradingQryExe,
+            TriggerGradingCmdExe triggerGradingCmdExe,
+            ReviewAnswerCmdExe reviewAnswerCmdExe,
+            PublishScoreCmdExe publishScoreCmdExe) {
         this.listPendingGradingSessionsQryExe = listPendingGradingSessionsQryExe;
         this.countPendingGradingQryExe = countPendingGradingQryExe;
         this.listPendingGradingSessionIdsQryExe = listPendingGradingSessionIdsQryExe;
@@ -105,7 +106,8 @@ public class ExamGradingServiceImpl implements ExamGradingServiceI {
     }
 
     @Override
-    public Response reviewAnswer(Long answerId, Integer reviewScore, String reviewFeedback, String reviewer) {
+    public Response reviewAnswer(
+            Long answerId, Integer reviewScore, String reviewFeedback, String reviewer) {
         reviewAnswerCmdExe.execute(answerId, reviewScore, reviewFeedback, reviewer);
         return Response.buildSuccess();
     }

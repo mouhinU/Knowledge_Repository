@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 import com.mouhin.knowledge.repository.application.converter.ArticleConverter;
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 查询最近写作历史列表执行器

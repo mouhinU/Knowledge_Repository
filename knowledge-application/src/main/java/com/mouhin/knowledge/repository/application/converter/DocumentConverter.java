@@ -6,16 +6,15 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 /**
  * 文档 领域聚合根 → 视图对象 转换器（app 层）
  *
- * <p>映射与原 {@code DocumentAdminController.buildDocumentResponse} 一致：
- * fileSize/totalPages null→0，status/visibility 取枚举 name，tags/createdTime null→""。</p>
+ * <p>映射与原 {@code DocumentAdminController.buildDocumentResponse} 一致： fileSize/totalPages
+ * null→0，status/visibility 取枚举 name，tags/createdTime null→""。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
  */
 public final class DocumentConverter {
 
-    private DocumentConverter() {
-    }
+    private DocumentConverter() {}
 
     public static DocumentVO toVO(Document doc) {
         DocumentVO vo = new DocumentVO();

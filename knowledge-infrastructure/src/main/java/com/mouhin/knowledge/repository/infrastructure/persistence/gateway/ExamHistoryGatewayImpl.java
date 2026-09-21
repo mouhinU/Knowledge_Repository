@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamHistoryConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamHistoryMapper;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * AI 出卷历史仓储实现
@@ -56,8 +55,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     @Override
     public List<ExamHistory> listRecent(int limit) {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
-                .last("LIMIT " + limit);
+        wrapper.orderByDesc(ExamHistoryDO::getCreateTime).last("LIMIT " + limit);
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
@@ -79,8 +77,10 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         int safeLimit = limit > 0 ? limit : 20;
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(ExamHistoryDO::getStatus,
-                        ExamHistory.STATUS_REVIEWABLE, ExamHistory.STATUS_VALIDATION_FAILED)
+        wrapper.in(
+                        ExamHistoryDO::getStatus,
+                        ExamHistory.STATUS_REVIEWABLE,
+                        ExamHistory.STATUS_VALIDATION_FAILED)
                 .orderByDesc(ExamHistoryDO::getCreateTime)
                 .last("LIMIT " + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
@@ -91,8 +91,10 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     @Override
     public long countReviewPending() {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(ExamHistoryDO::getStatus,
-                ExamHistory.STATUS_REVIEWABLE, ExamHistory.STATUS_VALIDATION_FAILED);
+        wrapper.in(
+                ExamHistoryDO::getStatus,
+                ExamHistory.STATUS_REVIEWABLE,
+                ExamHistory.STATUS_VALIDATION_FAILED);
         return examHistoryMapper.selectCount(wrapper);
     }
 

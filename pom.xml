@@ -185,44 +185,31 @@
                 </executions>
             </plugin>
 
-            <!-- Spotless via Maven plugin (uses google-java-format) -->
+            <!-- Code formatter: Spotless (google-java-format AOSP).
+                 google-java-format natively supports Java 21 records / pattern-matching / sealed types,
+                 so no per-file exclude list is required. spotless:check is bound to validate so that
+                 `mvn verify` enforces a formatted codebase; run `./mvnw spotless:apply` to reformat. -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>2.32.0</version>
+                <version>2.43.0</version>
                 <configuration>
-                    <skip>true</skip>
+                    <java>
+                        <googleJavaFormat>
+                            <version>1.24.0</version>
+                            <style>AOSP</style>
+                        </googleJavaFormat>
+                        <removeUnusedImports/>
+                    </java>
+                    <lineEndings>UNIX</lineEndings>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>spotless-apply</id>
+                        <id>spotless-check</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Eclipse formatter plugin as a compatible alternative to Spotless formatting -->
-            <plugin>
-                <groupId>net.revelc.code.formatter</groupId>
-                <artifactId>formatter-maven-plugin</artifactId>
-                <version>2.28.0</version>
-                <configuration>
-                    <configFile>${project.parent.basedir}/config/spotless/eclipse-java-google-style.xml</configFile>
-                    <encoding>UTF-8</encoding>
-                    <lineEnding>LF</lineEnding>
-                    <!-- Dormant, same policy as spotless-apply: infrastructure in place, enforcement off until a
-                         dedicated reformat PR is prepared. Remove this <skip> to activate. -->
-                    <skip>true</skip>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>format-code</id>
-                        <goals>
-                            <goal>format</goal>
-                        </goals>
-                        <phase>validate</phase>
                     </execution>
                 </executions>
             </plugin>

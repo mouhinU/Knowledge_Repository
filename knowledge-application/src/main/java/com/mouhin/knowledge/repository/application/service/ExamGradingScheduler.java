@@ -2,24 +2,21 @@ package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 /**
  * 考试评分定时任务
- * <p>
- * 每 5 分钟执行一次：先回收超时卡在 GRADING 的场次（进程崩溃兜底），
- * 再扫描 SUBMITTED 状态且交卷时间超过延迟阈值的考试自动触发 AI 评分。
+ *
+ * <p>每 5 分钟执行一次：先回收超时卡在 GRADING 的场次（进程崩溃兜底）， 再扫描 SUBMITTED 状态且交卷时间超过延迟阈值的考试自动触发 AI 评分。
  * 真正的并发去重由评分入口的 {@code SUBMITTED→GRADING} CAS 认领保证。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-15
@@ -48,9 +45,10 @@ public class ExamGradingScheduler {
     @Value("${knowledge.exam.grading-timeout-minutes:15}")
     private int gradingTimeoutMinutes;
 
-    public ExamGradingScheduler(ExamSessionGateway examSessionGateway,
-                                ExamGradingServiceI gradingService,
-                                ExamAlertGateway examAlertGateway) {
+    public ExamGradingScheduler(
+            ExamSessionGateway examSessionGateway,
+            ExamGradingServiceI gradingService,
+            ExamAlertGateway examAlertGateway) {
         this.examSessionGateway = examSessionGateway;
         this.gradingService = gradingService;
         this.examAlertGateway = examAlertGateway;
@@ -58,9 +56,8 @@ public class ExamGradingScheduler {
 
     /**
      * 定时扫描待评分考试并自动触发
-     * <p>
-     * 每 5 分钟执行一次，先回收超时卡在 GRADING 的场次，再扫描 SUBMITTED 状态且交卷时间超过延迟阈值的考试。
-     * </p>
+     *
+     * <p>每 5 分钟执行一次，先回收超时卡在 GRADING 的场次，再扫描 SUBMITTED 状态且交卷时间超过延迟阈值的考试。
      */
     @Scheduled(fixedRate = 300000)
     public void scheduleAutoGrading() {
@@ -93,12 +90,14 @@ public class ExamGradingScheduler {
 
     /**
      * 回收超时卡在 GRADING 的场次。
-     * <p>评分中途异常的回退已在异步链路即时处理，本方法专门兜底进程崩溃 / 实例重启等无法回退的场景：
-     * 将 {@code update_time} 早于超时阈值仍处于 GRADING 的场次以 CAS 回退为 SUBMITTED，使其重新参与调度。</p>
+     *
+     * <p>评分中途异常的回退已在异步链路即时处理，本方法专门兜底进程崩溃 / 实例重启等无法回退的场景： 将 {@code update_time} 早于超时阈值仍处于 GRADING
+     * 的场次以 CAS 回退为 SUBMITTED，使其重新参与调度。
      */
     private void recoverStuckGrading() {
         try {
-            List<ExamSession> grading = examSessionGateway.listByStatus(STATUS_GRADING, RECOVER_BATCH_SIZE, 0);
+            List<ExamSession> grading =
+                    examSessionGateway.listByStatus(STATUS_GRADING, RECOVER_BATCH_SIZE, 0);
             if (grading.isEmpty()) {
                 return;
             }
@@ -110,7 +109,10 @@ public class ExamGradingScheduler {
                 // 仅当确实回收了本场次（affected=1）才告警，避免与刚完成评分的行竞争误报。
                 if (examSessionGateway.reclaimStuckGrading(session.getId(), deadline)) {
                     recovered++;
-                    logger.warn("回收超时评分场次 [session={}, lastUpdate={}]", session.getId(), session.getUpdateTime());
+                    logger.warn(
+                            "回收超时评分场次 [session={}, lastUpdate={}]",
+                            session.getId(),
+                            session.getUpdateTime());
                     examAlertGateway.gradingTimeout(session.getId());
                 }
             }

@@ -15,19 +15,17 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * 在线做题用例共享支撑（app 层）
- * <p>
- * 收敛考生 / 场次鉴权解析、试卷渲染校验、题目 JSON 解析与总分累加等被多个执行器复用的领域协作逻辑。
- * </p>
+ *
+ * <p>收敛考生 / 场次鉴权解析、试卷渲染校验、题目 JSON 解析与总分累加等被多个执行器复用的领域协作逻辑。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -49,12 +47,13 @@ public class ExamTakingSupport {
     private final ExamContentRenderAgent contentRenderAgent;
     private final ExamContentValidatorAgent contentValidatorAgent;
 
-    public ExamTakingSupport(StudentGateway studentGateway,
-                             ExamSessionGateway examSessionGateway,
-                             ExamHistoryGateway examHistoryGateway,
-                             ExamQuestionGateway examQuestionGateway,
-                             ExamContentRenderAgent contentRenderAgent,
-                             ExamContentValidatorAgent contentValidatorAgent) {
+    public ExamTakingSupport(
+            StudentGateway studentGateway,
+            ExamSessionGateway examSessionGateway,
+            ExamHistoryGateway examHistoryGateway,
+            ExamQuestionGateway examQuestionGateway,
+            ExamContentRenderAgent contentRenderAgent,
+            ExamContentValidatorAgent contentValidatorAgent) {
         this.studentGateway = studentGateway;
         this.examSessionGateway = examSessionGateway;
         this.examHistoryGateway = examHistoryGateway;
@@ -64,15 +63,18 @@ public class ExamTakingSupport {
     }
 
     public Student resolveStudent(String token) {
-        return studentGateway.findBySessionToken(token)
+        return studentGateway
+                .findBySessionToken(token)
                 .filter(Student::isTokenValid)
                 .orElseThrow(() -> new IllegalArgumentException("登录已过期，请重新登录"));
     }
 
     public ExamSession resolveSession(String sessionKey, String studentToken) {
         Student student = resolveStudent(studentToken);
-        ExamSession session = examSessionGateway.findBySessionKey(sessionKey)
-                .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionKey));
+        ExamSession session =
+                examSessionGateway
+                        .findBySessionKey(sessionKey)
+                        .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionKey));
         if (!session.getStudentId().equals(student.getId())) {
             throw new IllegalArgumentException("无权访问此考试");
         }
@@ -81,7 +83,8 @@ public class ExamTakingSupport {
 
     /**
      * 解析本场次对应「试卷」的结构化题目主键（与评分 {@code ExamGradingSupport} 口径一致）。
-     * <p>关联出卷历史时取历史 sessionId（生成期切分即以之为键），即时卷则用场次自身 sessionKey。</p>
+     *
+     * <p>关联出卷历史时取历史 sessionId（生成期切分即以之为键），即时卷则用场次自身 sessionKey。
      *
      * @param session 考试场次
      * @return kb_exam_question 的 session_key
@@ -89,7 +92,8 @@ public class ExamTakingSupport {
     public String resolvePaperSessionKey(ExamSession session) {
         Long historyId = session.getExamHistoryId();
         if (historyId != null) {
-            return examHistoryGateway.findById(historyId)
+            return examHistoryGateway
+                    .findById(historyId)
                     .map(ExamHistory::getSessionId)
                     .filter(s -> s != null && !s.isBlank())
                     .orElse(session.getSessionKey());
@@ -99,8 +103,8 @@ public class ExamTakingSupport {
 
     /**
      * 读取本场次试卷的结构化题目行（kb_exam_question，按印刷题号升序）。
-     * <p>V2「出卷即切分」下这是题目元数据的权威来源，供答题保存在线匹配题型 / 分值 / 选项，
-     * 免去重复解析 markdown。</p>
+     *
+     * <p>V2「出卷即切分」下这是题目元数据的权威来源，供答题保存在线匹配题型 / 分值 / 选项， 免去重复解析 markdown。
      *
      * @param session 考试场次
      * @return 结构化题目列表；无行时返回空列表
@@ -115,25 +119,29 @@ public class ExamTakingSupport {
 
     /**
      * 将「看图题」配图注入开考快照。
-     * <p>快照 {@code questionsJson} 由出卷 Markdown 渲染而来，不含 {@code kb_exam_question.images_json}
-     * 中教师在校对页人工绑定的图片。开考时按印刷题号（快照 {@code number} ↔
-     * {@link ExamQuestion#getQuestionNumber()}）把绑定图片 assetKey 数组写入题目 {@code images} 字段，
-     * 供学生答题页通过公开图片流 {@code /api/exam/assets/{key}} 渲染。</p>
-     * <p>无绑定、题号不匹配或解析失败时原样返回入参，绝不阻断开考。</p>
      *
-     * @param questionsJson  渲染后的题目快照 JSON
+     * <p>快照 {@code questionsJson} 由出卷 Markdown 渲染而来，不含 {@code kb_exam_question.images_json}
+     * 中教师在校对页人工绑定的图片。开考时按印刷题号（快照 {@code number} ↔ {@link ExamQuestion#getQuestionNumber()}）把绑定图片
+     * assetKey 数组写入题目 {@code images} 字段， 供学生答题页通过公开图片流 {@code /api/exam/assets/{key}} 渲染。
+     *
+     * <p>无绑定、题号不匹配或解析失败时原样返回入参，绝不阻断开考。
+     *
+     * @param questionsJson 渲染后的题目快照 JSON
      * @param paperQuestions 该试卷的结构化题目行（含 {@code imagesJson}）
      * @return 注入图片后的快照 JSON；无需注入或异常时返回原快照
      */
-    public String injectImagesIntoSnapshot(String questionsJson, List<ExamQuestion> paperQuestions) {
-        if (questionsJson == null || questionsJson.isBlank()
-                || paperQuestions == null || paperQuestions.isEmpty()) {
+    public String injectImagesIntoSnapshot(
+            String questionsJson, List<ExamQuestion> paperQuestions) {
+        if (questionsJson == null
+                || questionsJson.isBlank()
+                || paperQuestions == null
+                || paperQuestions.isEmpty()) {
             return questionsJson;
         }
         try {
-            List<Map<String, Object>> questions = OBJECT_MAPPER.readValue(questionsJson,
-                    new TypeReference<List<Map<String, Object>>>() {
-                    });
+            List<Map<String, Object>> questions =
+                    OBJECT_MAPPER.readValue(
+                            questionsJson, new TypeReference<List<Map<String, Object>>>() {});
             if (questions.isEmpty()) {
                 return questionsJson;
             }
@@ -214,14 +222,12 @@ public class ExamTakingSupport {
         }
     }
 
-    /**
-     * 依据渲染后的题目列表累加各题 maxScore，得到与试卷 / 方案一致的卷面总分；解析失败或为 0 回退 100。
-     */
+    /** 依据渲染后的题目列表累加各题 maxScore，得到与试卷 / 方案一致的卷面总分；解析失败或为 0 回退 100。 */
     public int sumMaxScore(String questionsJson) {
         try {
-            List<Map<String, Object>> qs = OBJECT_MAPPER.readValue(questionsJson,
-                    new TypeReference<List<Map<String, Object>>>() {
-                    });
+            List<Map<String, Object>> qs =
+                    OBJECT_MAPPER.readValue(
+                            questionsJson, new TypeReference<List<Map<String, Object>>>() {});
             int sum = 0;
             for (Map<String, Object> q : qs) {
                 Object ms = q.get("maxScore");
@@ -263,11 +269,13 @@ public class ExamTakingSupport {
 
     /**
      * 判断 questionsJson 中的选择题选项是否存在解析异常。
-     * <p>如果选择题的 options 数量少于 2 个，说明选项解析失败，需要重新解析。</p>
+     *
+     * <p>如果选择题的 options 数量少于 2 个，说明选项解析失败，需要重新解析。
      */
     public boolean needsReparse(String questionsJson) {
         try {
-            List<Map<String, Object>> questions = OBJECT_MAPPER.readValue(questionsJson, List.class);
+            List<Map<String, Object>> questions =
+                    OBJECT_MAPPER.readValue(questionsJson, List.class);
             for (Map<String, Object> q : questions) {
                 String type = (String) q.get("type");
                 if ("SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type)) {

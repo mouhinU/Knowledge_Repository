@@ -1,18 +1,5 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -20,13 +7,25 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 /**
  * 结构化题目读取支撑的回归测试（改造：单一实现护航）。
  *
- * <p>本类冻结 {@link ExamStructuredQuestionSupport#resolvePaperSessionKey} 的四种解析口径，
- * 以及 {@link ExamStructuredQuestionSupport#loadByQuestionNumber} 的「按印刷题号建映射、跳过缺号」行为。
- * {@code ExamGradingSupport}（评分）与成绩复核 / 错题本（展示）现均委托到本支撑的同一实现，
- * 因此这里即为跨层共用的权威口径基线：任何对这些分支的改动若偏离预期都会在此失败并强制确认。</p>
+ * <p>本类冻结 {@link ExamStructuredQuestionSupport#resolvePaperSessionKey} 的四种解析口径， 以及 {@link
+ * ExamStructuredQuestionSupport#loadByQuestionNumber} 的「按印刷题号建映射、跳过缺号」行为。 {@code
+ * ExamGradingSupport}（评分）与成绩复核 / 错题本（展示）现均委托到本支撑的同一实现，
+ * 因此这里即为跨层共用的权威口径基线：任何对这些分支的改动若偏离预期都会在此失败并强制确认。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -108,11 +107,12 @@ class ExamStructuredQuestionSupportTest {
         @DisplayName("印刷题号 → 题目行；缺印刷题号的行被跳过")
         void mapsByQuestionNumberAndSkipsNulls() {
             when(examHistoryGateway.findById(10L)).thenReturn(Optional.of(history("exam-hist-10")));
-            when(examQuestionGateway.listBySessionKey("exam-hist-10")).thenReturn(List.of(
-                    question(1, "B", "选对得2分"),
-                    question(2, "正确", "每题1分"),
-                    question(null, "无号题应被忽略", null)
-            ));
+            when(examQuestionGateway.listBySessionKey("exam-hist-10"))
+                    .thenReturn(
+                            List.of(
+                                    question(1, "B", "选对得2分"),
+                                    question(2, "正确", "每题1分"),
+                                    question(null, "无号题应被忽略", null)));
 
             Map<Integer, ExamQuestion> map = support.loadByQuestionNumber(session(10L, "stu-7"));
 

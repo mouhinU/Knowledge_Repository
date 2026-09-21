@@ -5,13 +5,12 @@ import com.mouhin.knowledge.repository.client.dto.UserCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserVO;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * 新增用户命令执行器（app 层用例，事务边界）
@@ -34,9 +33,13 @@ public class UserCreateCmdExe {
 
     @Transactional
     public UserVO execute(UserCreateCmd cmd) {
-        userGateway.findByUsername(cmd.getUsername()).ifPresent(u -> {
-            throw new IllegalArgumentException("Username already exists: " + cmd.getUsername());
-        });
+        userGateway
+                .findByUsername(cmd.getUsername())
+                .ifPresent(
+                        u -> {
+                            throw new IllegalArgumentException(
+                                    "Username already exists: " + cmd.getUsername());
+                        });
 
         User user = new User();
         user.setUserKey(UUID.randomUUID().toString());

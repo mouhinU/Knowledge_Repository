@@ -5,12 +5,11 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * 新增部门命令执行器（app 层用例，事务边界）
@@ -37,7 +36,8 @@ public class DepartmentCreateCmdExe {
         dept.setParentId(cmd.getParentId());
         departmentGateway.save(dept);
 
-        logger.info("Department created: {} ({})", cmd.getDepartmentName(), dept.getDepartmentKey());
+        logger.info(
+                "Department created: {} ({})", cmd.getDepartmentName(), dept.getDepartmentKey());
         return DepartmentConverter.toVO(dept);
     }
 }

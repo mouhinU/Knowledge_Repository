@@ -12,10 +12,9 @@ import com.mouhin.knowledge.repository.application.executor.document.DocumentSta
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Service;
 
 /**
  * 文档管理应用服务实现（app 层，仅分发到 Executor）
@@ -36,15 +35,16 @@ public class DocumentServiceImpl implements DocumentServiceI {
     private final DocumentArchiveCmdExe documentArchiveCmdExe;
     private final DocumentDeleteCmdExe documentDeleteCmdExe;
 
-    public DocumentServiceImpl(DocumentGetQryExe documentGetQryExe,
-                               DocumentListQryExe documentListQryExe,
-                               DocumentListByOwnerQryExe documentListByOwnerQryExe,
-                               DocumentListByDepartmentQryExe documentListByDepartmentQryExe,
-                               DocumentListByStatusQryExe documentListByStatusQryExe,
-                               DocumentStatsQryExe documentStatsQryExe,
-                               DocumentCategoryStatsQryExe documentCategoryStatsQryExe,
-                               DocumentArchiveCmdExe documentArchiveCmdExe,
-                               DocumentDeleteCmdExe documentDeleteCmdExe) {
+    public DocumentServiceImpl(
+            DocumentGetQryExe documentGetQryExe,
+            DocumentListQryExe documentListQryExe,
+            DocumentListByOwnerQryExe documentListByOwnerQryExe,
+            DocumentListByDepartmentQryExe documentListByDepartmentQryExe,
+            DocumentListByStatusQryExe documentListByStatusQryExe,
+            DocumentStatsQryExe documentStatsQryExe,
+            DocumentCategoryStatsQryExe documentCategoryStatsQryExe,
+            DocumentArchiveCmdExe documentArchiveCmdExe,
+            DocumentDeleteCmdExe documentDeleteCmdExe) {
         this.documentGetQryExe = documentGetQryExe;
         this.documentListQryExe = documentListQryExe;
         this.documentListByOwnerQryExe = documentListByOwnerQryExe;

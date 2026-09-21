@@ -10,13 +10,15 @@ import org.springframework.stereotype.Component;
 
 /**
  * 考试链路告警网关实现（2-F，基础设施层）。
- * <p>
- * 双通道落地，二者自洽、互不依赖外部系统：
+ *
+ * <p>双通道落地，二者自洽、互不依赖外部系统：
+ *
  * <ol>
- *     <li><b>指标</b>：以 {@code knowledge.exam.alert} 计数器 + {@code type} 标签上报 Micrometer，
- *     随 actuator 暴露于 {@code /actuator/metrics}，供时序库 / 看板采集与阈值告警。</li>
- *     <li><b>结构化日志</b>：输出带固定标记 {@code EXAM_ALERT} 的 WARN 行，供 ELK / 日志告警按关键字抓取。</li>
+ *   <li><b>指标</b>：以 {@code knowledge.exam.alert} 计数器 + {@code type} 标签上报 Micrometer， 随 actuator 暴露于
+ *       {@code /actuator/metrics}，供时序库 / 看板采集与阈值告警。
+ *   <li><b>结构化日志</b>：输出带固定标记 {@code EXAM_ALERT} 的 WARN 行，供 ELK / 日志告警按关键字抓取。
  * </ol>
+ *
  * {@link MeterRegistry} 由 actuator 自动装配提供；缺失时降级为仅日志，绝不影响主流程。
  *
  * @author Knowledge-Repository
@@ -49,12 +51,18 @@ public class ExamAlertGatewayImpl implements ExamAlertGateway {
 
     @Override
     public void lowQualityScore(String paperSessionKey, int quality, int threshold) {
-        alert(ExamAlertType.LOW_QUALITY, paperSessionKey, "quality=" + quality + ",threshold=" + threshold);
+        alert(
+                ExamAlertType.LOW_QUALITY,
+                paperSessionKey,
+                "quality=" + quality + ",threshold=" + threshold);
     }
 
     @Override
     public void answerKeyMissing(Long sessionId, Integer questionNumber) {
-        alert(ExamAlertType.ANSWER_KEY_MISSING, String.valueOf(sessionId), "questionNumber=" + questionNumber);
+        alert(
+                ExamAlertType.ANSWER_KEY_MISSING,
+                String.valueOf(sessionId),
+                "questionNumber=" + questionNumber);
     }
 
     @Override
@@ -76,7 +84,12 @@ public class ExamAlertGatewayImpl implements ExamAlertGateway {
             // 指标上报失败绝不影响主流程
             logger.debug("考试告警指标上报失败 [type={}]: {}", type, e.getMessage());
         }
-        logger.warn("{} type={} objectId={} detail={} desc={}",
-                LOG_MARKER, type.getTag(), objectId, detail == null ? "" : detail, type.getDescription());
+        logger.warn(
+                "{} type={} objectId={} detail={} desc={}",
+                LOG_MARKER,
+                type.getTag(),
+                objectId,
+                detail == null ? "" : detail,
+                type.getDescription());
     }
 }

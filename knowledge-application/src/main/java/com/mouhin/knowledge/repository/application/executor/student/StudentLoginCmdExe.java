@@ -3,14 +3,13 @@ package com.mouhin.knowledge.repository.application.executor.student;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 考生登录命令执行器（app 层用例，事务边界）
@@ -32,16 +31,18 @@ public class StudentLoginCmdExe {
     private final StudentGateway studentGateway;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public StudentLoginCmdExe(StudentGateway studentGateway,
-                              BCryptPasswordEncoder passwordEncoder) {
+    public StudentLoginCmdExe(
+            StudentGateway studentGateway, BCryptPasswordEncoder passwordEncoder) {
         this.studentGateway = studentGateway;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public String execute(StudentLoginCmd cmd) {
-        Student student = studentGateway.findByUsername(cmd.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("用户名或密码错误"));
+        Student student =
+                studentGateway
+                        .findByUsername(cmd.getUsername())
+                        .orElseThrow(() -> new IllegalArgumentException("用户名或密码错误"));
 
         if (!STATUS_ACTIVE.equals(student.getStatus())) {
             throw new IllegalArgumentException("账号已被禁用");

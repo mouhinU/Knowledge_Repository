@@ -1,21 +1,18 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 /**
  * {@link ExamMetaQuestionDetector} 确定性检测单测。
- * <p>
- * 锁定「出处/位置类」记忆题的正负样本边界：命中序数 / 疑问 + 教材编排位置名词（单元 / 课 / 页 /
- * 章 / 节）；刻意不含「段 / 篇」以免误报阅读理解的短文段落引用。覆盖空白排版（第（ ）单元）、
- * 出自哪篇、课本第几页等变体，并验证 markdown 逐题扫描只取题号行且去重。
- * </p>
+ *
+ * <p>锁定「出处/位置类」记忆题的正负样本边界：命中序数 / 疑问 + 教材编排位置名词（单元 / 课 / 页 / 章 / 节）；刻意不含「段 /
+ * 篇」以免误报阅读理解的短文段落引用。覆盖空白排版（第（ ）单元）、 出自哪篇、课本第几页等变体，并验证 markdown 逐题扫描只取题号行且去重。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -59,7 +56,8 @@ class ExamMetaQuestionDetectorTest {
     @Test
     @DisplayName("扫描 markdown 仅取题号行命中并按序去重")
     void scansMarkdownQuestionLines() {
-        String md = """
+        String md =
+                """
                 # 一年级语文期末试卷
 
                 ## 一、我会选（单选题）

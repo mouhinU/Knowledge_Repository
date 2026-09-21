@@ -2,16 +2,15 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamAnswerConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamAnswerDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamAnswerMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 答题记录仓储实现
@@ -102,8 +101,7 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
     @Override
     public long countNeedsReview(Long sessionId) {
         LambdaQueryWrapper<ExamAnswerDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExamAnswerDO::getSessionId, sessionId)
-                .isNull(ExamAnswerDO::getReviewScore);
+        wrapper.eq(ExamAnswerDO::getSessionId, sessionId).isNull(ExamAnswerDO::getReviewScore);
         return examAnswerMapper.selectCount(wrapper);
     }
 

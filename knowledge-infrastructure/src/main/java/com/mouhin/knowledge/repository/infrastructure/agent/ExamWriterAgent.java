@@ -11,13 +11,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * 试卷编写 Agent
- * <p>
- * 基于知识点分析结果和考试配置（难度、题型分布），生成完整的考试试卷。
- * </p>
- * <p>
- * 读取：keyFindings（知识点摘要）、question（考试主题）、examDifficulty、examQuestionConfig
- * 写入：examPaper（试卷 Markdown 内容）
- * </p>
+ *
+ * <p>基于知识点分析结果和考试配置（难度、题型分布），生成完整的考试试卷。
+ *
+ * <p>读取：keyFindings（知识点摘要）、question（考试主题）、examDifficulty、examQuestionConfig 写入：examPaper（试卷
+ * Markdown 内容）
  *
  * @author Knowledge-Repository
  * @date 2026-09-14
@@ -30,9 +28,10 @@ public class ExamWriterAgent implements BlackboardAgent {
     /** 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。 */
     private static final int MIN_VALID_EXAM_LENGTH = 200;
 
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT =
+            """
             你是一位资深教育考试专家，擅长根据知识内容编写高质量的考试试卷。
-            
+
             出题原则：
             1. 题目必须基于提供的知识点，不得超出知识范围
             2. 题目表述清晰准确，避免歧义
@@ -41,7 +40,7 @@ public class ExamWriterAgent implements BlackboardAgent {
             5. 知识点覆盖要均匀，不重复考查同一知识点
             6. 题目序号全局连续编排（1, 2, 3, ...），禁止分节重新从 1 起号，分值标注清晰
             7. 只考知识内容本身的理解与运用，严禁命制「出处/位置类」记忆题：不得考查某知识点「在第几单元 / 第几课 / 第几页 / 哪一章 / 哪个章节 / 出自哪篇课文的哪一段」等教材编排位置信息；语文、英语等偏记忆理解的科目尤其如此，应就字音字形、词义语法、课文内容理解、阅读与表达运用等实质设问，而非让学生背编排位置
-            
+
             输出格式要求：
             - 使用 Markdown 格式
             - 试卷标题后紧跟一行考试时长信息，格式为：**考试时间：XX分钟**
@@ -77,75 +76,99 @@ public class ExamWriterAgent implements BlackboardAgent {
 
         blackboard.advanceTo(BlackboardPhase.WRITING);
 
-        String materials = findings != null && findings.length() > 500
-                ? findings.substring(0, 500) + "..." : findings;
-        emitProgress(progressCallback, BlackboardProgressEvent.agentStartedWithMaterials(
-                "exam-writer", isRetry ? "正在根据审核意见改进试卷..." : "正在根据知识点编写试卷...", materials));
+        String materials =
+                findings != null && findings.length() > 500
+                        ? findings.substring(0, 500) + "..."
+                        : findings;
+        emitProgress(
+                progressCallback,
+                BlackboardProgressEvent.agentStartedWithMaterials(
+                        "exam-writer", isRetry ? "正在根据审核意见改进试卷..." : "正在根据知识点编写试卷...", materials));
 
         if (findings == null || findings.isBlank() || findings.contains("未找到")) {
             String fallback = "# " + topic + " 考试试卷\n\n> 提示：知识库中未找到足够的相关内容，试卷基于 AI 通用知识生成。\n\n";
             blackboard.setExamPaper(fallback);
-            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted(
-                    "exam-writer", fallback));
+            emitProgress(
+                    progressCallback,
+                    BlackboardProgressEvent.agentCompleted("exam-writer", fallback));
             logger.warn("[ExamWriter] 知识点不足，使用回退方案");
             return;
         }
 
-        String difficultyDesc = switch (difficulty) {
-            case "EASY" -> "简单（侧重基础概念和记忆）";
-            case "HARD" -> "困难（侧重综合分析和应用）";
-            default -> "中等（侧重理解和简单应用）";
-        };
+        String difficultyDesc =
+                switch (difficulty) {
+                    case "EASY" -> "简单（侧重基础概念和记忆）";
+                    case "HARD" -> "困难（侧重综合分析和应用）";
+                    default -> "中等（侧重理解和简单应用）";
+                };
 
-        String scoringSection = (scoringScheme != null && !scoringScheme.isBlank())
-                ? "\n\n【分值分配方案（严格遵守）】\n" + scoringScheme : "";
+        String scoringSection =
+                (scoringScheme != null && !scoringScheme.isBlank())
+                        ? "\n\n【分值分配方案（严格遵守）】\n" + scoringScheme
+                        : "";
 
         String userPrompt;
         if (isRetry) {
-            userPrompt = String.format("""
+            userPrompt =
+                    String.format(
+                            """
                     考试主题：%s
                     难度要求：%s
                     题型分布：%s
                     %s
                     以下是相关知识点：
-                    
+
                     %s
-                    
+
                     【上一轮审核意见】
                     %s
-                    
+
                     请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
                     重点解决审核中指出的问题，保持优点，修正不足。
                     每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
-                    """, topic, difficultyDesc, questionConfig, scoringSection, findings, reviewFeedback);
+                    """,
+                            topic,
+                            difficultyDesc,
+                            questionConfig,
+                            scoringSection,
+                            findings,
+                            reviewFeedback);
         } else {
-            userPrompt = String.format("""
+            userPrompt =
+                    String.format(
+                            """
                     考试主题：%s
                     难度要求：%s
                     题型分布：%s
                     %s
                     以下是相关知识点：
-                    
+
                     %s
-                    
+
                     请根据以上知识点和要求，编写一份完整的考试试卷。
                     每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
-                    """, topic, difficultyDesc, questionConfig, scoringSection, findings);
+                    """,
+                            topic, difficultyDesc, questionConfig, scoringSection, findings);
         }
 
-        String examPaper = agentStreamer.stream("exam-writer", SYSTEM_PROMPT, userPrompt, progressCallback);
+        String examPaper =
+                agentStreamer.stream("exam-writer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         // 快速失败：空或异常简短的试卷说明模型未真正产出内容（多为推理模型思考链耗尽
         // token 预算）。此前会写成占位文本让流水线空转多轮，现直接抛异常中止并回报错误。
-        if (examPaper == null || examPaper.isBlank() || examPaper.length() < MIN_VALID_EXAM_LENGTH) {
+        if (examPaper == null
+                || examPaper.isBlank()
+                || examPaper.length() < MIN_VALID_EXAM_LENGTH) {
             String msg = "试卷编写失败：模型未产出有效内容（可能是思考链耗尽 token 预算），请重试或调大流式 max-tokens";
-            logger.error("[ExamWriter] LLM 返回空/过短试卷，长度：{}", examPaper == null ? 0 : examPaper.length());
+            logger.error(
+                    "[ExamWriter] LLM 返回空/过短试卷，长度：{}", examPaper == null ? 0 : examPaper.length());
             emitProgress(progressCallback, BlackboardProgressEvent.agentFailed("exam-writer", msg));
             throw new RuntimeException(msg);
         }
 
         blackboard.setExamPaper(examPaper);
-        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
+        emitProgress(
+                progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
         logger.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
     }
 

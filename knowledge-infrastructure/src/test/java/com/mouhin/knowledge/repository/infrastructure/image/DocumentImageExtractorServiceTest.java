@@ -1,14 +1,8 @@
 package com.mouhin.knowledge.repository.infrastructure.image;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.imageio.ImageIO;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -17,16 +11,19 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.imageio.ImageIO;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 文档图片提取服务回归测试。
- * <p>
- * 用 ImageIO 现造一张 300×200 的 PNG，注入 {@link XWPFDocument} 内联到段落，落盘为 docx，
- * 再让 {@link DocumentImageExtractorService} 从磁盘解析回图片，验证：识别到一张、MIME 正确、
- * 尺寸与源图匹配；空文档返回空列表不抛异常。
- * </p>
+ *
+ * <p>用 ImageIO 现造一张 300×200 的 PNG，注入 {@link XWPFDocument} 内联到段落，落盘为 docx， 再让 {@link
+ * DocumentImageExtractorService} 从磁盘解析回图片，验证：识别到一张、MIME 正确、 尺寸与源图匹配；空文档返回空列表不抛异常。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -42,12 +39,16 @@ class DocumentImageExtractorServiceTest {
         byte[] png = makePng(300, 200, Color.BLUE);
         Path docx = tmp.resolve("with-image.docx");
         try (XWPFDocument doc = new XWPFDocument();
-             OutputStream os = Files.newOutputStream(docx)) {
+                OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
             XWPFRun run = p.createRun();
             run.setText("看图写话");
-            run.addPicture(new java.io.ByteArrayInputStream(png),
-                    XWPFDocument.PICTURE_TYPE_PNG, "img.png", 300, 200);
+            run.addPicture(
+                    new java.io.ByteArrayInputStream(png),
+                    XWPFDocument.PICTURE_TYPE_PNG,
+                    "img.png",
+                    300,
+                    200);
             doc.write(os);
         }
 
@@ -67,15 +68,19 @@ class DocumentImageExtractorServiceTest {
         byte[] tiny = makePng(20, 20, Color.RED);
         Path docx = tmp.resolve("only-tiny.docx");
         try (XWPFDocument doc = new XWPFDocument();
-             OutputStream os = Files.newOutputStream(docx)) {
+                OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
-            p.createRun().addPicture(new java.io.ByteArrayInputStream(tiny),
-                    XWPFDocument.PICTURE_TYPE_PNG, "dot.png", 20, 20);
+            p.createRun()
+                    .addPicture(
+                            new java.io.ByteArrayInputStream(tiny),
+                            XWPFDocument.PICTURE_TYPE_PNG,
+                            "dot.png",
+                            20,
+                            20);
             doc.write(os);
         }
 
-        assertThat(service.extractImages(docx, "only-tiny.docx"))
-                .as("小于阈值的装饰性小图应被过滤").isEmpty();
+        assertThat(service.extractImages(docx, "only-tiny.docx")).as("小于阈值的装饰性小图应被过滤").isEmpty();
     }
 
     @Test
@@ -86,8 +91,7 @@ class DocumentImageExtractorServiceTest {
 
         Path txt = tmp.resolve("plain.txt");
         Files.writeString(txt, "no images here");
-        assertThat(service.extractImages(txt, "plain.txt"))
-                .as("非图片承载格式返回空列表").isEmpty();
+        assertThat(service.extractImages(txt, "plain.txt")).as("非图片承载格式返回空列表").isEmpty();
     }
 
     private static byte[] makePng(int w, int h, Color color) throws Exception {

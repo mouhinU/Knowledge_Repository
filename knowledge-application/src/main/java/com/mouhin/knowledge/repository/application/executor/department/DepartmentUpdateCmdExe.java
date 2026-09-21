@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 修改部门命令执行器（app 层用例，事务边界）
  *
- * <p>departmentName / parentId 为 null 时保持原值不变，沿用既有更新语义。</p>
+ * <p>departmentName / parentId 为 null 时保持原值不变，沿用既有更新语义。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -27,8 +27,13 @@ public class DepartmentUpdateCmdExe {
 
     @Transactional
     public DepartmentVO execute(DepartmentUpdateCmd cmd) {
-        Department dept = departmentGateway.findByDepartmentKey(cmd.getDepartmentKey())
-                .orElseThrow(() -> new IllegalArgumentException("Department not found: " + cmd.getDepartmentKey()));
+        Department dept =
+                departmentGateway
+                        .findByDepartmentKey(cmd.getDepartmentKey())
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "Department not found: " + cmd.getDepartmentKey()));
         if (cmd.getDepartmentName() != null) {
             dept.setDepartmentName(cmd.getDepartmentName());
         }

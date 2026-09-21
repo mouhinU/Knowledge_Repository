@@ -1,19 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
-import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
-import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
-import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
-import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
-import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import java.time.Instant;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,6 +10,19 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
+import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
+import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
+import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
+import java.time.Instant;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 /**
  * 管理端登录执行器单元测试。
  *
@@ -33,7 +32,8 @@ import static org.mockito.Mockito.when;
 @DisplayName("AdminLoginCmdExe 登录编排")
 class AdminLoginCmdExeTest {
 
-    private static final String HASH = "$2a$10$dummydummydummydummydummydummydummydummydummydummydummydum";
+    private static final String HASH =
+            "$2a$10$dummydummydummydummydummydummydummydummydummydummydummydum";
 
     private UserGateway userGateway;
     private BCryptPasswordEncoder passwordEncoder;
@@ -64,8 +64,11 @@ class AdminLoginCmdExeTest {
         when(userGateway.findByUsername("admin")).thenReturn(Optional.of(activeAdmin()));
         when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
         when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true))).thenReturn("jwt-token");
-        when(adminJwtService.verify("jwt-token")).thenReturn(
-                Optional.of(new AdminTokenPayload("key-1", "admin", true, Instant.now().plusSeconds(3600))));
+        when(adminJwtService.verify("jwt-token"))
+                .thenReturn(
+                        Optional.of(
+                                new AdminTokenPayload(
+                                        "key-1", "admin", true, Instant.now().plusSeconds(3600))));
 
         AdminLoginCmd cmd = new AdminLoginCmd();
         cmd.setUsername("admin");
@@ -90,7 +93,8 @@ class AdminLoginCmdExeTest {
         cmd.setUsername("admin");
         cmd.setPassword("bad");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
         assertEquals("用户名或密码错误", ex.getMessage());
     }
 
@@ -106,7 +110,8 @@ class AdminLoginCmdExeTest {
         cmd.setUsername("admin");
         cmd.setPassword("pass");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
         assertEquals("账号已被禁用", ex.getMessage());
     }
 
@@ -121,7 +126,8 @@ class AdminLoginCmdExeTest {
         cmd.setUsername("admin");
         cmd.setPassword("pass");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
         assertEquals("用户名或密码错误", ex.getMessage());
     }
 

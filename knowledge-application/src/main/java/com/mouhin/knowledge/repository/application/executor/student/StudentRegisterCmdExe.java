@@ -5,14 +5,13 @@ import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * 考生注册命令执行器（app 层用例，事务边界）
@@ -34,8 +33,8 @@ public class StudentRegisterCmdExe {
     private final StudentGateway studentGateway;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public StudentRegisterCmdExe(StudentGateway studentGateway,
-                                 BCryptPasswordEncoder passwordEncoder) {
+    public StudentRegisterCmdExe(
+            StudentGateway studentGateway, BCryptPasswordEncoder passwordEncoder) {
         this.studentGateway = studentGateway;
         this.passwordEncoder = passwordEncoder;
     }

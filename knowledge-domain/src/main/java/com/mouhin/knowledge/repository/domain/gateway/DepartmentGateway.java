@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -19,9 +18,7 @@ public interface DepartmentGateway {
 
     List<Department> listAll();
 
-    /**
-     * 查找指定部门及其所有祖先部门的 ID 列表（含自身）
-     */
+    /** 查找指定部门及其所有祖先部门的 ID 列表（含自身） */
     List<Long> findSelfAndAncestorIds(Long departmentId);
 
     void save(Department department);

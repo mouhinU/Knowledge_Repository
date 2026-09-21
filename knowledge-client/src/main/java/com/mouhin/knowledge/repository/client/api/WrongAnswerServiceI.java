@@ -2,7 +2,6 @@ package com.mouhin.knowledge.repository.client.api;
 
 import com.mouhin.knowledge.repository.client.dto.StudentOptionVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
-
 import java.util.List;
 
 /**
@@ -13,7 +12,8 @@ import java.util.List;
  */
 public interface WrongAnswerServiceI {
 
-    WrongAnswerPageVO pageWrongAnswers(Long studentId, String topic, String questionType, int page, int size);
+    WrongAnswerPageVO pageWrongAnswers(
+            Long studentId, String topic, String questionType, int page, int size);
 
     String generateAiSummary(Long studentId, String topic, String questionType);
 

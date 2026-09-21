@@ -11,8 +11,6 @@ import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
  */
 public interface KnowledgeQueryServiceI {
 
-    /**
-     * 语义检索知识库（权限过滤 + 分类过滤 + 文档名补全）
-     */
+    /** 语义检索知识库（权限过滤 + 分类过滤 + 文档名补全） */
     SearchResponseVO search(SearchCmd cmd);
 }

@@ -6,10 +6,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * 异步文章生成执行器（权限 / SSE 回调耦合）
- * <p>
- * 因入参携带领域类型 {@link Permission} 与 {@link BlackboardProgressCallback}，不纳入 client 层契约，
- * 由适配层在建立 SSE 通道后直接调用。
- * </p>
+ *
+ * <p>因入参携带领域类型 {@link Permission} 与 {@link BlackboardProgressCallback}，不纳入 client 层契约， 由适配层在建立 SSE
+ * 通道后直接调用。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -23,8 +22,12 @@ public class GenerateArticleAsyncCmdExe {
         this.support = support;
     }
 
-    public void execute(String question, Permission permission,
-                        BlackboardProgressCallback progressCallback, String sessionId, String category) {
+    public void execute(
+            String question,
+            Permission permission,
+            BlackboardProgressCallback progressCallback,
+            String sessionId,
+            String category) {
         support.generateArticleAsync(question, permission, progressCallback, sessionId, category);
     }
 }

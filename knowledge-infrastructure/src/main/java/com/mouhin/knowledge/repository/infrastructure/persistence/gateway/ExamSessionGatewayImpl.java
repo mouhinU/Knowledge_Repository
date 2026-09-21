@@ -2,17 +2,16 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamSessionConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamSessionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamSessionMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.stereotype.Repository;
 
 /**
  * 考试场次仓储实现
@@ -25,6 +24,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
 
     /** 场次状态：已交卷，待评分。 */
     private static final String STATUS_SUBMITTED = "SUBMITTED";
+
     /** 场次状态：评分中（并发认领态）。 */
     private static final String STATUS_GRADING = "GRADING";
 
@@ -87,8 +87,8 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     }
 
     @Override
-    public boolean completeGrading(Long id, String token, String newStatus,
-                                   int aiScore, int totalScore) {
+    public boolean completeGrading(
+            Long id, String token, String newStatus, int aiScore, int totalScore) {
         // 终态落库以围栏令牌为所有权证明：令牌不匹配（已被接管/回收）时放弃写入，
         // 成功则进入终态并清空令牌（不再处于评分认领态）。
         if (token == null) {
@@ -271,8 +271,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
             return List.of();
         }
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(ExamSessionDO::getStatus, statuses)
-                .orderByDesc(ExamSessionDO::getCreateTime);
+        wrapper.in(ExamSessionDO::getStatus, statuses).orderByDesc(ExamSessionDO::getCreateTime);
         return examSessionMapper.selectList(wrapper).stream()
                 .map(ExamSessionConverter::toDomain)
                 .toList();

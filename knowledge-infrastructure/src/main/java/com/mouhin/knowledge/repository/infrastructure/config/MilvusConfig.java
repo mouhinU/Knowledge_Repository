@@ -12,13 +12,10 @@ import org.springframework.context.annotation.Lazy;
 
 /**
  * Milvus 向量存储配置
- * <p>
- * OPS-1：MilvusEmbeddingStore 构建时会立即连接 Milvus 并创建/校验 collection，若在容器编排里
- * 应用先于 Milvus 就绪启动，会抛 DEADLINE_EXCEEDED 导致上下文启动失败（需整容器重启才能自愈）。
- * 现将该 bean 标注 {@link Lazy}，把建连推迟到首次检索/写入时，避免启动期硬失败；同时加入有界
- * 退避重试，容忍 Milvus 冷启动的短暂不可用窗口——重试仍失败才向上抛错，使故障暴露在一次请求而非
- * 静默。
- * </p>
+ *
+ * <p>OPS-1：MilvusEmbeddingStore 构建时会立即连接 Milvus 并创建/校验 collection，若在容器编排里 应用先于 Milvus 就绪启动，会抛
+ * DEADLINE_EXCEEDED 导致上下文启动失败（需整容器重启才能自愈）。 现将该 bean 标注 {@link Lazy}，把建连推迟到首次检索/写入时，避免启动期硬失败；同时加入有界
+ * 退避重试，容忍 Milvus 冷启动的短暂不可用窗口——重试仍失败才向上抛错，使故障暴露在一次请求而非 静默。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -30,6 +27,7 @@ public class MilvusConfig {
 
     /** 建连失败最大重试次数。 */
     private static final int MAX_CONNECT_ATTEMPTS = 5;
+
     /** 重试基础退避（毫秒），第 n 次等待 n * BASE。 */
     private static final long RETRY_BACKOFF_BASE_MS = 2000L;
 
@@ -51,7 +49,11 @@ public class MilvusConfig {
     @Lazy
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
-        logger.info("Initializing Milvus embedding store (lazy): {}:{}, collection={}", host, port, collectionName);
+        logger.info(
+                "Initializing Milvus embedding store (lazy): {}:{}, collection={}",
+                host,
+                port,
+                collectionName);
         return buildWithRetry();
     }
 
@@ -65,27 +67,32 @@ public class MilvusConfig {
         RuntimeException lastError = null;
         for (int attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt++) {
             try {
-                MilvusEmbeddingStore store = MilvusEmbeddingStore.builder()
-                        .host(host)
-                        .port(port)
-                        .collectionName(collectionName)
-                        .dimension(dimension)
-                        .databaseName(databaseName)
-                        .build();
+                MilvusEmbeddingStore store =
+                        MilvusEmbeddingStore.builder()
+                                .host(host)
+                                .port(port)
+                                .collectionName(collectionName)
+                                .dimension(dimension)
+                                .databaseName(databaseName)
+                                .build();
                 if (attempt > 1) {
                     logger.info("Milvus embedding store 建连成功（第 {} 次尝试）", attempt);
                 }
                 return store;
             } catch (RuntimeException e) {
                 lastError = e;
-                logger.warn("Milvus embedding store 建连失败（第 {}/{} 次）：{}", attempt, MAX_CONNECT_ATTEMPTS, e.getMessage());
+                logger.warn(
+                        "Milvus embedding store 建连失败（第 {}/{} 次）：{}",
+                        attempt,
+                        MAX_CONNECT_ATTEMPTS,
+                        e.getMessage());
                 if (attempt < MAX_CONNECT_ATTEMPTS) {
                     sleepBackoff(attempt);
                 }
             }
         }
-        throw new IllegalStateException("Milvus embedding store 初始化失败，已重试 "
-                + MAX_CONNECT_ATTEMPTS + " 次", lastError);
+        throw new IllegalStateException(
+                "Milvus embedding store 初始化失败，已重试 " + MAX_CONNECT_ATTEMPTS + " 次", lastError);
     }
 
     private void sleepBackoff(int attempt) {

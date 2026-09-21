@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 /**
  * 单条错题记录视图对象
  *
- * <p>字段声明顺序严格对齐原 {@code WrongAnswerApplicationService.buildWrongAnswerMap} 的
- * {@code LinkedHashMap} 插入顺序，确保序列化后 JSON 键序不变。</p>
+ * <p>字段声明顺序严格对齐原 {@code WrongAnswerApplicationService.buildWrongAnswerMap} 的 {@code LinkedHashMap}
+ * 插入顺序，确保序列化后 JSON 键序不变。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -42,7 +41,8 @@ public class WrongAnswerVO {
 
     /**
      * 该题的看图题配图 assetKey 有序数组（源自校对页绑定、按印刷题号回读）。
-     * <p>无配图时为 {@code null}，经 {@code @JsonInclude(NON_NULL)} 省略该键，保持既有载荷不变。</p>
+     *
+     * <p>无配图时为 {@code null}，经 {@code @JsonInclude(NON_NULL)} 省略该键，保持既有载荷不变。
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<String> images;

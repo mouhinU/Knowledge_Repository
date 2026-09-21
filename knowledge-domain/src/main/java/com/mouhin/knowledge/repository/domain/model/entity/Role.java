@@ -13,19 +13,13 @@ public class Role {
 
     private Long id;
 
-    /**
-     * 角色唯一标识（UUID）
-     */
+    /** 角色唯一标识（UUID） */
     private String roleKey;
 
-    /**
-     * 角色名称
-     */
+    /** 角色名称 */
     private String roleName;
 
-    /**
-     * 角色描述
-     */
+    /** 角色描述 */
     private String description;
 
     private LocalDateTime createdTime;
@@ -93,10 +87,15 @@ public class Role {
 
     @Override
     public String toString() {
-        return "Role{" +
-                "id=" + id +
-                ", roleKey='" + roleKey + '\'' +
-                ", roleName='" + roleName + '\'' +
-                '}';
+        return "Role{"
+                + "id="
+                + id
+                + ", roleKey='"
+                + roleKey
+                + '\''
+                + ", roleName='"
+                + roleName
+                + '\''
+                + '}';
     }
 }

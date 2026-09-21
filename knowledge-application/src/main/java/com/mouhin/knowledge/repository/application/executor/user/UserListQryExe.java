@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.user;
 import com.mouhin.knowledge.repository.application.converter.UserConverter;
 import com.mouhin.knowledge.repository.client.dto.UserVO;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 用户列表查询执行器（app 层用例）

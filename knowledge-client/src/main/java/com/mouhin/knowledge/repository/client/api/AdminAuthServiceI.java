@@ -10,10 +10,9 @@ import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 /**
  * 管理端认证应用服务契约（client 层）。
  *
- * <p>以用户名 / 密码登录换取无状态 JWT 访问令牌，替代原先的 HTTP Basic（内存单管理员）。返回值统一用
- * COLA 契约类型：登录成功 {@code data} 为 {@link AdminLoginResultDTO}；账号不存在 / 密码错误 / 已禁用
- * 抛 {@link IllegalArgumentException}，由适配层转为 401 / 400。令牌校验（{@link #validateToken}）在签名
- * 无效、过期或账号已禁用时返回 {@code data} 为 null 的成功响应，由适配层 / 过滤器映射为 401。</p>
+ * <p>以用户名 / 密码登录换取无状态 JWT 访问令牌，替代原先的 HTTP Basic（内存单管理员）。返回值统一用 COLA 契约类型：登录成功 {@code data} 为 {@link
+ * AdminLoginResultDTO}；账号不存在 / 密码错误 / 已禁用 抛 {@link IllegalArgumentException}，由适配层转为 401 /
+ * 400。令牌校验（{@link #validateToken}）在签名 无效、过期或账号已禁用时返回 {@code data} 为 null 的成功响应，由适配层 / 过滤器映射为 401。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19

@@ -2,9 +2,12 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.executor.articlegeneration.GenerateArticleAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.ArticleGenerationServiceI;
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.client.dto.ArticleGenerationRequest;
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
+import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,21 +16,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-
 /**
  * AI 文章生成控制器
- * <p>
- * 基于黑板模式的多 Agent 协作，从知识库检索信息并生成文章。
- * 支持 SSE 实时进度推送：
+ *
+ * <p>基于黑板模式的多 Agent 协作，从知识库检索信息并生成文章。 支持 SSE 实时进度推送：
+ *
  * <ol>
- *     <li>GET /api/agent/article/progress/{sessionId} → 建立 SSE 连接（先连接）</li>
- *     <li>POST /api/agent/article/generate → 启动生成，返回 sessionId</li>
+ *   <li>GET /api/agent/article/progress/{sessionId} → 建立 SSE 连接（先连接）
+ *   <li>POST /api/agent/article/generate → 启动生成，返回 sessionId
  * </ol>
+ *
  * 前端先建立 SSE 连接，再发送 POST 启动生成，确保不丢失任何进度事件。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-12
@@ -42,9 +41,10 @@ public class ArticleAgentController {
     private final GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe;
     private final BlackboardProgressStore progressStore;
 
-    public ArticleAgentController(ArticleGenerationServiceI articleGenerationService,
-                                  GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe,
-                                  BlackboardProgressStore progressStore) {
+    public ArticleAgentController(
+            ArticleGenerationServiceI articleGenerationService,
+            GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe,
+            BlackboardProgressStore progressStore) {
         this.articleGenerationService = articleGenerationService;
         this.generateArticleAsyncCmdExe = generateArticleAsyncCmdExe;
         this.progressStore = progressStore;
@@ -52,10 +52,8 @@ public class ArticleAgentController {
 
     /**
      * 启动文章生成（异步）
-     * <p>
-     * 立即返回 sessionId，生成过程在后台执行。
-     * 进度事件通过已建立的 SSE 连接实时推送。
-     * </p>
+     *
+     * <p>立即返回 sessionId，生成过程在后台执行。 进度事件通过已建立的 SSE 连接实时推送。
      *
      * @param request 文章生成请求（包含问题和用户上下文）
      * @return 包含 sessionId 的响应
@@ -70,30 +68,32 @@ public class ArticleAgentController {
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
         boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission = new Permission(
-                userId,
-                request.getDepartmentId(),
-                request.getRoles(),
-                isAdmin
-        );
+        Permission permission =
+                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info("收到文章生成请求: question='{}', user='{}'",
-                truncate(request.getQuestion(), 50), userId);
+        logger.info(
+                "收到文章生成请求: question='{}', user='{}'", truncate(request.getQuestion(), 50), userId);
 
         // 使用前端预分配的 sessionId（与 SSE 连接关联）
         String requestedSessionId = request.getSessionId();
-        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
-                ? requestedSessionId
-                : java.util.UUID.randomUUID().toString();
+        final String sessionId =
+                (requestedSessionId != null && !requestedSessionId.isBlank())
+                        ? requestedSessionId
+                        : java.util.UUID.randomUUID().toString();
 
         // 创建进度回调，绑定到当前 sessionId
-        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
-                event -> progressStore.pushEvent(sessionId, event);
+        var progressCallback =
+                (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                        event -> progressStore.pushEvent(sessionId, event);
 
         // 启动异步生成
         try {
             generateArticleAsyncCmdExe.execute(
-                    request.getQuestion(), permission, progressCallback, sessionId, request.getCategory());
+                    request.getQuestion(),
+                    permission,
+                    progressCallback,
+                    sessionId,
+                    request.getCategory());
         } catch (RejectedExecutionException rex) {
             // 文章生成线程池已达并发上限：任务未启动（未占用请求线程），返回 429 供前端退避重试。
             logger.warn("文章生成请求被限流（并发已达上限）[session={}]", sessionId);
@@ -106,15 +106,15 @@ public class ArticleAgentController {
 
     /**
      * SSE 进度流
-     * <p>
-     * 前端通过 EventSource 连接此端点，实时接收文章生成的进度事件。
-     * 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
-     * </p>
+     *
+     * <p>前端通过 EventSource 连接此端点，实时接收文章生成的进度事件。 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
      *
      * @param sessionId 会话 ID
      * @return SSE 事件流
      */
-    @GetMapping(value = "/article/progress/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(
+            value = "/article/progress/{sessionId}",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getProgress(@PathVariable String sessionId) {
         logger.debug("SSE 连接建立 [session={}]", sessionId);
         return progressStore.createEmitter(sessionId);

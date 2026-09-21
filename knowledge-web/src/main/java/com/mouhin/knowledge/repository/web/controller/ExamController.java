@@ -1,7 +1,7 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.alibaba.cola.dto.PageResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.BalanceDistributionQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateDistributionAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamAsyncCmdExe;
@@ -9,13 +9,19 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.Gener
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ValidatePlanAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
+import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import com.mouhin.knowledge.repository.infrastructure.export.ExamWordExporter;
-import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,23 +30,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-
 /**
  * AI 试卷生成控制器
- * <p>
- * 提供两种模式：
+ *
+ * <p>提供两种模式：
+ *
  * <ul>
- *     <li>异步模式（SSE）：generate-stream + progress → 7 步 Agent 流水线，实时推送进度</li>
- *     <li>同步模式：generate / export-word → 单次 LLM 调用，用于 Word 导出</li>
+ *   <li>异步模式（SSE）：generate-stream + progress → 7 步 Agent 流水线，实时推送进度
+ *   <li>同步模式：generate / export-word → 单次 LLM 调用，用于 Word 导出
  * </ul>
+ *
  * 生成 / 方案 / 校验等含领域类型的路径由 app 层生成执行器承载；出卷历史读写走 client 契约。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-13
@@ -63,15 +63,16 @@ public class ExamController {
     private final ExamWordExporter examWordExporter;
     private final BlackboardProgressStore progressStore;
 
-    public ExamController(ExamGenerationServiceI examGenerationService,
-                          GenerateExamAsyncCmdExe generateExamAsyncCmdExe,
-                          GenerateExamSyncCmdExe generateExamSyncCmdExe,
-                          GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe,
-                          BalanceDistributionQryExe balanceDistributionQryExe,
-                          ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe,
-                          ListPublishedHistoryQryExe listPublishedHistoryQryExe,
-                          ExamWordExporter examWordExporter,
-                          BlackboardProgressStore progressStore) {
+    public ExamController(
+            ExamGenerationServiceI examGenerationService,
+            GenerateExamAsyncCmdExe generateExamAsyncCmdExe,
+            GenerateExamSyncCmdExe generateExamSyncCmdExe,
+            GenerateDistributionAsyncCmdExe generateDistributionAsyncCmdExe,
+            BalanceDistributionQryExe balanceDistributionQryExe,
+            ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe,
+            ListPublishedHistoryQryExe listPublishedHistoryQryExe,
+            ExamWordExporter examWordExporter,
+            BlackboardProgressStore progressStore) {
         this.examGenerationService = examGenerationService;
         this.generateExamAsyncCmdExe = generateExamAsyncCmdExe;
         this.generateExamSyncCmdExe = generateExamSyncCmdExe;
@@ -85,10 +86,8 @@ public class ExamController {
 
     /**
      * 启动试卷生成（异步，7 步 Agent 流水线）
-     * <p>
-     * 立即返回 sessionId，生成过程在后台执行。
-     * 进度事件通过已建立的 SSE 连接实时推送。
-     * </p>
+     *
+     * <p>立即返回 sessionId，生成过程在后台执行。 进度事件通过已建立的 SSE 连接实时推送。
      *
      * @param request 试卷生成请求
      * @return 包含 sessionId 的响应
@@ -110,27 +109,29 @@ public class ExamController {
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
         boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission = new Permission(
-                userId,
-                request.getDepartmentId(),
-                request.getRoles(),
-                isAdmin
-        );
+        Permission permission =
+                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info("收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
-                request.getTopic(), request.getDifficulty(), hasPlan);
+        logger.info(
+                "收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
+                request.getTopic(),
+                request.getDifficulty(),
+                hasPlan);
 
         String requestedSessionId = request.getSessionId();
-        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
-                ? requestedSessionId
-                : java.util.UUID.randomUUID().toString();
+        final String sessionId =
+                (requestedSessionId != null && !requestedSessionId.isBlank())
+                        ? requestedSessionId
+                        : java.util.UUID.randomUUID().toString();
 
-        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
-                event -> progressStore.pushEvent(sessionId, event);
+        var progressCallback =
+                (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                        event -> progressStore.pushEvent(sessionId, event);
 
-        String questionConfig = hasPlan ? buildQuestionConfigFromPlan(plan) : buildQuestionConfig(request);
-        boolean skipScoringValidation = request.getSkipScoringValidation() != null
-                && request.getSkipScoringValidation();
+        String questionConfig =
+                hasPlan ? buildQuestionConfigFromPlan(plan) : buildQuestionConfig(request);
+        boolean skipScoringValidation =
+                request.getSkipScoringValidation() != null && request.getSkipScoringValidation();
 
         try {
             generateExamAsyncCmdExe.execute(
@@ -156,10 +157,8 @@ public class ExamController {
 
     /**
      * SSE 进度流
-     * <p>
-     * 前端通过 EventSource 连接此端点，实时接收试卷生成的进度事件。
-     * 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
-     * </p>
+     *
+     * <p>前端通过 EventSource 连接此端点，实时接收试卷生成的进度事件。 事件类型：PHASE / AGENT_OUTPUT / COMPLETED / ERROR
      *
      * @param sessionId 会话 ID
      * @return SSE 事件流
@@ -170,9 +169,7 @@ public class ExamController {
         return progressStore.createEmitter(sessionId);
     }
 
-    /**
-     * 生成试卷（同步，用于 Word 导出）
-     */
+    /** 生成试卷（同步，用于 Word 导出） */
     @PostMapping("/exam/generate")
     public ResponseEntity<Map<String, String>> generateExam(
             @RequestBody ExamGenerationRequest request) {
@@ -190,52 +187,55 @@ public class ExamController {
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
         boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission = new Permission(
-                userId,
-                request.getDepartmentId(),
-                request.getRoles(),
-                isAdmin
-        );
+        Permission permission =
+                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info("收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
-                request.getTopic(), request.getDifficulty(), hasPlan);
+        logger.info(
+                "收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
+                request.getTopic(),
+                request.getDifficulty(),
+                hasPlan);
 
         String examPaper;
         if (hasPlan) {
-            examPaper = generateExamSyncCmdExe.executeWithPlan(
-                    request.getTopic(),
-                    request.getDifficulty(),
-                    request.getSchoolLevel(),
-                    plan,
-                    permission,
-                    request.getCategory()
-            );
+            examPaper =
+                    generateExamSyncCmdExe.executeWithPlan(
+                            request.getTopic(),
+                            request.getDifficulty(),
+                            request.getSchoolLevel(),
+                            plan,
+                            permission,
+                            request.getCategory());
         } else {
-            examPaper = generateExamSyncCmdExe.executeByCounts(
-                    request.getTopic(),
-                    request.getDifficulty(),
-                    request.getSchoolLevel(),
-                    request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
-                    request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
-                    request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                    request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                    request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
-                    request.getEssayCount() != null ? request.getEssayCount() : 0,
-                    permission,
-                    request.getCategory()
-            );
+            examPaper =
+                    generateExamSyncCmdExe.executeByCounts(
+                            request.getTopic(),
+                            request.getDifficulty(),
+                            request.getSchoolLevel(),
+                            request.getSingleChoiceCount() != null
+                                    ? request.getSingleChoiceCount()
+                                    : 0,
+                            request.getMultiChoiceCount() != null
+                                    ? request.getMultiChoiceCount()
+                                    : 0,
+                            request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
+                            request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
+                            request.getShortAnswerCount() != null
+                                    ? request.getShortAnswerCount()
+                                    : 0,
+                            request.getEssayCount() != null ? request.getEssayCount() : 0,
+                            permission,
+                            request.getCategory());
         }
 
         return ResponseEntity.ok(Map.of("examPaper", examPaper));
     }
 
-    /**
-     * 导出试卷为 Word 文档
-     */
+    /** 导出试卷为 Word 文档 */
     @PostMapping("/exam/export-word")
     public void exportExamWord(
-            @RequestBody ExamGenerationRequest request,
-            HttpServletResponse response) throws Exception {
+            @RequestBody ExamGenerationRequest request, HttpServletResponse response)
+            throws Exception {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "考试主题不能为空");
@@ -244,12 +244,8 @@ public class ExamController {
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
         boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission = new Permission(
-                userId,
-                request.getDepartmentId(),
-                request.getRoles(),
-                isAdmin
-        );
+        Permission permission =
+                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
         logger.info("导出试卷 Word: topic='{}'", request.getTopic());
 
@@ -258,32 +254,40 @@ public class ExamController {
 
         String examPaper;
         if (hasPlan) {
-            examPaper = generateExamSyncCmdExe.executeWithPlan(
-                    request.getTopic(),
-                    request.getDifficulty(),
-                    request.getSchoolLevel(),
-                    plan,
-                    permission,
-                    request.getCategory()
-            );
+            examPaper =
+                    generateExamSyncCmdExe.executeWithPlan(
+                            request.getTopic(),
+                            request.getDifficulty(),
+                            request.getSchoolLevel(),
+                            plan,
+                            permission,
+                            request.getCategory());
         } else {
-            examPaper = generateExamSyncCmdExe.executeByCounts(
-                    request.getTopic(),
-                    request.getDifficulty(),
-                    request.getSchoolLevel(),
-                    request.getSingleChoiceCount() != null ? request.getSingleChoiceCount() : 0,
-                    request.getMultiChoiceCount() != null ? request.getMultiChoiceCount() : 0,
-                    request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                    request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                    request.getShortAnswerCount() != null ? request.getShortAnswerCount() : 0,
-                    request.getEssayCount() != null ? request.getEssayCount() : 0,
-                    permission,
-                    request.getCategory()
-            );
+            examPaper =
+                    generateExamSyncCmdExe.executeByCounts(
+                            request.getTopic(),
+                            request.getDifficulty(),
+                            request.getSchoolLevel(),
+                            request.getSingleChoiceCount() != null
+                                    ? request.getSingleChoiceCount()
+                                    : 0,
+                            request.getMultiChoiceCount() != null
+                                    ? request.getMultiChoiceCount()
+                                    : 0,
+                            request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
+                            request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
+                            request.getShortAnswerCount() != null
+                                    ? request.getShortAnswerCount()
+                                    : 0,
+                            request.getEssayCount() != null ? request.getEssayCount() : 0,
+                            permission,
+                            request.getCategory());
         }
 
-        String fileName = URLEncoder.encode(request.getTopic() + "_试卷.docx", StandardCharsets.UTF_8);
-        response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        String fileName =
+                URLEncoder.encode(request.getTopic() + "_试卷.docx", StandardCharsets.UTF_8);
+        response.setContentType(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
 
         examWordExporter.export(examPaper, response.getOutputStream());
@@ -291,11 +295,9 @@ public class ExamController {
 
     /**
      * 生成题型分布方案（两步式流程第一步 · 流式）。
-     * <p>
-     * 立即返回 sessionId，四阶段 Agent（题型分类 → 题量 → 每题分数 → 合理性评估）在后台执行，
-     * 每个阶段的输入/思考/输出通过已建立的 SSE 连接（/exam/progress/{sessionId}）实时推送，
-     * 完成后推送携带 ExamPlan JSON 的 COMPLETED 事件，供前端渲染可编辑表格。
-     * </p>
+     *
+     * <p>立即返回 sessionId，四阶段 Agent（题型分类 → 题量 → 每题分数 → 合理性评估）在后台执行， 每个阶段的输入/思考/输出通过已建立的 SSE
+     * 连接（/exam/progress/{sessionId}）实时推送， 完成后推送携带 ExamPlan JSON 的 COMPLETED 事件，供前端渲染可编辑表格。
      */
     @PostMapping("/exam/distribution-stream")
     public ResponseEntity<Map<String, String>> generateDistributionStream(
@@ -307,23 +309,25 @@ public class ExamController {
 
         String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
         boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission = new Permission(
-                userId,
-                request.getDepartmentId(),
-                request.getRoles(),
-                isAdmin
-        );
+        Permission permission =
+                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
         String requestedSessionId = request.getSessionId();
-        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
-                ? requestedSessionId
-                : "dist-" + java.util.UUID.randomUUID();
+        final String sessionId =
+                (requestedSessionId != null && !requestedSessionId.isBlank())
+                        ? requestedSessionId
+                        : "dist-" + java.util.UUID.randomUUID();
 
-        logger.info("收到题型分布方案生成请求（流式）: topic='{}', difficulty='{}', level='{}', session='{}'",
-                request.getTopic(), request.getDifficulty(), request.getSchoolLevel(), sessionId);
+        logger.info(
+                "收到题型分布方案生成请求（流式）: topic='{}', difficulty='{}', level='{}', session='{}'",
+                request.getTopic(),
+                request.getDifficulty(),
+                request.getSchoolLevel(),
+                sessionId);
 
-        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
-                event -> progressStore.pushEvent(sessionId, event);
+        var progressCallback =
+                (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                        event -> progressStore.pushEvent(sessionId, event);
 
         generateDistributionAsyncCmdExe.execute(
                 sessionId,
@@ -339,29 +343,35 @@ public class ExamController {
 
     /**
      * 自动平衡题型分布方案分值（两步式流程 · 页面「自动平衡分值」按钮）。
-     * <p>以每题现值为权重把总分重新分配到各题，保证 Σ=满分；返回平衡后的方案与过程说明。</p>
+     *
+     * <p>以每题现值为权重把总分重新分配到各题，保证 Σ=满分；返回平衡后的方案与过程说明。
      */
     @PostMapping("/exam/distribution/balance")
-    public ResponseEntity<?> balanceDistribution(
-            @RequestBody ExamGenerationRequest request) {
+    public ResponseEntity<?> balanceDistribution(@RequestBody ExamGenerationRequest request) {
 
         ExamPlan plan = parsePlan(request.getDistribution());
         if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
         }
 
-        logger.info("收到题型分布方案自动平衡请求: types={}, fullMark={}",
-                plan.getTypes().size(), plan.getTotalFullMark());
+        logger.info(
+                "收到题型分布方案自动平衡请求: types={}, fullMark={}",
+                plan.getTypes().size(),
+                plan.getTotalFullMark());
 
         ScoreRuleEngine.BalanceResult result = balanceDistributionQryExe.execute(plan);
-        return ResponseEntity.ok(Map.of(
-                "plan", result.plan(),
-                "trace", result.trace() != null ? result.trace() : ""));
+        return ResponseEntity.ok(
+                Map.of(
+                        "plan",
+                        result.plan(),
+                        "trace",
+                        result.trace() != null ? result.trace() : ""));
     }
 
     /**
      * 异步校验题型分布方案（Node 2：分值检验和平衡）
-     * <p>前端通过 SSE 接收校验结果：AGENT_OUTPUT (running/done/failed) + COMPLETED/ERROR。</p>
+     *
+     * <p>前端通过 SSE 接收校验结果：AGENT_OUTPUT (running/done/failed) + COMPLETED/ERROR。
      *
      * @param request 包含 distribution (ExamPlan JSON) 和 sessionId
      * @return 包含 sessionId 的响应
@@ -376,24 +386,27 @@ public class ExamController {
         }
 
         String requestedSessionId = request.getSessionId();
-        final String sessionId = (requestedSessionId != null && !requestedSessionId.isBlank())
-                ? requestedSessionId
-                : "validate-" + java.util.UUID.randomUUID();
+        final String sessionId =
+                (requestedSessionId != null && !requestedSessionId.isBlank())
+                        ? requestedSessionId
+                        : "validate-" + java.util.UUID.randomUUID();
 
-        logger.info("收到方案校验请求（流式）: types={}, fullMark={}, session={}",
-                plan.getTypes().size(), plan.getTotalFullMark(), sessionId);
+        logger.info(
+                "收到方案校验请求（流式）: types={}, fullMark={}, session={}",
+                plan.getTypes().size(),
+                plan.getTotalFullMark(),
+                sessionId);
 
-        var progressCallback = (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
-                event -> progressStore.pushEvent(sessionId, event);
+        var progressCallback =
+                (com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback)
+                        event -> progressStore.pushEvent(sessionId, event);
 
         validatePlanAsyncCmdExe.execute(sessionId, plan, progressCallback);
 
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
 
-    /**
-     * 构建题型配置描述（传递给 Agent）
-     */
+    /** 构建题型配置描述（传递给 Agent） */
     private String buildQuestionConfig(ExamGenerationRequest request) {
         StringBuilder sb = new StringBuilder();
         if (request.getSingleChoiceCount() != null && request.getSingleChoiceCount() > 0) {
@@ -418,9 +431,7 @@ public class ExamController {
         return result.endsWith("、") ? result.substring(0, result.length() - 1) : result;
     }
 
-    /**
-     * 解析前端回传的题型分布方案 JSON。解析失败或为空时返回 null（走旧逻辑兜底）。
-     */
+    /** 解析前端回传的题型分布方案 JSON。解析失败或为空时返回 null（走旧逻辑兜底）。 */
     private ExamPlan parsePlan(String distributionJson) {
         if (distributionJson == null || distributionJson.isBlank()) {
             return null;
@@ -433,22 +444,22 @@ public class ExamController {
         }
     }
 
-    /**
-     * 由已确认方案构建题型配置描述（传递给 Agent）。
-     */
+    /** 由已确认方案构建题型配置描述（传递给 Agent）。 */
     private String buildQuestionConfigFromPlan(ExamPlan plan) {
         StringBuilder sb = new StringBuilder();
-        for (com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan t : plan.getTypes()) {
+        for (com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan t :
+                plan.getTypes()) {
             if (t.getCount() <= 0) {
                 continue;
             }
             if (sb.length() > 0) {
                 sb.append("、");
             }
-            String label = t.getLabel() != null && !t.getLabel().isBlank()
-                    ? t.getLabel()
-                    : com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
-                            .chineseFromKey(t.getKey());
+            String label =
+                    t.getLabel() != null && !t.getLabel().isBlank()
+                            ? t.getLabel()
+                            : com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
+                                    .chineseFromKey(t.getKey());
             sb.append(label).append(" ").append(t.getCount()).append(" 道");
         }
         return sb.toString();
@@ -518,11 +529,10 @@ public class ExamController {
      * 导出历史试卷为 Word 文档
      *
      * @param sessionId 会话 ID
-     * @param response  HTTP 响应
+     * @param response HTTP 响应
      */
     @PostMapping("/exam/history/{sessionId}/export-word")
-    public void exportHistoryWord(@PathVariable String sessionId,
-                                  HttpServletResponse response) {
+    public void exportHistoryWord(@PathVariable String sessionId, HttpServletResponse response) {
         ExamHistoryDTO history = examGenerationService.getHistoryBySessionId(sessionId).getData();
         if (history == null || history.getExamPaper() == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -533,7 +543,8 @@ public class ExamController {
             String topic = history.getTopic() != null ? history.getTopic() : "试卷";
             String filename = URLEncoder.encode(topic + "_试卷.docx", StandardCharsets.UTF_8);
 
-            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            response.setContentType(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
 
             examWordExporter.export(history.getExamPaper(), response.getOutputStream());

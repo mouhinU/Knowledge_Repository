@@ -3,19 +3,18 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.DocumentConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 文档仓储实现
@@ -133,8 +132,7 @@ public class DocumentGatewayImpl implements DocumentGateway {
     @Override
     public Map<String, Long> countByCategory() {
         QueryWrapper<DocumentDO> wrapper = new QueryWrapper<>();
-        wrapper.select("category", "COUNT(*) AS total")
-                .groupBy("category");
+        wrapper.select("category", "COUNT(*) AS total").groupBy("category");
         List<Map<String, Object>> rows = documentMapper.selectMaps(wrapper);
         Map<String, Long> result = new HashMap<>();
         for (Map<String, Object> row : rows) {

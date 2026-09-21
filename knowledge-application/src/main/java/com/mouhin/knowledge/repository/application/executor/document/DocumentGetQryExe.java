@@ -22,8 +22,13 @@ public class DocumentGetQryExe {
     }
 
     public DocumentVO execute(String documentKey) {
-        Document doc = documentGateway.findByDocumentKey(documentKey)
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentKey));
+        Document doc =
+                documentGateway
+                        .findByDocumentKey(documentKey)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "Document not found: " + documentKey));
         return DocumentConverter.toVO(doc);
     }
 }

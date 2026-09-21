@@ -6,21 +6,18 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ExamMetaQuestionDetector;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * 试卷审核 Agent
- * <p>
- * 审核试卷质量，从知识准确性、题目表述、知识点覆盖度、题型合理性等维度评估。
- * </p>
- * <p>
- * 读取：examPaper（试卷内容）、answerKey（答案）、keyFindings（知识点）、question（主题）
+ *
+ * <p>审核试卷质量，从知识准确性、题目表述、知识点覆盖度、题型合理性等维度评估。
+ *
+ * <p>读取：examPaper（试卷内容）、answerKey（答案）、keyFindings（知识点）、question（主题）
  * 写入：examReviewFeedback（审核反馈）、qualityScore（质量评分 0-100）
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-14
@@ -30,14 +27,13 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(ExamReviewerAgent.class);
 
-    /**
-     * 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。
-     */
+    /** 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。 */
     private static final int DETECTOR_SCORE_CAP = 70;
 
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT =
+            """
             你是一位资深的教育评估专家，负责审核考试试卷的质量。
-            
+
             请从以下 6 个维度审核试卷，每个维度独立打分（0-100）：
             1. 知识准确性（权重 25%%）：题目和答案是否与知识点一致，有无事实错误
             2. 题目表述（权重 15%%）：题目是否清晰无歧义，选项是否合理
@@ -45,11 +41,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
             4. 题型合理性（权重 15%%）：各题型的设置是否恰当，题量是否合理；发现「出处/位置类」记忆题（考查某知识点在第几单元/第几课/第几页/哪一章/出自哪篇哪一段等教材编排位置）须判为缺陷并在改进建议中逐条列出、要求替换为就内容实质（字音字形、词义语法、内容理解、阅读表达等）设问
             5. 难度适当性（权重 10%%）：难度是否符合要求，梯度是否合理
             6. 格式规范性（权重 10%%）：排版、编号、分值标注是否规范
-            
+
             输出格式（严格按以下 Markdown 结构）：
             ## 审核意见
             （详细的审核意见，按维度逐条分析）
-            
+
             ## 评分明细
             - 知识准确性：X
             - 题目表述：X
@@ -57,10 +53,10 @@ public class ExamReviewerAgent implements BlackboardAgent {
             - 题型合理性：X
             - 难度适当性：X
             - 格式规范性：X
-            
+
             ## 质量评分
             （加权总分，一个 0-100 的整数，计算方式：知识准确性×0.25 + 题目表述×0.15 + 知识点覆盖×0.25 + 题型合理性×0.15 + 难度适当性×0.10 + 格式规范性×0.10）
-            
+
             ## 改进建议
             （如有需要改进的地方，列出具体建议）
             """;
@@ -82,67 +78,83 @@ public class ExamReviewerAgent implements BlackboardAgent {
         blackboard.advanceTo(BlackboardPhase.REVIEWING);
 
         String materials = buildMaterialsPreview(examPaper, answerKey);
-        emitProgress(progressCallback, BlackboardProgressEvent.agentStartedWithMaterials(
-                "exam-reviewer", "正在审核试卷质量...", materials));
+        emitProgress(
+                progressCallback,
+                BlackboardProgressEvent.agentStartedWithMaterials(
+                        "exam-reviewer", "正在审核试卷质量...", materials));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setExamReviewFeedback("试卷为空，无法审核。");
             blackboard.setQualityScore(0);
-            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted(
-                    "exam-reviewer", "试卷为空，无法审核。"));
+            emitProgress(
+                    progressCallback,
+                    BlackboardProgressEvent.agentCompleted("exam-reviewer", "试卷为空，无法审核。"));
             return;
         }
 
-        String knowledgeContext = (findings != null && !findings.contains("未找到"))
-                ? "\n\n参考知识点：\n" + findings : "";
+        String knowledgeContext =
+                (findings != null && !findings.contains("未找到")) ? "\n\n参考知识点：\n" + findings : "";
 
-        String userPrompt = String.format("""
+        String userPrompt =
+                String.format(
+                        """
                 考试主题：%s
-                
+
                 【试卷内容】
                 %s
-                
+
                 【标准答案】
                 %s
                 %s
-                
-                请审核试卷质量。
-                """, blackboard.getQuestion(), examPaper, answerKey, knowledgeContext);
 
-        String reviewOutput = agentStreamer.stream("exam-reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
+                请审核试卷质量。
+                """,
+                        blackboard.getQuestion(), examPaper, answerKey, knowledgeContext);
+
+        String reviewOutput =
+                agentStreamer.stream("exam-reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (reviewOutput == null || reviewOutput.isBlank()) {
             logger.error("[ExamReviewer] LLM 返回空审核结果");
-            reviewOutput = "## 审核意见\n审核过程异常，请重试。\n\n## 评分明细\n- 知识准确性：0\n- 题目表述：0\n- 知识点覆盖：0\n- 题型合理性：0\n- 难度适当性：0\n- 格式规范性：0\n\n## 质量评分\n0\n\n## 改进建议\n无";
+            reviewOutput =
+                    "## 审核意见\n审核过程异常，请重试。\n\n## 评分明细\n- 知识准确性：0\n- 题目表述：0\n- 知识点覆盖：0\n- 题型合理性：0\n- 难度适当性：0\n- 格式规范性：0\n\n## 质量评分\n0\n\n## 改进建议\n无";
         }
 
         blackboard.setExamReviewFeedback(reviewOutput);
         blackboard.setQualityScore(extractScore(reviewOutput));
-        blackboard.setExamScoreDetail(buildScoreDetailJson(reviewOutput, blackboard.getQualityScore()));
+        blackboard.setExamScoreDetail(
+                buildScoreDetailJson(reviewOutput, blackboard.getQualityScore()));
 
         // —— 确定性后处理：出处/位置类记忆题扫描（不依赖大模型的硬兜底）——
         applyDeterministicMetaRecallCheck(blackboard, examPaper);
 
-        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("exam-reviewer", blackboard.getExamReviewFeedback()));
+        emitProgress(
+                progressCallback,
+                BlackboardProgressEvent.agentCompleted(
+                        "exam-reviewer", blackboard.getExamReviewFeedback()));
         logger.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
     }
 
     /**
-     * 出处/位置类记忆题的确定性复核：命中即把分数压到 {@link #DETECTOR_SCORE_CAP}（低于通过阈值），
-     * 驱动外层流水线的 writer 打回重写，并把命中题目与改写要求追加进审核反馈。已有更低分则不抬升。
+     * 出处/位置类记忆题的确定性复核：命中即把分数压到 {@link #DETECTOR_SCORE_CAP}（低于通过阈值）， 驱动外层流水线的 writer
+     * 打回重写，并把命中题目与改写要求追加进审核反馈。已有更低分则不抬升。
      *
      * @param blackboard 黑板状态
-     * @param examPaper  试卷 Markdown（LLM 刚产出的正文）
+     * @param examPaper 试卷 Markdown（LLM 刚产出的正文）
      */
     private void applyDeterministicMetaRecallCheck(BlackboardState blackboard, String examPaper) {
         List<String> metaHits = ExamMetaQuestionDetector.scanMarkdown(examPaper);
         if (metaHits.isEmpty()) {
             return;
         }
-        String feedback = blackboard.getExamReviewFeedback() == null ? "" : blackboard.getExamReviewFeedback();
+        String feedback =
+                blackboard.getExamReviewFeedback() == null
+                        ? ""
+                        : blackboard.getExamReviewFeedback();
         StringBuilder block = new StringBuilder();
         block.append("\n\n## ⚠️ 确定性复核：出处/位置类记忆题（必须修正）\n");
-        block.append("检测到 ").append(metaHits.size())
+        block.append("检测到 ")
+                .append(metaHits.size())
                 .append(" 道只考查教材编排位置（第几单元/第几课/第几页/哪一章/出自哪篇）的记忆题，")
                 .append("不符合「考查内容理解与运用」的命题要求，请逐一改写为就知识实质设问：\n");
         for (String hit : metaHits) {
@@ -154,8 +166,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
         if (current > DETECTOR_SCORE_CAP) {
             blackboard.setQualityScore(DETECTOR_SCORE_CAP);
         }
-        logger.warn("[ExamReviewer] 确定性复核命中 {} 道出处/位置类题目，质量分 {}→{}（触发打回重写）",
-                metaHits.size(), current, blackboard.getQualityScore());
+        logger.warn(
+                "[ExamReviewer] 确定性复核命中 {} 道出处/位置类题目，质量分 {}→{}（触发打回重写）",
+                metaHits.size(),
+                current,
+                blackboard.getQualityScore());
     }
 
     private String buildMaterialsPreview(String examPaper, String answerKey) {
@@ -174,8 +189,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     /** 六维度权重，顺序：知识准确性 / 题目表述 / 知识点覆盖 / 题型合理性 / 难度适当性 / 格式规范性 */
     private static final double[] WEIGHTS = {0.25, 0.15, 0.25, 0.15, 0.10, 0.10};
+
     /** 六维度名称，顺序与 WEIGHTS 一致 */
-    private static final String[] DIMENSIONS = {"知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"};
+    private static final String[] DIMENSIONS = {
+        "知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"
+    };
 
     private int extractScore(String reviewOutput) {
         try {
@@ -186,8 +204,15 @@ public class ExamReviewerAgent implements BlackboardAgent {
                     weighted += dims[i] * WEIGHTS[i];
                 }
                 int result = (int) Math.min(100, Math.max(0, Math.round(weighted)));
-                logger.info("[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
-                        dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], result);
+                logger.info(
+                        "[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
+                        dims[0],
+                        dims[1],
+                        dims[2],
+                        dims[3],
+                        dims[4],
+                        dims[5],
+                        result);
                 return result;
             }
 
@@ -259,7 +284,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
     /**
      * 从评分明细段落中提取指定维度的分数
      *
-     * @param section   评分明细文本
+     * @param section 评分明细文本
      * @param dimension 维度名称
      * @return 分数（0-100），未找到时返回 -1
      */

@@ -15,8 +15,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
  */
 public final class DocumentConverter {
 
-    private DocumentConverter() {
-    }
+    private DocumentConverter() {}
 
     public static Document toDomain(DocumentDO doObj) {
         if (doObj == null) {
@@ -32,10 +31,12 @@ public final class DocumentConverter {
         domain.setStoragePath(doObj.getStoragePath());
         domain.setFileChecksum(doObj.getFileChecksum());
         domain.setTotalPages(doObj.getTotalPages());
-        domain.setStatus(doObj.getStatus() != null
-                ? DocumentStatusEnum.valueOf(doObj.getStatus()) : null);
-        domain.setVisibility(doObj.getVisibility() != null
-                ? DocumentVisibilityEnum.valueOf(doObj.getVisibility()) : null);
+        domain.setStatus(
+                doObj.getStatus() != null ? DocumentStatusEnum.valueOf(doObj.getStatus()) : null);
+        domain.setVisibility(
+                doObj.getVisibility() != null
+                        ? DocumentVisibilityEnum.valueOf(doObj.getVisibility())
+                        : null);
         domain.setOwnerId(doObj.getOwnerId());
         domain.setDepartmentId(doObj.getDepartmentId());
         domain.setAllowedRoles(doObj.getAllowedRoles());
@@ -47,16 +48,19 @@ public final class DocumentConverter {
         domain.setUpdatedTime(doObj.getUpdateTime());
 
         if (doObj.getChunkMaxSize() != null) {
-            ChunkingStrategyEnum strategy = doObj.getChunkingStrategy() != null
-                    ? ChunkingStrategyEnum.valueOf(doObj.getChunkingStrategy())
-                    : ChunkingStrategyEnum.FIXED_SIZE;
-            domain.setChunkingConfig(new ChunkingConfig(
-                    doObj.getChunkMaxSize(),
-                    doObj.getChunkOverlap() != null ? doObj.getChunkOverlap() : 50,
-                    strategy,
-                    doObj.getRespectParagraph() != null ? doObj.getRespectParagraph() : true,
-                    doObj.getRespectPage() != null ? doObj.getRespectPage() : true
-            ));
+            ChunkingStrategyEnum strategy =
+                    doObj.getChunkingStrategy() != null
+                            ? ChunkingStrategyEnum.valueOf(doObj.getChunkingStrategy())
+                            : ChunkingStrategyEnum.FIXED_SIZE;
+            domain.setChunkingConfig(
+                    new ChunkingConfig(
+                            doObj.getChunkMaxSize(),
+                            doObj.getChunkOverlap() != null ? doObj.getChunkOverlap() : 50,
+                            strategy,
+                            doObj.getRespectParagraph() != null
+                                    ? doObj.getRespectParagraph()
+                                    : true,
+                            doObj.getRespectPage() != null ? doObj.getRespectPage() : true));
         }
 
         return domain;
@@ -76,10 +80,8 @@ public final class DocumentConverter {
         doObj.setStoragePath(domain.getStoragePath());
         doObj.setFileChecksum(domain.getFileChecksum());
         doObj.setTotalPages(domain.getTotalPages());
-        doObj.setStatus(domain.getStatus() != null
-                ? domain.getStatus().name() : null);
-        doObj.setVisibility(domain.getVisibility() != null
-                ? domain.getVisibility().name() : null);
+        doObj.setStatus(domain.getStatus() != null ? domain.getStatus().name() : null);
+        doObj.setVisibility(domain.getVisibility() != null ? domain.getVisibility().name() : null);
         doObj.setOwnerId(domain.getOwnerId());
         doObj.setDepartmentId(domain.getDepartmentId());
         doObj.setAllowedRoles(domain.getAllowedRoles());
@@ -96,8 +98,8 @@ public final class DocumentConverter {
             doObj.setChunkOverlap(config.getOverlapSize());
             doObj.setRespectParagraph(config.isRespectParagraphBoundary());
             doObj.setRespectPage(config.isRespectPageBoundary());
-            doObj.setChunkingStrategy(config.getStrategy() != null
-                    ? config.getStrategy().name() : "FIXED_SIZE");
+            doObj.setChunkingStrategy(
+                    config.getStrategy() != null ? config.getStrategy().name() : "FIXED_SIZE");
         }
 
         return doObj;

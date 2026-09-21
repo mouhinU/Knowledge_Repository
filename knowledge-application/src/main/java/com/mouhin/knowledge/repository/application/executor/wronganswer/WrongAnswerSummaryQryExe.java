@@ -6,17 +6,17 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * AI 错题总结生成执行器（app 层用例）
- * <p>基于筛选后的错题构建提示词，调用大模型生成分析报告。</p>
+ *
+ * <p>基于筛选后的错题构建提示词，调用大模型生成分析报告。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -29,29 +29,31 @@ public class WrongAnswerSummaryQryExe {
     /** 提示词中最多列举的错题数量 */
     private static final int PROMPT_ITEM_LIMIT = 50;
 
-    private static final String AI_SUMMARY_SYSTEM_PROMPT = """
+    private static final String AI_SUMMARY_SYSTEM_PROMPT =
+            """
             你是一位专业的教育分析师。请根据学生的错题信息进行分析总结，帮助教师了解学生的薄弱环节。
-            
+
             请从以下维度进行分析：
             1. 错误原因分析（知识性错误、理解偏差、粗心等）
             2. 知识点薄弱领域
             3. 按题型分析表现差异
             4. 针对性的改进建议和学习方向
-            
+
             请用中文输出，结构清晰，重点突出。
             """;
 
     private final WrongAnswerListQryExe wrongAnswerListQryExe;
     private final ChatModel chatModel;
 
-    public WrongAnswerSummaryQryExe(WrongAnswerListQryExe wrongAnswerListQryExe,
-                                    ChatModel chatModel) {
+    public WrongAnswerSummaryQryExe(
+            WrongAnswerListQryExe wrongAnswerListQryExe, ChatModel chatModel) {
         this.wrongAnswerListQryExe = wrongAnswerListQryExe;
         this.chatModel = chatModel;
     }
 
     public String execute(Long studentId, String topic, String questionType) {
-        List<WrongAnswerVO> wrongAnswers = wrongAnswerListQryExe.execute(studentId, topic, questionType);
+        List<WrongAnswerVO> wrongAnswers =
+                wrongAnswerListQryExe.execute(studentId, topic, questionType);
         if (wrongAnswers.isEmpty()) {
             return "暂无错题数据，无法生成总结。";
         }
@@ -75,27 +77,35 @@ public class WrongAnswerSummaryQryExe {
         }
 
         if (wrongAnswers.size() > PROMPT_ITEM_LIMIT) {
-            prompt.append("（还有 ").append(wrongAnswers.size() - PROMPT_ITEM_LIMIT).append(" 题省略）\n\n");
+            prompt.append("（还有 ")
+                    .append(wrongAnswers.size() - PROMPT_ITEM_LIMIT)
+                    .append(" 题省略）\n\n");
         }
 
         // 统计信息
-        Map<String, Long> typeStats = wrongAnswers.stream()
-                .collect(Collectors.groupingBy(
-                        m -> m.getQuestionType() != null ? m.getQuestionType() : "UNKNOWN",
-                        Collectors.counting()));
+        Map<String, Long> typeStats =
+                wrongAnswers.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        m ->
+                                                m.getQuestionType() != null
+                                                        ? m.getQuestionType()
+                                                        : "UNKNOWN",
+                                        Collectors.counting()));
         prompt.append("题型分布统计：\n");
-        typeStats.forEach((type, count) -> prompt.append("- ").append(type).append("：")
-                .append(count).append("题\n"));
+        typeStats.forEach(
+                (type, count) ->
+                        prompt.append("- ").append(type).append("：").append(count).append("题\n"));
 
         prompt.append("\n请对这些错题进行全面分析总结。");
 
         try {
-            ChatRequest request = ChatRequest.builder()
-                    .messages(
-                            SystemMessage.from(AI_SUMMARY_SYSTEM_PROMPT),
-                            UserMessage.from(prompt.toString())
-                    )
-                    .build();
+            ChatRequest request =
+                    ChatRequest.builder()
+                            .messages(
+                                    SystemMessage.from(AI_SUMMARY_SYSTEM_PROMPT),
+                                    UserMessage.from(prompt.toString()))
+                            .build();
 
             ChatResponse response = chatModel.chat(request);
             String output = response.aiMessage().text();

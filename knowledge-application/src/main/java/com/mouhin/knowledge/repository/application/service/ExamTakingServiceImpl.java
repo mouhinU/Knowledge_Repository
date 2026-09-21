@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.application.executor.examtaking.ExamGetAnswersQryExe;
 import com.mouhin.knowledge.repository.application.executor.examtaking.ExamGetSessionQryExe;
 import com.mouhin.knowledge.repository.application.executor.examtaking.ExamMySessionsQryExe;
@@ -13,13 +16,9 @@ import com.mouhin.knowledge.repository.application.executor.examtaking.ExamValid
 import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
-import com.alibaba.cola.dto.MultiResponse;
-import com.alibaba.cola.dto.Response;
-import com.alibaba.cola.dto.SingleResponse;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Service;
 
 /**
  * 在线做题应用服务实现（app 层，仅分发到执行器）
@@ -41,16 +40,17 @@ public class ExamTakingServiceImpl implements ExamTakingServiceI {
     private final ExamUpdateQuestionsJsonCmdExe updateQuestionsJsonCmdExe;
     private final ExamUpdateDurationCmdExe updateDurationCmdExe;
 
-    public ExamTakingServiceImpl(ExamStartFromHistoryCmdExe startFromHistoryCmdExe,
-                                 ExamStartWithPaperCmdExe startWithPaperCmdExe,
-                                 ExamValidateReportQryExe validateReportQryExe,
-                                 ExamSaveAnswersCmdExe saveAnswersCmdExe,
-                                 ExamSubmitCmdExe submitCmdExe,
-                                 ExamGetSessionQryExe getSessionQryExe,
-                                 ExamGetAnswersQryExe getAnswersQryExe,
-                                 ExamMySessionsQryExe mySessionsQryExe,
-                                 ExamUpdateQuestionsJsonCmdExe updateQuestionsJsonCmdExe,
-                                 ExamUpdateDurationCmdExe updateDurationCmdExe) {
+    public ExamTakingServiceImpl(
+            ExamStartFromHistoryCmdExe startFromHistoryCmdExe,
+            ExamStartWithPaperCmdExe startWithPaperCmdExe,
+            ExamValidateReportQryExe validateReportQryExe,
+            ExamSaveAnswersCmdExe saveAnswersCmdExe,
+            ExamSubmitCmdExe submitCmdExe,
+            ExamGetSessionQryExe getSessionQryExe,
+            ExamGetAnswersQryExe getAnswersQryExe,
+            ExamMySessionsQryExe mySessionsQryExe,
+            ExamUpdateQuestionsJsonCmdExe updateQuestionsJsonCmdExe,
+            ExamUpdateDurationCmdExe updateDurationCmdExe) {
         this.startFromHistoryCmdExe = startFromHistoryCmdExe;
         this.startWithPaperCmdExe = startWithPaperCmdExe;
         this.validateReportQryExe = validateReportQryExe;
@@ -64,14 +64,21 @@ public class ExamTakingServiceImpl implements ExamTakingServiceI {
     }
 
     @Override
-    public SingleResponse<ExamSessionDTO> startFromHistory(String studentToken, String historySessionId) {
+    public SingleResponse<ExamSessionDTO> startFromHistory(
+            String studentToken, String historySessionId) {
         return SingleResponse.of(startFromHistoryCmdExe.execute(studentToken, historySessionId));
     }
 
     @Override
-    public SingleResponse<ExamSessionDTO> startWithPaper(String studentToken, String examPaper, String answerKey,
-                                                         String topic, String difficulty) {
-        return SingleResponse.of(startWithPaperCmdExe.execute(studentToken, examPaper, answerKey, topic, difficulty));
+    public SingleResponse<ExamSessionDTO> startWithPaper(
+            String studentToken,
+            String examPaper,
+            String answerKey,
+            String topic,
+            String difficulty) {
+        return SingleResponse.of(
+                startWithPaperCmdExe.execute(
+                        studentToken, examPaper, answerKey, topic, difficulty));
     }
 
     @Override
@@ -80,7 +87,8 @@ public class ExamTakingServiceImpl implements ExamTakingServiceI {
     }
 
     @Override
-    public Response saveAnswers(String sessionKey, String studentToken, List<Map<String, String>> answers) {
+    public Response saveAnswers(
+            String sessionKey, String studentToken, List<Map<String, String>> answers) {
         saveAnswersCmdExe.execute(sessionKey, studentToken, answers);
         return Response.buildSuccess();
     }
@@ -107,7 +115,8 @@ public class ExamTakingServiceImpl implements ExamTakingServiceI {
     }
 
     @Override
-    public Response updateQuestionsJson(String sessionKey, String studentToken, String questionsJson) {
+    public Response updateQuestionsJson(
+            String sessionKey, String studentToken, String questionsJson) {
         updateQuestionsJsonCmdExe.execute(sessionKey, studentToken, questionsJson);
         return Response.buildSuccess();
     }

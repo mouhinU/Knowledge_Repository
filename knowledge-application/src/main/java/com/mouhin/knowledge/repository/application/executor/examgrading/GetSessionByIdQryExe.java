@@ -21,7 +21,8 @@ public class GetSessionByIdQryExe {
     }
 
     public ExamSessionDTO execute(Long sessionId) {
-        return examSessionGateway.findById(sessionId)
+        return examSessionGateway
+                .findById(sessionId)
                 .map(ExamTakingConverter::toSessionDTO)
                 .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
     }

@@ -4,13 +4,12 @@ import com.mouhin.knowledge.repository.client.api.WrongAnswerServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentOptionVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerSummaryRequest;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 错题本控制器（管理端）
@@ -30,9 +29,7 @@ public class WrongAnswerController {
         this.wrongAnswerService = wrongAnswerService;
     }
 
-    /**
-     * 查询错题列表（支持按考生 / 主题 / 题型过滤 + 分页）
-     */
+    /** 查询错题列表（支持按考生 / 主题 / 题型过滤 + 分页） */
     @GetMapping
     public ResponseEntity<WrongAnswerPageVO> listWrongAnswers(
             @RequestParam(required = false) Long studentId,
@@ -40,18 +37,18 @@ public class WrongAnswerController {
             @RequestParam(required = false) String questionType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(wrongAnswerService.pageWrongAnswers(studentId, topic, questionType, page, size));
+        return ResponseEntity.ok(
+                wrongAnswerService.pageWrongAnswers(studentId, topic, questionType, page, size));
     }
 
-    /**
-     * AI 错题总结
-     */
+    /** AI 错题总结 */
     @PostMapping("/summary")
     public ResponseEntity<Map<String, String>> generateSummary(
             @RequestBody WrongAnswerSummaryRequest request) {
         try {
-            String summary = wrongAnswerService.generateAiSummary(
-                    request.getStudentId(), request.getTopic(), request.getQuestionType());
+            String summary =
+                    wrongAnswerService.generateAiSummary(
+                            request.getStudentId(), request.getTopic(), request.getQuestionType());
             return ResponseEntity.ok(Map.of("summary", summary));
         } catch (Exception e) {
             logger.error("AI 错题总结失败", e);
@@ -59,9 +56,7 @@ public class WrongAnswerController {
         }
     }
 
-    /**
-     * 查询考生列表（供错题本筛选下拉框使用）
-     */
+    /** 查询考生列表（供错题本筛选下拉框使用） */
     @GetMapping("/students")
     public ResponseEntity<List<StudentOptionVO>> listStudents() {
         return ResponseEntity.ok(wrongAnswerService.listStudentOptions());

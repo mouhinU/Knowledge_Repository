@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 管理端修改密码命令（自助改密：校验旧密码后设置新密码）。
  *
- * <p>userKey 由适配层从已认证令牌回填，<b>不信任</b>请求体传入，防止越权改他人密码。</p>
+ * <p>userKey 由适配层从已认证令牌回填，<b>不信任</b>请求体传入，防止越权改他人密码。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19

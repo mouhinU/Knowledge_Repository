@@ -4,9 +4,8 @@ import com.mouhin.knowledge.repository.application.converter.StudentConverter;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import org.springframework.stereotype.Component;
-
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 /**
  * 令牌校验查询执行器（app 层用例）

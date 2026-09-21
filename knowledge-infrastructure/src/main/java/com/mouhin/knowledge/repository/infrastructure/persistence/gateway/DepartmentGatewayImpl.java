@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.Department;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.Department;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DepartmentDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 部门仓储实现
@@ -43,9 +42,7 @@ public class DepartmentGatewayImpl implements DepartmentGateway {
 
     @Override
     public List<Department> listAll() {
-        return departmentMapper.selectList(null).stream()
-                .map(this::toDomain)
-                .toList();
+        return departmentMapper.selectList(null).stream().map(this::toDomain).toList();
     }
 
     @Override

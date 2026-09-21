@@ -15,6 +15,7 @@ public class DepartmentCreateCmd {
 
     /** 部门名称 */
     private String departmentName;
+
     /** 上级部门 ID（可空，表示顶级） */
     private Long parentId;
 }

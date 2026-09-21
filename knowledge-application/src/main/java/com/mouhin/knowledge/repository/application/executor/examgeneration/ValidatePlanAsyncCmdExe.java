@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * 方案异步校验执行器（Node 2 分值检验，SSE 回调耦合）
- * <p>因入参含领域类型，不纳入 client 契约，由适配层在建立 SSE 后直接调用。</p>
+ *
+ * <p>因入参含领域类型，不纳入 client 契约，由适配层在建立 SSE 后直接调用。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -20,7 +21,8 @@ public class ValidatePlanAsyncCmdExe {
         this.support = support;
     }
 
-    public void execute(String sessionId, ExamPlan plan, BlackboardProgressCallback progressCallback) {
+    public void execute(
+            String sessionId, ExamPlan plan, BlackboardProgressCallback progressCallback) {
         support.validatePlanAsync(sessionId, plan, progressCallback);
     }
 }

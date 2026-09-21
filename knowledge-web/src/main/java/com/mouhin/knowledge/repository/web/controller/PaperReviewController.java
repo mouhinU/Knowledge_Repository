@@ -13,23 +13,20 @@ import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * 试卷校对控制器（管理端，阶段 1-D 校对关口）
- * <p>
- * 提供待校对试卷列表、逐题结构化校对视图、就地编辑回写 {@code kb_exam_question}、
- * 校对通过发布（契约校验不过不可发布）、以及按原文重新切分回灌等接口。
+ *
+ * <p>提供待校对试卷列表、逐题结构化校对视图、就地编辑回写 {@code kb_exam_question}、 校对通过发布（契约校验不过不可发布）、以及按原文重新切分回灌等接口。
  * 与面向考生答题的 {@code /api/admin/exam-review}（成绩复核）区分，此处针对「试卷本身」的发布前把关。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-18
@@ -48,13 +45,14 @@ public class PaperReviewController {
     private final UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe;
     private final VoidPaperCmdExe voidPaperCmdExe;
 
-    public PaperReviewController(ListReviewPendingQryExe listReviewPendingQryExe,
-                                 GetPaperQuestionsQryExe getPaperQuestionsQryExe,
-                                 UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe,
-                                 ApprovePaperCmdExe approvePaperCmdExe,
-                                 ResplitPaperCmdExe resplitPaperCmdExe,
-                                 UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe,
-                                 VoidPaperCmdExe voidPaperCmdExe) {
+    public PaperReviewController(
+            ListReviewPendingQryExe listReviewPendingQryExe,
+            GetPaperQuestionsQryExe getPaperQuestionsQryExe,
+            UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe,
+            ApprovePaperCmdExe approvePaperCmdExe,
+            ResplitPaperCmdExe resplitPaperCmdExe,
+            UpdateQuestionImagesCmdExe updateQuestionImagesCmdExe,
+            VoidPaperCmdExe voidPaperCmdExe) {
         this.listReviewPendingQryExe = listReviewPendingQryExe;
         this.getPaperQuestionsQryExe = getPaperQuestionsQryExe;
         this.updatePaperQuestionCmdExe = updatePaperQuestionCmdExe;
@@ -64,9 +62,7 @@ public class PaperReviewController {
         this.voidPaperCmdExe = voidPaperCmdExe;
     }
 
-    /**
-     * 待校对试卷列表（REVIEWABLE / VALIDATION_FAILED）
-     */
+    /** 待校对试卷列表（REVIEWABLE / VALIDATION_FAILED） */
     @GetMapping("/pending")
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
@@ -92,9 +88,7 @@ public class PaperReviewController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 某份试卷的结构化逐题校对视图（含实时契约校验结果与发布门槛）
-     */
+    /** 某份试卷的结构化逐题校对视图（含实时契约校验结果与发布门槛） */
     @GetMapping("/{sessionId}/questions")
     public ResponseEntity<Map<String, Object>> getQuestions(@PathVariable String sessionId) {
         PaperQuestionsView view = getPaperQuestionsQryExe.execute(sessionId);
@@ -109,7 +103,9 @@ public class PaperReviewController {
         result.put("durationMinutes", history.getDurationMinutes());
         result.put("examPlan", history.getExamPlan());
         result.put("reviewedBy", history.getReviewedBy());
-        result.put("reviewedTime", history.getReviewedTime() != null ? history.getReviewedTime().toString() : null);
+        result.put(
+                "reviewedTime",
+                history.getReviewedTime() != null ? history.getReviewedTime().toString() : null);
         result.put("reviewRequired", view.reviewRequired());
         result.put("pass", view.validation().pass());
         result.put("issues", view.validation().issues());
@@ -117,9 +113,7 @@ public class PaperReviewController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 就地编辑单题（标准答案 / 解析 / 分值），回写后返回最新校验结果
-     */
+    /** 就地编辑单题（标准答案 / 解析 / 分值），回写后返回最新校验结果 */
     @PutMapping("/{sessionId}/question/{questionNumber}")
     public ResponseEntity<Map<String, Object>> updateQuestion(
             @PathVariable String sessionId,
@@ -130,17 +124,21 @@ public class PaperReviewController {
             String analysis = str(body.get("analysis"));
             Integer maxScore = intOrNull(body.get("maxScore"));
             ExamContractValidator.Result result =
-                    updatePaperQuestionCmdExe.execute(sessionId, questionNumber, correctAnswer, analysis, maxScore);
+                    updatePaperQuestionCmdExe.execute(
+                            sessionId, questionNumber, correctAnswer, analysis, maxScore);
             return ResponseEntity.ok(validationMap(result));
         } catch (Exception e) {
-            logger.warn("校对就地编辑失败 [session={}, number={}]: {}", sessionId, questionNumber, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+            logger.warn(
+                    "校对就地编辑失败 [session={}, number={}]: {}",
+                    sessionId,
+                    questionNumber,
+                    e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
-    /**
-     * 校对页绑定配图：就地保存某题的有序 assetKey 列表（空列表清除绑定），回写 images_json。
-     */
+    /** 校对页绑定配图：就地保存某题的有序 assetKey 列表（空列表清除绑定），回写 images_json。 */
     @PutMapping("/{sessionId}/question/{questionNumber}/images")
     public ResponseEntity<Map<String, Object>> updateQuestionImages(
             @PathVariable String sessionId,
@@ -148,24 +146,27 @@ public class PaperReviewController {
             @RequestBody Map<String, Object> body) {
         try {
             List<String> assetKeys = strList(body.get("assetKeys"));
-            List<String> saved = updateQuestionImagesCmdExe.execute(sessionId, questionNumber, assetKeys);
+            List<String> saved =
+                    updateQuestionImagesCmdExe.execute(sessionId, questionNumber, assetKeys);
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("questionNumber", questionNumber);
             result.put("assetKeys", saved);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            logger.warn("校对配图绑定失败 [session={}, number={}]: {}", sessionId, questionNumber, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+            logger.warn(
+                    "校对配图绑定失败 [session={}, number={}]: {}",
+                    sessionId,
+                    questionNumber,
+                    e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
-    /**
-     * 校对通过并发布（契约校验不过则拒绝，不可绕过）
-     */
+    /** 校对通过并发布（契约校验不过则拒绝，不可绕过） */
     @PostMapping("/{sessionId}/approve")
     public ResponseEntity<Map<String, Object>> approve(
-            @PathVariable String sessionId,
-            @RequestParam(defaultValue = "admin") String reviewer) {
+            @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String reviewer) {
         try {
             ExamContractValidator.Result result = approvePaperCmdExe.execute(sessionId, reviewer);
             if (!result.pass()) {
@@ -176,32 +177,26 @@ public class PaperReviewController {
             return ResponseEntity.ok(Map.of("message", "试卷已校对通过并发布", "published", true));
         } catch (Exception e) {
             logger.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
-    /**
-     * 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」，
-     * 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。
-     */
+    /** 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」， 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。 */
     @PostMapping("/{sessionId}/void")
     public ResponseEntity<Map<String, Object>> voidPaper(
-            @PathVariable String sessionId,
-            @RequestParam(defaultValue = "admin") String operator) {
+            @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String operator) {
         try {
             int cascaded = voidPaperCmdExe.execute(sessionId, operator);
-            return ResponseEntity.ok(Map.of(
-                    "message", "试卷已作废",
-                    "cascadedSessions", cascaded));
+            return ResponseEntity.ok(Map.of("message", "试卷已作废", "cascadedSessions", cascaded));
         } catch (Exception e) {
             logger.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 
-    /**
-     * 按试卷原文重新切分回灌（修正原文 / 老数据首次结构化）
-     */
+    /** 按试卷原文重新切分回灌（修正原文 / 老数据首次结构化） */
     @PostMapping("/{sessionId}/resplit")
     public ResponseEntity<Map<String, Object>> resplit(@PathVariable String sessionId) {
         try {
@@ -211,7 +206,8 @@ public class PaperReviewController {
             return ResponseEntity.ok(body);
         } catch (Exception e) {
             logger.warn("重新切分失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 

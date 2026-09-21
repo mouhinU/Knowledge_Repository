@@ -6,15 +6,14 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 保存 / 更新答题命令执行器（app 层用例，事务边界，支持断点续答）
@@ -35,9 +34,10 @@ public class ExamSaveAnswersCmdExe {
     private final ExamSessionGateway examSessionGateway;
     private final ExamTakingSupport support;
 
-    public ExamSaveAnswersCmdExe(ExamAnswerGateway examAnswerGateway,
-                                 ExamSessionGateway examSessionGateway,
-                                 ExamTakingSupport support) {
+    public ExamSaveAnswersCmdExe(
+            ExamAnswerGateway examAnswerGateway,
+            ExamSessionGateway examSessionGateway,
+            ExamTakingSupport support) {
         this.examAnswerGateway = examAnswerGateway;
         this.examSessionGateway = examSessionGateway;
         this.support = support;
@@ -72,11 +72,11 @@ public class ExamSaveAnswersCmdExe {
         logger.debug("保存答题 [session={}, rows={}]", sessionKey, answerEntities.size());
     }
 
-    /**
-     * 以结构化题目行为权威源构建答题行：每道题必落一行，未答则 studentAnswer 置空。
-     */
-    private List<ExamAnswer> buildFromStructured(ExamSession session, List<ExamQuestion> paperQuestions,
-                                                 List<Map<String, String>> answers) {
+    /** 以结构化题目行为权威源构建答题行：每道题必落一行，未答则 studentAnswer 置空。 */
+    private List<ExamAnswer> buildFromStructured(
+            ExamSession session,
+            List<ExamQuestion> paperQuestions,
+            List<Map<String, String>> answers) {
         // 按印刷题号与位置序号双索引入账，兼容前端任一编号口径
         Map<Integer, Map<String, String>> byNumber = new java.util.HashMap<>();
         for (Map<String, String> ans : answers) {
@@ -95,7 +95,8 @@ public class ExamSaveAnswersCmdExe {
         for (ExamQuestion q : paperQuestions) {
             position++;
             Integer qNumber = q.getQuestionNumber();
-            Map<String, String> matched = qNumber != null ? byNumber.get(qNumber) : byNumber.get(position);
+            Map<String, String> matched =
+                    qNumber != null ? byNumber.get(qNumber) : byNumber.get(position);
             if (matched == null) {
                 matched = byNumber.get(position);
             }
@@ -116,10 +117,9 @@ public class ExamSaveAnswersCmdExe {
         return entities;
     }
 
-    /**
-     * 回退路径：结构化行缺失时按投影 questionsJson 匹配（保持改造前行为）。
-     */
-    private List<ExamAnswer> buildFromProjection(ExamSession session, List<Map<String, String>> answers) {
+    /** 回退路径：结构化行缺失时按投影 questionsJson 匹配（保持改造前行为）。 */
+    private List<ExamAnswer> buildFromProjection(
+            ExamSession session, List<Map<String, String>> answers) {
         List<Map<String, Object>> questions = support.parseQuestions(session.getQuestionsJson());
         List<ExamAnswer> entities = new ArrayList<>();
         for (Map<String, String> ans : answers) {
@@ -137,7 +137,8 @@ public class ExamSaveAnswersCmdExe {
                 answer.setMaxScore((Integer) questionMeta.get("maxScore"));
                 if (questionMeta.get("options") != null) {
                     try {
-                        answer.setOptionsJson(OBJECT_MAPPER.writeValueAsString(questionMeta.get("options")));
+                        answer.setOptionsJson(
+                                OBJECT_MAPPER.writeValueAsString(questionMeta.get("options")));
                     } catch (Exception ignored) {
                         // 序列化失败忽略
                     }

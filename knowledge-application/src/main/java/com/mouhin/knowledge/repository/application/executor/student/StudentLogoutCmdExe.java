@@ -25,10 +25,13 @@ public class StudentLogoutCmdExe {
 
     @Transactional
     public void execute(String token) {
-        studentGateway.findBySessionToken(token).ifPresent(student -> {
-            // 令牌置空须走专用方法：通用 update 在 NOT_NULL 策略下不会把 session_token 写回 null
-            studentGateway.clearSessionToken(student.getId());
-            logger.info("考生退出登录: id={}", student.getId());
-        });
+        studentGateway
+                .findBySessionToken(token)
+                .ifPresent(
+                        student -> {
+                            // 令牌置空须走专用方法：通用 update 在 NOT_NULL 策略下不会把 session_token 写回 null
+                            studentGateway.clearSessionToken(student.getId());
+                            logger.info("考生退出登录: id={}", student.getId());
+                        });
     }
 }

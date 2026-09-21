@@ -5,9 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,23 +15,23 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * OpenAI 兼容端点的流式对话网关实现。
- * <p>
- * 直接以 {@code stream=true} 请求 {@code /chat/completions} 并逐行解析 SSE，
- * 从而同时拿到 {@code delta.content}（正常输出）与
- * {@code delta.reasoning_content / delta.reasoning}（思考链，取决于模型是否支持）。
- * dashscope / deepseek / ollama 均为 OpenAI 兼容端点，故共用本实现，仅 base-url、
- * 模型名与鉴权不同。
- * </p>
+ *
+ * <p>直接以 {@code stream=true} 请求 {@code /chat/completions} 并逐行解析 SSE， 从而同时拿到 {@code
+ * delta.content}（正常输出）与 {@code delta.reasoning_content / delta.reasoning}（思考链，取决于模型是否支持）。 dashscope
+ * / deepseek / ollama 均为 OpenAI 兼容端点，故共用本实现，仅 base-url、 模型名与鉴权不同。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
  */
 public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGateway {
 
-    private static final Logger logger = LoggerFactory.getLogger(OpenAiCompatibleStreamingChatGateway.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(OpenAiCompatibleStreamingChatGateway.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -47,43 +44,51 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
     private final Duration requestTimeout;
 
     /**
-     * @param baseUrl      OpenAI 兼容 base-url（已含 /v1 等前缀）
-     * @param apiKey       访问密钥（ollama 可传占位符）
-     * @param modelName    模型名
-     * @param temperature  采样温度
-     * @param maxTokens    最大生成 token 数
-     * @param timeout      单次请求超时
+     * @param baseUrl OpenAI 兼容 base-url（已含 /v1 等前缀）
+     * @param apiKey 访问密钥（ollama 可传占位符）
+     * @param modelName 模型名
+     * @param temperature 采样温度
+     * @param maxTokens 最大生成 token 数
+     * @param timeout 单次请求超时
      */
-    public OpenAiCompatibleStreamingChatGateway(String baseUrl, String apiKey, String modelName,
-                                                double temperature, int maxTokens, Duration timeout) {
+    public OpenAiCompatibleStreamingChatGateway(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            double temperature,
+            int maxTokens,
+            Duration timeout) {
         this.chatCompletionsUrl = trimTrailingSlash(baseUrl) + "/chat/completions";
         this.apiKey = apiKey;
         this.modelName = modelName;
         this.temperature = temperature;
         this.maxTokens = maxTokens;
         this.requestTimeout = timeout;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
-                .build();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
         logger.info("Initializing streaming chat gateway: {} at {}", modelName, chatCompletionsUrl);
     }
 
     @Override
-    public String streamCompletion(String systemPrompt, String userPrompt, StreamDeltaHandler handler) {
+    public String streamCompletion(
+            String systemPrompt, String userPrompt, StreamDeltaHandler handler) {
         String requestBody = buildRequestBody(systemPrompt, userPrompt);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(chatCompletionsUrl))
-                .timeout(requestTimeout)
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/event-stream")
-                .header("Authorization", "Bearer " + apiKey)
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                .build();
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(chatCompletionsUrl))
+                        .timeout(requestTimeout)
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/event-stream")
+                        .header("Authorization", "Bearer " + apiKey)
+                        .POST(
+                                HttpRequest.BodyPublishers.ofString(
+                                        requestBody, StandardCharsets.UTF_8))
+                        .build();
 
         StringBuilder output = new StringBuilder();
         String[] finishReason = {null};
         try {
-            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             int status = response.statusCode();
             if (status < 200 || status >= 300) {
                 String errBody = readAll(response.body());
@@ -99,20 +104,25 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         if (output.length() == 0) {
             String reason = finishReason[0];
             if ("length".equals(reason)) {
-                throw new RuntimeException("模型思考链耗尽 token 预算（finish_reason=length），未产出正式内容，"
-                        + "请调大 knowledge.llm.streaming.max-tokens 或改用非推理模型");
+                throw new RuntimeException(
+                        "模型思考链耗尽 token 预算（finish_reason=length），未产出正式内容，"
+                                + "请调大 knowledge.llm.streaming.max-tokens 或改用非推理模型");
             }
-            throw new RuntimeException("模型返回空内容（finish_reason=" + (reason == null ? "null" : reason) + "）");
+            throw new RuntimeException(
+                    "模型返回空内容（finish_reason=" + (reason == null ? "null" : reason) + "）");
         }
         return output.toString();
     }
 
-    /**
-     * 逐行读取 SSE，解析增量并回调。
-     */
-    private void consumeStream(InputStream body, StreamDeltaHandler handler, StringBuilder output,
-                               String[] finishReason) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
+    /** 逐行读取 SSE，解析增量并回调。 */
+    private void consumeStream(
+            InputStream body,
+            StreamDeltaHandler handler,
+            StringBuilder output,
+            String[] finishReason)
+            throws IOException {
+        try (BufferedReader reader =
+                new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();
@@ -129,12 +139,16 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         }
     }
 
-    private void processPayload(String payload, StreamDeltaHandler handler, StringBuilder output,
-                                String[] finishReason) {
+    private void processPayload(
+            String payload,
+            StreamDeltaHandler handler,
+            StringBuilder output,
+            String[] finishReason) {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(payload);
             if (root.hasNonNull("error")) {
-                String msg = root.path("error").path("message").asText(root.path("error").toString());
+                String msg =
+                        root.path("error").path("message").asText(root.path("error").toString());
                 throw new RuntimeException("模型返回错误: " + msg);
             }
             JsonNode choices = root.path("choices");
@@ -148,9 +162,10 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
             }
             JsonNode delta = first.path("delta");
             String content = delta.path("content").asText("");
-            String reasoning = firstNonEmpty(
-                    delta.path("reasoning_content").asText(""),
-                    delta.path("reasoning").asText(""));
+            String reasoning =
+                    firstNonEmpty(
+                            delta.path("reasoning_content").asText(""),
+                            delta.path("reasoning").asText(""));
             if (!reasoning.isEmpty() && handler != null) {
                 handler.onDelta(KIND_THINKING, reasoning);
             }
@@ -205,7 +220,8 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
     }
 
     private static String readAll(InputStream in) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {

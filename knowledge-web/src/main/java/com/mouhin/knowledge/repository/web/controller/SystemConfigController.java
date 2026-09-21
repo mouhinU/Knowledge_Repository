@@ -23,9 +23,7 @@ public class SystemConfigController {
         this.systemConfigService = systemConfigService;
     }
 
-    /**
-     * 获取系统状态概览（Embedding 模型、Milvus 连接、知识库统计）
-     */
+    /** 获取系统状态概览（Embedding 模型、Milvus 连接、知识库统计） */
     @GetMapping("/status")
     public ResponseEntity<SystemStatusVO> getStatus() {
         return ResponseEntity.ok(systemConfigService.getSystemStatus());

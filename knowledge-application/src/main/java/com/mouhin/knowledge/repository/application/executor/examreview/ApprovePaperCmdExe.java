@@ -6,21 +6,18 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 /**
  * 校对通过并发布命令执行器（app 层用例，事务边界，阶段 1-D 发布门禁）
- * <p>
- * 发布前强制复跑出卷契约校验：通过则把试卷状态置 {@code PUBLISHED} 并记录审核人 / 时间，学生方可开考；
- * 未通过则抛业务异常并阻断发布（校验不过不可绕过）。若结构化题目行为空（如历史遗留卷），先惰性执行
- * 出卷即切分回灌后再校验。
- * </p>
+ *
+ * <p>发布前强制复跑出卷契约校验：通过则把试卷状态置 {@code PUBLISHED} 并记录审核人 / 时间，学生方可开考；
+ * 未通过则抛业务异常并阻断发布（校验不过不可绕过）。若结构化题目行为空（如历史遗留卷），先惰性执行 出卷即切分回灌后再校验。
  *
  * @author Knowledge-Repository
  * @date 2026-09-18
@@ -34,9 +31,10 @@ public class ApprovePaperCmdExe {
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
 
-    public ApprovePaperCmdExe(PaperReviewSupport support,
-                              ExamHistoryGateway examHistoryGateway,
-                              ExamQuestionSplitSupport examQuestionSplitSupport) {
+    public ApprovePaperCmdExe(
+            PaperReviewSupport support,
+            ExamHistoryGateway examHistoryGateway,
+            ExamQuestionSplitSupport examQuestionSplitSupport) {
         this.support = support;
         this.examHistoryGateway = examHistoryGateway;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
@@ -54,8 +52,8 @@ public class ApprovePaperCmdExe {
         if (questions.isEmpty()) {
             // 惰性回灌：历史遗留 / 切分缺失的卷，先执行出卷即切分再校验
             logger.info("校对发布前题目行为空，执行惰性回灌 [session={}]", sessionKey);
-            examQuestionSplitSupport.splitAndPersist(sessionKey,
-                    history.getExamPaper(), history.getAnswerKey(), plan);
+            examQuestionSplitSupport.splitAndPersist(
+                    sessionKey, history.getExamPaper(), history.getAnswerKey(), plan);
             questions = support.listQuestions(sessionKey);
         }
 

@@ -2,16 +2,15 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.StudentConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.StudentDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.StudentMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 考生仓储实现
@@ -77,19 +76,14 @@ public class StudentGatewayImpl implements StudentGateway {
     public List<Student> listAll() {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(StudentDO::getCreateTime);
-        return studentMapper.selectList(wrapper).stream()
-                .map(StudentConverter::toDomain)
-                .toList();
+        return studentMapper.selectList(wrapper).stream().map(StudentConverter::toDomain).toList();
     }
 
     @Override
     public List<Student> listByDepartment(String departmentId) {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StudentDO::getDepartmentId, departmentId)
-                .orderByDesc(StudentDO::getCreateTime);
-        return studentMapper.selectList(wrapper).stream()
-                .map(StudentConverter::toDomain)
-                .toList();
+        wrapper.eq(StudentDO::getDepartmentId, departmentId).orderByDesc(StudentDO::getCreateTime);
+        return studentMapper.selectList(wrapper).stream().map(StudentConverter::toDomain).toList();
     }
 
     @Override

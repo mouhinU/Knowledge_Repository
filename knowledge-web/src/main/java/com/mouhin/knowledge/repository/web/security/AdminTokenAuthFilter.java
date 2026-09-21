@@ -7,28 +7,24 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 /**
  * 管理端令牌鉴权过滤器（adapter 层，集中校验）。
- * <p>
- * 取代此前对管理端 API 强制的 HTTP Basic：所有受保护请求需携带 {@code X-Admin-Token}（或标准
- * {@code Authorization: Bearer}）访问令牌，交由 {@link AdminAuthServiceI#validateToken} 做
- * 签名 + 过期 + 账号激活态三重校验，任一不通过即以 401 JSON 拒绝、不再向下传递。
- * </p>
- * <p>
- * 放行边界（与鉴权链路配套）：健康探针、静态资源、以及考生侧 {@code /api/student/**}、
- * {@code /api/exam/**}（各自 app 层用学生 token 校验）不参与本过滤器；管理端登录 / 登出端点
- * 因获取令牌之前即需可达，也在放行之列。
- * </p>
+ *
+ * <p>取代此前对管理端 API 强制的 HTTP Basic：所有受保护请求需携带 {@code X-Admin-Token}（或标准 {@code Authorization:
+ * Bearer}）访问令牌，交由 {@link AdminAuthServiceI#validateToken} 做 签名 + 过期 + 账号激活态三重校验，任一不通过即以 401 JSON
+ * 拒绝、不再向下传递。
+ *
+ * <p>放行边界（与鉴权链路配套）：健康探针、静态资源、以及考生侧 {@code /api/student/**}、 {@code /api/exam/**}（各自 app 层用学生 token
+ * 校验）不参与本过滤器；管理端登录 / 登出端点 因获取令牌之前即需可达，也在放行之列。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -44,14 +40,19 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     public static final String PRINCIPAL_ATTRIBUTE = "knowledge.admin.principal";
 
     private static final String BEARER_PREFIX = "Bearer ";
+
     /** SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。 */
     private static final String ACCESS_TOKEN_PARAM = "access_token";
+
     private static final String PATH_ACTUATOR_HEALTH = "/actuator/health";
 
     /** 考生 / 学生侧与管理端登录登出等自带鉴权或须先可达的路径，本过滤器放行。 */
-    private static final List<String> PUBLIC_PREFIXES = List.of(
-            "/api/student/", "/api/exam/", "/api/admin/auth/login", "/api/admin/auth/logout"
-    );
+    private static final List<String> PUBLIC_PREFIXES =
+            List.of(
+                    "/api/student/",
+                    "/api/exam/",
+                    "/api/admin/auth/login",
+                    "/api/admin/auth/logout");
 
     private final AdminAuthServiceI adminAuthService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -61,15 +62,17 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String path = request.getRequestURI();
         if (!requiresAuth(path)) {
             filterChain.doFilter(request, response);
             return;
         }
         String token = resolveToken(request);
-        AdminPrincipalDTO principal = token == null ? null : adminAuthService.validateToken(token).getData();
+        AdminPrincipalDTO principal =
+                token == null ? null : adminAuthService.validateToken(token).getData();
         if (principal == null) {
             writeUnauthorized(response);
             return;
@@ -78,9 +81,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * 判定请求是否需要管理端令牌。仅拦截 {@code /api/**} 与 {@code /actuator/**}，且排除健康探针与放行前缀。
-     */
+    /** 判定请求是否需要管理端令牌。仅拦截 {@code /api/**} 与 {@code /actuator/**}，且排除健康探针与放行前缀。 */
     private boolean requiresAuth(String path) {
         if (path == null) {
             return false;
@@ -123,7 +124,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        objectMapper.writeValue(response.getOutputStream(),
-                Map.of("error", "未认证或登录已过期", "code", 401));
+        objectMapper.writeValue(
+                response.getOutputStream(), Map.of("error", "未认证或登录已过期", "code", 401));
     }
 }

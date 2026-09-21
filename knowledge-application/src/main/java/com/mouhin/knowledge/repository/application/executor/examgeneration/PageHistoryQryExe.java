@@ -3,11 +3,10 @@ package com.mouhin.knowledge.repository.application.executor.examgeneration;
 import com.mouhin.knowledge.repository.application.converter.ExamGenerationConverter;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 分页查询出卷历史执行器（records / total / page / size）
@@ -28,9 +27,10 @@ public class PageHistoryQryExe {
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 10;
         int offset = safePage * safeSize;
-        List<ExamHistoryDTO> records = examHistoryGateway.listPage(safeSize, offset).stream()
-                .map(ExamGenerationConverter::toHistoryDTO)
-                .toList();
+        List<ExamHistoryDTO> records =
+                examHistoryGateway.listPage(safeSize, offset).stream()
+                        .map(ExamGenerationConverter::toHistoryDTO)
+                        .toList();
         long total = examHistoryGateway.countAll();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("records", records);

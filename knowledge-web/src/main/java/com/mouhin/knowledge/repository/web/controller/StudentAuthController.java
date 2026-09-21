@@ -4,12 +4,11 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 考生认证控制器
@@ -29,40 +28,33 @@ public class StudentAuthController {
         this.studentService = studentService;
     }
 
-    /**
-     * 考生注册
-     */
+    /** 考生注册 */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody StudentRegisterCmd cmd) {
         try {
             StudentVO student = studentService.register(cmd).getData();
-            return ResponseEntity.ok(Map.of(
-                    "message", "注册成功",
-                    "studentId", student.getStudentId(),
-                    "username", student.getUsername()));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message", "注册成功",
+                            "studentId", student.getStudentId(),
+                            "username", student.getUsername()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 考生登录
-     */
+    /** 考生登录 */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody StudentLoginCmd cmd) {
         try {
             String token = studentService.login(cmd).getData();
-            return ResponseEntity.ok(Map.of(
-                    "message", "登录成功",
-                    "token", token));
+            return ResponseEntity.ok(Map.of("message", "登录成功", "token", token));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 退出登录
-     */
+    /** 退出登录 */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken,
@@ -77,9 +69,7 @@ public class StudentAuthController {
         return ResponseEntity.ok(Map.of("message", "已退出"));
     }
 
-    /**
-     * 验证令牌（获取当前考生信息）
-     */
+    /** 验证令牌（获取当前考生信息） */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
@@ -90,11 +80,11 @@ public class StudentAuthController {
         if (student == null) {
             return ResponseEntity.status(401).body(Map.of("error", "登录已过期"));
         }
-        return ResponseEntity.ok(Map.<String, Object>of(
-                "studentId", student.getStudentId(),
-                "username", student.getUsername(),
-                "displayName", student.getDisplayName(),
-                "studentNo", student.getStudentNo()
-        ));
+        return ResponseEntity.ok(
+                Map.<String, Object>of(
+                        "studentId", student.getStudentId(),
+                        "username", student.getUsername(),
+                        "displayName", student.getDisplayName(),
+                        "studentNo", student.getStudentNo()));
     }
 }

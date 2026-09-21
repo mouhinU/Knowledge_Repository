@@ -2,28 +2,27 @@ package com.mouhin.knowledge.repository.application.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-
 /**
  * 试卷内容校验 Agent
- * <p>
- * 在「试卷内容渲染 Agent」之后运行，对渲染就绪的结构化题目做确定性正确性校验，
- * 阻断明显异常的试卷开考，并对可疑但可用的情况给出提示：
+ *
+ * <p>在「试卷内容渲染 Agent」之后运行，对渲染就绪的结构化题目做确定性正确性校验， 阻断明显异常的试卷开考，并对可疑但可用的情况给出提示：
+ *
  * <ol>
- *     <li>题目数量必须大于 0；</li>
- *     <li>每道题必须有非空题干；</li>
- *     <li>单选题 / 多选题必须有至少 2 个非空选项（阻断）；</li>
- *     <li>题号必须连续且不重复；</li>
- *     <li>题型必须为已知枚举；</li>
- *     <li>各题分值之和应为正（为 0 时视为配置异常，阻断）；</li>
- *     <li>题干重复检测（warning）。</li>
+ *   <li>题目数量必须大于 0；
+ *   <li>每道题必须有非空题干；
+ *   <li>单选题 / 多选题必须有至少 2 个非空选项（阻断）；
+ *   <li>题号必须连续且不重复；
+ *   <li>题型必须为已知枚举；
+ *   <li>各题分值之和应为正（为 0 时视为配置异常，阻断）；
+ *   <li>题干重复检测（warning）。
  * </ol>
+ *
  * 校验不通过（存在阻断性 error）时，调用方应阻止开考。
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-15
@@ -34,9 +33,14 @@ public class ExamContentValidatorAgent {
     private static final Logger logger = LoggerFactory.getLogger(ExamContentValidatorAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final Set<String> KNOWN_TYPES = Set.of(
-            "SINGLE_CHOICE", "MULTI_CHOICE", "TRUE_FALSE",
-            "FILL_BLANK", "SHORT_ANSWER", "ESSAY");
+    private static final Set<String> KNOWN_TYPES =
+            Set.of(
+                    "SINGLE_CHOICE",
+                    "MULTI_CHOICE",
+                    "TRUE_FALSE",
+                    "FILL_BLANK",
+                    "SHORT_ANSWER",
+                    "ESSAY");
 
     /**
      * 校验结构化题目 JSON
@@ -109,8 +113,12 @@ public class ExamContentValidatorAgent {
         }
 
         boolean pass = errors.isEmpty();
-        logger.info("校验 Agent：共 {} 题，pass={}，errors={}，warnings={}",
-                questions.size(), pass, errors.size(), warnings.size());
+        logger.info(
+                "校验 Agent：共 {} 题，pass={}，errors={}，warnings={}",
+                questions.size(),
+                pass,
+                errors.size(),
+                warnings.size());
         return new PaperValidationReport(pass, questions.size(), totalMaxScore, errors, warnings);
     }
 
@@ -121,8 +129,7 @@ public class ExamContentValidatorAgent {
             return List.of();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {
-            });
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
             logger.warn("校验 Agent：questionsJson 解析失败: {}", e.getMessage());
             return List.of();

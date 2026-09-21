@@ -13,18 +13,12 @@ import lombok.Setter;
 @Setter
 public class WrongAnswerSummaryRequest {
 
-    /**
-     * 考生 ID（可选）
-     */
+    /** 考生 ID（可选） */
     private Long studentId;
 
-    /**
-     * 主题关键词（可选）
-     */
+    /** 主题关键词（可选） */
     private String topic;
 
-    /**
-     * 题型（可选）
-     */
+    /** 题型（可选） */
     private String questionType;
 }

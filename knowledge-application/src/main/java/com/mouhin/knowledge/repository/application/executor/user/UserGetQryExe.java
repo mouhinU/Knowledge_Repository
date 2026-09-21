@@ -22,8 +22,11 @@ public class UserGetQryExe {
     }
 
     public UserVO execute(String userKey) {
-        User user = userGateway.findByUserKey(userKey)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userKey));
+        User user =
+                userGateway
+                        .findByUserKey(userKey)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("User not found: " + userKey));
         return UserConverter.toVO(user);
     }
 }

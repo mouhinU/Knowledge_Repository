@@ -5,10 +5,9 @@ import java.util.List;
 
 /**
  * 题型分布方案（值对象）
- * <p>
- * 描述一份试卷"有哪些题型、每种多少道、每道多少分"，由多阶段分布 Agent 生成、可在出题页面调整，
- * 最终作为出卷流水线（分值分配 → 试卷编写）的权威输入。所有小题分值之和恒等于 {@code totalFullMark}。
- * </p>
+ *
+ * <p>描述一份试卷"有哪些题型、每种多少道、每道多少分"，由多阶段分布 Agent 生成、可在出题页面调整， 最终作为出卷流水线（分值分配 → 试卷编写）的权威输入。所有小题分值之和恒等于
+ * {@code totalFullMark}。
  *
  * @author Knowledge-Repository
  * @date 2026-09-16
@@ -36,12 +35,9 @@ public class ExamPlan {
     /** 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定） */
     private boolean manualAdjusted;
 
-    public ExamPlan() {
-    }
+    public ExamPlan() {}
 
-    /**
-     * 当前所有小题分值之和
-     */
+    /** 当前所有小题分值之和 */
     public int allocatedTotal() {
         int sum = 0;
         if (types != null) {
@@ -52,9 +48,7 @@ public class ExamPlan {
         return sum;
     }
 
-    /**
-     * 总题量
-     */
+    /** 总题量 */
     public int totalQuestions() {
         int n = 0;
         if (types != null) {

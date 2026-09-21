@@ -8,15 +8,13 @@ import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 /**
  * 文档摄入应用服务实现（app 层，仅分发到执行器）
  *
- * <p>仅承载传输无关的确认类用例。文件上传（multipart）与 SSE 异步索引因与传输强耦合，
- * 由适配层直接调用对应执行器，不经此对外契约。</p>
+ * <p>仅承载传输无关的确认类用例。文件上传（multipart）与 SSE 异步索引因与传输强耦合， 由适配层直接调用对应执行器，不经此对外契约。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -29,10 +27,11 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionServiceI {
     private final IndexCmdExe indexCmdExe;
     private final IndexCustomChunksCmdExe indexCustomChunksCmdExe;
 
-    public DocumentIngestionServiceImpl(PreviewFromDocumentQryExe previewFromDocumentQryExe,
-                                        ReindexCmdExe reindexCmdExe,
-                                        IndexCmdExe indexCmdExe,
-                                        IndexCustomChunksCmdExe indexCustomChunksCmdExe) {
+    public DocumentIngestionServiceImpl(
+            PreviewFromDocumentQryExe previewFromDocumentQryExe,
+            ReindexCmdExe reindexCmdExe,
+            IndexCmdExe indexCmdExe,
+            IndexCustomChunksCmdExe indexCustomChunksCmdExe) {
         this.previewFromDocumentQryExe = previewFromDocumentQryExe;
         this.reindexCmdExe = reindexCmdExe;
         this.indexCmdExe = indexCmdExe;
@@ -40,7 +39,8 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionServiceI {
     }
 
     @Override
-    public PreviewResult previewFromDocument(String documentKey, int chunkSize, int overlap, String strategy) {
+    public PreviewResult previewFromDocument(
+            String documentKey, int chunkSize, int overlap, String strategy) {
         return previewFromDocumentQryExe.execute(documentKey, chunkSize, overlap, strategy);
     }
 
@@ -55,7 +55,8 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionServiceI {
     }
 
     @Override
-    public DocumentVO indexWithCustomChunks(String documentKey, List<CustomChunkInput> customChunks) {
+    public DocumentVO indexWithCustomChunks(
+            String documentKey, List<CustomChunkInput> customChunks) {
         return indexCustomChunksCmdExe.execute(documentKey, customChunks);
     }
 }

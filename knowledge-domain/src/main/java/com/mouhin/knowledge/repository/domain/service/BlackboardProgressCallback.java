@@ -4,10 +4,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 
 /**
  * 黑板进度回调接口
- * <p>
- * Agent 在执行过程中通过此接口推送进度事件，
- * 前端通过 SSE 实时接收并展示。
- * </p>
+ *
+ * <p>Agent 在执行过程中通过此接口推送进度事件， 前端通过 SSE 实时接收并展示。
  *
  * @author Knowledge-Repository
  * @date 2026-09-13

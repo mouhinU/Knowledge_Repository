@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * AI 写作历史记录视图对象
  *
- * <p>字段集合与顺序与原 {@code WritingHistory} 实体的 Jackson 序列化结果逐一对齐（15 个属性），
- * 保证 {@code /api/agent/article/history} 返回 JSON 键集合、顺序与取值不变。</p>
+ * <p>字段集合与顺序与原 {@code WritingHistory} 实体的 Jackson 序列化结果逐一对齐（15 个属性）， 保证 {@code
+ * /api/agent/article/history} 返回 JSON 键集合、顺序与取值不变。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17

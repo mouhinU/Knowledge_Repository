@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
-import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,14 +9,22 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
 /**
  * 人工复核执行器回归测试（体检 P4 遗留 · HIGH H1）。
- * <p>
- * 锁定"清除人工改分"这一 {@code updateById} 无法覆盖的路径：当复核人把分数改回 {@code null}
- * （意图回落到 AI 评分）时，必须走 {@code clearReviewOverride} 显式将 review_* 列置 NULL，
- * 而非 {@code update()}——后者因 MyBatis-Plus 默认 {@code FieldStrategy=NOT_NULL} 会跳过 null 列，
- * 导致旧覆盖残留、分数永不回落。同时校验非空改分仍正常走 update、越界分数被拒。
- * </p>
+ *
+ * <p>锁定"清除人工改分"这一 {@code updateById} 无法覆盖的路径：当复核人把分数改回 {@code null} （意图回落到 AI 评分）时，必须走 {@code
+ * clearReviewOverride} 显式将 review_* 列置 NULL， 而非 {@code update()}——后者因 MyBatis-Plus 默认 {@code
+ * FieldStrategy=NOT_NULL} 会跳过 null 列， 导致旧覆盖残留、分数永不回落。同时校验非空改分仍正常走 update、越界分数被拒。
  *
  * @author Knowledge-Repository
  * @date 2026-09-19
@@ -94,7 +91,8 @@ class ReviewAnswerCmdExeTest {
         when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
         stubSession("AI_GRADED");
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> exe.execute(ANSWER_ID, 99, null, "teacher01"));
 
         verify(answerGateway, never()).update(any(ExamAnswer.class));
@@ -108,8 +106,8 @@ class ReviewAnswerCmdExeTest {
         when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
         stubSession("IN_PROGRESS");
 
-        assertThrows(IllegalStateException.class,
-                () -> exe.execute(ANSWER_ID, 8, null, "teacher01"));
+        assertThrows(
+                IllegalStateException.class, () -> exe.execute(ANSWER_ID, 8, null, "teacher01"));
 
         verify(answerGateway, never()).update(any(ExamAnswer.class));
         verify(answerGateway, never()).clearReviewOverride(anyLong());
@@ -132,8 +130,12 @@ class ReviewAnswerCmdExeTest {
         when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
         stubSession("AI_GRADED");
         // 本场次有效分：7 + 3 + 0 = 10
-        when(answerGateway.listBySessionId(SESSION_ID)).thenReturn(List.of(
-                answerWithEffective(7), answerWithEffective(3), answerWithEffective(0)));
+        when(answerGateway.listBySessionId(SESSION_ID))
+                .thenReturn(
+                        List.of(
+                                answerWithEffective(7),
+                                answerWithEffective(3),
+                                answerWithEffective(0)));
 
         exe.execute(ANSWER_ID, 8, "酌情加分", "teacher01");
 
@@ -151,8 +153,8 @@ class ReviewAnswerCmdExeTest {
         when(answerGateway.findById(ANSWER_ID)).thenReturn(Optional.of(answer()));
         stubSession("REVIEWED");
         // 清除后该题回落 AI 分=6，全场有效分 6 + 2 = 8
-        when(answerGateway.listBySessionId(SESSION_ID)).thenReturn(List.of(
-                answerWithEffective(6), answerWithEffective(2)));
+        when(answerGateway.listBySessionId(SESSION_ID))
+                .thenReturn(List.of(answerWithEffective(6), answerWithEffective(2)));
 
         exe.execute(ANSWER_ID, null, null, "teacher01");
 

@@ -3,18 +3,16 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * 全局配图检索查询执行器（app 层，看图题配图 · 阶段 2）。
- * <p>
- * 供校对页「全局图片搜索」入口：按关键词匹配来源文档名 / 文档 Key，或按 documentKey 限定到某篇文档，
- * 分页返回配图缩略图所需元信息（含来源文档名与展示 URL）。keyword 与 documentKey 皆空时按最新入库顺序返回全部。
- * </p>
+ *
+ * <p>供校对页「全局图片搜索」入口：按关键词匹配来源文档名 / 文档 Key，或按 documentKey 限定到某篇文档， 分页返回配图缩略图所需元信息（含来源文档名与展示
+ * URL）。keyword 与 documentKey 皆空时按最新入库顺序返回全部。
  *
  * @author Knowledge-Repository
  * @date 2026-09-20
@@ -36,13 +34,22 @@ public class SearchImagesQryExe {
     public SearchResult execute(String keyword, String documentKey, int limit, int offset) {
         int safeLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
         int safeOffset = Math.max(0, offset);
-        List<ExamDocumentImageVO> records = documentImageSupport
-                .searchImages(trimToNull(keyword), trimToNull(documentKey), safeLimit, safeOffset).stream()
-                .map(SearchImagesQryExe::toVO)
-                .toList();
+        List<ExamDocumentImageVO> records =
+                documentImageSupport
+                        .searchImages(
+                                trimToNull(keyword), trimToNull(documentKey), safeLimit, safeOffset)
+                        .stream()
+                        .map(SearchImagesQryExe::toVO)
+                        .toList();
         long total = documentImageSupport.countImages(trimToNull(keyword), trimToNull(documentKey));
-        logger.debug("全局配图检索 [keyword={}, documentKey={}, limit={}, offset={}, hit={}, total={}]",
-                keyword, documentKey, safeLimit, safeOffset, records.size(), total);
+        logger.debug(
+                "全局配图检索 [keyword={}, documentKey={}, limit={}, offset={}, hit={}, total={}]",
+                keyword,
+                documentKey,
+                safeLimit,
+                safeOffset,
+                records.size(),
+                total);
         return new SearchResult(records, total);
     }
 
@@ -75,8 +82,7 @@ public class SearchImagesQryExe {
      * 检索结果分页封装。
      *
      * @param records 当前页配图列表
-     * @param total   同条件命中总数
+     * @param total 同条件命中总数
      */
-    public record SearchResult(List<ExamDocumentImageVO> records, long total) {
-    }
+    public record SearchResult(List<ExamDocumentImageVO> records, long total) {}
 }

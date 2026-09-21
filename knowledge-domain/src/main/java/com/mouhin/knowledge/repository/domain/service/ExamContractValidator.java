@@ -3,7 +3,6 @@ package com.mouhin.knowledge.repository.domain.service;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -11,19 +10,18 @@ import java.util.Set;
 
 /**
  * 出卷契约校验器（V2 阶段 1-C，发布前硬关口）
- * <p>
- * 对「出卷即切分」产出的结构化题目行做确定性契约校验，确保切分结果与题型分布方案、
- * 卷面分值、答案规范三者自洽，作为发布 / 校对闸门的规则门禁（不依赖大模型）。校验维度：
- * </p>
+ *
+ * <p>对「出卷即切分」产出的结构化题目行做确定性契约校验，确保切分结果与题型分布方案、 卷面分值、答案规范三者自洽，作为发布 / 校对闸门的规则门禁（不依赖大模型）。校验维度：
+ *
  * <ol>
- *     <li>题数 == 方案总题量；</li>
- *     <li>各题型数量 == 方案对应题型数量；</li>
- *     <li>分值合计 == 方案满分；</li>
- *     <li>印刷题号非空且唯一（权威编号）；</li>
- *     <li>每题标准答案非空；</li>
- *     <li>答案规范（先经 {@link ExamAnswerNormalizer} 剥离内联解释再判定）：单选恰 1 个 A~D 字母；
- *         多选 ≥ 2 个 A~D 字母；判断为 正确 / 错误 等判词头部；</li>
- *     <li>选择题（单选 / 多选）选项非空（判断题为隐式二选一，不校验选项）。</li>
+ *   <li>题数 == 方案总题量；
+ *   <li>各题型数量 == 方案对应题型数量；
+ *   <li>分值合计 == 方案满分；
+ *   <li>印刷题号非空且唯一（权威编号）；
+ *   <li>每题标准答案非空；
+ *   <li>答案规范（先经 {@link ExamAnswerNormalizer} 剥离内联解释再判定）：单选恰 1 个 A~D 字母； 多选 ≥ 2 个 A~D 字母；判断为 正确 / 错误
+ *       等判词头部；
+ *   <li>选择题（单选 / 多选）选项非空（判断题为隐式二选一，不校验选项）。
  * </ol>
  *
  * @author Knowledge-Repository
@@ -31,14 +29,13 @@ import java.util.Set;
  */
 public final class ExamContractValidator {
 
-    private ExamContractValidator() {
-    }
+    private ExamContractValidator() {}
 
     /**
      * 校验切分结果。
      *
      * @param questions 切分产出的结构化题目行
-     * @param plan      题型分布方案（可为 null；缺省时跳过题数/分值/分布对齐，仅校验答案规范与编号）
+     * @param plan 题型分布方案（可为 null；缺省时跳过题数/分值/分布对齐，仅校验答案规范与编号）
      * @return 校验结果（issues 非空即不通过）
      */
     public static Result validate(List<ExamQuestion> questions, ExamPlan plan) {
@@ -49,7 +46,9 @@ public final class ExamContractValidator {
         }
 
         // 1. 题数对齐
-        if (plan != null && plan.totalQuestions() > 0 && questions.size() != plan.totalQuestions()) {
+        if (plan != null
+                && plan.totalQuestions() > 0
+                && questions.size() != plan.totalQuestions()) {
             issues.add("切分题数 " + questions.size() + " ≠ 方案总题量 " + plan.totalQuestions());
         }
 
@@ -69,11 +68,18 @@ public final class ExamContractValidator {
                     continue;
                 }
                 String key = t.getKey() == null ? "" : t.getKey().toUpperCase();
-                long actual = questions.stream()
-                        .filter(q -> key.equalsIgnoreCase(q.getQuestionType()))
-                        .count();
+                long actual =
+                        questions.stream()
+                                .filter(q -> key.equalsIgnoreCase(q.getQuestionType()))
+                                .count();
                 if (actual != t.getCount()) {
-                    issues.add("题型「" + labelOf(t, key) + "」切分数量 " + actual + " ≠ 方案题量 " + t.getCount());
+                    issues.add(
+                            "题型「"
+                                    + labelOf(t, key)
+                                    + "」切分数量 "
+                                    + actual
+                                    + " ≠ 方案题量 "
+                                    + t.getCount());
                 }
             }
         }
@@ -136,9 +142,7 @@ public final class ExamContractValidator {
         return new Result(issues.isEmpty(), issues);
     }
 
-    /**
-     * 渲染校验报告为 Markdown（供校对视图 / 日志展示）。
-     */
+    /** 渲染校验报告为 Markdown（供校对视图 / 日志展示）。 */
     public static String renderReport(Result result) {
         StringBuilder sb = new StringBuilder();
         if (result.pass()) {
@@ -171,9 +175,8 @@ public final class ExamContractValidator {
     /**
      * 契约校验结果。
      *
-     * @param pass   是否通过（issues 为空）
+     * @param pass 是否通过（issues 为空）
      * @param issues 问题清单（不通过项）
      */
-    public record Result(boolean pass, List<String> issues) {
-    }
+    public record Result(boolean pass, List<String> issues) {}
 }

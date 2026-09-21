@@ -11,148 +11,90 @@ import java.util.Objects;
  */
 public class ExamHistory {
 
-    /**
-     * 试卷生命周期状态：已生成待切分/校验（向后兼容旧 COMPLETED 语义，校对前中间态）
-     */
+    /** 试卷生命周期状态：已生成待切分/校验（向后兼容旧 COMPLETED 语义，校对前中间态） */
     public static final String STATUS_DRAFT = "DRAFT";
 
-    /**
-     * 试卷生命周期状态：出卷契约校验通过，等待人工校对（review-required=true 默认停留于此）
-     */
+    /** 试卷生命周期状态：出卷契约校验通过，等待人工校对（review-required=true 默认停留于此） */
     public static final String STATUS_REVIEWABLE = "REVIEWABLE";
 
-    /**
-     * 试卷生命周期状态：已发布，学生方可开考
-     */
+    /** 试卷生命周期状态：已发布，学生方可开考 */
     public static final String STATUS_PUBLISHED = "PUBLISHED";
 
-    /**
-     * 试卷生命周期状态：出卷契约校验未通过，强制人工校对，不可自动发布
-     */
+    /** 试卷生命周期状态：出卷契约校验未通过，强制人工校对，不可自动发布 */
     public static final String STATUS_VALIDATION_FAILED = "VALIDATION_FAILED";
 
-    /**
-     * 生成失败（出卷流水线异常，非试卷质量问题）
-     */
+    /** 生成失败（出卷流水线异常，非试卷质量问题） */
     public static final String STATUS_FAILED = "FAILED";
 
-    /**
-     * 试卷生命周期状态：已作废（终态）。作废后学生不可再开考，且从「可用考试」列表移除；
-     * 已存在的考试场次随之标注「试卷已作废」，仍可正常显示与查阅，但不再计入有效成绩。
-     */
+    /** 试卷生命周期状态：已作废（终态）。作废后学生不可再开考，且从「可用考试」列表移除； 已存在的考试场次随之标注「试卷已作废」，仍可正常显示与查阅，但不再计入有效成绩。 */
     public static final String STATUS_VOIDED = "VOIDED";
 
     private Long id;
 
-    /**
-     * 会话 ID
-     */
+    /** 会话 ID */
     private String sessionId;
 
-    /**
-     * 考试主题
-     */
+    /** 考试主题 */
     private String topic;
 
-    /**
-     * 难度：EASY / MEDIUM / HARD
-     */
+    /** 难度：EASY / MEDIUM / HARD */
     private String difficulty;
 
-    /**
-     * 考试时长（分钟），AI 根据科目特性设定
-     */
+    /** 考试时长（分钟），AI 根据科目特性设定 */
     private Integer durationMinutes;
 
-    /**
-     * 题型配置描述
-     */
+    /** 题型配置描述 */
     private String questionConfig;
 
-    /**
-     * 题型分布方案（ExamPlan 的 JSON 序列化），生成试卷时确认的权威方案，
-     * 供考试端按方案渲染题型与分值，保证三处（方案/试卷/渲染）强一致。
-     */
+    /** 题型分布方案（ExamPlan 的 JSON 序列化），生成试卷时确认的权威方案， 供考试端按方案渲染题型与分值，保证三处（方案/试卷/渲染）强一致。 */
     private String examPlan;
 
-    /**
-     * 最终试卷
-     */
+    /** 最终试卷 */
     private String examPaper;
 
-    /**
-     * 参考答案
-     */
+    /** 参考答案 */
     private String answerKey;
 
-    /**
-     * 质量评分
-     */
+    /** 质量评分 */
     private Integer qualityScore;
 
-    /**
-     * 质量评分六维度明细（JSON：accuracy/wording/coverage/typeReasonable/difficulty/format/total）
-     */
+    /** 质量评分六维度明细（JSON：accuracy/wording/coverage/typeReasonable/difficulty/format/total） */
     private String scoreDetail;
 
-    /**
-     * 检索到的知识块数量
-     */
+    /** 检索到的知识块数量 */
     private Integer retrievedChunks;
 
-    /**
-     * 关键发现（研究员 Agent）
-     */
+    /** 关键发现（研究员 Agent） */
     private String keyFindings;
 
-    /**
-     * 审核反馈（审核 Agent）
-     */
+    /** 审核反馈（审核 Agent） */
     private String reviewFeedback;
 
-    /**
-     * 难度评估（校准 Agent）
-     */
+    /** 难度评估（校准 Agent） */
     private String difficultyAssessment;
 
-    /**
-     * 查重报告（去重 Agent）
-     */
+    /** 查重报告（去重 Agent） */
     private String deduplicationReport;
 
-    /**
-     * 用户 ID
-     */
+    /** 用户 ID */
     private String userId;
 
-    /**
-     * 部门 ID
-     */
+    /** 部门 ID */
     private String departmentId;
 
-    /**
-     * 知识分类
-     */
+    /** 知识分类 */
     private String category;
 
-    /**
-     * 试卷生命周期状态：DRAFT / REVIEWABLE / PUBLISHED / VALIDATION_FAILED / FAILED
-     */
+    /** 试卷生命周期状态：DRAFT / REVIEWABLE / PUBLISHED / VALIDATION_FAILED / FAILED */
     private String status;
 
-    /**
-     * 错误信息
-     */
+    /** 错误信息 */
     private String errorMessage;
 
-    /**
-     * 校对审核人（管理员 / 出题人），PUBLISHED 时写入
-     */
+    /** 校对审核人（管理员 / 出题人），PUBLISHED 时写入 */
     private String reviewedBy;
 
-    /**
-     * 校对审核（发布）时间
-     */
+    /** 校对审核（发布）时间 */
     private LocalDateTime reviewedTime;
 
     private LocalDateTime createTime;
@@ -363,23 +305,17 @@ public class ExamHistory {
 
     // ==================== 业务方法（试卷生命周期） ====================
 
-    /**
-     * 是否已发布（学生可开口的唯一判据）。
-     */
+    /** 是否已发布（学生可开口的唯一判据）。 */
     public boolean isPublished() {
         return STATUS_PUBLISHED.equals(status);
     }
 
-    /**
-     * 校验通过，进入待校对状态（review-required=true 默认停留于此）。
-     */
+    /** 校验通过，进入待校对状态（review-required=true 默认停留于此）。 */
     public void markReviewable() {
         this.status = STATUS_REVIEWABLE;
     }
 
-    /**
-     * 出卷契约校验未通过，强制人工校对，不可自动发布。
-     */
+    /** 出卷契约校验未通过，强制人工校对，不可自动发布。 */
     public void markValidationFailed() {
         this.status = STATUS_VALIDATION_FAILED;
     }
@@ -395,9 +331,7 @@ public class ExamHistory {
         this.reviewedTime = LocalDateTime.now();
     }
 
-    /**
-     * 是否已作废（终态）。作废试卷不可再开考，也不出现在可用考试列表。
-     */
+    /** 是否已作废（终态）。作废试卷不可再开考，也不出现在可用考试列表。 */
     public boolean isVoided() {
         return STATUS_VOIDED.equals(status);
     }

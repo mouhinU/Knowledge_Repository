@@ -9,6 +9,9 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,17 +19,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-
 /**
  * 仅上传并提取文本用例执行器（app 层，不入库）。
- * <p>
- * 逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadOnly}：空文件校验 → 临时落盘 →
- * 提取 → 去重 → 持久存储 → 建文档(UPLOADED) → 记录页数 → 发布创建事件 → 缓存提取结果。
- * 由适配层直接调用（出入参含 {@link MultipartFile}，传输耦合，不入对外契约）。
- * </p>
+ *
+ * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadOnly}：空文件校验 → 临时落盘 → 提取 → 去重 → 持久存储 →
+ * 建文档(UPLOADED) → 记录页数 → 发布创建事件 → 缓存提取结果。 由适配层直接调用（出入参含 {@link MultipartFile}，传输耦合，不入对外契约）。
  *
  * @author Knowledge-Repository
  * @date 2026-09-17
@@ -43,12 +40,13 @@ public class UploadOnlyCmdExe {
     private final ApplicationEventPublisher eventPublisher;
     private final DocumentImageSupport documentImageSupport;
 
-    public UploadOnlyCmdExe(DocumentIngestionSupport support,
-                            ExtractionCacheHolder extractionCache,
-                            DocumentGateway documentGateway,
-                            DocumentExtractionGateway documentExtractionService,
-                            ApplicationEventPublisher eventPublisher,
-                            DocumentImageSupport documentImageSupport) {
+    public UploadOnlyCmdExe(
+            DocumentIngestionSupport support,
+            ExtractionCacheHolder extractionCache,
+            DocumentGateway documentGateway,
+            DocumentExtractionGateway documentExtractionService,
+            ApplicationEventPublisher eventPublisher,
+            DocumentImageSupport documentImageSupport) {
         this.support = support;
         this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
@@ -58,9 +56,14 @@ public class UploadOnlyCmdExe {
     }
 
     @Transactional
-    public DocumentVO execute(MultipartFile file, String ownerId, String departmentId,
-                              DocumentVisibilityEnum visibility, String allowedRoles,
-                              String tags, String category) {
+    public DocumentVO execute(
+            MultipartFile file,
+            String ownerId,
+            String departmentId,
+            DocumentVisibilityEnum visibility,
+            String allowedRoles,
+            String tags,
+            String category) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }
@@ -75,16 +78,21 @@ public class UploadOnlyCmdExe {
         try {
             ExtractionResult result;
             try {
-                result = documentExtractionService.extractText(
-                        tempFile, file.getSize(), file.getOriginalFilename());
+                result =
+                        documentExtractionService.extractText(
+                                tempFile, file.getSize(), file.getOriginalFilename());
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to extract text", e);
             }
 
-            documentGateway.findByFileChecksum(result.checksum()).ifPresent(existing -> {
-                throw new IllegalArgumentException(
-                        "Duplicate file detected. Existing document: " + existing.getDocumentKey());
-            });
+            documentGateway
+                    .findByFileChecksum(result.checksum())
+                    .ifPresent(
+                            existing -> {
+                                throw new IllegalArgumentException(
+                                        "Duplicate file detected. Existing document: "
+                                                + existing.getDocumentKey());
+                            });
 
             Path permanentFile;
             try {
@@ -94,9 +102,18 @@ public class UploadOnlyCmdExe {
             }
 
             String documentKey = support.newDocumentKey();
-            Document document = support.buildDocument(documentKey, file, permanentFile.toString(),
-                    ownerId, departmentId, visibility, allowedRoles, tags, category,
-                    ChunkingConfig.defaultConfig());
+            Document document =
+                    support.buildDocument(
+                            documentKey,
+                            file,
+                            permanentFile.toString(),
+                            ownerId,
+                            departmentId,
+                            visibility,
+                            allowedRoles,
+                            tags,
+                            category,
+                            ChunkingConfig.defaultConfig());
             document.validateForCreate();
             documentGateway.save(document);
 
@@ -106,16 +123,24 @@ public class UploadOnlyCmdExe {
             try {
                 documentImageSupport.extractAndPersist(document, permanentFile);
             } catch (Exception imgEx) {
-                logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}",
-                        documentKey, imgEx.getMessage());
+                logger.warn(
+                        "图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}", documentKey, imgEx.getMessage());
             }
 
-            eventPublisher.publishEvent(new DocumentCreatedEvent(
-                    documentKey, file.getOriginalFilename(), ownerId, departmentId, LocalDateTime.now()));
+            eventPublisher.publishEvent(
+                    new DocumentCreatedEvent(
+                            documentKey,
+                            file.getOriginalFilename(),
+                            ownerId,
+                            departmentId,
+                            LocalDateTime.now()));
 
             extractionCache.put(documentKey, result);
 
-            logger.info("Document uploaded (pending index): {} -> {}", documentKey, document.getFileName());
+            logger.info(
+                    "Document uploaded (pending index): {} -> {}",
+                    documentKey,
+                    document.getFileName());
             return DocumentConverter.toVO(document);
 
         } finally {

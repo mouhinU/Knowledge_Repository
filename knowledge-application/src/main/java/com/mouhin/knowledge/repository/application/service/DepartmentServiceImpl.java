@@ -9,9 +9,8 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
 import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 /**
  * 部门管理应用服务实现（app 层，仅分发到 Executor）
@@ -27,10 +26,11 @@ public class DepartmentServiceImpl implements DepartmentServiceI {
     private final DepartmentCreateCmdExe departmentCreateCmdExe;
     private final DepartmentUpdateCmdExe departmentUpdateCmdExe;
 
-    public DepartmentServiceImpl(DepartmentListQryExe departmentListQryExe,
-                                 DepartmentTreeQryExe departmentTreeQryExe,
-                                 DepartmentCreateCmdExe departmentCreateCmdExe,
-                                 DepartmentUpdateCmdExe departmentUpdateCmdExe) {
+    public DepartmentServiceImpl(
+            DepartmentListQryExe departmentListQryExe,
+            DepartmentTreeQryExe departmentTreeQryExe,
+            DepartmentCreateCmdExe departmentCreateCmdExe,
+            DepartmentUpdateCmdExe departmentUpdateCmdExe) {
         this.departmentListQryExe = departmentListQryExe;
         this.departmentTreeQryExe = departmentTreeQryExe;
         this.departmentCreateCmdExe = departmentCreateCmdExe;

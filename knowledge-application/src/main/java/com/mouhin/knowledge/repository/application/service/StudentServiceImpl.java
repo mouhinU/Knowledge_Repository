@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.alibaba.cola.dto.MultiResponse;
+import com.alibaba.cola.dto.Response;
+import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.application.executor.student.StudentGetByIdQryExe;
 import com.mouhin.knowledge.repository.application.executor.student.StudentListQryExe;
 import com.mouhin.knowledge.repository.application.executor.student.StudentLoginCmdExe;
@@ -10,9 +13,6 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
-import com.alibaba.cola.dto.MultiResponse;
-import com.alibaba.cola.dto.Response;
-import com.alibaba.cola.dto.SingleResponse;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,12 +31,13 @@ public class StudentServiceImpl implements StudentServiceI {
     private final StudentGetByIdQryExe studentGetByIdQryExe;
     private final StudentListQryExe studentListQryExe;
 
-    public StudentServiceImpl(StudentRegisterCmdExe studentRegisterCmdExe,
-                              StudentLoginCmdExe studentLoginCmdExe,
-                              StudentLogoutCmdExe studentLogoutCmdExe,
-                              StudentValidateTokenQryExe studentValidateTokenQryExe,
-                              StudentGetByIdQryExe studentGetByIdQryExe,
-                              StudentListQryExe studentListQryExe) {
+    public StudentServiceImpl(
+            StudentRegisterCmdExe studentRegisterCmdExe,
+            StudentLoginCmdExe studentLoginCmdExe,
+            StudentLogoutCmdExe studentLogoutCmdExe,
+            StudentValidateTokenQryExe studentValidateTokenQryExe,
+            StudentGetByIdQryExe studentGetByIdQryExe,
+            StudentListQryExe studentListQryExe) {
         this.studentRegisterCmdExe = studentRegisterCmdExe;
         this.studentLoginCmdExe = studentLoginCmdExe;
         this.studentLogoutCmdExe = studentLogoutCmdExe;
