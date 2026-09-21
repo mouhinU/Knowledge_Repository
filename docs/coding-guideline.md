@@ -3,9 +3,9 @@
 > 本分册由根目录 `AGENTS.md` 第一~九章 + 第十三章拆分而来，基于《Java 开发手册》v1.5.0（华山版）
 > 结合本项目技术栈（见 [tech-stack.md](tech-stack.md)）定制裁剪。
 > 分层归属 / 对象转化 / 依赖方向等**架构**规则见 [architecture-decisions.md](architecture-decisions.md)。
-> 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
+> 维护：`@author beginningness` · 拆分日期 2026-09-20
 
-目录：一 命名 · 二 常量 · 三 格式 · 四 OOP · 五 集合 · 六 并发 · 七 注释 · 八 异常 · 九 日志 · 十 常见反模式
+目录：一 命名 · 二 常量 · 三 格式 · 四 OOP · 五 集合 · 六 并发 · 七 注释 · 八 异常 · 九 日志 · 十 方法规范 · 十一 常见反模式
 
 ---
 
@@ -95,7 +95,7 @@
 - **缩进**：采用 4 个空格缩进，禁止使用 tab 字符。
 - **大括号**：左大括号前不换行，左大括号后换行，右大括号前换行，右大括号后有 `else` 不换行。
 - **单行字符数**不超过 120 个，超出换行时第二行缩进 4 个空格。
-- **单方法行数**推荐不超过 80 行。
+- **单方法行数**不超过 **50 行**（硬性，细化见 §十 方法与函数规范）。
 - IDE 编码设置 UTF-8，换行符使用 Unix 格式（LF）。
 
 ---
@@ -131,9 +131,11 @@
 ## 七、注释规约
 
 - 类、类属性、类方法注释使用 `/** Javadoc */` 格式。
-- **新建或重点修改的 Java 类应补齐 `@author Knowledge-Repository` + `@date`**；已有类不强制一次性大改，但新增/关键改动需保持一致。
+- **新建或重点修改的 Java 类应补齐 `@author` + `@date` 的 Javadoc**；已有类不强制一次性大改，但新增/关键改动需保持一致。
 - 推荐用中文注释，专有名词保持英文。
-- 作者信息统一填写 `@author Knowledge-Repository` + `@date`（原第十三章并入此处）。
+- **`@author` 取值**：填写当前开发者标识，取自本仓库 `git config user.name` 的返回值（本仓库为 `beginningness`），不使用固定占位名。
+- **`@date` 取值**：填写**编写该注释时的当前系统时间**，格式 `yyyy-MM-dd HH:mm:ss`（24 小时制，如 `2026-09-21 08:23:43`）；由 AI 生成代码时须以运行环境的实时时间填充，不得沿用示例值或臆造时间。
+- 作者与时间信息统一采用上述口径（原第十三章并入此处）。
 
 ### 本项目类注释模板
 
@@ -141,8 +143,8 @@
 /**
  * 文档应用服务实现（app 层，仅分发到 Executor）
  *
- * @author Knowledge-Repository
- * @date 2026-09-02
+ * @author beginningness
+ * @date 2026-09-21 08:23:43
  */
 @Service
 public class DocumentServiceImpl implements DocumentServiceI {
@@ -164,22 +166,51 @@ public class DocumentServiceImpl implements DocumentServiceI {
 
 ## 九、日志规约
 
-- **使用 SLF4J API**，不直接使用 Log4j / Logback API。
+- **统一使用 Lombok `@Slf4j` 注解声明日志对象**：类上加 `@Slf4j`，编译期自动生成名为 **`log`** 的静态字段，直接 `log.debug(...)` 使用，**禁止**再手写 `private static final Logger logger = LoggerFactory.getLogger(...)`，也无需 import `Logger` / `LoggerFactory`。
+- `@Slf4j` 底层仍是 SLF4J API，故仍**不得**直接依赖 Log4j / Logback API。
 
 ```java
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+public class XxxService {
+    public void handle(String documentKey) {
+        log.info("Processing document with key: {}", documentKey);
+    }
+}
 ```
 
-- 日志输出使用占位符：`logger.debug("Processing document with key: {}", documentKey)`。
-- `trace` / `debug` / `info` 级别输出必须进行日志级别开关判断。
-- 异常日志包含堆栈信息：`logger.error("Failed to process: " + e.getMessage(), e)`。
+- 日志输出使用占位符 `{}`，**禁止 `+` 字符串拼接**：`log.debug("Processing document with key: {}", documentKey)`。
+- 一般无需手工判级；仅当参数需要昂贵计算时才用 `log.isXxxEnabled()` 守卫。
+- 异常日志把异常对象作为**最后一个参数**传入以保留堆栈：`log.error("处理文档失败, key={}", documentKey, e)`（勿 `+ e.getMessage()` 而丢栈）。
 - **禁止记录敏感信息**（口令、令牌、身份证等），安全日志约束见 [security-guideline.md](security-guideline.md) §5。
+- **存量迁移**：仓库现有类多为手写 `LoggerFactory`（约 100 个），不强制一次性重构；但**新增 / 重点改动的类一律改用 `@Slf4j`**，随迭代收敛到统一口径。
 
 ---
 
-## 十、常见反模式（反例 → 正解）
+## 十、方法与函数规范（硬性）
+
+> 以下为**不可协商**的硬约束，覆盖并细化第三、四章相关条目（2026-09-21 新增）。
+
+1. **方法名 ≤ 50 字符**。在见名知意的前提下尽量精炼；禁止无意义缩写（§1.1）。名称逼近上限通常意味着职责过重，应拆分为更小的方法。
+
+2. **方法体 ≤ 50 行**（不含空行与注释）。超过即按单一职责拆出私有方法；此条为硬性上限，取代原 §三"推荐 ≤ 80 行"。
+
+3. **参数个数 ≤ 5，且 > 3 即封装**。
+    - 参数超过 3 个时，统一封装为请求对象传入（client 层 `XxxCmd` / `XxxQuery`，或 app 内部参数 DTO）；
+    - 5 个为绝对上限，达到即必须重构；
+    - 避免布尔开关参数（`boolean` flag）——调用点语义模糊，必要时拆成两个方法或用枚举表达意图。
+
+4. **优先编写纯函数**：**相同的输入永远产生相同的输出**，且不产生副作用——不修改入参、不读写可变全局状态、不做 I/O。
+    - 确需副作用时（DB / 网络 / 文件 / 系统时间 / 随机数），将其**收敛到系统边界**（infrastructure 的 `Gateway` 与外部调用），核心计算逻辑保持纯；
+    - 该原则与 COLA「domain 层纯净」一致，分层与事务边界见 [architecture-decisions.md](architecture-decisions.md) §4 / §5。
+
+> 例外：框架入口（`main`、Controller 方法）、`equals` / `hashCode` / 构造器等样板方法以表达清晰为先，可适度放宽行数与参数限制，但仍受命名与"优先纯函数"意图约束。
+
+---
+
+## 十一、常见反模式（反例 → 正解）
 
 以下均为本项目高频踩坑点，生成 / 审查代码时优先排查：
 
@@ -191,7 +222,7 @@ private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
 | SQL 用 `${}` 拼接、`SELECT *` | 注入 + 无谓 IO | 一律 `#{}`，动态列走白名单，显式列字段（§ data & migration / security §1） |
 | DO 出现在 app / adapter | 破坏分层、泄漏表结构 | 层边界转化 `Entity/DTO/VO`（architecture §2） |
 | 一个 Service 方法堆完整用例、事务里裹 LLM / 外部 IO | 长事务占连接、超时连锁回滚 | 一用例一 Executor，事务收窄，IO 移出事务（architecture §4） |
-| 日志用 `+` 拼接、或打印口令 / 令牌 | 性能损耗 + 泄密 | 占位符 `{}`，敏感信息脱敏（§九、security §5） |
+| 手写 `LoggerFactory.getLogger` / 日志用 `+` 拼接 / 打印口令 · 令牌 | 样板冗余、性能损耗 + 泄密 | 类上 `@Slf4j`（字段 `log`）+ 占位符 `{}`，敏感信息脱敏（§九、security §5） |
 | 空 `catch` / 裸 `new RuntimeException` | 吞异常、无业务语义 | 记录或转译；用 `BizException` / `IllegalStateException`（§八、architecture §8） |
 | 魔法值散落各处 | 不可维护、易漂移 | 归类预定义常量（§二） |
 | POJO 布尔写成 `isDeleted` | 部分框架序列化歧义 | 去 `is` 前缀：`deleted`（§1.3） |

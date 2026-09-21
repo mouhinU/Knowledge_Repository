@@ -3,7 +3,7 @@
 > 本分册**聚合**根目录 `AGENTS.md` 中散落于第十章（SQL 注入）、第十二章 §12.1（文件限制）、
 > §12.3（权限隔离）的安全约束，并补充项目现有鉴权实现（管理员 / 考生令牌、口令哈希、上传上限）形成的既定规范。
 > 相关代码位置以本仓库现状为准；技术栈见 [tech-stack.md](tech-stack.md)。
-> 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
+> 维护：`@author beginningness` · 拆分日期 2026-09-20
 
 ---
 
@@ -40,7 +40,7 @@
 
 ## 5. 日志与敏感信息
 
-- 禁止记录口令、令牌、个人敏感信息（身份证 / 手机号等）；SLF4J 用法见 [coding-guideline.md](coding-guideline.md) §九。
+- 禁止记录口令、令牌、个人敏感信息（身份证 / 手机号等）；日志统一用 Lombok `@Slf4j`，用法见 [coding-guideline.md](coding-guideline.md) §九。
 - 异常日志可含堆栈，但对外响应只回 `errorMessage` 摘要，不泄漏内部结构 / SQL / 文件绝对路径。
 
 ## 6. 错误处理对外的信息面

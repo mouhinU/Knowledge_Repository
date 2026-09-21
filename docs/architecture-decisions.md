@@ -3,7 +3,7 @@
 > 本分册由根目录 `AGENTS.md` 第十一章拆分而来，为项目**权威架构框架**。
 > 与编码细则（命名 / 格式 / 日志等）分工：本文件管「放哪层、怎么依赖、对象怎么转化」，
 > 具体「怎么写」见 [coding-guideline.md](coding-guideline.md)。
-> 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
+> 维护：`@author beginningness` · 拆分日期 2026-09-20
 
 > 说明：以阿里巴巴 **COLA 5.0**（Clean Object-oriented and Layered Architecture）为权威架构框架。COLA 5.0 支持基于 package 的轻量级分层，但本项目采用**物理多模块**分层（含独立 client 层），二者取舍以本文件为准。
 > 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。新增代码以物理模块与本分册定义为准。
@@ -77,8 +77,8 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 /**
  * 文档应用服务实现（app 层，仅分发）
  *
- * @author Knowledge-Repository
- * @date 2026-09-17
+ * @author beginningness
+ * @date 2026-09-21 08:23:43
  */
 @Service
 public class DocumentServiceImpl implements DocumentServiceI {

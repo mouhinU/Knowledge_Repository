@@ -2,7 +2,7 @@
 
 > 本分册由根目录 `AGENTS.md` 拆分而来，映射原「引言技术栈」与「COLA 基线说明」。
 > 版本一经确定，AI 生成代码时**不得擅改框架 / JDK 版本**；如需升级须先确认，并以代码评审与版本治理为落地机制。
-> 维护：`@author Knowledge-Repository` · 拆分日期 2026-09-20
+> 维护：`@author beginningness` · 拆分日期 2026-09-20
 > 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。
 
 ---
