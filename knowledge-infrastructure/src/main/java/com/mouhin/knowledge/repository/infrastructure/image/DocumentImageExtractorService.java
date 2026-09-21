@@ -68,6 +68,9 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     /** 单文档最多抽取的图片数，防御恶意 / 超大文件撑爆内存 */
     private static final int MAX_IMAGES_PER_DOC = 300;
 
+    /** 默认 / fallback MIME（java:S1192：抽常量防 5 处 MIME_PNG 字面量漂移）。 */
+    private static final String MIME_PNG = "image/png";
+
     private final Tika tika = new Tika();
 
     @Override
@@ -151,7 +154,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                         result.add(
                                 new ExtractedImage(
                                         bytes,
-                                        "image/png",
+                                        MIME_PNG,
                                         awt.getWidth(),
                                         awt.getHeight(),
                                         pageNo,
@@ -381,7 +384,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         if (fileExt != null) {
             String byExt =
                     switch (fileExt.toLowerCase(Locale.ROOT)) {
-                        case "png" -> "image/png";
+                        case "png" -> MIME_PNG;
                         case "jpg", "jpeg" -> "image/jpeg";
                         case "gif" -> "image/gif";
                         case "bmp" -> "image/bmp";
@@ -397,10 +400,10 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
 
     private String sniff(byte[] b) {
         if (b == null || b.length < 4) {
-            return "image/png";
+            return MIME_PNG;
         }
         if ((b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
-            return "image/png";
+            return MIME_PNG;
         }
         if ((b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8) {
             return "image/jpeg";
@@ -422,6 +425,6 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         if ((b[0] & 0xFF) == 0x42 && (b[1] & 0xFF) == 0x4D) {
             return "image/bmp";
         }
-        return "image/png";
+        return MIME_PNG;
     }
 }

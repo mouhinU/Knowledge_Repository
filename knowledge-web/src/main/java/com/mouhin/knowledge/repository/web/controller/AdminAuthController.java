@@ -33,6 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class AdminAuthController {
 
+    /** 统一响应 map 的 error / message 字段名（java:S1192 抽公共 key）。 */
+    private static final String ERR_FIELD = "error";
+
+    private static final String MSG_FIELD = "message";
+
     private final AdminAuthServiceI adminAuthService;
 
     public AdminAuthController(AdminAuthServiceI adminAuthService) {
@@ -46,15 +51,26 @@ public class AdminAuthController {
             AdminLoginResultDTO data = adminAuthService.login(cmd).getData();
             return ResponseEntity.ok(
                     Map.of(
-                            "message", "登录成功",
-                            "token", data.getToken(),
-                            "userKey", data.getUserKey(),
-                            "username", data.getUsername(),
-                            "admin", Boolean.TRUE.equals(data.getAdmin()),
-                            "expiresAt", data.getExpiresAt()));
+                            MSG_FIELD,
+                            "登录成功",
+                            "token",
+                            data.getToken(),
+                            "userKey",
+                            data.getUserKey(),
+                            "username",
+                            data.getUsername(),
+                            "admin",
+                            Boolean.TRUE.equals(data.getAdmin()),
+                            "expiresAt",
+                            data.getExpiresAt()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage(), "code", HttpStatus.UNAUTHORIZED.value()));
+                    .body(
+                            Map.of(
+                                    ERR_FIELD,
+                                    e.getMessage(),
+                                    "code",
+                                    HttpStatus.UNAUTHORIZED.value()));
         }
     }
 
@@ -71,7 +87,7 @@ public class AdminAuthController {
         if (token != null) {
             adminAuthService.logout(token);
         }
-        return ResponseEntity.ok(Map.of("message", "已退出"));
+        return ResponseEntity.ok(Map.of(MSG_FIELD, "已退出"));
     }
 
     /** 获取当前登录者身份（令牌已由过滤器校验，直接取回属性）。 */
@@ -80,7 +96,7 @@ public class AdminAuthController {
         AdminPrincipalDTO principal = currentPrincipal(request);
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
+                    .body(Map.of(ERR_FIELD, "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
         }
         return ResponseEntity.ok(
                 Map.of(
@@ -96,14 +112,14 @@ public class AdminAuthController {
         AdminPrincipalDTO principal = currentPrincipal(request);
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
+                    .body(Map.of(ERR_FIELD, "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
         }
         cmd.setUserKey(principal.getUserKey());
         try {
             adminAuthService.changePassword(cmd);
-            return ResponseEntity.ok(Map.of("message", "密码修改成功"));
+            return ResponseEntity.ok(Map.of(MSG_FIELD, "密码修改成功"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, e.getMessage()));
         }
     }
 

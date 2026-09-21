@@ -45,6 +45,10 @@ public class ExamGenerationSupport {
     private static final int DEFAULT_MAX_RESULTS = 20;
     private static final double DEFAULT_MIN_SCORE = 0.3;
     private static final int QUALITY_SCORE_THRESHOLD = 80;
+
+    /** Agent 规划校验 span 名（java:S1192：抽常量防 5 处字面量漂移）。 */
+    private static final String SPAN_NAME_PLAN_VALIDATOR = "exam-plan-validator";
+
     private static final int MAX_REVIEW_RETRIES = 2;
 
     /** 关闭 Agent 线程池时等待在途任务收尾的秒数 */
@@ -655,7 +659,7 @@ public class ExamGenerationSupport {
                         if (progressCallback != null) {
                             progressCallback.onProgress(
                                     BlackboardProgressEvent.agentStartedWithMaterials(
-                                            "exam-plan-validator",
+                                            SPAN_NAME_PLAN_VALIDATOR,
                                             "正在校验题型分布方案的总分与分值分布...",
                                             "方案含 "
                                                     + (plan != null && plan.getTypes() != null
@@ -670,7 +674,7 @@ public class ExamGenerationSupport {
                             if (progressCallback != null) {
                                 progressCallback.onProgress(
                                         BlackboardProgressEvent.agentFailed(
-                                                "exam-plan-validator", report));
+                                                SPAN_NAME_PLAN_VALIDATOR, report));
                                 progressCallback.onProgress(
                                         BlackboardProgressEvent.error("方案为空，请先生成方案"));
                             }
@@ -699,7 +703,7 @@ public class ExamGenerationSupport {
                             if (progressCallback != null) {
                                 progressCallback.onProgress(
                                         BlackboardProgressEvent.agentCompleted(
-                                                "exam-plan-validator", report));
+                                                SPAN_NAME_PLAN_VALIDATOR, report));
                             }
                             log.info(
                                     "[PlanValidate] 校验通过 [session={}, fullMark={}]",
@@ -709,7 +713,7 @@ public class ExamGenerationSupport {
                             if (progressCallback != null) {
                                 progressCallback.onProgress(
                                         BlackboardProgressEvent.agentFailed(
-                                                "exam-plan-validator", report));
+                                                SPAN_NAME_PLAN_VALIDATOR, report));
                                 progressCallback.onProgress(
                                         BlackboardProgressEvent.error(
                                                 "分值校验未通过，共 " + result.issues().size() + " 项硬性错误"));
@@ -785,7 +789,7 @@ public class ExamGenerationSupport {
                     (kind, delta) ->
                             progressCallback.onProgress(
                                     BlackboardProgressEvent.tokenDelta(
-                                            "exam-plan-validator", kind, delta)));
+                                            SPAN_NAME_PLAN_VALIDATOR, kind, delta)));
         } catch (Exception e) {
             log.warn("[PlanValidate] 模型解读失败（忽略，仅用规则结果）: {}", e.getMessage());
             return null;

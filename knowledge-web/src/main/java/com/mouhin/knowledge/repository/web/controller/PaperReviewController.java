@@ -35,6 +35,9 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class PaperReviewController {
 
+    /** 统一响应 map 的 error 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
+    private static final String ERR_FIELD = "error";
+
     private final ListReviewPendingQryExe listReviewPendingQryExe;
     private final GetPaperQuestionsQryExe getPaperQuestionsQryExe;
     private final UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe;
@@ -132,7 +135,7 @@ public class PaperReviewController {
                     questionNumber,
                     e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
         }
     }
 
@@ -157,7 +160,7 @@ public class PaperReviewController {
                     questionNumber,
                     e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
         }
     }
 
@@ -169,14 +172,14 @@ public class PaperReviewController {
             ExamContractValidator.Result result = approvePaperCmdExe.execute(sessionId, reviewer);
             if (!result.pass()) {
                 Map<String, Object> body = validationMap(result);
-                body.put("error", "出卷契约校验未通过，无法发布，请先修正下列问题");
+                body.put(ERR_FIELD, "出卷契约校验未通过，无法发布，请先修正下列问题");
                 return ResponseEntity.badRequest().body(body);
             }
             return ResponseEntity.ok(Map.of("message", "试卷已校对通过并发布", "published", true));
         } catch (Exception e) {
             log.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
         }
     }
 
@@ -190,7 +193,7 @@ public class PaperReviewController {
         } catch (Exception e) {
             log.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
         }
     }
 
@@ -205,7 +208,7 @@ public class PaperReviewController {
         } catch (Exception e) {
             log.warn("重新切分失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
         }
     }
 

@@ -29,6 +29,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class DocumentUploadController {
 
+    /** 统一响应 map 的 error message 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
+    private static final String FIELD_ERROR_MESSAGE = "errorMessage";
+
     private final UploadOnlyCmdExe uploadOnlyCmdExe;
     private final UploadFromFileCmdExe uploadFromFileCmdExe;
     private final UploadSessionManager uploadSessionManager;
@@ -87,9 +90,10 @@ public class DocumentUploadController {
             return ResponseEntity.badRequest()
                     .body(
                             Map.of(
-                                    "errorCode", "BAD_REQUEST",
-                                    "errorMessage",
-                                            "Unsupported file type. Supported formats: PDF, Word, Excel, PPT, TXT, CSV, HTML"));
+                                    "errorCode",
+                                    "BAD_REQUEST",
+                                    FIELD_ERROR_MESSAGE,
+                                    "Unsupported file type. Supported formats: PDF, Word, Excel, PPT, TXT, CSV, HTML"));
         }
 
         DocumentVisibilityEnum vis;
@@ -101,7 +105,7 @@ public class DocumentUploadController {
                             Map.of(
                                     "errorCode",
                                     "BAD_REQUEST",
-                                    "errorMessage",
+                                    FIELD_ERROR_MESSAGE,
                                     "Invalid visibility: " + visibility));
         }
 
@@ -144,7 +148,7 @@ public class DocumentUploadController {
         } catch (Exception e) {
             log.error("初始化分片上传失败", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("errorCode", "INIT_FAILED", "errorMessage", e.getMessage()));
+                    .body(Map.of("errorCode", "INIT_FAILED", FIELD_ERROR_MESSAGE, e.getMessage()));
         }
     }
 
@@ -165,11 +169,16 @@ public class DocumentUploadController {
                             "complete", complete));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("errorCode", "INVALID_SESSION", "errorMessage", e.getMessage()));
+                    .body(
+                            Map.of(
+                                    "errorCode",
+                                    "INVALID_SESSION",
+                                    FIELD_ERROR_MESSAGE,
+                                    e.getMessage()));
         } catch (Exception e) {
             log.error("上传分片失败 [uploadId={}, chunk={}]", uploadId, chunkIndex, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("errorCode", "CHUNK_FAILED", "errorMessage", e.getMessage()));
+                    .body(Map.of("errorCode", "CHUNK_FAILED", FIELD_ERROR_MESSAGE, e.getMessage()));
         }
     }
 
@@ -185,8 +194,10 @@ public class DocumentUploadController {
                 return ResponseEntity.badRequest()
                         .body(
                                 Map.of(
-                                        "errorCode", "INVALID_SESSION",
-                                        "errorMessage", "上传会话不存在或已过期"));
+                                        "errorCode",
+                                        "INVALID_SESSION",
+                                        FIELD_ERROR_MESSAGE,
+                                        "上传会话不存在或已过期"));
             }
             String fileName = session.getFileName();
 
@@ -206,7 +217,7 @@ public class DocumentUploadController {
                                 Map.of(
                                         "errorCode",
                                         "BAD_REQUEST",
-                                        "errorMessage",
+                                        FIELD_ERROR_MESSAGE,
                                         "Invalid visibility: " + visibility));
             }
 
@@ -231,7 +242,12 @@ public class DocumentUploadController {
         } catch (Exception e) {
             log.error("完成分片上传失败 [uploadId={}]", uploadId, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("errorCode", "COMPLETE_FAILED", "errorMessage", e.getMessage()));
+                    .body(
+                            Map.of(
+                                    "errorCode",
+                                    "COMPLETE_FAILED",
+                                    FIELD_ERROR_MESSAGE,
+                                    e.getMessage()));
         }
     }
 
