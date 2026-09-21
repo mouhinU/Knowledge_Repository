@@ -1,312 +1,93 @@
-# AGENTS.md — 编码规范
+# AGENTS.md — 项目规范导航地图（Index / Map）
 
-> 本规范基于《Java开发手册》v1.5.0（华山版），结合 Knowledge_Repository 项目技术栈（Spring Boot 3.4 / Java 21 / MyBatis-Plus
-> 3.5.17 / LangChain4j 1.0 / Milvus 2.5 / PDFBox 3 / Apache Tika 3 / Apache POI 5 / H2 + MySQL / Flyway）进行定制化裁剪。*
-*所有 AI 生成的代码必须严格遵循以下规则。**
+> 本文件是 Knowledge_Repository 的 **AI 编码总纲与导航索引**，不再是单本厚手册。
+> 全部细则按维度拆分至 `docs/` 下若干分册，**按需查阅**。基线：《Java 开发手册》v1.5.0（华山版）+ **COLA 5.0 架构规范**。
+> 技术栈速览：Spring Boot 3.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI 5 / H2 + MySQL / Flyway。
+> **所有 AI 生成的代码必须严格遵循以下红线与对应分册。**
 
----
-
-## 一、命名规约
-
-### 1.1 基本命名
-
-- 命名不能以下划线 `_` 或美元符号 `$` 开头或结尾。
-- 严禁拼音与英文混合，更不允许直接使用中文命名。国际通用名称（如 `hangzhou`）可视同英文。
-- 杜绝不规范的缩写，避免望文不知义（反例：`AbsClass`、`condi`）。
-
-### 1.2 风格要求
-
-| 元素                      | 风格             | 正例                                     | 反例                                      |
-|-------------------------|----------------|----------------------------------------|-----------------------------------------|
-| 类名                      | UpperCamelCase | `UserService`、`SearchResultVO`         | `userService`、`SearchResultVo`          |
-| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()`        | `LocalValue`、`gethttpmessage()`         |
-| 常量                      | 全大写 + 下划线分隔    | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME`  | `MAX_SIZE`                              |
-| 包名                      | 全小写，单数形式       | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
-
-- 类名例外（保持全大写后缀）：`DO` / `BO` / `DTO` / `VO` / `AO` / `PO` / `UID`。
-- 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test` 结尾。
-- 枚举类名带 `Enum` 后缀，枚举成员全大写下划线分隔（如 `DocumentStatusEnum.INDEXED`）。
-
-### 1.3 POJO 布尔属性
-
-- **POJO 类中布尔类型变量不要加 `is` 前缀**，否则部分框架解析会引起序列化错误。
-- 反例：`Boolean isDeleted` → 应改为 `Boolean deleted`。
-
-### 1.4 接口与实现
-
-- Service / DAO 层：接口名不加修饰，实现类用 `Impl` 后缀。正例：`DocumentRepositoryImpl` 实现 `DocumentRepository`。
-- 接口方法不加 `public abstract` 等修饰符，保持简洁。
-
-### 1.5 各层方法命名
-
-| 操作     | 前缀                             |
-|--------|--------------------------------|
-| 获取单个对象 | `get` / `find`                 |
-| 获取多个对象 | `list`（复数结尾，如 `listDocuments`） |
-| 获取统计值  | `count`                        |
-| 插入     | `save` / `insert`              |
-| 删除     | `remove` / `delete`            |
-| 修改     | `update`                       |
-
-### 1.6 数据对象与领域模型命名
-
-**基础数据对象：**
-
-- 数据对象：`xxxDO`（xxx 为数据表名）
-- 数据传输对象：`xxxDTO`（xxx 为业务领域名称）
-- 展示对象：`xxxVO`（xxx 为网页名称）
-
-**DDD 领域模型命名：**
-
-| 概念                   | 后缀                   | 正例                                           |
-|----------------------|----------------------|----------------------------------------------|
-| 聚合根（Aggregate Root）  | 直接用业务名词              | `Document`                                   |
-| 实体（Entity）           | 直接用业务名词              | `DocumentChunk`、`User`                       |
-| 值对象（Value Object）    | 直接用业务名词              | `Permission`、`ChunkingConfig`、`SearchResult` |
-| 领域服务（Domain Service） | `DomainService`      | `DocumentIngestionDomainService`             |
-| 仓储接口（Repository）     | `Repository`         | `DocumentRepository`                         |
-| 仓储实现                 | `RepositoryImpl`     | `DocumentRepositoryImpl`                     |
-| 应用服务                 | `ApplicationService` | `DocumentIngestionApplicationService`        |
-| 领域事件（Domain Event）   | `Event`（过去式）         | `DocumentCreatedEvent`                       |
-| 转换器（Converter）       | `Converter`          | `DocumentConverter`                          |
+> 说明：本文使用 **COLA 规范术语**（adapter / app / client / domain / infrastructure）。物理模块：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。层职责以 [docs/architecture-decisions.md](docs/architecture-decisions.md) 为准。
 
 ---
 
-## 二、常量定义
+## 0. 不可协商的核心红线（Always-on，无需翻分册即须遵守）
 
-- **禁止魔法值**：所有常量必须预先定义，不允许直接出现在代码中。
-- `long` / `Long` 赋值时使用大写 `L`，不用小写 `l`。
-- 按功能归类维护常量，不要用一个常量类维护所有常量。
-
----
-
-## 三、代码格式
-
-- **缩进**：采用 4 个空格缩进，禁止使用 tab 字符。
-- **大括号**：左大括号前不换行，左大括号后换行，右大括号前换行，右大括号后有 `else` 不换行。
-- **单行字符数**不超过 120 个，超出换行时第二行缩进 4 个空格。
-- **单方法行数**推荐不超过 80 行。
-- IDE 编码设置 UTF-8，换行符使用 Unix 格式（LF）。
+1. **构造器注入、面向接口**，禁止字段 `@Autowired`。
+2. **禁止魔法值**；常量全大写下划线，归类维护。
+3. **4 空格缩进**，单行 ≤120 字符，LF 换行，UTF-8。
+4. **日志：优先使用 Lombok `@Slf4j`**（自动生成字段 `log`）+ 占位符 `{}`；在不使用 Lombok 或需自定义 logger 名称的特殊场景允许使用 `LoggerFactory`，但需在 PR 描述中说明理由。**严禁**在日志或响应中回显口令、令牌等敏感信息。
+5. **SQL 参数一律 `#{}`**，禁止把请求入参直接拼进 SQL；动态列名 / 排序须白名单校验后再拼，禁止裸 `${}`。
+6. **DO 不越过 infrastructure**；转换只在层边界：adapter `VO⇄DTO`，app `DTO⇄Entity`，infra `Entity⇄DO`。
+7. **domain 层保持纯净**，不依赖 app / adapter / infrastructure；Gateway 接口在 domain、`GatewayImpl` 在 infrastructure。
+8. **app 层 Service 只做分发**，用例编排落单一 `CmdExe`/`QryExe`；写库事务在 Executor。含 LLM / 外部 IO 的长耗时用例不得置于数据库事务（transaction）内；建议将可能 >200ms 的外部调用异步化或在事务外处理，并在设计文档中说明处理方式。
+9. **新建或修改 Java 类时的 Javadoc 要求**：公共/库级别类应补齐完整 Javadoc；普通/内部类为推荐。`@author`/`@date` 可选，鼓励以 Git 提交元数据为主。
+10. **谨慎变更框架 / JDK 版本**；依赖以 [docs/tech-stack.md](docs/tech-stack.md) 为准。重大变更需提交变更提案（包含影响评估、回退计划、测试覆盖）并获得架构/负责人审批。
+11. **方法与函数目标值**：方法名 ≤50 字符；方法体目标 ≤50 行；参数 ≤5（若 >3 建议封装为 `Cmd`/`Query`/参数对象）；优先纯函数（相同输入→相同输出，副作用收敛到 infrastructure 边界）。允许例外，需在 PR 中说明并由 reviewer 批准。详见 [docs/coding-guideline.md](docs/coding-guideline.md) §十。
 
 ---
 
-## 四、OOP 规约
+## 1. 分册地图（按维度拆分，按需阅读）
 
-- 所有覆写方法必须加 `@Override` 注解。
-- `equals` 比较：推荐使用 `Objects.equals()`。
-- DO 类属性类型必须与数据库字段类型匹配。
-- POJO 类属性必须使用包装数据类型。
-- DO/DTO/VO 等 POJO 类不要设定任何属性默认值。
-- 循环体内字符串连接使用 `StringBuilder.append`。
-
----
-
-## 五、集合处理
-
-- 覆写 `equals` 必须覆写 `hashCode`。
-- **禁止在 `foreach` 循环里进行 `remove` / `add`**，使用 `Iterator` 方式。
-- 集合初始化时指定初始大小。
-- 使用 `entrySet` 遍历 Map（JDK8+ 使用 `Map.forEach`）。
+| 分册                                                                         | 覆盖维度                                                                                      | 何时必读                                                | 来源章节                         |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------- |
+| [docs/tech-stack.md](docs/tech-stack.md)                                     | **技术选型**：JDK/Spring/COLA 基线、依赖版本、五模块布局、本地运行命令、配置切换、版本纪律    | 引入依赖 / 改配置 / 本地编译运行 / 拿不准版本时         | 原引言 + §11 基线注              |
+| [docs/architecture-decisions.md](docs/architecture-decisions.md)             | **架构决策**：COLA 五层、依赖方向、对象模型分层、术语映射、Executor/CQRS、DI、组件复用        | 新增/移动任何类、定分层与依赖、命名对象时               | 原第十一章（含 1.4/1.6 交叉）    |
+| [docs/coding-guideline.md](docs/coding-guideline.md)                         | **编码规范**：命名、常量、格式、OOP、集合、并发、注释、异常、日志、方法与函数规范、常见反模式 | 写任何 Java 代码时                                      | 原第一~九章 + 第十三章           |
+| [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md) | **数据库与迁移**：建表、SQL、H2 方言、Flyway 实践                                             | 建表 / 写迁移 / 写 SQL / Mapper 时                      | 原第十章                         |
+| [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md)                 | **RAG 领域规范**：多格式解析、向量化、metadata、考试链路配图                                  | 动文档抽取 / 分块 / 向量 / 出题相关代码时               | 原第十二章（12.1/12.2）          |
+| [docs/security-guideline.md](docs/security-guideline.md)                     | **安全注意事项**：注入防护、上传/解析、认证令牌、RBAC+ACL、日志脱敏、高风险改动确认           | 涉及鉴权 / 权限 / 上传 / SQL / 令牌 / 口令 / 对外响应时 | 原 §10.2+§12.1+§12.3 聚合 + 现状 |
+| [docs/testing-guideline.md](docs/testing-guideline.md)                       | **测试要求**：JUnit5/Mockito 风格、分层测试、门禁负向用例、Flyway 冒烟、运行验收              | 写/改测试，或提交前自验时                               | 新（从仓库现有测试归纳）         |
+| [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                     | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
 
 ---
 
-## 六、并发处理
+## 2. 按任务定位分册（决策树）
 
-- **线程资源必须通过线程池提供**，不允许自行显式创建线程。
-- **线程池不允许使用 `Executors` 创建**，必须通过 `ThreadPoolExecutor` 明确参数。
-- **必须回收自定义的 `ThreadLocal` 变量**，使用 `try-finally` 调用 `remove()`。
-
----
-
-## 七、注释规约
-
-- 类、类属性、类方法注释使用 `/** Javadoc */` 格式。
-- **所有类必须添加 `@author` 和 `@date`**。
-- 推荐用中文注释，专有名词保持英文。
-
-### 本项目类注释模板
-
-```java
-/**
- * 文档摄入应用服务
- *
- * @author Knowledge-Repository
- * @date 2026-09-02
- */
-@Service
-public class DocumentIngestionApplicationService {
-    // ...
-}
-```
+- 我要**新建一个类**（Controller / Service / Executor / Entity / Gateway / DO / DTO / VO）？→ 先看 [docs/architecture-decisions.md](docs/architecture-decisions.md)（定它属于哪层、叫什么、依赖谁），再看 [docs/coding-guideline.md](docs/coding-guideline.md)（怎么写）。
+- 我要**改依赖 / 加库 / 动配置 / 本地编译运行**？→ [docs/tech-stack.md](docs/tech-stack.md)。
+- 我要**建表 / 写迁移 / 写 SQL / 配 Mapper**？→ [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md)，涉密或含参数拼接另查 [docs/security-guideline.md](docs/security-guideline.md)。
+- 我要**动文档解析 / 分块 / 向量化 / 出题配图**？→ [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md)，权限与过滤另查 [docs/security-guideline.md](docs/security-guideline.md)。
+- 我要**动 LLM Agent / LangChain4j 编排**？→ [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md) + [docs/architecture-decisions.md](docs/architecture-decisions.md)（实现落 infrastructure `.../agent/`，编排在 app Executor）。
+- 我要**改静态页 / `common.js` / 令牌头**？→ [docs/security-guideline.md](docs/security-guideline.md)（`knowledge-web/src/main/resources/static/`）。
+- 我要**加鉴权 / 改权限 / 处理上传 / 发令牌 / 存口令**？→ [docs/security-guideline.md](docs/security-guideline.md)。
+- 我要**配 CI/CD 或把 Actions 产物部署到本地 Docker**？→ [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)（GHCR 推镜像 / Artifacts 拉 jar / 离线 tar 三方案）。
+- 我要**写测试 / 提交前自验**？→ [docs/testing-guideline.md](docs/testing-guideline.md) + [docs/code-review-checklist.md](docs/code-review-checklist.md)。
 
 ---
 
-## 八、异常处理
+## 3. 相关文档
 
-- 可通过预检查规避的 `RuntimeException` 不用 `catch` 处理。
-- 捕获异常必须处理，不能空 `catch`。
-- 使用 `Optional` 防止 NPE。
-- 避免直接 `new RuntimeException()`，使用有业务含义的自定义异常。
-
----
-
-## 九、日志规约
-
-- **使用 SLF4J API**，不直接使用 Log4j / Logback API。
-
-```java
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-private static final Logger logger = LoggerFactory.getLogger(XxxService.class);
-```
-
-- 日志输出使用占位符：`logger.debug("Processing document with key: {}", documentKey)`。
-- `trace` / `debug` / `info` 级别输出必须进行日志级别开关判断。
-- 异常日志包含堆栈信息：`logger.error("Failed to process: " + e.getMessage(), e)`。
+- 项目能力总览： [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)
+- 运维脚本： [scripts/README.md](scripts/README.md)
+- 细则与检查项：见 [docs](docs) 目录各分册
 
 ---
 
-## 十、MySQL / H2 数据库
+## 4. 维护约定
 
-### 10.1 建表规约
+- 本文件只保留 **红线 + 导航**；细则一律下沉到 [docs](docs) 分册。
+- 新增规范优先写进对应分册；必要时在本文件补一行入口说明。
+- 规范间用相对链接互引，避免重复复制与漂移。
+- 兼容历史命名与层次术语的权威说明见 [docs/architecture-decisions.md](docs/architecture-decisions.md)。
 
-- 表名、字段名只用小写字母和数字。
-- 索引命名：主键 `pk_字段名`、唯一索引 `uk_字段名`、普通索引 `idx_字段名`。
-- **表必备字段**：`id`（`bigint` 主键）、`create_time`（`datetime`/`timestamp`）、`update_time`（`datetime`/`timestamp`）。
+## 5. 例外申请与审批流程（建议）
 
-### 10.2 SQL 语句
+- 目的：提供一个可操作流程，当某项规范无法适用或存在冲突时，团队能有明确路径申请例外并记录理由与批准人。
+- 提交流程：在相关 PR 中新增一段“例外说明”（Exception-Note），包含：受影响规范、理由、替代方案、风险评估、回退计划、所需时间窗口。
+- 批准人：指定至少一位架构负责人或安全负责人签署（可在 PR Review 中通过 comment+`/approve-exception` 标签），并在 PR 描述中引用对应 issue 或设计文档。
+- 时效与记录：所有例外需在仓库中创建或更新 `docs/exceptions/` 下的记录文件（YAML 或 Markdown），注明到期时间或需复审的里程碑。
+- 复审：例外到期或功能变更时，责任人应发起复审 Issue 并在 30 天内完成是否恢复规范的决议。
 
-- 使用 `count(*)` 统计行数。
-- **禁止使用 `SELECT *`**，明确写出需要的字段（MyBatis-Plus 的 `selectList(null)` 在管理端可接受）。
-- SQL 参数使用 `#{}`，**禁止 `${}`**（防 SQL 注入）。
+## 6. CI 校验建议（可逐步实施）
 
-### 10.3 H2 注意事项
-
-- H2 严格模式下标识符大小写敏感，Flyway 迁移列名须小写加引号。
-- H2 不支持 MySQL 特有语法：`COMMENT`、`UNSIGNED`、`ON UPDATE CURRENT_TIMESTAMP`、内联 `INDEX`。
-- `selectCount` 不能带 `ORDER BY`（H2 严格模式会报错）。
-
----
-
-## 十一、工程结构与领域驱动设计
-
-### 11.1 项目模块结构
-
-```
-knowledge-web            → 表现层（Controller、安全配置、全局异常处理）
-knowledge-application    → 应用层（用例编排、事务管理、DTO ↔ 领域对象转换）
-knowledge-domain         → 领域层（实体、值对象、领域服务、仓储接口、领域事件）
-knowledge-infrastructure → 基础设施层（Repository 实现、DO 实体、Mapper、Converter、Milvus 向量存储、PDF 处理）
-```
-
-**依赖方向：** Web → Application → Domain ← Infrastructure
-
-### 11.2 各层职责
-
-| 层级                    | 职责                                                         | 依赖方向               |
-|-----------------------|------------------------------------------------------------|--------------------|
-| 表现层（Web）              | 处理 HTTP 请求/响应，参数校验，调用应用层，返回统一响应格式。不包含业务逻辑。                 | → 应用层              |
-| 应用层（Application）      | 实现用例，编排领域对象，控制事务边界（`@Transactional`），DTO ↔ 领域对象转换。不包含业务规则。 | → 领域层 + 基础设施层      |
-| 领域层（Domain）           | 核心业务逻辑（实体、值对象、领域服务、仓储接口、领域事件）。不依赖基础设施。                     | 仅依赖 Spring Context |
-| 基础设施层（Infrastructure） | 实现仓储接口，操作数据库（MyBatis-Plus）和向量库（Milvus），DO ↔ 领域对象转换。不含业务规则。 | → 领域层（实现其接口）       |
-
-### 11.3 领域模型分布
-
-| 模型                 | 说明                         | 所在模块                       |
-|--------------------|----------------------------|----------------------------|
-| DO                 | 与数据库表一一对应，MyBatis-Plus 注解  | `knowledge-infrastructure` |
-| 领域实体               | 业务对象，`@Getter` + `@Setter` | `knowledge-domain`         |
-| 聚合根                | 文档聚合根，包含业务校验方法             | `knowledge-domain`         |
-| 值对象                | 不可变对象（final 类 + final 属性）  | `knowledge-domain`         |
-| Converter          | DO ↔ 领域对象转换器               | `knowledge-infrastructure` |
-| Repository         | 仓储接口（领域对象参数/返回值）           | `knowledge-domain`         |
-| RepositoryImpl     | 仓储实现（Mapper + Converter）   | `knowledge-infrastructure` |
-| ApplicationService | 用例编排，事务控制                  | `knowledge-application`    |
-| DomainService      | 跨实体业务逻辑（分块、权限过滤）           | `knowledge-domain`         |
-
-### 11.4 编码规范
-
-**领域层：**
-
-- 实体/聚合根：属性为 `private`，使用 `@Getter` + `@Setter`（禁止 `@Data`）。须基于 ID 重写 `equals` / `hashCode`。
-- 仓储接口：定义在 `domain.repository` 包，参数和返回值均为领域对象，严禁出现 DO 或 DTO。
-- 领域服务：无状态，`@Service` 管理，方法命名体现业务意图。
-- 领域事件：Java record 实现 `DomainEvent` 标记接口，命名使用过去式。
-
-**应用层：**
-
-- 类名以 `ApplicationService` 结尾。每个方法对应一个用户用例，使用 `@Transactional` 控制事务。
-- 禁止直接操作 DAO 或 Mapper，必须通过仓储接口。
-- 构造器注入，不使用 `@Autowired`。
-
-**基础设施层：**
-
-- 仓储实现类以 `RepositoryImpl` 结尾，`@Repository` 注解。
-- Converter 为 `final` 工具类，提供 `toDomain()`、`toDO()` 静态方法。
-- 不得包含业务规则，只负责技术实现。
-- 分页查询使用 `selectCount`（无 ORDER BY）+ `selectList`（LAST LIMIT OFFSET）。
-
-**依赖注入：**
-
-- 所有 Spring Bean 构造器注入，面向接口。
-- 领域层保持纯净，不引用基础设施注解。
+- 目标：把可自动化的规范逐步移入 CI 校验，降低人工误差并提高合规性。
+- 初始建议项：
+  - 代码格式：使用 Checkstyle / Spotless 严格化缩进与行长（可在 PR hook 中运行）。
+  - 静态分析：SpotBugs / PMD 检查常见 bug 模式与未处理异常。
+  - 日志/敏感信息扫描：在 CI 中运行简单规则扫描（禁止在日志模板或响应中包含 `password|token|secret` 等关键字），必要时集成更强的 SAST。
+  - SQL 模式检查：在构建时运行自定义脚本或 linters，检查是否使用 `#{}` 参数化和禁止裸 `${}`（对 Mapper XML 做抽样检测）。
+  - Javadoc 存在性：对 `public` 类和方法运行存在性检查（非强制内容完整度）。
+- 推进方式：先把格式与行长/缩进作为强制校验，其他规则做为 warning 级别，逐步提升为 fail-on-error，当团队熟悉规则并处理历史遗留后，再收紧为必须通过。
 
 ---
 
-## 十二、RAG 知识库特定规范
-
-### 12.1 多格式文档处理
-
-- 支持格式：PDF / Word(.docx) / Excel(.xlsx) / PowerPoint(.pptx) / TXT / CSV / HTML / RTF。
-- 文件大小限制 200MB，超过拒绝处理。
-- 格式检测使用 Apache Tika（`tika.detect()`），按 MIME 类型路由到专用解析器。
-- PDF：PDFBox 按页提取，检测扫描型 PDF（低文本密度页面），记录警告日志。
-- Word：Apache POI 按段落提取，每 30 段近似切分一个 section。
-- Excel：Apache POI 按工作表提取，保留行列结构（Tab 分隔）。
-- PowerPoint：Apache POI 按幻灯片提取，遍历文本形状。
-- 其他格式：Tika AutoDetectParser 通用解析，按段落分割。
-- 文件校验和（MD5）用于去重，上传前检查。
-- 临时文件必须在 `finally` 中清理。
-
-### 12.2 向量化
-
-- Embedding 模型通过配置切换（DashScope / Ollama），使用 `@ConditionalOnProperty`。
-- Milvus 集合名称通过配置指定，默认 `knowledge_chunks`。
-- 每个分块的元数据（document_key、department_id、visibility、allowed_roles、owner_id）必须存入 Milvus metadata，用于权限过滤。
-
-### 12.3 权限隔离
-
-- 权限模型：RBAC + 文档级 ACL。
-- 文档可见性：PUBLIC / INTERNAL / RESTRICTED / PRIVATE。
-- 检索时通过 `PermissionDomainService.buildFilterExpression()` 构建 Milvus 过滤表达式。
-- 超级管理员不受权限限制。
-
----
-
-## 十三、注释模板
-
-- 作者信息统一填写 `@author Knowledge-Repository` + `@date`。
-
----
-
-## 代码生成检查清单
-
-AI 生成代码时，逐条自检：
-
-1. 命名是否符合驼峰规范？常量是否全大写下划线分隔？
-2. 是否存在魔法值？
-3. 代码格式是否 4 空格缩进？单行是否超过 120 字符？
-4. POJO 布尔属性是否避免了 `is` 前缀？
-5. 集合操作是否处理了 NPE？`foreach` 中是否有 `remove` / `add`？
-6. 类是否有 Javadoc（`@author` + `@date`）？
-7. 日志是否使用 SLF4J？是否使用占位符？
-8. SQL 是否使用 `#{}` 参数绑定？
-9. 异常是否被正确处理？是否存在空 `catch`？
-10. 领域模型是否放在 `domain` 模块？DO 与领域对象是否分离？
-11. 仓储接口是否定义在领域层、实现在基础设施层？
-12. 应用服务是否只做编排（不含业务规则），事务边界是否在应用层？
-13. 分块元数据是否完整附加到 Milvus metadata？
-14. 权限过滤是否在检索时正确应用？
-15. 新增文件格式是否在 DocumentExtractionService 中添加了专用解析器？
-16. 文件校验和（MD5）是否在所有提取路径中计算？
-17. 临时文件是否在 finally 中清理？
+上述条目为建议性补充，便于把规范从“文字约束”变为“可执行规则 + 审批流程”。如需我直接把 CI 校验脚本模板（Checkstyle 配置、Spotless 配置、简单敏感字符串扫描脚本）生成到仓库中，我可以继续创建这些文件并提交 patch。

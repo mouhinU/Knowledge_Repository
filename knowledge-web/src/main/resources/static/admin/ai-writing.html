@@ -86,6 +86,8 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
                         </details>
+                        <details class="agent-thinking" id="thinkingwrap-researcher"><summary>💭 思考过程</summary>
+                            <pre id="thinking-researcher"></pre></details>
                         <div class="agent-output-label">研究发现</div>
                         <pre id="output-researcher">等待执行...</pre>
                     </div>
@@ -100,6 +102,8 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
                         </details>
+                        <details class="agent-thinking" id="thinkingwrap-writer"><summary>💭 思考过程</summary>
+                            <pre id="thinking-writer"></pre></details>
                         <div class="agent-output-label">文章草稿</div>
                         <pre id="output-writer">等待执行...</pre>
                     </div>
@@ -114,6 +118,8 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
                         </details>
+                        <details class="agent-thinking" id="thinkingwrap-reviewer"><summary>💭 思考过程</summary>
+                            <pre id="thinking-reviewer"></pre></details>
                         <div class="agent-output-label">审核结果</div>
                         <pre id="output-reviewer">等待执行...</pre>
                     </div>
@@ -253,6 +259,7 @@
     let _writingAgentTimes = {};
     let _writingTimerInterval = null;
     let _writingActiveTimers = new Set();
+    let _writingStreamState = {};  // 逐 token 流式：记录每个 agent 的 output/thinking 是否已开始
     const _writingAgentNodeMap = { researcher: 'research', writer: 'writing', reviewer: 'review' };
 
     function startWritingLiveTimer(agent) {
@@ -299,7 +306,12 @@
             const s = document.getElementById('status-' + a);
             s.className = 'agent-status pending'; s.textContent = '等待中';
             document.getElementById('output-' + a).textContent = '等待执行...';
+            const tw = document.getElementById('thinkingwrap-' + a);
+            if (tw) { tw.classList.remove('active'); tw.open = true; }
+            const tp = document.getElementById('thinking-' + a);
+            if (tp) tp.textContent = '';
         });
+        _writingStreamState = {};
         document.getElementById('materials-content-researcher').textContent = '等待检索...';
         document.getElementById('materials-content-writer').textContent = '等待研究员完成...';
         document.getElementById('materials-content-reviewer').textContent = '等待写手完成...';
@@ -394,6 +406,32 @@
                     storeNodeDetail(wNode, 'endTime', Date.now());
                     if (data.output) storeNodeDetail(wNode, 'output', data.output);
                 }
+            }
+        });
+
+        // 真流式：逐 token 追加。output→正式输出区，thinking→思考链区。
+        eventSource.addEventListener('AGENT_TOKEN', (e) => {
+            const data = JSON.parse(e.data);
+            const agent = data.agentName;
+            if (!agent) return;
+            if (!_writingStreamState[agent]) _writingStreamState[agent] = {};
+            const st = _writingStreamState[agent];
+            const delta = data.delta || '';
+            if (!delta) return;
+            if (data.kind === 'thinking') {
+                const wrap = document.getElementById('thinkingwrap-' + agent);
+                const pre = document.getElementById('thinking-' + agent);
+                if (!pre) return;
+                if (!st.thinkingStarted) { pre.textContent = ''; st.thinkingStarted = true; }
+                if (wrap) wrap.classList.add('active');
+                pre.textContent += delta;
+                pre.scrollTop = pre.scrollHeight;
+            } else {
+                const outputEl = document.getElementById('output-' + agent);
+                if (!outputEl) return;
+                if (!st.outputStarted) { outputEl.textContent = ''; st.outputStarted = true; }
+                outputEl.textContent += delta;
+                outputEl.scrollTop = outputEl.scrollHeight;
             }
         });
 

@@ -11,8 +11,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
  */
 public final class ExamHistoryConverter {
 
-    private ExamHistoryConverter() {
-    }
+    private ExamHistoryConverter() {}
 
     public static ExamHistory toDomain(ExamHistoryDO doObj) {
         if (doObj == null) {
@@ -29,6 +28,7 @@ public final class ExamHistoryConverter {
         domain.setExamPaper(doObj.getExamPaper());
         domain.setAnswerKey(doObj.getAnswerKey());
         domain.setQualityScore(doObj.getQualityScore());
+        domain.setScoreDetail(doObj.getScoreDetail());
         domain.setRetrievedChunks(doObj.getRetrievedChunks());
         domain.setKeyFindings(doObj.getKeyFindings());
         domain.setReviewFeedback(doObj.getReviewFeedback());
@@ -39,6 +39,8 @@ public final class ExamHistoryConverter {
         domain.setCategory(doObj.getCategory());
         domain.setStatus(doObj.getStatus());
         domain.setErrorMessage(doObj.getErrorMessage());
+        domain.setReviewedBy(doObj.getReviewedBy());
+        domain.setReviewedTime(doObj.getReviewedTime());
         domain.setCreateTime(doObj.getCreateTime());
         domain.setUpdateTime(doObj.getUpdateTime());
         return domain;
@@ -59,6 +61,7 @@ public final class ExamHistoryConverter {
         doObj.setExamPaper(domain.getExamPaper());
         doObj.setAnswerKey(domain.getAnswerKey());
         doObj.setQualityScore(domain.getQualityScore());
+        doObj.setScoreDetail(domain.getScoreDetail());
         doObj.setRetrievedChunks(domain.getRetrievedChunks());
         doObj.setKeyFindings(domain.getKeyFindings());
         doObj.setReviewFeedback(domain.getReviewFeedback());
@@ -69,6 +72,8 @@ public final class ExamHistoryConverter {
         doObj.setCategory(domain.getCategory());
         doObj.setStatus(domain.getStatus());
         doObj.setErrorMessage(domain.getErrorMessage());
+        doObj.setReviewedBy(domain.getReviewedBy());
+        doObj.setReviewedTime(domain.getReviewedTime());
         doObj.setCreateTime(domain.getCreateTime());
         doObj.setUpdateTime(domain.getUpdateTime());
         return doObj;

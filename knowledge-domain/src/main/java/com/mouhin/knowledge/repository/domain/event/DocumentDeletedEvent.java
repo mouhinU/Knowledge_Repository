@@ -8,9 +8,5 @@ import java.time.LocalDateTime;
  * @author Knowledge-Repository
  * @date 2026-09-02
  */
-public record DocumentDeletedEvent(
-        String documentKey,
-        String ownerId,
-        LocalDateTime occurredAt
-) implements DomainEvent {
-}
+public record DocumentDeletedEvent(String documentKey, String ownerId, LocalDateTime occurredAt)
+        implements DomainEvent {}

@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * AI 出卷历史数据对象
@@ -50,6 +49,9 @@ public class ExamHistoryDO {
     @TableField("quality_score")
     private Integer qualityScore;
 
+    @TableField("score_detail")
+    private String scoreDetail;
+
     @TableField("retrieved_chunks")
     private Integer retrievedChunks;
 
@@ -79,6 +81,12 @@ public class ExamHistoryDO {
 
     @TableField("error_message")
     private String errorMessage;
+
+    @TableField("reviewed_by")
+    private String reviewedBy;
+
+    @TableField("reviewed_time")
+    private LocalDateTime reviewedTime;
 
     @TableField("create_time")
     private LocalDateTime createTime;

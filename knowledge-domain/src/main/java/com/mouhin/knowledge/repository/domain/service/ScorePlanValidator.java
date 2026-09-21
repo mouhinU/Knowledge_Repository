@@ -2,21 +2,17 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 题型分布方案校验与评估（值对象工具）
- * <p>
- * 出卷流水线进入「试卷编写」前的闸门：方案的分值分配已由题型分布方案 Agent 生成并由用户在页面确认，
- * 此处只做「二次校验 + 合理性评估」，不再重排分值。校验维度：
- * </p>
+ *
+ * <p>出卷流水线进入「试卷编写」前的闸门：方案的分值分配已由题型分布方案 Agent 生成并由用户在页面确认， 此处只做「二次校验 + 合理性评估」，不再重排分值。校验维度：
+ *
  * <ul>
- *     <li>硬校验（不合格直接阻断流水线）：非空、总题量 &gt; 0、满分 &gt; 0、逐题分值合计 = 满分、
- *         每题分值 &gt;= 1、perQuestion 长度 = count</li>
- *     <li>软评估（仅提示建议）：极端分值（单题 &gt; 满分 30% 或某题型小计占比 &gt; 60%）、
- *         题量偏斜、缺少主观题或客观题、总分非标准（≠ 100/120/150）</li>
+ *   <li>硬校验（不合格直接阻断流水线）：非空、总题量 &gt; 0、满分 &gt; 0、逐题分值合计 = 满分、 每题分值 &gt;= 1、perQuestion 长度 = count
+ *   <li>软评估（仅提示建议）：极端分值（单题 &gt; 满分 30% 或某题型小计占比 &gt; 60%）、 题量偏斜、缺少主观题或客观题、总分非标准（≠ 100/120/150）
  * </ul>
  *
  * @author Knowledge-Repository
@@ -36,8 +32,7 @@ public final class ScorePlanValidator {
     /** 单题型题量过多阈值 */
     private static final int MAX_TYPE_COUNT = 60;
 
-    private ScorePlanValidator() {
-    }
+    private ScorePlanValidator() {}
 
     /**
      * 校验并评估方案。返回 {@link Result} 包含 issues（阻断）与 suggestions（提示）。
@@ -58,15 +53,36 @@ public final class ScorePlanValidator {
         }
 
         int targetFullMark = plan.getTotalFullMark();
+        int totalCount = plan.totalQuestions();
+        checkBasics(targetFullMark, totalCount, issues);
+
+        TypeDistribution dist = checkTypeDistribution(plan, targetFullMark, issues, suggestions);
+
+        checkTotalAlignment(targetFullMark, dist.allocated(), issues);
+        checkFullMarkRationality(targetFullMark, dist, suggestions);
+        checkCompositionBalance(dist, totalCount, targetFullMark, suggestions);
+
+        boolean pass = issues.isEmpty();
+        return new Result(pass, issues, suggestions);
+    }
+
+    /** 基础硬校验：满分合法、总题量 &gt; 0。 */
+    private static void checkBasics(int targetFullMark, int totalCount, List<String> issues) {
         if (targetFullMark <= 0) {
             issues.add("本卷满分未设置或非法（当前 " + targetFullMark + "）");
         }
-
-        int totalCount = plan.totalQuestions();
         if (totalCount <= 0) {
             issues.add("总题量为 0，无法出卷");
         }
+    }
 
+    /**
+     * 逐题型校验：perQuestion 长度、分值下限、极端占比与题量偏斜，并累计全局统计量。
+     *
+     * @return 跨题型累计的分值合计、最大单题、主客观存在性等统计
+     */
+    private static TypeDistribution checkTypeDistribution(
+            ExamPlan plan, int targetFullMark, List<String> issues, List<String> suggestions) {
         int allocated = 0;
         boolean hasSubjective = false;
         boolean hasObjective = false;
@@ -83,8 +99,14 @@ public final class ScorePlanValidator {
                 pq = new ArrayList<>();
             }
             if (pq.size() != c) {
-                issues.add("题型「" + labelOf(t) + "」的 perQuestion 长度（" + pq.size()
-                        + "）与题量（" + c + "）不一致");
+                issues.add(
+                        "题型「"
+                                + labelOf(t)
+                                + "」的 perQuestion 长度（"
+                                + pq.size()
+                                + "）与题量（"
+                                + c
+                                + "）不一致");
             }
             int subtotal = t.subtotal();
             allocated += subtotal;
@@ -105,9 +127,14 @@ public final class ScorePlanValidator {
             }
 
             if (targetFullMark > 0 && subtotal > targetFullMark * MAX_TYPE_SHARE_RATIO) {
-                suggestions.add("题型「" + labelOf(t) + "」小计 " + subtotal
-                        + " 分，占满分 " + percent(subtotal, targetFullMark)
-                        + "%，超过 60%，题型分布偏斜，建议拆分或调整");
+                suggestions.add(
+                        "题型「"
+                                + labelOf(t)
+                                + "」小计 "
+                                + subtotal
+                                + " 分，占满分 "
+                                + percent(subtotal, targetFullMark)
+                                + "%，超过 60%，题型分布偏斜，建议拆分或调整");
             }
             if (c > MAX_TYPE_COUNT) {
                 suggestions.add("题型「" + labelOf(t) + "」题量 " + c + " 偏多，考试时长可能不足");
@@ -116,36 +143,67 @@ public final class ScorePlanValidator {
             String key = t.getKey() == null ? "" : t.getKey().toUpperCase();
             if ("SHORT_ANSWER".equals(key) || "ESSAY".equals(key) || "FILL_BLANK".equals(key)) {
                 hasSubjective = true;
-            } else if ("SINGLE_CHOICE".equals(key) || "MULTI_CHOICE".equals(key) || "TRUE_FALSE".equals(key)) {
+            } else if ("SINGLE_CHOICE".equals(key)
+                    || "MULTI_CHOICE".equals(key)
+                    || "TRUE_FALSE".equals(key)) {
                 hasObjective = true;
             }
         }
+        return new TypeDistribution(
+                allocated, hasSubjective, hasObjective, maxPerQuestion, maxPerQuestionType);
+    }
 
+    /** 逐题分值合计与本卷满分的对齐校验。 */
+    private static void checkTotalAlignment(
+            int targetFullMark, int allocated, List<String> issues) {
         if (targetFullMark > 0 && allocated != targetFullMark) {
-            issues.add("逐题分值合计 " + allocated + " ≠ 本卷满分 " + targetFullMark
-                    + "（差 " + (targetFullMark - allocated) + "），请回到方案编辑或点自动平衡");
+            issues.add(
+                    "逐题分值合计 "
+                            + allocated
+                            + " ≠ 本卷满分 "
+                            + targetFullMark
+                            + "（差 "
+                            + (targetFullMark - allocated)
+                            + "），请回到方案编辑或点自动平衡");
         }
+    }
 
-        if (targetFullMark > 0) {
-            boolean standard = false;
-            for (int std : STANDARD_FULL_MARKS) {
-                if (std == targetFullMark) {
-                    standard = true;
-                    break;
-                }
-            }
-            if (!standard) {
-                suggestions.add("本卷满分 " + targetFullMark + " 分不是常见标准（100 / 120 / 150），请确认是否符合教学目标");
-            }
-            if (maxPerQuestion > 0 && maxPerQuestion > targetFullMark * MAX_SINGLE_QUESTION_RATIO) {
-                suggestions.add("「" + maxPerQuestionType + "」存在单题 " + maxPerQuestion
-                        + " 分，超过满分 " + (int) (MAX_SINGLE_QUESTION_RATIO * 100) + "%，可能造成整卷偏题");
+    /** 满分标准性与单题分值占比的合理性评估（仅建议）。 */
+    private static void checkFullMarkRationality(
+            int targetFullMark, TypeDistribution dist, List<String> suggestions) {
+        if (targetFullMark <= 0) {
+            return;
+        }
+        boolean standard = false;
+        for (int std : STANDARD_FULL_MARKS) {
+            if (std == targetFullMark) {
+                standard = true;
+                break;
             }
         }
-        if (!hasSubjective) {
+        if (!standard) {
+            suggestions.add("本卷满分 " + targetFullMark + " 分不是常见标准（100 / 120 / 150），请确认是否符合教学目标");
+        }
+        if (dist.maxPerQuestion() > 0
+                && dist.maxPerQuestion() > targetFullMark * MAX_SINGLE_QUESTION_RATIO) {
+            suggestions.add(
+                    "「"
+                            + dist.maxPerQuestionType()
+                            + "」存在单题 "
+                            + dist.maxPerQuestion()
+                            + " 分，超过满分 "
+                            + (int) (MAX_SINGLE_QUESTION_RATIO * 100)
+                            + "%，可能造成整卷偏题");
+        }
+    }
+
+    /** 主客观题型存在性与平均每题分值组成的评估建议（仅建议）。 */
+    private static void checkCompositionBalance(
+            TypeDistribution dist, int totalCount, int targetFullMark, List<String> suggestions) {
+        if (!dist.hasSubjective()) {
             suggestions.add("方案缺少主观题（简答/论述/填空），不利于综合能力考查");
         }
-        if (!hasObjective) {
+        if (!dist.hasObjective()) {
             suggestions.add("方案缺少客观题（单选/多选/判断），批改工作量大且信度较低");
         }
         if (totalCount > 0 && targetFullMark > 0) {
@@ -156,15 +214,28 @@ public final class ScorePlanValidator {
                 suggestions.add("平均每题 " + String.format("%.1f", avg) + " 分，题量偏少");
             }
         }
-
-        boolean pass = issues.isEmpty();
-        return new Result(pass, issues, suggestions);
     }
+
+    /**
+     * 逐题型累计的全局统计量，供后续对齐与合理性评估使用。
+     *
+     * @param allocated 逐题分值合计
+     * @param hasSubjective 是否含主观题
+     * @param hasObjective 是否含客观题
+     * @param maxPerQuestion 全局最大单题分值
+     * @param maxPerQuestionType 最大单题所属题型标签
+     */
+    private record TypeDistribution(
+            int allocated,
+            boolean hasSubjective,
+            boolean hasObjective,
+            int maxPerQuestion,
+            String maxPerQuestionType) {}
 
     /**
      * 渲染校验评估报告为 Markdown（供 SSE 面板 / 复核页展示）。
      *
-     * @param plan   方案
+     * @param plan 方案
      * @param result 校验结果
      * @return Markdown
      */
@@ -222,10 +293,9 @@ public final class ScorePlanValidator {
     /**
      * 校验结果
      *
-     * @param pass        是否通过硬校验
-     * @param issues      阻断流水线的错误清单
+     * @param pass 是否通过硬校验
+     * @param issues 阻断流水线的错误清单
      * @param suggestions 不阻断的优化建议
      */
-    public record Result(boolean pass, List<String> issues, List<String> suggestions) {
-    }
+    public record Result(boolean pass, List<String> issues, List<String> suggestions) {}
 }

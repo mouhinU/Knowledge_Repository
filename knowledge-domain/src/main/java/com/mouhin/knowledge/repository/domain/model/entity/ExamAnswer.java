@@ -13,89 +13,58 @@ public class ExamAnswer {
 
     private Long id;
 
-    /**
-     * 所属考试场次 ID
-     */
+    /** 所属考试场次 ID */
     private Long sessionId;
 
-    /**
-     * 题目序号（从 1 开始）
-     */
+    /** 题目序号（从 1 开始，答题落库位置序号） */
     private Integer questionIndex;
 
-    /**
-     * 题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY
-     */
+    /** 印刷题号（与 kb_exam_question.question_number 对齐，权威编号；可为空表示未结构化） */
+    private Integer questionNumber;
+
+    /** 题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY */
     private String questionType;
 
-    /**
-     * 题目内容
-     */
+    /** 题目内容 */
     private String questionContent;
 
-    /**
-     * 选项 JSON（选择题/判断题）
-     */
+    /** 选项 JSON（选择题/判断题） */
     private String optionsJson;
 
-    /**
-     * 满分
-     */
+    /** 满分 */
     private Integer maxScore;
 
-    /**
-     * 正确答案
-     */
+    /** 正确答案 */
     private String correctAnswer;
 
-    /**
-     * 学生答案
-     */
+    /** 学生答案 */
     private String studentAnswer;
 
-    /**
-     * 客观题是否正确
-     */
+    /** 客观题是否正确 */
     private Boolean correct;
 
-    /**
-     * AI 评分
-     */
+    /** AI 评分 */
     private Integer aiScore;
 
-    /**
-     * AI 评分反馈
-     */
+    /** AI 评分反馈 */
     private String aiFeedback;
 
-    /**
-     * AI 评分输入（发送给模型的完整 Prompt）
-     */
+    /** AI 评分输入（发送给模型的完整 Prompt） */
     private String aiInput;
 
-    /**
-     * AI 评分原始输出（模型返回的未解析文本，或客观题的比对依据）
-     */
+    /** AI 评分原始输出（模型返回的未解析文本，或客观题的比对依据） */
     private String aiRawOutput;
 
-    /**
-     * 人工复核分数
-     */
+    /** 人工复核分数 */
     private Integer reviewScore;
 
-    /**
-     * 人工复核反馈
-     */
+    /** 人工复核反馈 */
     private String reviewFeedback;
 
-    /**
-     * 复核人
-     */
+    /** 复核人 */
     private String reviewedBy;
 
-    /**
-     * 复核时间
-     */
+    /** 复核时间 */
     private LocalDateTime reviewTime;
 
     private LocalDateTime createTime;
@@ -126,6 +95,14 @@ public class ExamAnswer {
 
     public void setQuestionIndex(Integer questionIndex) {
         this.questionIndex = questionIndex;
+    }
+
+    public Integer getQuestionNumber() {
+        return questionNumber;
+    }
+
+    public void setQuestionNumber(Integer questionNumber) {
+        this.questionNumber = questionNumber;
     }
 
     public String getQuestionType() {
@@ -266,18 +243,14 @@ public class ExamAnswer {
 
     // ==================== 业务方法 ====================
 
-    /**
-     * 判断是否为客观题（选择题、判断题）
-     */
+    /** 判断是否为客观题（选择题、判断题） */
     public boolean isObjective() {
         return "SINGLE_CHOICE".equals(questionType)
                 || "MULTI_CHOICE".equals(questionType)
                 || "TRUE_FALSE".equals(questionType);
     }
 
-    /**
-     * 判断是否需要人工复核
-     */
+    /** 判断是否需要人工复核 */
     public boolean needsReview() {
         if (reviewScore != null) {
             return false;
@@ -290,9 +263,7 @@ public class ExamAnswer {
         return aiScore != null && aiScore < maxScore;
     }
 
-    /**
-     * 获取最终得分（人工复核优先，否则 AI 评分，客观题正确则满分）
-     */
+    /** 获取最终得分（人工复核优先，否则 AI 评分，客观题正确则满分） */
     public int getEffectiveScore() {
         if (reviewScore != null) {
             return reviewScore;

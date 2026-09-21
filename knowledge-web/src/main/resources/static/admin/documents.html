@@ -423,8 +423,8 @@
             if (!docs.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无文档</td></tr>'; return; }
             tbody.innerHTML = docs.map(d => {
                 let actions = '';
-                if (d.status === 'UPLOADED') actions = '<button class="btn btn-primary btn-sm" onclick="openPreviewModal(\'' + d.documentKey + '\',\'' + esc(d.fileName) + '\')">解析预览</button> ';
-                else actions = '<button class="btn btn-outline btn-sm" onclick="reindexDoc(\'' + d.documentKey + '\')">重新入库</button> ';
+                if (d.status === 'UPLOADED') actions = '<button class="btn btn-primary btn-sm" onclick="openPreviewModal(\'' + d.documentKey + '\',\'' + esc(d.fileName) + '\',false)">解析预览</button> ';
+                else if (d.status === 'INDEXED' || d.status === 'FAILED' || d.status === 'ARCHIVED') actions = '<button class="btn btn-outline btn-sm" onclick="openPreviewModal(\'' + d.documentKey + '\',\'' + esc(d.fileName) + '\',true)">重新入库</button> ';
                 actions += '<button class="btn btn-outline btn-sm" onclick="archiveDoc(\'' + d.documentKey + '\')">归档</button> ';
                 actions += '<button class="btn btn-danger btn-sm" onclick="deleteDoc(\'' + d.documentKey + '\')">删除</button>';
                 return '<tr>'
@@ -435,17 +435,6 @@
                     + '<td>' + actions + '</td></tr>';
             }).join('');
         } catch (e) { console.error(e); }
-    }
-
-    async function reindexDoc(key) {
-        if (!await showConfirm('确认重新入库此文档？将清理旧数据并重新处理。')) return;
-        try {
-            const res = await fetch(API + '/api/admin/document/' + key + '/reindex', { method: 'POST' });
-            const data = await res.json();
-            if (data.status === 'INDEXED') toast('重新入库成功', 'success');
-            else toast('重新入库完成，状态: ' + data.status, 'warning');
-        } catch (e) { toast('重新入库失败: ' + e.message, 'error'); }
-        loadDocuments();
     }
 
     async function archiveDoc(key) {
@@ -463,13 +452,16 @@
     }
 
     /* ---------- 解析预览弹框 ---------- */
-    let _pvDocKey = null, _pvMaxTokens = 500, _pvChunks = [], _pvChunksModified = false;
+    let _pvDocKey = null, _pvMaxTokens = 500, _pvChunks = [], _pvChunksModified = false, _pvReindex = false;
 
-    function openPreviewModal(docKey, fileName) {
+    function openPreviewModal(docKey, fileName, reindex) {
         _pvDocKey = docKey;
-        document.getElementById('pv-modal-title').textContent = '解析预览 — ' + fileName;
+        _pvReindex = !!reindex;
+        document.getElementById('pv-modal-title').textContent = (_pvReindex ? '重新入库 — ' : '解析预览 — ') + fileName;
         document.getElementById('pv-index-progress').style.display = 'none';
-        document.getElementById('pv-modal-warn').innerHTML = '';
+        document.getElementById('pv-modal-warn').innerHTML = _pvReindex
+            ? '<div class="pv-warn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e">⚠ 重新入库将清理旧向量与分块，并 <b>删除并重新抽取配图</b>：新配图会生成新的句柄，此前试卷上按旧句柄绑定到本文档的看图题将失效，需要重新绑定。</div>'
+            : '';
         document.getElementById('pv-modal-summary').innerHTML = '';
         document.getElementById('pv-modal-pages').innerHTML = '';
         document.getElementById('pv-modal-chunks').innerHTML = '';
@@ -477,14 +469,15 @@
         document.getElementById('pv-m-tab-chunks').textContent = '0';
         document.getElementById('pv-m-chunk-stats').textContent = '';
         const cbtn = document.getElementById('pv-confirm-btn');
-        cbtn.style.display = 'none'; cbtn.disabled = false; cbtn.textContent = '确认入库';
+        cbtn.style.display = 'none'; cbtn.disabled = false;
+        cbtn.textContent = _pvReindex ? '确认重新入库' : '确认入库';
         switchModalTab('pv-pages');
         document.querySelectorAll('#preview-modal-overlay .tab').forEach(t => t.classList.toggle('active', t.dataset.panel === 'pv-pages'));
         document.getElementById('preview-modal-overlay').classList.add('active');
     }
     function closePreviewModal() {
         document.getElementById('preview-modal-overlay').classList.remove('active');
-        _pvDocKey = null; _pvChunks = []; _pvChunksModified = false;
+        _pvDocKey = null; _pvChunks = []; _pvChunksModified = false; _pvReindex = false;
     }
     function switchModalTab(name) {
         document.querySelectorAll('#preview-modal-overlay .tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
@@ -528,7 +521,10 @@
     function renderModalPreview(data) {
         _pvChunks = data.chunks.map(c => ({ chunkIndex: c.chunkIndex, startPage: c.startPage, endPage: c.endPage, tokenCount: c.tokenCount, charCount: c.charCount, preview: c.preview, content: c.content }));
         _pvChunksModified = false;
-        document.getElementById('pv-modal-warn').innerHTML = data.likelyScanned ? '<div class="pv-warn">⚠ 疑似扫描件 PDF，文本提取可能不完整</div>' : '';
+        const _reindexWarn = _pvReindex
+            ? '<div class="pv-warn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e">⚠ 重新入库将清理旧向量与分块，并 <b>删除并重新抽取配图</b>：新配图会生成新的句柄，此前试卷上按旧句柄绑定到本文档的看图题将失效，需要重新绑定。</div>'
+            : '';
+        document.getElementById('pv-modal-warn').innerHTML = _reindexWarn + (data.likelyScanned ? '<div class="pv-warn">⚠ 疑似扫描件 PDF，文本提取可能不完整</div>' : '');
         document.getElementById('pv-modal-summary').innerHTML =
             '<div class="info-item"><div class="info-label">文件名</div><div class="info-value">' + esc(data.fileName) + '</div></div>'
             + '<div class="info-item"><div class="info-label">格式</div><div class="info-value">' + esc(data.format) + '</div></div>'
@@ -640,20 +636,30 @@
 
     async function confirmIndex() {
         if (!_pvDocKey) return;
+        const reindex = _pvReindex;
+        const action = reindex ? '重新入库' : '入库';
+        const confirmBtnLabel = reindex ? '确认重新入库' : '确认入库';
         const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
         const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
         const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
-        let msg = _pvChunksModified ? ('确认使用手动调整后的 ' + _pvChunks.length + ' 个分块入库？') : '确认将此文档按当前配置分块并向量化入库？';
-        if (!await showConfirm(msg, { icon: '✔', confirmText: '入库', confirmClass: 'btn-primary' })) return;
+        let msg = _pvChunksModified
+            ? ('确认使用手动调整后的 ' + _pvChunks.length + ' 个分块' + action + '？')
+            : ('确认将此文档按当前配置分块并向量化' + action + '？');
+        if (reindex) {
+            msg = '重新入库将删除该文档旧的向量 / 分块 / 配图并重新抽取入库，'
+                + (_pvChunksModified ? '并使用手动调整后的分块。' : '。')
+                + '新配图会生成新句柄，此前试卷上绑定到本文档的看图题将失效，需重新绑定。确认继续？';
+        }
+        if (!await showConfirm(msg, { icon: reindex ? '⚠' : '✔', confirmText: action, confirmClass: 'btn-primary' })) return;
         const progressEl = document.getElementById('pv-index-progress');
         const barEl = document.getElementById('pv-index-bar');
         const percentEl = document.getElementById('pv-index-percent');
         const labelEl = document.getElementById('pv-index-label');
         const detailEl = document.getElementById('pv-index-detail');
         progressEl.style.display = 'block'; barEl.style.width = '0%'; percentEl.textContent = '0%';
-        labelEl.textContent = '入库中...'; labelEl.style.color = ''; percentEl.style.color = '';
+        labelEl.textContent = action + '中...'; labelEl.style.color = ''; percentEl.style.color = '';
         barEl.style.background = ''; detailEl.textContent = '正在连接...';
-        const cbtn = document.getElementById('pv-confirm-btn'); cbtn.disabled = true; cbtn.textContent = '入库中...';
+        const cbtn = document.getElementById('pv-confirm-btn'); cbtn.disabled = true; cbtn.textContent = action + '中...';
 
         const eventSource = new EventSource(API + '/api/admin/document/' + _pvDocKey + '/index/progress');
         let sseOpen = false;
@@ -664,37 +670,38 @@
                 barEl.style.width = data.percent + '%'; percentEl.textContent = data.percent + '%';
                 detailEl.textContent = '已向量化 ' + data.completedChunks + ' / ' + data.totalChunks + ' 个分块';
             } else if (data.type === 'COMPLETED') {
-                barEl.style.width = '100%'; percentEl.textContent = '100%'; labelEl.textContent = '入库完成';
-                detailEl.textContent = '文档已成功入库'; barEl.style.background = 'var(--success)';
-                eventSource.close(); toast('文档已成功入库', 'success');
+                barEl.style.width = '100%'; percentEl.textContent = '100%'; labelEl.textContent = action + '完成';
+                detailEl.textContent = '文档已成功' + action; barEl.style.background = 'var(--success)';
+                eventSource.close(); toast('文档已成功' + action, 'success');
                 setTimeout(() => { progressEl.style.display = 'none'; barEl.style.background = ''; closePreviewModal(); loadDocuments(); }, 1200);
             } else if (data.type === 'ERROR') {
-                labelEl.textContent = '入库失败'; labelEl.style.color = 'var(--danger)'; percentEl.textContent = '';
+                labelEl.textContent = action + '失败'; labelEl.style.color = 'var(--danger)'; percentEl.textContent = '';
                 percentEl.style.color = 'var(--danger)'; detailEl.textContent = data.message || '未知错误';
                 barEl.style.background = 'var(--danger)'; barEl.style.width = '100%'; eventSource.close();
-                toast('入库失败: ' + (data.message || ''), 'error');
-                cbtn.disabled = false; cbtn.textContent = '确认入库';
+                toast(action + '失败: ' + (data.message || ''), 'error');
+                cbtn.disabled = false; cbtn.textContent = confirmBtnLabel;
             }
         };
-        eventSource.onerror = () => { if (!sseOpen) { labelEl.textContent = '进度连接失败'; detailEl.textContent = '入库可能仍在后台执行，请稍后刷新文档列表查看'; eventSource.close(); } };
+        eventSource.onerror = () => { if (!sseOpen) { labelEl.textContent = '进度连接失败'; detailEl.textContent = action + '可能仍在后台执行，请稍后刷新文档列表查看'; eventSource.close(); } };
 
         const waitForSse = () => new Promise(resolve => { if (sseOpen) { resolve(); return; } const check = () => { if (sseOpen) resolve(); else setTimeout(check, 50); }; check(); setTimeout(resolve, 3000); });
         try {
             await waitForSse();
             let url, options;
+            const base = reindex ? 'reindex' : 'index';
             if (_pvChunksModified && _pvChunks.length > 0) {
-                url = '/api/admin/document/' + _pvDocKey + '/index-custom';
+                url = '/api/admin/document/' + _pvDocKey + '/' + base + '-custom';
                 const customChunks = _pvChunks.map((c, idx) => ({ chunkIndex: idx, startPage: c.startPage, endPage: c.endPage, content: c.content }));
                 options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(customChunks) };
             } else {
-                url = '/api/admin/document/' + _pvDocKey + '/index?chunkSize=' + chunkSize + '&overlap=' + overlap + '&strategy=' + strategy;
+                url = '/api/admin/document/' + _pvDocKey + '/' + base + '?chunkSize=' + chunkSize + '&overlap=' + overlap + '&strategy=' + strategy;
                 options = { method: 'POST' };
             }
-            detailEl.textContent = '正在启动入库任务...';
+            detailEl.textContent = '正在启动' + action + '任务...';
             await fetch(API + url, options);
         } catch (e) {
-            labelEl.textContent = '入库失败'; detailEl.textContent = e.message; barEl.style.background = 'var(--danger)';
-            toast('入库失败: ' + e.message, 'error'); eventSource.close(); cbtn.disabled = false; cbtn.textContent = '确认入库';
+            labelEl.textContent = action + '失败'; detailEl.textContent = e.message; barEl.style.background = 'var(--danger)';
+            toast(action + '失败: ' + e.message, 'error'); eventSource.close(); cbtn.disabled = false; cbtn.textContent = confirmBtnLabel;
         }
     }
 

@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * 用户数据对象
@@ -34,6 +33,12 @@ public class UserDO {
 
     @TableField("is_admin")
     private Boolean admin;
+
+    @TableField("password_hash")
+    private String passwordHash;
+
+    @TableField("status")
+    private String status;
 
     @TableField("create_time")
     private LocalDateTime createTime;

@@ -19,6 +19,8 @@
     let _examAgentTimes = {};
     let _examTimerInterval = null;
     let _examActiveTimers = new Set();
+    let _examStreamState = {};  // 逐 token 流式：记录每个 agent 的 output/thinking 是否已开始（用于首块清空占位）
+    let _planStreamState = {};  // 题型分布方案 / 校验：逐 token 流式状态（首块清空占位）
     const _examAgentNodeMap = {
         researcher: 'research', scoring: 'scoring', writer: 'writing',
         answer: 'answer', reviewer: 'review', calibrator: 'calibrate', deduplicator: 'dedup'
@@ -72,7 +74,8 @@
         'dist-classify': { title: '阶段①　题型分类' },
         'dist-count': { title: '阶段②　题型数量' },
         'dist-score': { title: '阶段③　每题分数设计' },
-        'dist-evaluate': { title: '阶段④　合理性评估' }
+        'dist-evaluate': { title: '阶段④　合理性评估' },
+        'exam-plan-validator': { title: '方案校验　AI 解读' }
     };
 
     async function generateExamPlan() {
@@ -89,7 +92,6 @@
 
         resetPlanTrace();
         document.getElementById('exam-plan-trace-box').style.display = 'block';
-        document.getElementById('exam-plan-trace-box').open = true;
 
         const sessionId = 'dist-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
         const body = {
@@ -116,11 +118,17 @@
                 upsertPlanTraceStage(d.agentName, { output: d.output, running: false });
             }
         });
+        es.addEventListener('AGENT_TOKEN', (e) => {
+            let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+            if (!d.agentName || !d.delta) return;
+            appendPlanToken(d.agentName, d.kind, d.delta);
+        });
         es.addEventListener('COMPLETED', (e) => {
             let d; try { d = JSON.parse(e.data); } catch (_) { d = {}; }
             let plan = null;
             try { plan = JSON.parse(d.distributionPlan); } catch (_) { plan = null; }
             if (plan) {
+                plan.manualAdjusted = false;   // 大模型新生成的方案，视为未手动调整
                 currentExamPlan = plan;
                 _validationPassed = false;  // 新方案需要重新校验
                 collectPlan();
@@ -153,104 +161,222 @@
         }
     }
 
-    function resetPlanTrace() {
-        const box = document.getElementById('exam-plan-trace');
-        if (box) box.innerHTML = '';
+    /** 单卡片渲染正文的最大字符数，超出后仅显示尾部（避免超长 <pre> 触发 layout 卡顿）。 */
+    const _PST_MAX_RENDER = 20000;
+
+    /** 保证卡片存在并返回 st（累积文本 / pending 队列 / rAF id / peek 起点）。 */
+    function _pstEnsureState(agent, boxId) {
+        let st = _planStreamState[agent];
+        if (!st) {
+            st = _planStreamState[agent] = {
+                boxId: boxId || 'exam-plan-trace',
+                text: { thinking: '', output: '' },
+                peek: '',
+                started: { thinking: false, output: false },
+                rafId: null
+            };
+        } else if (boxId) {
+            st.boxId = boxId;
+        }
+        return st;
     }
-    function upsertPlanTraceStage(agent, patch) {
-        const box = document.getElementById('exam-plan-trace');
+
+    /** 从累积文本生成"最近 80 字"的单行预览。 */
+    function _pstPeek(text) {
+        if (!text) return '';
+        const tail = text.length > 80 ? '…' + text.slice(-79) : text;
+        return tail.replace(/\s+/g, ' ');
+    }
+
+    /** 只写卡片 header 的 peek；body 由 _pstFlushBody 按需更新。 */
+    function _pstScheduleFlush(agent) {
+        const st = _planStreamState[agent];
+        if (!st || st.rafId) return;
+        st.rafId = requestAnimationFrame(() => {
+            st.rafId = null;
+            const card = document.getElementById('plan-stage-' + agent);
+            if (!card) return;
+            const peekEl = card.querySelector('.pst-peek');
+            if (peekEl) peekEl.textContent = st.peek || '';
+            if (card.classList.contains('open')) {
+                _pstFlushBody(card, agent);
+            }
+        });
+    }
+
+    /** 打开状态下把 st.text 一次性同步进 DOM body（非 += 拼接）。 */
+    function _pstFlushBody(card, agent) {
+        const st = _planStreamState[agent];
+        if (!st) return;
+        const tb = card.querySelector('.pst-think-body');
+        const ob = card.querySelector('.pst-out-body');
+        if (tb) tb.textContent = st.text.thinking.length > _PST_MAX_RENDER
+            ? '…(前 ' + (st.text.thinking.length - _PST_MAX_RENDER) + ' 字省略)\n' + st.text.thinking.slice(-_PST_MAX_RENDER)
+            : st.text.thinking;
+        if (ob) ob.textContent = st.text.output.length > _PST_MAX_RENDER
+            ? '…(前 ' + (st.text.output.length - _PST_MAX_RENDER) + ' 字省略)\n' + st.text.output.slice(-_PST_MAX_RENDER)
+            : st.text.output;
+    }
+
+    function resetPlanTrace() {
+        ['exam-plan-trace', 'exam-val-trace'].forEach(id => {
+            const box = document.getElementById(id);
+            if (box) box.innerHTML = '';
+        });
+        Object.keys(_planStreamState).forEach(k => {
+            const st = _planStreamState[k];
+            if (st && st.rafId) cancelAnimationFrame(st.rafId);
+            delete _planStreamState[k];
+        });
+        const vToggle = document.getElementById('exam-val-trace-box');
+        if (vToggle) vToggle.style.display = 'none';
+    }
+    function upsertPlanTraceStage(agent, patch, boxId) {
+        const box = document.getElementById(boxId || 'exam-plan-trace');
         if (!box) return;
         const meta = _planStageMeta[agent] || { title: agent };
         let card = document.getElementById('plan-stage-' + agent);
         if (!card) {
             card = document.createElement('div');
             card.id = 'plan-stage-' + agent;
-            card.style.cssText = 'border:1px solid #e8ecf3;border-radius:8px;padding:8px 10px;margin-top:8px;background:#fff';
+            card.className = 'pst-card';
             card.innerHTML =
-                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-                + '<span class="pst-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block"></span>'
-                + '<strong style="font-size:13px;color:#334155">' + planEsc(meta.title) + '</strong>'
-                + '<span class="pst-status" style="font-size:11px;color:#94a3b8;margin-left:auto">进行中…</span></div>'
-                + '<div class="pst-input" style="display:none">'
-                + '<div class="pst-input-body" style="font-size:12px;color:#64748b;background:#f8fafc;border:1px dashed #e2e8f0;border-radius:6px;padding:6px 8px;white-space:pre-wrap;margin:4px 0 6px"></div></div>'
-                + '<div class="pst-think" style="display:none"><div style="font-size:11px;color:#94a3b8;margin-bottom:2px">💭 思考</div>'
-                + '<div class="pst-think-body" style="font-size:12px;color:#475569;white-space:pre-wrap;margin-bottom:6px"></div></div>'
-                + '<div class="pst-out" style="display:none"><div style="font-size:11px;color:#94a3b8;margin-bottom:2px">📤 输出</div>'
-                + '<div class="pst-out-body" style="font-size:12px;color:#1e293b;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 8px;white-space:pre-wrap"></div></div>';
+                '<div class="pst-header">'
+                + '<span class="pst-caret">▸</span>'
+                + '<span class="pst-dot"></span>'
+                + '<strong class="pst-title">' + planEsc(meta.title) + '</strong>'
+                + '<span class="pst-peek"></span>'
+                + '<span class="pst-status">进行中…</span>'
+                + '</div>'
+                + '<div class="pst-body">'
+                + '<div class="pst-sec pst-sec-input"><div class="pst-label">📥 输入</div>'
+                + '<div class="pst-input-body"></div></div>'
+                + '<div class="pst-sec pst-sec-think"><div class="pst-label">💭 思考</div>'
+                + '<div class="pst-think-body"></div></div>'
+                + '<div class="pst-sec pst-sec-out"><div class="pst-label">📤 输出</div>'
+                + '<div class="pst-out-body"></div></div>'
+                + '</div>';
+            card.querySelector('.pst-header').addEventListener('click', () => {
+                const open = card.classList.toggle('open');
+                if (open) _pstFlushBody(card, agent);
+            });
             box.appendChild(card);
         }
+        const st = _pstEnsureState(agent, boxId);
         if (patch.input != null && patch.input !== '') {
-            const w = card.querySelector('.pst-input');
-            w.style.display = 'block';
-            w.querySelector('.pst-input-body').textContent = '📥 输入：' + patch.input;
+            card.classList.add('has-input');
+            const b = card.querySelector('.pst-input-body');
+            if (b) b.textContent = patch.input;
         }
-        if (patch.thinking != null && patch.thinking !== '') {
-            const w = card.querySelector('.pst-think');
-            w.style.display = 'block';
-            w.querySelector('.pst-think-body').textContent = patch.thinking;
+        if (patch.thinking != null && patch.thinking !== '' && !st.started.thinking) {
+            st.text.thinking = patch.thinking;
+            st.peek = '💭 ' + _pstPeek(st.text.thinking);
+            card.classList.add('has-think');
         }
         if (patch.output != null) {
-            const w = card.querySelector('.pst-out');
-            w.style.display = 'block';
-            w.querySelector('.pst-out-body').textContent = patch.output;
+            st.text.output = String(patch.output);
+            st.peek = '📤 ' + _pstPeek(st.text.output);
+            card.classList.add('has-out');
         }
         if (patch.running === false) {
-            card.querySelector('.pst-dot').style.background = '#16a34a';
-            card.querySelector('.pst-status').textContent = '已完成 ✓';
+            const dot = card.querySelector('.pst-dot');
+            if (dot) dot.classList.add('done');
+            const status = card.querySelector('.pst-status');
+            if (status) status.textContent = '已完成 ✓';
         }
+        _pstScheduleFlush(agent);
+        return card;
+    }
+    /** 逐 token 追加：写入 st.text 并排一次 rAF flush；卡片折叠时不触碰 body DOM。 */
+    function appendPlanToken(agent, kind, delta, boxId) {
+        if (!delta) return;
+        const k = (kind === 'thinking') ? 'thinking' : 'output';
+        const card = document.getElementById('plan-stage-' + agent)
+            || upsertPlanTraceStage(agent, { running: true }, boxId);
+        if (!card) return;
+        const st = _pstEnsureState(agent, boxId);
+        if (!st.started[k]) { st.text[k] = ''; st.started[k] = true; }
+        st.text[k] += delta;
+        st.peek = (k === 'thinking' ? '💭 ' : '📤 ') + _pstPeek(st.text[k]);
+        card.classList.add(k === 'thinking' ? 'has-think' : 'has-out');
+        _pstScheduleFlush(agent);
+    }
+    /** 重跑某阶段前重置：确保卡片存在、清空累积文本、状态回到"进行中"、保持折叠。 */
+    function beginPlanStage(agent, boxId) {
+        const card = upsertPlanTraceStage(agent, { running: true }, boxId);
+        if (!card) return;
+        const prev = _planStreamState[agent];
+        if (prev && prev.rafId) cancelAnimationFrame(prev.rafId);
+        _planStreamState[agent] = {
+            boxId: boxId || 'exam-plan-trace',
+            text: { thinking: '', output: '' },
+            peek: '',
+            started: { thinking: false, output: false },
+            rafId: null
+        };
+        const tb = card.querySelector('.pst-think-body'); if (tb) tb.textContent = '';
+        const ob = card.querySelector('.pst-out-body'); if (ob) ob.textContent = '';
+        const pk = card.querySelector('.pst-peek'); if (pk) pk.textContent = '';
+        card.classList.remove('has-think', 'has-out', 'open');
+        const dot = card.querySelector('.pst-dot'); if (dot) dot.classList.remove('done', 'failed');
+        const status = card.querySelector('.pst-status'); if (status) status.textContent = '进行中…';
     }
     /**
      * 渲染"自动平衡分值"节点的三态卡片（输入 · 思考 · 输出）。
      * 后端 ScoreRuleEngine.balancePlan 返回 Markdown 段落：### 输入 / ### 思考 / ### 输出。
-     * 若后端未提供分段（旧数据 / 边界情况），退化为纯文本展示。
+     * 若后端未提供分段（旧数据 / 边界情况），退化为纯文本展示于输出区。
+     * 使用与其它阶段一致的可收缩 .pst-card 结构，默认折叠，头部展示状态徽标。
      */
-    function appendBalanceTrace(trace) {
-        const box = document.getElementById('exam-plan-trace');
+    function appendBalanceTrace(trace, boxId, toggleId) {
+        const box = document.getElementById(boxId || 'exam-plan-trace');
         if (!box) return;
         const id = 'plan-stage-balance';
         let card = document.getElementById(id);
         if (!card) {
             card = document.createElement('div');
             card.id = id;
-            card.style.cssText = 'border:1px solid #dbeafe;border-radius:8px;padding:8px 10px;margin-top:8px;background:#f5f9ff';
+            card.className = 'pst-card';
+            card.innerHTML =
+                '<div class="pst-header">'
+                + '<span class="pst-caret">▸</span>'
+                + '<span class="pst-dot done"></span>'
+                + '<strong class="pst-title">自动平衡分值</strong>'
+                + '<span class="pst-peek"></span>'
+                + '<span class="pst-status" style="color:#16a34a">后端确定性计算 · 已完成 ✓</span>'
+                + '</div>'
+                + '<div class="pst-body">'
+                + '<div class="pst-sec pst-sec-input"><div class="pst-label">📥 输入</div>'
+                + '<div class="pst-input-body"></div></div>'
+                + '<div class="pst-sec pst-sec-think"><div class="pst-label">💭 思考</div>'
+                + '<div class="pst-think-body"></div></div>'
+                + '<div class="pst-sec pst-sec-out"><div class="pst-label">📤 输出</div>'
+                + '<div class="pst-out-body"></div></div>'
+                + '</div>';
+            card.querySelector('.pst-header').addEventListener('click', () => card.classList.toggle('open'));
             box.appendChild(card);
         }
         const sections = splitTraceSections(trace);
         const hasSections = sections.input || sections.thinking || sections.output;
-        let bodyHtml = '';
-        if (hasSections) {
-            if (sections.input) {
-                bodyHtml += '<div style="display:block;margin-top:4px">'
-                    + '<div class="pst-input-body" style="font-size:12px;color:#64748b;background:#f8fafc;border:1px dashed #e2e8f0;border-radius:6px;padding:6px 8px;white-space:pre-wrap;margin:4px 0 6px">'
-                    + '📥 输入：' + planEsc(sections.input) + '</div></div>';
-            }
-            if (sections.thinking) {
-                bodyHtml += '<div style="display:block">'
-                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:2px">💭 思考</div>'
-                    + '<div style="font-size:12px;color:#475569;white-space:pre-wrap;margin-bottom:6px">'
-                    + planEsc(sections.thinking) + '</div></div>';
-            }
-            if (sections.output) {
-                bodyHtml += '<div style="display:block">'
-                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:2px">📤 输出</div>'
-                    + '<div style="font-size:12px;color:#1e293b;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 8px;white-space:pre-wrap">'
-                    + planEsc(sections.output) + '</div></div>';
-            }
-        } else {
-            bodyHtml = '<div style="font-size:12px;color:#334155;white-space:pre-wrap;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px">'
-                + planEsc(trace || '') + '</div>';
+        if (sections.input) {
+            card.classList.add('has-input');
+            card.querySelector('.pst-input-body').textContent = sections.input;
         }
-        card.innerHTML =
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-            + '<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>'
-            + '<strong style="font-size:13px;color:#1e40af">自动平衡分值</strong>'
-            + '<span style="font-size:11px;color:#93c5fd;margin-left:auto">后端确定性计算 · 已完成 ✓</span></div>'
-            + bodyHtml;
-        const traceBox = document.getElementById('exam-plan-trace-box');
-        if (traceBox) {
-            traceBox.style.display = 'block';
-            traceBox.open = true;
+        if (sections.thinking) {
+            card.classList.add('has-think');
+            card.querySelector('.pst-think-body').textContent = sections.thinking;
         }
+        if (sections.output) {
+            card.classList.add('has-out');
+            card.querySelector('.pst-out-body').textContent = sections.output;
+        }
+        if (!hasSections && trace) {
+            card.classList.add('has-out');
+            card.querySelector('.pst-out-body').textContent = trace;
+        }
+        const peekEl = card.querySelector('.pst-peek');
+        if (peekEl) peekEl.textContent = '📤 ' + _pstPeek(sections.output || trace || '');
+        const traceBox = document.getElementById(toggleId || 'exam-plan-trace-box');
+        if (traceBox) traceBox.style.display = 'block';
     }
 
     /**
@@ -346,7 +472,7 @@
             const v = pq[qi] == null ? 0 : pq[qi];
             out += '<span style="display:inline-flex;align-items:center;gap:2px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:1px 2px 1px 6px;font-size:12px;color:#64748b">'
                 + (qi + 1) + '.'
-                + '<input type="number" class="plan-score" data-ti="' + ti + '" data-qi="' + qi + '" min="0" max="100" value="' + v + '" style="width:42px;border:none;background:transparent;text-align:center;font-size:13px;font-weight:600;color:#334155;padding:2px" oninput="updatePlanSummary()">'
+                + '<input type="number" class="plan-score" data-ti="' + ti + '" data-qi="' + qi + '" min="0" max="100" value="' + v + '" style="width:42px;border:none;background:transparent;text-align:center;font-size:13px;font-weight:600;color:#334155;padding:2px" oninput="updatePlanSummary(); markPlanManual()">'
                 + '分</span>';
         }
         if (!pq.length) out = '<span style="font-size:12px;color:#cbd5e1">题量为 0</span>';
@@ -393,6 +519,11 @@
             t.perQuestion = pq;
         });
     }
+    /** 用户任何形式的手动改动（题量 / 分值 / 均匀分布）都记为 manualAdjusted=true。 */
+    function markPlanManual() {
+        if (!currentExamPlan) return;
+        currentExamPlan.manualAdjusted = true;
+    }
     function planAllocated() {
         if (!currentExamPlan) return 0;
         return currentExamPlan.types.reduce((s, t) => s + typeSubtotal(t), 0);
@@ -417,6 +548,23 @@
     }
 
     /**
+     * 自动平衡的前置检查（比 checkPlanReady 宽松）。
+     * <p>只要方案存在、有题型、题量合计 > 0 且满分 > 0 即可平衡——
+     * "分值合计 ≠ 满分" 正是平衡要修复的目标，绝不能拿它当拦截条件，
+     * 否则用户手动调分后反而点不动「自动平衡」。</p>
+     * @returns {string|null} null 表示可平衡，否则返回不可平衡原因
+     */
+    function checkPlanBalanceable() {
+        if (!currentExamPlan) return '尚未生成题型分布方案';
+        if (!currentExamPlan.types || !currentExamPlan.types.length) return '方案缺少题型';
+        const totalCount = currentExamPlan.types.reduce((s, t) => s + Math.max(0, t.count || 0), 0);
+        if (totalCount <= 0) return '题量合计为 0，请至少设置一种题型的题量';
+        const target = currentExamPlan.totalFullMark || 0;
+        if (target <= 0) return '满分未设置，无法按满分平衡';
+        return null;
+    }
+
+    /**
      * Node 2：调用后端校验方案（异步 SSE），展示校验结果。
      */
     async function validatePlan() {
@@ -434,6 +582,10 @@
         resultEl.innerHTML = '<span style="opacity:.7">正在校验方案…</span>';
         setStepState(2, 'active', '校验中…');
 
+        const traceBox = document.getElementById('exam-val-trace-box');
+        if (traceBox) { traceBox.style.display = 'block'; }
+        beginPlanStage('exam-plan-validator', 'exam-val-trace');
+
         _validationSessionId = 'validate-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
         const eventSource = new EventSource(API + '/api/agent/exam/progress/' + _validationSessionId);
         let sseReady = false;
@@ -446,6 +598,7 @@
                 resultEl.style.background = '#dcfce7';
                 resultEl.style.color = '#166534';
                 resultEl.innerHTML = renderMarkdown(data.output || '校验通过');
+                upsertPlanTraceStage('exam-plan-validator', { running: false }, 'exam-val-trace');
                 setStepState(2, 'done', '校验已通过');
                 refreshStepGate();
                 eventSource.close();
@@ -456,6 +609,7 @@
                 resultEl.style.background = '#fee2e2';
                 resultEl.style.color = '#991b1b';
                 resultEl.innerHTML = renderMarkdown(data.output || '校验未通过');
+                upsertPlanTraceStage('exam-plan-validator', { running: false }, 'exam-val-trace');
                 setStepState(2, 'active', '校验未通过');
                 const balanceBtn = document.getElementById('exam-balance-btn');
                 if (balanceBtn) balanceBtn.disabled = false;
@@ -467,7 +621,14 @@
                 if (data.message) {
                     resultEl.innerHTML = '<span style="opacity:.7">' + esc(data.message) + '</span>';
                 }
+                upsertPlanTraceStage('exam-plan-validator', { input: data.materials, thinking: data.message, running: true }, 'exam-val-trace');
             }
+        });
+
+        eventSource.addEventListener('AGENT_TOKEN', (e) => {
+            let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+            if (!d.agentName || !d.delta) return;
+            appendPlanToken(d.agentName, d.kind, d.delta, 'exam-val-trace');
         });
 
         eventSource.addEventListener('ERROR', (e) => {
@@ -518,14 +679,14 @@
      * Node 2：自动平衡分值并重新校验。
      */
     async function balanceAndRevalidate() {
-        const reason = checkPlanReady();
-        if (reason) { toast('方案未就绪: ' + reason, 'error'); refreshStepGate(); return; }
+        const reason = checkPlanBalanceable();
+        if (reason) { toast('无法平衡: ' + reason, 'error'); refreshStepGate(); return; }
         collectPlan();
 
         const btn = document.getElementById('exam-balance-btn');
         btn.disabled = true;
         btn.textContent = '平衡中...';
-        toast('正在自动平衡分值…', 'info');
+        toast('正在按满分自动平衡分值…', 'info');
 
         try {
             const res = await fetch(API + '/api/agent/exam/distribution/balance', {
@@ -538,10 +699,14 @@
                 throw new Error(err.error || '平衡失败');
             }
             const data = await res.json();
+            if (data.plan) { data.plan.manualAdjusted = true; }
             currentExamPlan = data.plan;
             renderExamPlan(currentExamPlan);
             updatePlanSummary();
-            toast('分值已平衡，正在重新校验…', 'success');
+            const traceBox = document.getElementById('exam-val-trace-box');
+            if (traceBox) { traceBox.style.display = 'block'; }
+            appendBalanceTrace(data.trace, 'exam-val-trace', 'exam-val-trace-box');
+            toast('分值已按满分平衡，正在重新校验…', 'success');
             btn.disabled = false;
             btn.textContent = '自动平衡';
             // 重新校验
@@ -571,11 +736,19 @@
      */
     function refreshStepGate() {
         const reason = checkPlanReady();
+        const balanceReason = checkPlanBalanceable();
         const validateBtn = document.getElementById('exam-validate-btn');
         const balanceBtn = document.getElementById('exam-balance-btn');
         const generateBtn = document.getElementById('exam-generate-btn');
         const conn1 = document.getElementById('exam-step-connector-1');
         const conn2 = document.getElementById('exam-step-connector-2');
+
+        // 自动平衡（现位于步骤 1「题型分布方案」）：只要方案可平衡就启用，
+        // 分值合计≠满分时正是用户需要点它的时刻，不能拦截。
+        if (balanceBtn) {
+            balanceBtn.disabled = balanceReason != null;
+            balanceBtn.title = balanceReason ? balanceReason : '手动调整题型或分数后，点此按满分自动平衡每题分值';
+        }
 
         if (reason) {
             // Node 1 未就绪
@@ -585,7 +758,6 @@
             if (conn1) conn1.classList.remove('done');
             if (conn2) conn2.classList.remove('done');
             if (validateBtn) validateBtn.disabled = true;
-            if (balanceBtn) balanceBtn.disabled = true;
             if (generateBtn) { generateBtn.disabled = true; generateBtn.title = reason; }
         } else {
             // Node 1 已就绪
@@ -606,7 +778,6 @@
             }
 
             if (validateBtn) validateBtn.disabled = false;
-            if (balanceBtn) balanceBtn.disabled = false;
         }
     }
     function updatePlanSummary() {
@@ -632,6 +803,7 @@
     }
     function onPlanCountChange(ti) {
         readPlanFromDom();
+        markPlanManual();
         const t = currentExamPlan && currentExamPlan.types[ti];
         if (!t) return;
         const c = Math.max(0, t.count || 0);
@@ -645,6 +817,7 @@
     }
     function evenSpreadType(ti) {
         readPlanFromDom();
+        markPlanManual();
         const t = currentExamPlan && currentExamPlan.types[ti];
         if (!t || !t.count) return;
         const cur = typeSubtotal(t);
@@ -657,6 +830,7 @@
     function evenSpreadAll() {
         readPlanFromDom();
         if (!currentExamPlan) return;
+        markPlanManual();
         const target = currentExamPlan.totalFullMark || 0;
         const weights = currentExamPlan.types.map(t => Math.max(0, t.count || 0) * kernelWeight(t.key));
         const totalW = weights.reduce((a, b) => a + b, 0) || 1;
@@ -694,6 +868,37 @@
             _examTimerInterval = null;
         }
     }
+    /** Step 3 Agent 面板：合并每帧的 DOM 写；折叠时不触碰 <pre>；开启时同步 st.text。 */
+    function _examTokenFlush(ui) {
+        const st = _examStreamState[ui];
+        if (!st) return;
+        st.rafId = null;
+        const panel = document.getElementById('exam-panel-' + ui);
+        if (!panel) return;
+        const isOpen = panel.classList.contains('open');
+        const cap = (txt) => txt.length > _PST_MAX_RENDER
+            ? '…(前 ' + (txt.length - _PST_MAX_RENDER) + ' 字省略)\n' + txt.slice(-_PST_MAX_RENDER)
+            : txt;
+        if (isOpen) {
+            const pre = document.getElementById('exam-thinking-' + ui);
+            const out = document.getElementById('exam-output-' + ui);
+            if (pre && st.started.thinking) pre.textContent = cap(st.text.thinking);
+            if (out && st.started.output) out.textContent = cap(st.text.output);
+        } else {
+            const badge = document.getElementById('exam-status-' + ui);
+            if (badge && badge.classList.contains('running')) {
+                const total = st.text.thinking.length + st.text.output.length;
+                badge.textContent = '执行中… ' + total + ' 字';
+            }
+        }
+    }
+    /** 用户手动展开面板时，用缓冲文本一次性追平 DOM，避免面板首次打开显示空白/半截。 */
+    function _examPanelOpenSync(ui) {
+        const st = _examStreamState[ui];
+        if (!st) return;
+        if (st.rafId) { cancelAnimationFrame(st.rafId); st.rafId = null; }
+        _examTokenFlush(ui);
+    }
     function resetExamUI() {
         document.getElementById('exam-progress').classList.add('active');
         document.getElementById('exam-error').classList.remove('active');
@@ -720,7 +925,12 @@
             if (outputEl) outputEl.textContent = '等待执行...';
             const panelEl = document.getElementById('exam-panel-' + a);
             if (panelEl) panelEl.classList.remove('open');
+            const thinkWrap = document.getElementById('exam-thinkingwrap-' + a);
+            if (thinkWrap) { thinkWrap.classList.remove('active'); thinkWrap.open = false; }
+            const thinkPre = document.getElementById('exam-thinking-' + a);
+            if (thinkPre) thinkPre.textContent = '';
         });
+        _examStreamState = {};
         document.getElementById('exam-materials-researcher').textContent = '等待检索...';
         document.getElementById('exam-materials-scoring').textContent = '等待检索...';
         document.getElementById('exam-materials-writer').textContent = '等待研究员完成...';
@@ -743,6 +953,19 @@
                 else if (i === stageIdx) el.classList.add('active');
             });
         });
+    }
+
+    // 出卷改进重试轮次徽标：仅重试轮显示"第 N / 共 M 轮"
+    function showExamRoundBadge(round, maxRound) {
+        const badge = document.getElementById('exam-round-badge');
+        const text = document.getElementById('exam-round-badge-text');
+        if (!badge || !text) return;
+        text.textContent = '第 ' + round + ' / 共 ' + maxRound + ' 轮 · 正在重新生成试卷';
+        badge.style.display = 'flex';
+    }
+    function hideExamRoundBadge() {
+        const badge = document.getElementById('exam-round-badge');
+        if (badge) badge.style.display = 'none';
     }
     function setExamAgentStatus(agent, status, text) {
         const el = document.getElementById('exam-status-' + agent);
@@ -783,6 +1006,7 @@
             skipScoringValidation: true  // Node 2 已校验通过，Node 3 跳过校验
         };
 
+        hideExamRoundBadge();
         const sessionId = 'exam-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
         const eventSource = new EventSource(API + '/api/agent/exam/progress/' + sessionId);
         let sseReady = false;
@@ -796,6 +1020,9 @@
                 'DEDUPLICATING': 'dedup', 'COMPLETED': 'dedup'
             };
             setExamPhase(phaseMap[data.phase] || 'research');
+            if (data.round != null) {
+                showExamRoundBadge(data.round, data.maxRound);
+            }
         });
 
         eventSource.addEventListener('AGENT_OUTPUT', (e) => {
@@ -821,8 +1048,8 @@
                     if (data.message) storeNodeDetail(eNode, 'message', data.message);
                 }
                 const panel = document.getElementById('exam-panel-' + uiAgent);
-                if (panel) panel.classList.add('open');
-                _examThinkingVisible = true;
+                if (panel) panel.classList.remove('open');
+                _examThinkingVisible = false;
                 if (data.message) {
                     const outputEl = document.getElementById('exam-output-' + uiAgent);
                     if (outputEl) outputEl.textContent = data.message;
@@ -871,9 +1098,42 @@
             }
         });
 
+        // 真流式：逐 token 累积到 st.text，rAF 合并 DOM 写；面板折叠时只更新状态徽标。
+        // 完成时的 AGENT_OUTPUT(done) 仍以完整文本兜底收敛，二者不冲突。
+        eventSource.addEventListener('AGENT_TOKEN', (e) => {
+            const data = JSON.parse(e.data);
+            const agent = data.agentName;
+            if (!agent) return;
+            const delta = data.delta || '';
+            if (!delta) return;
+            const tokenUiMap = {
+                'exam-researcher': 'researcher', 'exam-scoring': 'scoring', 'exam-writer': 'writer',
+                'answer-generator': 'answer', 'exam-reviewer': 'reviewer', 'exam-calibrator': 'calibrator',
+                'exam-deduplicator': 'deduplicator'
+            };
+            const ui = tokenUiMap[agent] || agent;
+            const kind = (data.kind === 'thinking') ? 'thinking' : 'output';
+            let st = _examStreamState[ui];
+            if (!st) {
+                st = _examStreamState[ui] = {
+                    text: { thinking: '', output: '' },
+                    started: { thinking: false, output: false },
+                    rafId: null
+                };
+            }
+            if (!st.started[kind]) { st.text[kind] = ''; st.started[kind] = true; }
+            st.text[kind] += delta;
+            if (kind === 'thinking') {
+                const wrap = document.getElementById('exam-thinkingwrap-' + ui);
+                if (wrap && !wrap.classList.contains('active')) wrap.classList.add('active');
+            }
+            if (!st.rafId) st.rafId = requestAnimationFrame(() => _examTokenFlush(ui));
+        });
+
         eventSource.addEventListener('COMPLETED', (e) => {
             const data = JSON.parse(e.data);
             eventSource.close();
+            hideExamRoundBadge();
             ['research', 'scoring', 'writing', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
                 const el = document.getElementById('exam-flow-' + n);
                 if (el) { el.classList.remove('active'); el.classList.add('done'); }
@@ -898,7 +1158,7 @@
             }
             btn.disabled = false;
             btn.textContent = '生成试卷';
-            setStepState(2, 'done', '试卷已生成');
+            setStepState(3, 'done', '试卷已生成');
             toast('试卷生成完成', 'success');
             loadExamHistory(0);
         });
@@ -906,6 +1166,7 @@
         eventSource.addEventListener('ERROR', (e) => {
             const data = JSON.parse(e.data);
             eventSource.close();
+            hideExamRoundBadge();
             document.getElementById('exam-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
             document.getElementById('exam-error').classList.add('active');
             btn.disabled = false;
@@ -979,6 +1240,21 @@
     let examHistoryPage = 0;
     function goExamHistoryPage(p) { loadExamHistory(p); }
 
+    // 试卷生命周期状态 → 徽章（阶段 1-D 校对关口）
+    function paperStatusBadge(status) {
+        const map = {
+            PUBLISHED: ['已发布', 'badge-success'],
+            REVIEWABLE: ['待校对', 'badge-warning'],
+            VALIDATION_FAILED: ['校验未通过', 'badge-danger'],
+            DRAFT: ['草稿', 'badge-info'],
+            COMPLETED: ['成功', 'badge-success'],
+            FAILED: ['生成失败', 'badge-danger'],
+            VOIDED: ['已作废', 'badge-danger']
+        };
+        const m = map[status] || [status || '-', 'badge-info'];
+        return '<span class="badge ' + m[1] + '">' + KR.esc(m[0]) + '</span>';
+    }
+
     async function loadExamHistory(page) {
         if (page == null) page = examHistoryPage;
         examHistoryPage = page;
@@ -996,11 +1272,12 @@
             }
             const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
             tbody.innerHTML = list.map(h => {
-                const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+                const statusLabel = paperStatusBadge(h.status);
                 const score = h.qualityScore != null ? h.qualityScore : '-';
                 const time = KR.fmtDateTime(h.createTime);
                 const diff = diffMap[h.difficulty] || h.difficulty || '-';
                 const t = h.topic && h.topic.length > 40 ? h.topic.substring(0, 40) + '...' : (h.topic || '-');
+                const canVoid = h.status === 'PUBLISHED' || h.status === 'REVIEWABLE';
                 return '<tr>'
                     + '<td title="' + esc(h.topic || '') + '">' + esc(t) + '</td>'
                     + '<td>' + diff + '</td>'
@@ -1010,6 +1287,7 @@
                     + '<td style="white-space:nowrap">'
                     + '<button class="btn btn-outline btn-sm" onclick="showExamHistoryDetail(\'' + esc(h.sessionId) + '\')">查看</button> '
                     + '<button class="btn btn-outline btn-sm" onclick="exportHistoryWord(\'' + esc(h.sessionId) + '\')" title="导出 Word">导出</button> '
+                    + (canVoid ? '<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="voidExamHistory(\'' + esc(h.sessionId) + '\')" title="作废后学生不可再开考，已有场次将标注「试卷已作废」">作废</button> ' : '')
                     + '<button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="deleteExamHistory(\'' + esc(h.sessionId) + '\')" title="删除">删除</button>'
                     + '</td></tr>';
             }).join('');
@@ -1028,17 +1306,19 @@
             const res = await fetch(API + '/api/agent/exam/history/' + encodeURIComponent(sessionId));
             if (!res.ok) throw new Error('加载失败');
             const h = await res.json();
-            const statusLabel = h.status === 'COMPLETED' ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失败</span>';
+            const statusLabel = paperStatusBadge(h.status);
             const time = h.createTime ? h.createTime.replace('T', ' ').substring(0, 19) : '-';
             const diffMap = { EASY: '简单', MEDIUM: '中等', HARD: '困难' };
             const diff = diffMap[h.difficulty] || h.difficulty || '-';
             let html = '<div style="margin-bottom:20px"><h3 style="margin:0 0 12px;font-size:18px">出卷详情</h3>'
                 + '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-light)">'
                 + '<span>状态: ' + statusLabel + '</span><span>难度: ' + diff + '</span>'
-                + '<span>评分: ' + (h.qualityScore != null ? h.qualityScore : '-') + '</span>'
+                + '<span>评分: ' + (h.qualityScore != null ? h.qualityScore : '-')
+                + (h.qualityScore != null ? ' <a href="javascript:void(0)" onclick="showScoreRuleModal()" style="color:var(--primary);text-decoration:none;font-weight:600" title="查看分数计算规则">?</a>' : '') + '</span>'
                 + '<span>检索分块: ' + (h.retrievedChunks != null ? h.retrievedChunks : '-') + '</span>'
                 + '<span>时间: ' + time + '</span>'
                 + (h.category ? '<span>分类: ' + esc(h.category) + '</span>' : '') + '</div></div>';
+            html += buildScoreBreakdownHtml(h.scoreDetail);
             html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px">考试主题</div>'
                 + '<div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid var(--border);font-size:14px">' + esc(h.topic || '-') + '</div></div>';
             if (h.questionConfig) html += '<div style="margin-bottom:16px"><div style="font-weight:500;margin-bottom:6px">题型配置</div>'
@@ -1064,6 +1344,60 @@
     }
     function closeHistoryModal() { document.getElementById('history-modal-overlay').classList.remove('active'); }
 
+    function showScoreRuleModal() {
+        const m = document.getElementById('score-rule-modal');
+        if (m) m.classList.add('active');
+    }
+    function closeScoreRuleModal() {
+        const m = document.getElementById('score-rule-modal');
+        if (m) m.classList.remove('active');
+    }
+
+    /** 六维度定义：key、中文名、权重（与后端 ExamReviewerAgent.WEIGHTS 保持一致） */
+    const SCORE_DIMENSIONS = [
+        { key: 'accuracy', label: '知识准确性', weight: 0.25 },
+        { key: 'coverage', label: '知识点覆盖', weight: 0.25 },
+        { key: 'wording', label: '题目表述', weight: 0.15 },
+        { key: 'typeReasonable', label: '题型合理性', weight: 0.15 },
+        { key: 'difficulty', label: '难度适当性', weight: 0.10 },
+        { key: 'format', label: '格式规范性', weight: 0.10 }
+    ];
+
+    /**
+     * 依据落库的 scoreDetail JSON 渲染"评分构成"（逐维度得分 × 权重 = 加权贡献，末行合计）。
+     * 无明细（历史旧记录 / 模型未按格式输出）时返回空串。
+     */
+    function buildScoreBreakdownHtml(scoreDetailJson) {
+        if (!scoreDetailJson) return '';
+        let d;
+        try { d = JSON.parse(scoreDetailJson); } catch (_) { return ''; }
+        if (!d || typeof d !== 'object') return '';
+        const rows = SCORE_DIMENSIONS.filter(x => typeof d[x.key] === 'number');
+        if (!rows.length) return '';
+        let calc = 0;
+        const body = rows.map(function (x) {
+            const s = d[x.key];
+            const contrib = s * x.weight;
+            calc += contrib;
+            return '<div style="display:grid;grid-template-columns:1.6fr 0.7fr 1fr 1.1fr;gap:8px;align-items:center;padding:5px 8px;border-bottom:1px solid #eef2f7;font-size:13px">'
+                + '<span style="font-weight:600;color:#1e293b">' + x.label + '</span>'
+                + '<span style="color:#64748b">' + s + ' 分</span>'
+                + '<span style="color:#94a3b8">× ' + x.weight.toFixed(2) + '</span>'
+                + '<span style="text-align:right;font-weight:600;color:var(--primary)">' + contrib.toFixed(1) + '</span>'
+                + '</div>';
+        }).join('');
+        const totalLine = (typeof d.total === 'number' ? d.total : Math.round(calc));
+        return '<div style="margin-bottom:18px"><div style="font-weight:500;margin-bottom:6px">评分构成'
+            + ' <a href="javascript:void(0)" onclick="showScoreRuleModal()" style="font-size:12px;font-weight:400;color:var(--primary);text-decoration:none">（计算规则 ?）</a></div>'
+            + '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">'
+            + '<div style="display:grid;grid-template-columns:1.6fr 0.7fr 1fr 1.1fr;gap:8px;padding:6px 8px;background:#f8fafc;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #eef2f7"><span>维度</span><span>得分</span><span>权重</span><span style="text-align:right">加权贡献</span></div>'
+            + body
+            + '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;font-size:13px;background:#f0fdf4;border-top:1px solid #bbf7d0">'
+            + '<span style="font-weight:600;color:#166534">合计（四舍五入）</span>'
+            + '<span style="font-weight:700;color:#166534">' + calc.toFixed(1) + ' → ' + totalLine + ' 分</span>'
+            + '</div></div></div>';
+    }
+
     async function deleteExamHistory(sessionId) {
         const ok = await showConfirm('确定要删除这条出卷记录吗？', { confirmText: '删除' });
         if (!ok) return;
@@ -1075,6 +1409,27 @@
         } catch (e) {
             console.error('删除出卷历史失败', e);
             toast('删除失败: ' + e.message, 'error');
+        }
+    }
+    async function voidExamHistory(sessionId) {
+        const ok = await showConfirm(
+            '作废后学生不可再开考此试卷，已产生的考试场次将标注「试卷已作废」（仍可显示与查阅）。确定作废？',
+            { confirmText: '作废' }
+        );
+        if (!ok) return;
+        try {
+            const res = await fetch(
+                API + '/api/admin/paper-review/' + encodeURIComponent(sessionId) + '/void?operator=admin',
+                { method: 'POST' }
+            );
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) throw new Error(data.error || '作废失败');
+            var extra = data && data.cascadedSessions ? '，已级联标注 ' + data.cascadedSessions + ' 场考试' : '';
+            toast('试卷已作废' + extra, 'success');
+            loadExamHistory();
+        } catch (e) {
+            console.error('作废试卷失败', e);
+            toast('作废失败: ' + e.message, 'error');
         }
     }
     async function exportHistoryWord(sessionId) {
@@ -1101,12 +1456,25 @@
     /* ---------- 暴露给内联 onclick 的全局函数 ---------- */
     Object.assign(window, {
         generateExamPlan, validatePlan, balanceAndRevalidate, onPlanCountChange, evenSpreadType, evenSpreadAll,
-        updatePlanSummary, generateExamWithAgents, toggleExamPanels, copyExamPaper, exportExamWord,
-        loadExamHistory, goExamHistoryPage, showExamHistoryDetail, deleteExamHistory,
-        exportHistoryWord, closeHistoryModal, closeNodeModal, showNodeModal
+        updatePlanSummary, markPlanManual, generateExamWithAgents, toggleExamPanels, copyExamPaper, exportExamWord,
+        loadExamHistory, goExamHistoryPage, showExamHistoryDetail, deleteExamHistory, voidExamHistory,
+        exportHistoryWord, closeHistoryModal, closeNodeModal, showNodeModal,
+        showScoreRuleModal, closeScoreRuleModal
     });
 
     /* ---------- 初始化 ---------- */
+    (function bindExamAgentPanelSync() {
+        ['researcher', 'scoring', 'writer', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(ui => {
+            const panel = document.getElementById('exam-panel-' + ui);
+            if (!panel) return;
+            const header = panel.querySelector('.agent-panel-header');
+            if (!header) return;
+            // 内联 onclick 已完成 classList.toggle，这里在捕获之后同步一次缓冲。
+            header.addEventListener('click', () => {
+                requestAnimationFrame(() => _examPanelOpenSync(ui));
+            });
+        });
+    })();
     (function bindTopicReset() {
         const topicEl = document.getElementById('exam-topic');
         if (topicEl) {
@@ -1120,6 +1488,18 @@
                 refreshStepGate();
             });
         }
+    })();
+    /* 切换到「出卷历史」Tab 时主动拉取最新数据：common.js 的通用 Tab 只切换样式不刷新数据，
+       避免工作台生成新卷后需手动刷新页面才能看到最新记录。 */
+    (function bindHistoryTabRefresh() {
+        const bar = document.querySelector('.tabs');
+        if (!bar) return;
+        bar.addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (tab && tab.dataset.panel === 'history') {
+                loadExamHistory(examHistoryPage);
+            }
+        });
     })();
     refreshStepGate();
     loadExamHistory(0);

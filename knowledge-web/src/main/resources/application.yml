@@ -3,6 +3,17 @@ server:
   servlet:
     context-path: /
 
+# ==================== 运维可观测性（2-F）====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 spring:
   application:
     name: knowledge-repository
@@ -13,6 +24,29 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD}
+    # ==================== HikariCP 连接池（OPS-2）====================
+    # 显式给上有界参数，避免依赖默认值：容器内存有限（mem_limit 1536m），
+    # 池过大既压 MySQL 侧连接、又放大单次慢查询占用连接的冲击面。配合 CONC-3
+    # 已将 Milvus / embedding 慢 IO 移出事务后，连接被长时间占用的概率显著下降，
+    # 此处 leak-detection 阈值用于兜底发现残留的"事务内做慢 IO"回归。所有值可用环境变量覆盖。
+    hikari:
+      pool-name: KnowledgeHikariPool
+      # 最大连接数：与容器核数 / MySQL max_connections 匹配，保守取 10
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      # 最小空闲连接：保留 2 个热连接，避免冷启动瞬时建连抖动
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      # 获取连接最长等待 30s：超时快速失败（配合上界池，池满时不无限堆积线程）
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT_MS:30000}
+      # 空闲连接存活 10min 后回收（高于 minimum-idle 的部分）
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT_MS:600000}
+      # 连接最长生命周期 30min：略小于 MySQL 默认 wait_timeout，避免使用已被服务端关闭的连接
+      max-lifetime: ${HIKARI_MAX_LIFETIME_MS:1800000}
+      # 每 20s 发送保活探测，防止中间层（防火墙 / 云 LB）空闲断连
+      keepalive-time: ${HIKARI_KEEPALIVE_TIME_MS:20000}
+      # 连接有效性校验超时 5s
+      validation-timeout: ${HIKARI_VALIDATION_TIMEOUT_MS:5000}
+      # 连接借出超过 10s 未归还即打告警栈，定位潜在泄漏
+      leak-detection-threshold: ${HIKARI_LEAK_DETECTION_MS:10000}
     # H2 (备用，取消注释切换回 H2)
     # url: jdbc:h2:file:./data/knowledge-repository;AUTO_SERVER=TRUE;MODE=MySQL;DATABASE_TO_LOWER=TRUE
     # driver-class-name: org.h2.Driver
@@ -94,6 +128,11 @@ knowledge:
     provider: ${LLM_PROVIDER:ollama}
     temperature: ${LLM_TEMPERATURE:0.7}
     max-tokens: ${LLM_MAX_TOKENS:4096}
+    # 流式对话网关（黑板 Agent 逐 token 输出）独立配置：推理型模型会先把预算耗在思考链上，
+    # 故预算需明显大于上面的 max-tokens，超时也更长，避免正式内容被"喂空"。
+    streaming:
+      max-tokens: ${LLM_STREAMING_MAX_TOKENS:16384}
+      timeout-seconds: ${LLM_STREAMING_TIMEOUT_SECONDS:300}
 
     # DashScope (阿里云通义)
     dashscope:
@@ -103,7 +142,7 @@ knowledge:
     # DeepSeek
     deepseek:
       api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
-      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-chat}
+      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-flash}
 
     # Ollama (本地模型)
     ollama:
@@ -121,9 +160,21 @@ knowledge:
   storage:
     path: ${STORAGE_PATH:./data/documents}
 
+  # ---------- 管理端登录鉴权（无状态 JWT，HS256）----------
+  # 密钥须由 KNOWLEDGE_ADMIN_JWT_SECRET 注入生产环境；缺省值仅限本地开发，切勿用于线上。
+  admin:
+    jwt:
+      secret: ${KNOWLEDGE_ADMIN_JWT_SECRET:knowledge-repo-dev-admin-jwt-secret-change-me}
+      expiration-hours: ${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:8}
+
   # ---------- 在线考试评分配置 ----------
   exam:
     grading-delay-minutes: ${EXAM_GRADING_DELAY_MINUTES:30}
+    # 试卷校对关口：true=所有试卷须人工校对通过后方可发布开考；
+    # false=校验通过且质量分达阈可自动发布，但校验不过 / 低分仍强制人工校对（不可绕过）。
+    review-required: ${EXAM_REVIEW_REQUIRED:true}
+    # 看图题 / 看图写话 配图二进制存放目录（由文档图片提取器写入，浏览器经 /api/exam/assets/{assetKey} 拉取）
+    asset-path: ${EXAM_ASSET_PATH:./data/exam-assets}
 
 # ==================== 日志 ====================
 logging:

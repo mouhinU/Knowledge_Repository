@@ -3,47 +3,42 @@ package com.mouhin.knowledge.repository.application.agent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 试卷内容渲染 Agent
- * <p>
- * 在考生点击「开始考试」后运行，负责把试卷内容加工成前端可稳定渲染的结构化题目。
- * 采用确定性代码处理（非大模型调用），保证开考路径快速且可复现：
+ *
+ * <p>在考生点击「开始考试」后运行，负责把试卷内容加工成前端可稳定渲染的结构化题目。 采用确定性代码处理（非大模型调用），保证开考路径快速且可复现：
+ *
  * <ol>
- *     <li>questionsJson 缺失或为空时，回退到从试卷 Markdown 重新解析；</li>
- *     <li>为每道题补齐缺失的题号 index、题型 type、分值 maxScore；</li>
- *     <li>清理题目内容中的 Markdown 语法残留（加粗符号、尾部空白等）；</li>
- *     <li>修复选择题选项：若 options 缺失或不足 2 项，尝试从题目正文中重新抽取；</li>
- *     <li>统一选项结构为 {key, value}，丢弃空白选项。</li>
+ *   <li>questionsJson 缺失或为空时，回退到从试卷 Markdown 重新解析；
+ *   <li>为每道题补齐缺失的题号 index、题型 type、分值 maxScore；
+ *   <li>清理题目内容中的 Markdown 语法残留（加粗符号、尾部空白等）；
+ *   <li>修复选择题选项：若 options 缺失或不足 2 项，尝试从题目正文中重新抽取；
+ *   <li>统一选项结构为 {key, value}，丢弃空白选项。
  * </ol>
- * </p>
  *
  * @author Knowledge-Repository
  * @date 2026-09-15
  */
 @Component("examContentRenderAgent")
+@Slf4j
 public class ExamContentRenderAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamContentRenderAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /**
-     * 默认每题分值（解析不到时使用）
-     */
+    /** 默认每题分值（解析不到时使用） */
     private static final int DEFAULT_MAX_SCORE = 5;
 
     /**
      * 渲染试卷为前端可用的结构化题目 JSON
      *
-     * @param examPaper     试卷 Markdown（用于回退解析与选项修复）
+     * @param examPaper 试卷 Markdown（用于回退解析与选项修复）
      * @param questionsJson 已存的题目 JSON（可能为 null / "[]"）
      * @return 渲染就绪的题目 JSON 字符串
      */
@@ -54,9 +49,9 @@ public class ExamContentRenderAgent {
     /**
      * 渲染试卷为前端可用的结构化题目 JSON（带题型分布方案）
      *
-     * @param examPaper     试卷 Markdown
+     * @param examPaper 试卷 Markdown
      * @param questionsJson 已存的题目 JSON（可能为 null / "[]"）
-     * @param planJson      题型分布方案 JSON（可为 null；存在时以其为题型/分值真源）
+     * @param planJson 题型分布方案 JSON（可为 null；存在时以其为题型/分值真源）
      * @return 渲染就绪的题目 JSON 字符串
      */
     public String render(String examPaper, String questionsJson, String planJson) {
@@ -64,7 +59,8 @@ public class ExamContentRenderAgent {
 
         // 1. questionsJson 缺失或为空 → 从 Markdown 回退解析（带方案则以方案为真源）
         if (questions.isEmpty() && examPaper != null && !examPaper.isBlank()) {
-            logger.info("渲染 Agent：questionsJson 为空，回退到 Markdown 解析（plan={}）",
+            log.info(
+                    "渲染 Agent：questionsJson 为空，回退到 Markdown 解析（plan={}）",
                     planJson != null ? "有" : "无");
             questions = ExamPaperParser.parse(examPaper, ExamPaperParser.readPlan(planJson));
         }
@@ -89,7 +85,7 @@ public class ExamContentRenderAgent {
                 if (split.options().size() >= 2) {
                     content = cleanContent(split.content());
                     options = split.options();
-                    logger.info("渲染 Agent：第 {} 题选项缺失，已从正文修复 {} 个选项", index, options.size());
+                    log.info("渲染 Agent：第 {} 题选项缺失，已从正文修复 {} 个选项", index, options.size());
                 }
             }
 
@@ -106,7 +102,7 @@ public class ExamContentRenderAgent {
         try {
             return OBJECT_MAPPER.writeValueAsString(rendered);
         } catch (Exception e) {
-            logger.error("渲染 Agent：序列化失败，回退为 []", e);
+            log.error("渲染 Agent：序列化失败，回退为 []", e);
             return "[]";
         }
     }
@@ -118,17 +114,14 @@ public class ExamContentRenderAgent {
             return new ArrayList<>();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {
-            });
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
-            logger.warn("渲染 Agent：questionsJson 解析失败: {}", e.getMessage());
+            log.warn("渲染 Agent：questionsJson 解析失败: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    /**
-     * 统一选项结构为 {key, value}，过滤空白项
-     */
+    /** 统一选项结构为 {key, value}，过滤空白项 */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> normalizeOptions(Object rawOptions) {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -163,16 +156,15 @@ public class ExamContentRenderAgent {
         return result;
     }
 
-    /**
-     * 从题目正文中抽取内联选项（形如 "A. xx B. xx C. xx"）
-     */
+    /** 从题目正文中抽取内联选项（形如 "A. xx B. xx C. xx"） */
     private OptionSplit extractOptionsFromContent(String content) {
         List<Map<String, Object>> options = new ArrayList<>();
         if (content == null || content.isBlank()) {
             return new OptionSplit(content, options);
         }
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
-                "([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
+        java.util.regex.Pattern pattern =
+                java.util.regex.Pattern.compile(
+                        "([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
         java.util.regex.Matcher matcher = pattern.matcher(content);
         int firstStart = -1;
         while (matcher.find()) {
@@ -204,8 +196,7 @@ public class ExamContentRenderAgent {
         if (content == null) {
             return "";
         }
-        return content
-                .replaceAll("(?m)^\\s*[-*_]{3,}\\s*$", "")
+        return content.replaceAll("(?m)^\\s*[-*_]{3,}\\s*$", "")
                 .replaceAll("\\s*[-*_]{3,}\\s*$", "")
                 .replaceAll("\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*", " ")
                 .replaceAll("\\*{1,2}", "")
@@ -231,9 +222,6 @@ public class ExamContentRenderAgent {
         return fallback;
     }
 
-    /**
-     * 正文与抽取出的选项的拆分结果
-     */
-    private record OptionSplit(String content, List<Map<String, Object>> options) {
-    }
+    /** 正文与抽取出的选项的拆分结果 */
+    private record OptionSplit(String content, List<Map<String, Object>> options) {}
 }

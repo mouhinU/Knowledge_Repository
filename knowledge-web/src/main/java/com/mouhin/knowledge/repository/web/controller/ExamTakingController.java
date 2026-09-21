@@ -1,19 +1,19 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.ExamTakingApplicationService;
-import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import com.mouhin.knowledge.repository.web.dto.SaveAnswersRequest;
-import com.mouhin.knowledge.repository.web.dto.StartExamRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
+import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
+import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
+import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
+import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
+import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.mouhin.knowledge.repository.client.dto.SaveAnswersRequest;
+import com.mouhin.knowledge.repository.client.dto.StartExamRequest;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 在线做题控制器
@@ -23,57 +23,90 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/exam")
+@Slf4j
 public class ExamTakingController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamTakingController.class);
+    private final ExamTakingServiceI examTakingService;
+    private final ListPublishedHistoryQryExe listPublishedHistoryQryExe;
 
-    private final ExamTakingApplicationService examTakingService;
-
-    public ExamTakingController(ExamTakingApplicationService examTakingService) {
+    public ExamTakingController(
+            ExamTakingServiceI examTakingService,
+            ListPublishedHistoryQryExe listPublishedHistoryQryExe) {
         this.examTakingService = examTakingService;
+        this.listPublishedHistoryQryExe = listPublishedHistoryQryExe;
     }
 
     /**
-     * 开始考试
+     * 可开考的学生端试卷列表（仅返回已发布 PUBLISHED 的试卷）。
+     *
+     * <p>学生端「可用考试」入口专用，位于已放行的 {@code /api/exam} 命名空间下，与教师/管理端的 {@code /api/agent/exam/history}
+     * 解耦——后者属受管理端令牌保护的出卷历史接口，不应由学生端直接调用。
+     *
+     * <p>系统级过滤：登录态下会剔除该考生已开考过的试卷（一人一卷一次），并排除已作废（VOIDED）卷。 未登录 / token 缺失时退化为「全部已发布试卷」列表（保持向后兼容）。
+     *
+     * @param limit 最大返回数量，默认 20
+     * @param token 学生会话令牌（{@code X-Student-Token} 请求头），可选
+     * @return 已发布且该考生未考过的试卷列表（按时间倒序）
      */
+    @GetMapping("/available")
+    public ResponseEntity<List<ExamHistoryDTO>> listAvailableExams(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestHeader(value = "X-Student-Token", required = false) String token) {
+        return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit, token));
+    }
+
+    /** 开始考试 */
     @PostMapping("/start")
     public ResponseEntity<Map<String, Object>> startExam(@RequestBody StartExamRequest request) {
         try {
-            ExamSession session;
+            ExamSessionDTO session;
             if (request.getHistorySessionId() != null && !request.getHistorySessionId().isBlank()) {
-                session = examTakingService.startFromHistory(request.getToken(), request.getHistorySessionId());
+                session =
+                        examTakingService
+                                .startFromHistory(request.getToken(), request.getHistorySessionId())
+                                .getData();
             } else if (request.getExamPaper() != null && !request.getExamPaper().isBlank()) {
-                session = examTakingService.startWithPaper(
-                        request.getToken(),
-                        request.getExamPaper(),
-                        request.getAnswerKey(),
-                        request.getTopic(),
-                        request.getDifficulty());
+                session =
+                        examTakingService
+                                .startWithPaper(
+                                        request.getToken(),
+                                        request.getExamPaper(),
+                                        request.getAnswerKey(),
+                                        request.getTopic(),
+                                        request.getDifficulty())
+                                .getData();
             } else {
                 return ResponseEntity.badRequest().body(Map.of("error", "请指定试卷来源"));
             }
 
-            return ResponseEntity.ok(Map.of(
-                    "sessionKey", session.getSessionKey(),
-                    "topic", session.getTopic(),
-                    "questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]",
-                    "totalScore", session.getTotalScore(),
-                    "durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0,
-                    "validation", examTakingService.validateReport(session.getQuestionsJson()).toMap(),
-                    "startTime", session.getStartTime().toString()
-            ));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "sessionKey", session.getSessionKey(),
+                            "topic", session.getTopic(),
+                            "questionsJson",
+                                    session.getQuestionsJson() != null
+                                            ? session.getQuestionsJson()
+                                            : "[]",
+                            "totalScore", session.getTotalScore(),
+                            "durationMinutes",
+                                    session.getDurationMinutes() != null
+                                            ? session.getDurationMinutes()
+                                            : 0,
+                            "validation",
+                                    examTakingService
+                                            .validateReport(session.getQuestionsJson())
+                                            .getData(),
+                            "startTime", session.getStartTime().toString(),
+                            "serverNow", LocalDateTime.now().toString()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 保存答题（断点续答）
-     */
+    /** 保存答题（断点续答） */
     @PostMapping("/{sessionKey}/save")
     public ResponseEntity<Map<String, String>> saveAnswers(
-            @PathVariable String sessionKey,
-            @RequestBody SaveAnswersRequest request) {
+            @PathVariable String sessionKey, @RequestBody SaveAnswersRequest request) {
         try {
             examTakingService.saveAnswers(sessionKey, request.getToken(), request.getAnswers());
             return ResponseEntity.ok(Map.of("message", "答案已保存"));
@@ -82,9 +115,7 @@ public class ExamTakingController {
         }
     }
 
-    /**
-     * 交卷
-     */
+    /** 交卷 */
     @PostMapping("/{sessionKey}/submit")
     public ResponseEntity<Map<String, Object>> submitExam(
             @PathVariable String sessionKey,
@@ -102,100 +133,69 @@ public class ExamTakingController {
         }
     }
 
-    /**
-     * 获取考试详情
-     */
+    /** 获取考试详情 */
     @GetMapping("/{sessionKey}")
     public ResponseEntity<Map<String, Object>> getSession(
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            ExamSession session = examTakingService.getSession(sessionKey, headerToken);
-
-            // 检查 questionsJson 是否需要重新解析（修复旧数据选项解析，或按方案补齐题型/分值）
-            String questionsJson = session.getQuestionsJson();
-            String planJson = session.getExamPlan();
-            boolean planUpgradeNeeded = planJson != null && !planJson.isBlank()
-                    && (questionsJson == null || !questionsJson.contains("sectionLabel"));
-            if (session.getExamPaper() != null
-                    && ((questionsJson != null && needsReparse(questionsJson)) || planUpgradeNeeded)) {
-                questionsJson = ExamPaperParser.parseToJson(session.getExamPaper(), planJson);
-                examTakingService.updateQuestionsJson(session.getSessionKey(), headerToken, questionsJson);
-                session.setQuestionsJson(questionsJson);
-            }
+            ExamSessionDTO session =
+                    examTakingService.getSession(sessionKey, headerToken).getData();
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("sessionKey", session.getSessionKey());
             result.put("topic", session.getTopic() != null ? session.getTopic() : "");
-            result.put("difficulty", session.getDifficulty() != null ? session.getDifficulty() : "");
+            result.put(
+                    "difficulty", session.getDifficulty() != null ? session.getDifficulty() : "");
             result.put("status", session.getStatus());
             result.put("totalScore", session.getTotalScore() != null ? session.getTotalScore() : 0);
             result.put("aiScore", session.getAiScore() != null ? session.getAiScore() : 0);
             result.put("finalScore", session.getFinalScore() != null ? session.getFinalScore() : 0);
-            result.put("questionsJson", session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]");
+            result.put(
+                    "questionsJson",
+                    session.getQuestionsJson() != null ? session.getQuestionsJson() : "[]");
             result.put("examPlan", session.getExamPlan() != null ? session.getExamPlan() : "");
             result.put("examPaper", session.getExamPaper() != null ? session.getExamPaper() : "");
-            result.put("durationMinutes", session.getDurationMinutes() != null ? session.getDurationMinutes() : 0);
-            result.put("startTime", session.getStartTime() != null ? session.getStartTime().toString() : "");
-            result.put("submitTime", session.getSubmitTime() != null ? session.getSubmitTime().toString() : "");
+            result.put(
+                    "durationMinutes",
+                    session.getDurationMinutes() != null ? session.getDurationMinutes() : 0);
+            result.put(
+                    "startTime",
+                    session.getStartTime() != null ? session.getStartTime().toString() : "");
+            result.put(
+                    "submitTime",
+                    session.getSubmitTime() != null ? session.getSubmitTime().toString() : "");
+            // 供前端校正本地时钟：客户端 Date.now() 与服务端时钟的漂移会使倒计时 / 自动交卷提前或延后触发。
+            result.put("serverNow", LocalDateTime.now().toString());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 获取答题记录（含评分）
-     */
+    /** 获取答题记录（含评分） */
     @GetMapping("/{sessionKey}/answers")
-    public ResponseEntity<List<ExamAnswer>> getAnswers(
+    public ResponseEntity<List<ExamAnswerDTO>> getAnswers(
             @PathVariable String sessionKey,
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamAnswer> answers = examTakingService.getAnswers(sessionKey, headerToken);
+            List<ExamAnswerDTO> answers =
+                    examTakingService.getAnswers(sessionKey, headerToken).getData();
             return ResponseEntity.ok(answers);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
-    /**
-     * 查询我的考试历史
-     */
+    /** 查询我的考试历史 */
     @GetMapping("/my-sessions")
-    public ResponseEntity<List<ExamSession>> mySessions(
+    public ResponseEntity<List<ExamSessionDTO>> mySessions(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         try {
-            List<ExamSession> sessions = examTakingService.listMySessions(headerToken);
+            List<ExamSessionDTO> sessions = examTakingService.listMySessions(headerToken).getData();
             return ResponseEntity.ok(sessions);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
-    }
-
-    /**
-     * 判断 questionsJson 中的选择题选项是否存在解析异常
-     * <p>
-     * 如果选择题的 options 数量少于 2 个，说明选项解析失败，需要重新解析。
-     * </p>
-     */
-    @SuppressWarnings("unchecked")
-    private boolean needsReparse(String questionsJson) {
-        try {
-            List<Map<String, Object>> questions = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readValue(questionsJson, List.class);
-            for (Map<String, Object> q : questions) {
-                String type = (String) q.get("type");
-                if ("SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type)) {
-                    Object options = q.get("options");
-                    if (options instanceof List<?> optList && optList.size() < 2) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("检查 questionsJson 是否需要重新解析时出错: {}", e.getMessage());
-        }
-        return false;
     }
 }

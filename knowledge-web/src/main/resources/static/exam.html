@@ -834,62 +834,162 @@
         }
 
         .question-card {
+            position: relative;
             background: #fff;
             border: 1px solid var(--gray-200);
+            border-top: 3px solid var(--primary);
             border-radius: var(--radius-lg);
-            padding: 24px;
+            padding: 26px 28px 28px;
             margin-bottom: 16px;
+            box-shadow: var(--shadow);
         }
 
         .question-header {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .question-number {
-            background: var(--primary);
-            color: #fff;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .question-title-area { flex: 1; }
-
-        .question-type-badge {
-            font-size: 12px;
-            color: var(--gray-500);
+            gap: 14px;
             margin-bottom: 4px;
         }
 
+        .question-number {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            min-width: 38px;
+            height: 38px;
+            padding: 0 10px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px var(--primary-ring);
+        }
+
+        .question-title-area { flex: 1; min-width: 0; }
+
+        .question-type-badge {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            padding: 3px 12px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+            letter-spacing: .3px;
+        }
+
         .question-content {
-            font-size: 15px;
-            line-height: 1.7;
+            font-size: 16px;
+            line-height: 1.95;
             color: var(--gray-800);
             white-space: pre-wrap;
+            letter-spacing: .2px;
+            border-left: 3px solid var(--gray-200);
+            padding: 2px 0 2px 16px;
+            margin-left: 1px;
+        }
+
+        /* 看图题配图（来自题库文档抽取的图片，按题号绑定注入 snapshot 的 q.images） */
+        .question-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 12px 0 0 16px;
+        }
+
+        .question-image {
+            max-width: 320px;
+            max-height: 260px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: var(--gray-50);
+            cursor: zoom-in;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+            transition: box-shadow .15s ease, transform .15s ease;
+        }
+
+        .question-image:hover {
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
+        }
+
+        /* 点击放大查看 */
+        .q-image-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .82);
+            padding: 24px;
+        }
+
+        .q-image-lightbox.open {
+            display: flex;
+        }
+
+        .q-image-lightbox img {
+            max-width: 92vw;
+            max-height: 92vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+        }
+
+        .q-image-lightbox .q-image-close {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            font-size: 34px;
+            line-height: 1;
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
         }
 
         .question-score {
             font-size: 13px;
-            color: var(--gray-500);
+            font-weight: 600;
+            color: var(--gray-600);
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            padding: 4px 12px;
+            border-radius: 999px;
             flex-shrink: 0;
+            white-space: nowrap;
         }
 
         /* Answer Controls */
-        .answer-controls { margin-top: 16px; }
+        .answer-controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--gray-200);
+        }
+
+        .answer-controls::before {
+            content: "作答区";
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 999px;
+            padding: 3px 12px;
+            margin-bottom: 14px;
+        }
 
         .option-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             width: 100%;
         }
 
@@ -897,18 +997,23 @@
             display: flex;
             width: 100%;
             align-items: center;
-            gap: 12px;
-            padding: 14px 18px;
-            border: 2px solid var(--gray-200);
+            gap: 14px;
+            padding: 15px 18px;
+            border: 1.5px solid var(--gray-200);
             border-radius: var(--radius);
             cursor: pointer;
-            transition: all 0.15s;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.05s;
             background: #fff;
-            min-height: 48px;
+            min-height: 52px;
+            box-shadow: var(--shadow-sm);
         }
 
-        .option-item:hover { border-color: var(--primary); background: var(--primary-light); }
-        .option-item.selected { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 0 1px var(--primary); }
+        .option-item:hover { border-color: var(--primary); background: var(--primary-light); transform: translateY(-1px); }
+        .option-item.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: 0 0 0 1px var(--primary), var(--shadow-sm);
+        }
 
         .option-item input[type="radio"],
         .option-item input[type="checkbox"] {
@@ -926,86 +1031,149 @@
             line-height: 1.6;
             flex: 1;
             word-break: break-word;
+            color: var(--gray-700);
+        }
+
+        .option-item.selected label { color: var(--gray-900); }
+
+        .option-item label strong {
+            display: inline-block;
+            min-width: 22px;
+            height: 22px;
+            line-height: 22px;
+            text-align: center;
+            margin-right: 8px;
+            font-size: 13px;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            border: 1px solid var(--primary-ring);
+            border-radius: 6px;
+        }
+
+        .option-item.selected label strong {
+            color: #fff;
+            background: var(--primary);
+            border-color: var(--primary);
         }
 
         .answer-textarea {
             width: 100%;
-            border: 2px solid var(--gray-300);
+            border: 1.5px solid var(--gray-300);
             border-radius: var(--radius);
-            padding: 12px 14px;
+            padding: 14px 16px;
             font-size: 15px;
             font-family: inherit;
             resize: vertical;
             outline: none;
-            transition: border-color 0.2s;
+            background: var(--gray-50);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
-            line-height: 1.6;
+            line-height: 1.7;
         }
 
         .answer-textarea:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px var(--primary-light);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
-        .answer-textarea.small { min-height: 80px; }
-        .answer-textarea.large { min-height: 180px; }
+        .answer-textarea.small { min-height: 92px; }
+        .answer-textarea.large { min-height: 190px; }
 
         .answer-input {
             width: 100%;
-            border: 2px solid var(--gray-300);
+            border: 1.5px solid var(--gray-300);
             border-radius: var(--radius);
-            padding: 12px 14px;
+            padding: 13px 16px;
             font-size: 15px;
             font-family: inherit;
             outline: none;
-            transition: border-color 0.2s;
+            background: var(--gray-50);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
         }
 
         .answer-input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px var(--primary-light);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
-        /* Multi-blank inline inputs */
+        /* Multi-blank answer area (labeled blanks, grouped by sub-question) */
         .blank-content {
-            font-size: 15px;
-            line-height: 2.2;
-            color: var(--gray-800);
-            white-space: pre-wrap;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 4px 2px 2px;
+        }
+
+        .blank-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .blank-group-tag {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            border-radius: 999px;
+            padding: 4px 13px;
+            flex-shrink: 0;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .blank-group-fields {
+            display: inline-flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px 14px;
         }
 
         .blank-inline-input {
             display: inline-block;
-            width: 140px;
+            min-width: 170px;
+            width: min(320px, 56vw);
             border: none;
             border-bottom: 2px solid var(--gray-300);
-            padding: 2px 6px;
+            padding: 3px 10px;
+            margin: 0 3px;
             font-size: 15px;
             font-family: inherit;
             outline: none;
-            background: var(--gray-50);
-            transition: border-color 0.2s, background 0.2s;
-            vertical-align: bottom;
-            text-align: center;
-            border-radius: 2px 2px 0 0;
+            background: #fff;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            vertical-align: baseline;
+            text-align: left;
+            border-radius: 6px 6px 0 0;
         }
 
         .blank-inline-input:focus {
             border-bottom-color: var(--primary);
             background: var(--primary-light);
+            box-shadow: 0 2px 0 var(--primary-ring);
         }
 
         .blank-inline-input.filled {
             border-bottom-color: var(--primary);
             background: #fff;
+            font-weight: 600;
+            color: var(--primary-dark);
         }
 
         .blank-label {
+            display: inline-block;
             font-size: 12px;
-            color: var(--gray-400);
-            vertical-align: bottom;
-            margin-right: 2px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            border-radius: 6px;
+            padding: 1px 7px;
+            margin-right: 4px;
+            vertical-align: baseline;
         }
 
         .multi-blank-list {
@@ -1035,7 +1203,9 @@
         .question-nav-buttons {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-100);
         }
 
         /* ===== Results Page ===== */
@@ -1312,6 +1482,12 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
+            .question-card { padding: 18px 16px 20px; }
+            .question-content { font-size: 15px; line-height: 1.8; padding-left: 12px; }
+            .question-number { min-width: 32px; height: 32px; font-size: 15px; border-radius: 10px; }
+            .blank-group { gap: 8px; }
+            .blank-inline-input { min-width: 130px; width: min(260px, 66vw); padding: 3px 6px; }
         }
     </style>
 </head>
@@ -1518,7 +1694,7 @@
         <p id="submitModalText">确定要提交试卷吗？提交后将无法修改答案。</p>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeSubmitModal()">继续答题</button>
-            <button class="btn btn-warning" onclick="submitExam()">确认交卷</button>
+            <button class="btn btn-warning" id="submitModalConfirm" onclick="submitExam()">确认交卷</button>
         </div>
     </div>
 </div>
@@ -1537,6 +1713,16 @@
     let autoSubmitTimer = null;
     let currentQuestionIndex = 0;
     let examDurationMinutes = 0;
+    /* ===== H5 可靠性状态 ===== */
+    // 服务端时钟与本地时钟的差值（ms）。Date.now() + serverClockOffsetMs ≈ 服务端时刻，
+    // 消除客户端时间漂移导致的倒计时提前 / 延后。
+    let serverClockOffsetMs = 0;
+    // 自动保存失败标记 + 短周期重试定时器：失败时不再静默吞掉，改为可见提示并每 15s 补一次。
+    let autoSaveFailed = false;
+    let autoSaveRetryTimer = null;
+    // 提交在途守卫：手动点击 / 倒计时到点自动提交 / 二次弹窗都可能并发触发 submitExam，
+    // 若不加锁会产生重复 save+submit 请求（后端 CAS 会拒绝，但用户看到"提交失败"混乱）。
+    let isSubmitting = false;
 
     /* ===== Student Error Book State ===== */
     let wbSize = 10;
@@ -1782,7 +1968,7 @@
     function loadExamList() {
         var grid = document.getElementById('examGrid');
         grid.innerHTML = '<div class="empty-state"><div class="empty-icon"><div class="loading-spinner"></div></div><p>加载中...</p></div>';
-        apiRequest('/api/agent/exam/history?limit=50')
+        apiRequest('/api/exam/available?limit=50')
             .then(function(data) {
                 examHistoryList = Array.isArray(data) ? data : (data.list || data.data || []);
                 renderExamGrid();
@@ -1856,6 +2042,7 @@
                 + '<div class="session-meta">' + formatDateTime(session.startTime || session.createTime) + '</div>'
                 + '</div>'
                 + '<div class="session-actions">'
+                + (session.voided ? '<span class="badge" style="background:#fee2e2;color:#b91c1c;margin-right:6px">试卷已作废</span>' : '')
                 + statusBadge(status)
                 + (session.totalScore != null ? ' <span class="badge badge-score">' + session.totalScore + '分</span>' : '')
                 + actionHtml
@@ -1975,6 +2162,7 @@
                 + '<div class="wb-score" style="color:' + scoreColor + '">' + item.effectiveScore + ' <span style="font-size:13px;color:var(--gray-500);font-weight:400">/ ' + item.maxScore + '分 · 得分率 ' + scorePercent + '%</span></div>'
                 + '</div>'
                 + '<div class="wb-question">' + escapeHtml(item.questionContent || '') + '</div>'
+                + renderQuestionImages(item.images)
                 + optionsHtml
                 + '<div class="wb-answer-grid">'
                 + '<div class="wb-answer mine"><div class="wb-answer-label">我的答案</div>' + escapeHtml(item.studentAnswer || '（未作答）') + '</div>'
@@ -2070,7 +2258,7 @@
 
                 renderQuestionNav();
                 renderQuestion(0);
-                startTimer(data.startTime, data.durationMinutes);
+                startTimer(data.startTime, data.durationMinutes, data.serverNow);
                 startAutoSave();
             }, 600);
         }).catch(function(err) {
@@ -2107,14 +2295,21 @@
 
             if (Array.isArray(answers)) {
                 answers.forEach(function(a) {
-                    currentAnswers[a.questionIndex] = a;
+                    // 服务端 DTO 字段为 studentAnswer，须归一化为本地作答模型 {answer}，
+                    // 否则 renderQuestion / buildFullAnswersList 读 a.answer 得 undefined，
+                    // 续答自动保存会回传空串覆盖学生此前已保存的答案（数据损毁）。
+                    currentAnswers[a.questionIndex] = {
+                        questionIndex: a.questionIndex,
+                        questionType: a.questionType,
+                        answer: a.studentAnswer != null ? a.studentAnswer : ''
+                    };
                 });
             }
 
             document.getElementById('examTakingTitle').textContent = session.topic || '考试进行中';
             renderQuestionNav();
             renderQuestion(0);
-            startTimer(session.startTime, session.durationMinutes);
+            startTimer(session.startTime, session.durationMinutes, session.serverNow);
             startAutoSave();
         }).catch(function(err) {
             showToast('加载考试失败: ' + err.message, 'error');
@@ -2122,11 +2317,21 @@
         });
     }
 
-    /* ===== Timer (Countdown or Elapsed) ===== */
-    function startTimer(startTime, durationMinutes) {
+    /* ===== Timer (Countdown or Elapsed, server-clock-aligned) ===== */
+    function startTimer(startTime, durationMinutes, serverNowIso) {
         stopTimer();
         clearAutoSubmitTimer();
         examDurationMinutes = durationMinutes || 0;
+
+        // 校正本地时钟：以服务端为基准，之后所有 now() 与 deadline 比较都用校准后的时间。
+        // 未提供 serverNow（旧版接口 / 缓存兜底）时偏移保持为 0，退化为纯本地时钟。
+        if (serverNowIso) {
+            var sn = new Date(serverNowIso).getTime();
+            if (!isNaN(sn)) {
+                serverClockOffsetMs = sn - Date.now();
+            }
+        }
+        function now() { return Date.now() + serverClockOffsetMs; }
 
         var start = new Date(startTime).getTime();
         var timerEl = document.getElementById('timerDisplay');
@@ -2138,8 +2343,7 @@
             var deadline = start + totalSeconds * 1000;
 
             function updateCountdown() {
-                var now = Date.now();
-                var remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+                var remaining = Math.max(0, Math.floor((deadline - now()) / 1000));
 
                 var h = String(Math.floor(remaining / 3600)).padStart(2, '0');
                 var m = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
@@ -2165,8 +2369,7 @@
         } else {
             // 正计时模式（不限时）
             function updateElapsed() {
-                var now = Date.now();
-                var elapsed = Math.floor((now - start) / 1000);
+                var elapsed = Math.floor((now() - start) / 1000);
                 var h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
                 var m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
                 var s = String(elapsed % 60).padStart(2, '0');
@@ -2216,8 +2419,47 @@
     function startAutoSave() {
         stopAutoSave();
         autoSaveInterval = setInterval(function() {
-            saveAnswers(true);
+            silentSave();
         }, 60000);
+        // 关闭 / 刷新 / 切前后台前尽力落一次，防止答案丢失。beforeunload 只给极短时间，
+        // 用 sendBeacon（浏览器保证在页面卸载后仍完成该请求）而非 fetch。
+        window.addEventListener('beforeunload', flushOnUnload);
+    }
+
+    function silentSave() {
+        saveAnswers(true).then(function() {
+            // 成功：清除失败标记，取消可能挂起的短周期重试。
+            if (autoSaveFailed) {
+                autoSaveFailed = false;
+                showToast('答案已重新同步', 'success');
+            }
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = null;
+        }).catch(function() {
+            // 静默自动保存失败不再吞掉：首次失败提示用户，并每 15s 快速重试，
+            // 直到成功或用户手动保存 / 交卷（交卷前的 save 失败会直接阻断提交）。
+            if (!autoSaveFailed) {
+                autoSaveFailed = true;
+                showToast('自动保存失败，正在重试…（请保持网络畅通，或手动点“保存答案”）', 'warning');
+            }
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = setTimeout(silentSave, 15000);
+        });
+    }
+
+    function flushOnUnload() {
+        if (!currentSession || isSubmitting) return;
+        if (typeof navigator === 'undefined' || !navigator.sendBeacon) return;
+        try {
+            saveCurrentAnswer();
+            var answersList = buildFullAnswersList();
+            if (!answersList.length) return;
+            var blob = new Blob([JSON.stringify({ token: token, answers: answersList })],
+                    { type: 'application/json' });
+            navigator.sendBeacon('/api/exam/' + currentSession.sessionKey + '/save', blob);
+        } catch (e) {
+            // best-effort：卸载路径无法提示用户，静默即可
+        }
     }
 
     function stopAutoSave() {
@@ -2225,6 +2467,12 @@
             clearInterval(autoSaveInterval);
             autoSaveInterval = null;
         }
+        if (autoSaveRetryTimer) {
+            clearTimeout(autoSaveRetryTimer);
+            autoSaveRetryTimer = null;
+        }
+        autoSaveFailed = false;
+        window.removeEventListener('beforeunload', flushOnUnload);
     }
 
     /* ===== Render Question Nav ===== */
@@ -2277,6 +2525,44 @@
         renderQuestionNav();
     }
 
+    /* ===== 看图题配图渲染（assetKey → 公开图片流 /api/exam/assets/{key}） ===== */
+    function renderQuestionImages(images) {
+        if (!images || !Array.isArray(images) || images.length === 0) {
+            return '';
+        }
+        var html = '<div class="question-images">';
+        images.forEach(function (key) {
+            if (!key || typeof key !== 'string') return;
+            var url = '/api/exam/assets/' + encodeURIComponent(key);
+            var safe = escapeAttr(url);
+            html += '<img class="question-image" src="' + safe + '" alt="题目配图" loading="lazy"'
+                + ' onclick="openImageLightbox(\'' + safe + '\')">';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function openImageLightbox(src) {
+        var box = document.getElementById('qImageLightbox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'qImageLightbox';
+            box.className = 'q-image-lightbox';
+            box.onclick = closeImageLightbox;
+            box.innerHTML = '<span class="q-image-close" onclick="closeImageLightbox()">&times;</span>'
+                + '<img id="qImageLightboxImg" alt="题目配图">';
+            document.body.appendChild(box);
+        }
+        var img = document.getElementById('qImageLightboxImg');
+        if (img) img.src = src;
+        box.classList.add('open');
+    }
+
+    function closeImageLightbox() {
+        var box = document.getElementById('qImageLightbox');
+        if (box) box.classList.remove('open');
+    }
+
     /* ===== Render Question ===== */
     function renderQuestion(index) {
         var area = document.getElementById('questionArea');
@@ -2289,7 +2575,7 @@
         var qIndex = q.index != null ? q.index : index;
         var type = q.type || 'SHORT_ANSWER';
         var existingAnswer = currentAnswers[qIndex];
-        var answerValue = existingAnswer ? (existingAnswer.answer || existingAnswer.content || '') : '';
+        var answerValue = existingAnswer ? (existingAnswer.answer || '') : '';
 
         var html = '<div class="question-card">';
         html += '<div class="question-header">';
@@ -2299,12 +2585,13 @@
             ? q.sectionLabel.trim() : questionTypeLabel(type);
         html += '<div class="question-type-badge">' + escapeHtml(badgeLabel) + '</div>';
         html += '<div class="question-content">' + escapeHtml(q.content || '') + '</div>';
+        html += renderQuestionImages(q.images);
         html += '</div>';
         html += '<div class="question-score">' + (q.maxScore || 0) + '分</div>';
         html += '</div>';
 
         html += '<div class="answer-controls">';
-        html += renderAnswerInput(type, qIndex, answerValue, q.options, q.content);
+        html += renderAnswerInput(type, qIndex, answerValue, q.options, q.content, q.blankCount, q.number);
         html += '</div>';
         html += '</div>';
 
@@ -2325,7 +2612,7 @@
         area.innerHTML = html;
     }
 
-    function renderAnswerInput(type, qIndex, answerValue, options, questionContent) {
+    function renderAnswerInput(type, qIndex, answerValue, options, questionContent, blankCount, qNumber) {
         switch (type) {
             case 'SINGLE_CHOICE':
                 return renderChoiceOptions(qIndex, answerValue, options, false);
@@ -2334,9 +2621,9 @@
             case 'TRUE_FALSE':
                 return renderTrueFalse(qIndex, answerValue);
             case 'FILL_BLANK':
-                return renderFillBlank(qIndex, answerValue, questionContent);
+                return renderFillBlank(qIndex, answerValue, questionContent, blankCount, qNumber);
             case 'SHORT_ANSWER':
-                return renderShortAnswer(qIndex, answerValue, questionContent);
+                return renderShortAnswer(qIndex, answerValue, questionContent, blankCount, qNumber);
             case 'ESSAY':
                 return '<textarea class="answer-textarea large" placeholder="请输入答案" onchange="setAnswer(' + qIndex + ', \'ESSAY\', this.value)" oninput="setAnswer(' + qIndex + ', \'ESSAY\', this.value)">' + escapeHtml(answerValue) + '</textarea>';
             default:
@@ -2347,50 +2634,113 @@
     /* ===== 多空检测与渲染 ===== */
 
     /**
-     * 检测题目内容中的空数
-     * 支持的模式：______ 、 ________ 、 （  ） 、 (  )
+     * 空位统一识别正则（与后端 ExamBlankCounter.blankSplitRegex 保持一致）：
+     * 连续 2+ 半角下划线、连续 2+ 全角下划线、中文空括号（ ）/（）、英文空括号 ( )/()。
+     */
+    var BLANK_REGEX_SRC = '_{2,}|＿{2,}|\\(\\s*\\)|（\\s*）';
+
+    /**
+     * 检测题目内容中的空数（两种空全部相加：下划线空 + 括号空 一并计入）。
+     * 与后端 ExamBlankCounter.count 同口径，避免题干显示的空白处数量与输入框数量对不上。
      */
     function countBlanks(content) {
         if (!content) return 1;
-        // 匹配连续下划线（至少2个）
-        var underlines = content.match(/_{2,}/g);
-        if (underlines && underlines.length >= 2) return underlines.length;
-        // 匹配中文括号空 （ ）或（）
-        var cnBrackets = content.match(/（\s*）/g);
-        if (cnBrackets && cnBrackets.length >= 2) return cnBrackets.length;
-        // 匹配英文括号空 ( ) 或 ()
-        var enBrackets = content.match(/\(\s*\)/g);
-        if (enBrackets && enBrackets.length >= 2) return enBrackets.length;
-        return 1;
+        var matches = content.match(new RegExp(BLANK_REGEX_SRC, 'g'));
+        return matches ? matches.length : 0;
     }
 
     /**
-     * 将题目内容中的空白处替换为内联输入框
+     * 扫描题干，按出现顺序定位每个「空」，并推断其所属小题号与类型。
+     * - sub：行首 / 标点后的「（1）（2）…」子问标记（紧跟数字的「30（ ）」不算）；
+     * - kind：下划线空 → 'line'（多为“列式”书写位，较宽），括号空 → 'result'（填结果，较窄）。
+     * 若解析出的空位数量与后端权威 blankCount 不一致，回退为通用序号空位，确保输入框数恒等于 blankCount。
+     *
+     * @param content       题干文本
+     * @param expectedCount 后端权威空数
+     * @return [{sub, kind, seq}]，seq 为从 1 开始的空位序号
      */
-    function renderInlineBlanks(qIndex, answerValue, content) {
-        if (!content) return '';
-        var blankCount = countBlanks(content);
-        var answers = parseMultiAnswer(answerValue, blankCount);
+    function buildBlankSlots(content, expectedCount) {
+        var text = content || '';
+        var re = /（\s*(\d+)\s*）|(_{2,}|＿{2,}|\(\s*\)|（\s*）)/g;
+        var slots = [];
+        var curSub = null;
+        var m;
+        while ((m = re.exec(text)) !== null) {
+            if (m[1] != null) {
+                // 子问标记：仅当其后紧跟非数字（即不是「30（1）」这类数字+量词）才视为分组编号
+                var after = text.charAt(re.lastIndex);
+                if (!/[0-9０-９]/.test(after)) {
+                    curSub = m[1];
+                }
+                continue;
+            }
+            var token = m[2];
+            var isUnderscore = /^_+$/.test(token) || /^＿+$/.test(token);
+            slots.push({ sub: curSub, kind: isUnderscore ? 'line' : 'result', seq: slots.length + 1 });
+        }
+        // 空位数须与 blankCount 一致，否则口径分叉（题干含「（1）」等被漏判时）回退为纯序号空位
+        if (expectedCount != null && expectedCount > 0 && slots.length !== expectedCount) {
+            slots = [];
+            for (var i = 0; i < expectedCount; i++) {
+                slots.push({ sub: null, kind: i % 2 === 0 ? 'line' : 'result', seq: i + 1 });
+            }
+        }
+        return slots;
+    }
 
-        // 用正则分割内容，把空白替换为 input
-        var parts = content.split(/(_{2,}|（\s*）|\(\s*\))/);
+    /**
+     * 渲染填空 / 解决问题类作答区：只呈现带标签的横线空位（按小题号分组），不复述题干。
+     * 输入框数恒等于 blankCount；答案仍按题面空位顺序以 '|||' 连接保存，兼容既有评分/存储格式。
+     *
+     * @param qIndex      题目序号
+     * @param answerValue 已存答案（||| 分隔或数组）
+     * @param content     题干文本（仅用于推断空位标签，不展示）
+     * @param blankCount  后端权威空数
+     * @param qType       真实题型（回填答案时携带）
+     * @param qNumber     试卷印刷题号（无小题号时用于标注）
+     */
+    function renderBlankAnswer(qIndex, answerValue, content, blankCount, qType, qNumber) {
+        var slots = buildBlankSlots(content, blankCount);
+        var count = (blankCount != null && blankCount > 0) ? blankCount : slots.length;
+        if (count <= 0) { count = Math.max(slots.length, 1); }
+        var answers = parseMultiAnswer(answerValue, count);
+        var typeArg = (qType || 'FILL_BLANK');
+        var mainLabel = (qNumber != null && qNumber !== '') ? ('第' + qNumber + '题') : '';
+
+        // 按小题号归组（保持题面出现顺序）：每个不同的小题号 = 一行，行内并排该小题的若干空位横线
+        var groupMap = new Map();
+        slots.forEach(function(s, i) {
+            var key = (s.sub != null) ? ('sub:' + s.sub) : 'main';
+            if (!groupMap.has(key)) groupMap.set(key, { sub: s.sub, slots: [] });
+            groupMap.get(key).slots.push(i);
+        });
+
         var html = '<div class="blank-content">';
-        var blankIdx = 0;
-        parts.forEach(function(part) {
-            if (/^_{2,}$/.test(part) || /^（\s*）$/.test(part) || /^\(\s*\)$/.test(part)) {
-                var val = answers[blankIdx] || '';
+        groupMap.forEach(function(g) {
+            var groupTag;
+            if (g.sub != null) {
+                groupTag = '（' + g.sub + '）';
+            } else if (mainLabel) {
+                groupTag = mainLabel;
+            } else {
+                groupTag = '作答';
+            }
+            html += '<div class="blank-group">';
+            html += '<span class="blank-group-tag">' + escapeHtml(groupTag) + '</span>';
+            html += '<div class="blank-group-fields">';
+            g.slots.forEach(function(i) {
+                var val = answers[i] || '';
                 var filledClass = val ? ' filled' : '';
-                html += '<span class="blank-label">' + (blankIdx + 1) + '.</span>';
-                html += '<input type="text" class="blank-inline-input' + filledClass + '" '
-                    + 'placeholder="空' + (blankIdx + 1) + '" '
+                html += '<input type="text" class="blank-inline-input blank-input' + filledClass + '" '
+                    + 'data-slot="' + i + '" '
+                    + 'placeholder="请作答" '
                     + 'value="' + escapeAttr(val) + '" '
-                    + 'oninput="setBlankAnswer(' + qIndex + ', ' + blankIdx + ', ' + blankCount + ', this.value)" '
+                    + 'oninput="setBlankAnswer(' + qIndex + ', ' + i + ', ' + count + ', this.value, \'' + typeArg + '\')" '
                     + 'onfocus="this.classList.add(\'filled\')" '
                     + 'onblur="if(!this.value)this.classList.remove(\'filled\')">';
-                blankIdx++;
-            } else {
-                html += escapeHtml(part);
-            }
+            });
+            html += '</div>';
+            html += '</div>';
         });
         html += '</div>';
         return html;
@@ -2423,25 +2773,25 @@
     }
 
     /**
-     * 设置单个空的答案
+     * 设置单个空的答案：按 data-slot 归位收集（与题面空位顺序一致），仍用 '|||' 连接保存。
      */
-    function setBlankAnswer(qIndex, blankIdx, totalBlanks, value) {
-        // 收集所有空的值
-        var inputs = document.querySelectorAll('.blank-inline-input');
-        var allValues = [];
-        // 找到属于当前题目的输入框
+    function setBlankAnswer(qIndex, blankIdx, totalBlanks, value, qType) {
         var blankContent = document.querySelector('.blank-content');
+        var slots = [];
         if (blankContent) {
-            var allInputs = blankContent.querySelectorAll('.blank-inline-input');
-            allInputs.forEach(function(inp) {
-                allValues.push(inp.value || '');
+            blankContent.querySelectorAll('.blank-inline-input').forEach(function(inp) {
+                var idx = parseInt(inp.getAttribute('data-slot'), 10);
+                if (isNaN(idx)) idx = slots.length;
+                slots.push({ idx: idx, val: inp.value || '' });
             });
         }
+        slots.sort(function(a, b) { return a.idx - b.idx; });
+        var allValues = slots.map(function(s) { return s.val; });
         var joined = allValues.join('|||');
         if (allValues.some(function(v) { return v !== ''; })) {
             currentAnswers[qIndex] = {
                 questionIndex: qIndex,
-                questionType: 'FILL_BLANK',
+                questionType: qType || 'FILL_BLANK',
                 answer: joined
             };
         } else {
@@ -2453,60 +2803,27 @@
     /**
      * 渲染填空题（支持多空）
      */
-    function renderFillBlank(qIndex, answerValue, content) {
-        var blankCount = countBlanks(content);
-        if (blankCount >= 2) {
-            // 多空：在题目内容中内联显示输入框
-            return renderInlineBlanks(qIndex, answerValue, content);
+    function renderFillBlank(qIndex, answerValue, content, blankCount, qNumber) {
+        var count = (blankCount != null && blankCount > 0) ? blankCount : countBlanks(content);
+        if (count >= 2) {
+            // 多空：作答区只呈现带小题号标签的横线空位，不复述题干
+            return renderBlankAnswer(qIndex, answerValue, content, count, 'FILL_BLANK', qNumber);
         }
         // 单空：普通输入框
         return '<input type="text" class="answer-input" placeholder="请输入答案" value="' + escapeAttr(answerValue) + '" onchange="setAnswer(' + qIndex + ', \'FILL_BLANK\', this.value)" oninput="setAnswer(' + qIndex + ', \'FILL_BLANK\', this.value)">';
     }
 
     /**
-     * 渲染简答题（支持多问）
+     * 渲染简答题（多问时按小题号分组给出横线空位；书写量大的单问仍用多行文本域）
      */
-    function renderShortAnswer(qIndex, answerValue, content) {
-        var blankCount = countBlanks(content);
-        if (blankCount >= 2) {
-            var answers = parseMultiAnswer(answerValue, blankCount);
-            var html = '<div class="multi-blank-list">';
-            for (var b = 0; b < blankCount; b++) {
-                html += '<div class="multi-blank-item">';
-                html += '<span class="blank-num">第' + (b + 1) + '问</span>';
-                html += '<input type="text" class="answer-input" placeholder="请输入第' + (b + 1) + '问答案" '
-                    + 'value="' + escapeAttr(answers[b] || '') + '" '
-                    + 'oninput="setShortBlankAnswer(' + qIndex + ', ' + blankCount + ')" '
-                    + 'data-blank="' + b + '">';
-                html += '</div>';
-            }
-            html += '</div>';
-            return html;
+    function renderShortAnswer(qIndex, answerValue, content, blankCount, qNumber) {
+        var count = (blankCount != null && blankCount > 0) ? blankCount : countBlanks(content);
+        if (count >= 2) {
+            // 多空：作答区只呈现带标签的横线空位，携带真实题型 SHORT_ANSWER
+            return renderBlankAnswer(qIndex, answerValue, content, count, 'SHORT_ANSWER', qNumber);
         }
-        // 单问：普通文本域
+        // 单问 / 无空：多行文本域，便于书写解答过程
         return '<textarea class="answer-textarea small" placeholder="请输入答案" onchange="setAnswer(' + qIndex + ', \'SHORT_ANSWER\', this.value)" oninput="setAnswer(' + qIndex + ', \'SHORT_ANSWER\', this.value)">' + escapeHtml(answerValue) + '</textarea>';
-    }
-
-    /**
-     * 设置简答题多问答案
-     */
-    function setShortBlankAnswer(qIndex, totalBlanks) {
-        var inputs = document.querySelectorAll('.multi-blank-item .answer-input');
-        var allValues = [];
-        inputs.forEach(function(inp) {
-            allValues.push(inp.value || '');
-        });
-        var joined = allValues.join('|||');
-        if (allValues.some(function(v) { return v !== ''; })) {
-            currentAnswers[qIndex] = {
-                questionIndex: qIndex,
-                questionType: 'SHORT_ANSWER',
-                answer: joined
-            };
-        } else {
-            delete currentAnswers[qIndex];
-        }
-        renderQuestionNav();
     }
 
     function renderChoiceOptions(qIndex, answerValue, options, multi) {
@@ -2628,37 +2945,43 @@
         }
     }
 
-    /* ===== Save Answers ===== */
-    function saveAnswers(silent) {
-        if (!currentSession) return;
-        saveCurrentAnswer();
-
-        var answersList = [];
-        Object.keys(currentAnswers).forEach(function(key) {
-            var a = currentAnswers[key];
-            var q = currentQuestions.find(function(qq) { return (qq.index != null ? qq.index : currentQuestions.indexOf(qq)) === parseInt(key); });
-            answersList.push({
-                questionIndex: a.questionIndex,
-                questionType: a.questionType,
-                content: q ? q.content : '',
-                answer: a.answer
+    /* ===== Build full answers list (all questions, unanswered → empty) ===== */
+    function buildFullAnswersList() {
+        var list = [];
+        currentQuestions.forEach(function (q, pos) {
+            var idx = q.index != null ? q.index : pos;
+            var num = q.number != null ? q.number : idx;
+            var a = currentAnswers[idx];
+            list.push({
+                questionIndex: idx,
+                questionNumber: num,
+                questionType: q.type,
+                content: q.content || '',
+                answer: a ? a.answer : ''
             });
         });
+        return list;
+    }
 
-        // 空答案列表直接跳过：后端 save 是先删后插，空列表会导致已保存答案被清空
-        if (answersList.length === 0) {
-            if (!silent) showToast('暂无答案需要保存', 'info');
-            return;
-        }
+    /* ===== Save Answers ===== */
+    function saveAnswers(silent) {
+        if (!currentSession) return Promise.resolve();
+        saveCurrentAnswer();
 
+        var answersList = buildFullAnswersList();
         var sessionKey = currentSession.sessionKey;
-        apiRequest('/api/exam/' + sessionKey + '/save', {
+        var p = apiRequest('/api/exam/' + sessionKey + '/save', {
             method: 'POST',
             body: JSON.stringify({ token: token, answers: answersList })
-        }).then(function() {
-            if (!silent) showToast('答案已保存', 'success');
-        }).catch(function(err) {
-            if (!silent) showToast('保存失败: ' + err.message, 'error');
+        });
+        if (silent) {
+            // 静默模式（自动保存 / beforeunload）：把失败暴露给调用方，由其决定重试 / 提示。
+            return p;
+        }
+        return p.then(function () {
+            showToast('答案已保存', 'success');
+        }).catch(function (err) {
+            showToast('保存失败: ' + err.message, 'error');
         });
     }
 
@@ -2682,46 +3005,50 @@
     }
 
     function submitExam() {
+        // 并发/重复提交守卫：手动点击 + 倒计时到点自动提交 + 弹窗按钮可能同时触发；
+        // 一旦在途，后续调用直接返回，避免重复 save+submit 与"提交失败"噪声。
+        if (isSubmitting) {
+            console.debug('[exam] submitExam: 已有提交在途，忽略重复调用');
+            return;
+        }
         closeSubmitModal();
         clearAutoSubmitTimer();
         if (!currentSession) return;
         var sessionKey = currentSession.sessionKey;
 
-        // Save answers first
-        saveCurrentAnswer();
-        var answersList = [];
-        Object.keys(currentAnswers).forEach(function(key) {
-            var a = currentAnswers[key];
-            var q = currentQuestions.find(function(qq) { return (qq.index != null ? qq.index : currentQuestions.indexOf(qq)) === parseInt(key); });
-            answersList.push({
-                questionIndex: a.questionIndex,
-                questionType: a.questionType,
-                content: q ? q.content : '',
-                answer: a.answer
-            });
-        });
+        isSubmitting = true;
+        var confirmBtn = document.getElementById('submitModalConfirm');
+        if (confirmBtn) confirmBtn.disabled = true;
 
-        // Save then submit
+        // Save answers first（全量落行，含未答）
+        saveCurrentAnswer();
+        var answersList = buildFullAnswersList();
+
+        // Save then submit —— 保存失败必须中止提交，绝不吞掉（否则答案静默丢失）
         var savePromise = answersList.length > 0
             ? apiRequest('/api/exam/' + sessionKey + '/save', {
                 method: 'POST',
                 body: JSON.stringify({ token: token, answers: answersList })
-              }).catch(function() {})
+              })
             : Promise.resolve();
 
-        savePromise.then(function() {
+        savePromise.then(function () {
             return apiRequest('/api/exam/' + sessionKey + '/submit', {
                 method: 'POST',
                 body: JSON.stringify({ token: token })
             });
-        }).then(function() {
+        }).then(function () {
             stopTimer();
             stopAutoSave();
+            isSubmitting = false;
+            if (confirmBtn) confirmBtn.disabled = false;
             showToast('试卷已提交', 'success');
             document.getElementById('examTakingPage').classList.remove('exam-locked');
             backToList();
-        }).catch(function(err) {
-            showToast('提交失败: ' + err.message, 'error');
+        }).catch(function (err) {
+            isSubmitting = false;
+            if (confirmBtn) confirmBtn.disabled = false;
+            showToast('提交失败（答案未保存成功，请重试）: ' + err.message, 'error');
         });
     }
 
@@ -2804,9 +3131,9 @@
 
         answers.forEach(function(ans, i) {
             var q = questions.find(function(qq) { return (qq.index != null ? qq.index : questions.indexOf(qq)) === ans.questionIndex; }) || questions[i];
-            var score = ans.score != null ? ans.score : null;
+            var score = ans.effectiveScore != null ? ans.effectiveScore : null;
             var maxScore = q ? (q.maxScore || 0) : 0;
-            var correctAnswer = ans.correctAnswer || ans.standardAnswer || '';
+            var correctAnswer = ans.correctAnswer || '';
             var aiFeedback = ans.aiFeedback || '';
             var reviewFeedback = ans.reviewFeedback || '';
 
@@ -2838,11 +3165,12 @@
 
             if (q) {
                 html += '<div class="result-q-content">' + escapeHtml(q.content || '') + '</div>';
+                html += renderQuestionImages(q.images);
             }
 
             html += '<div class="result-detail-grid">';
             html += '<span class="label">我的答案:</span>';
-            html += '<span class="value">' + escapeHtml(ans.answer || '未作答') + '</span>';
+            html += '<span class="value">' + escapeHtml(ans.studentAnswer || '未作答') + '</span>';
 
             if (correctAnswer) {
                 html += '<span class="label">正确答案:</span>';

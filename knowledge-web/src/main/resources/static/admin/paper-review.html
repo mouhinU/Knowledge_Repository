@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>试卷校对 · Knowledge Repository</title>
+    <link href="assets/css/common.css" rel="stylesheet">
+    <style>
+        .pr-summary { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--text-light); padding:8px 0 16px; border-bottom:1px solid var(--border, #e2e8f0); margin-bottom:16px }
+        .pr-summary b { color:var(--text, #1e293b) }
+        .pr-validation { border-radius:10px; padding:12px 16px; margin-bottom:18px; font-size:13px; line-height:1.7 }
+        .pr-validation.pass { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534 }
+        .pr-validation.fail { background:#fef2f2; border:1px solid #fecaca; color:#991b1b }
+        .pr-validation ul { margin:6px 0 0; padding-left:20px }
+        .pr-q { border:1px solid var(--border, #e2e8f0); border-radius:12px; padding:16px 18px; margin-bottom:14px; background:#fff }
+        .pr-q-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px }
+        .pr-q-idx { width:26px; height:26px; border-radius:6px; background:var(--primary,#2563eb); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0 }
+        .pr-q-sec { font-size:12px; color:var(--text-light); }
+        .pr-q-type { font-size:11px; padding:2px 8px; border-radius:4px; background:#eef2ff; color:#3730a3; font-weight:600 }
+        .pr-q-score { margin-left:auto; font-size:12px; color:var(--text-light) }
+        .pr-stem { font-size:14px; line-height:1.7; color:var(--text,#1e293b); margin-bottom:10px; white-space:pre-wrap }
+        .pr-opts { list-style:none; margin:0 0 12px; padding:0; display:flex; flex-direction:column; gap:4px }
+        .pr-opts li { font-size:13px; color:#475569; padding:4px 8px; border:1px dashed #e2e8f0; border-radius:6px }
+        .pr-opts li.correct { border-color:#86efac; background:#f0fdf4; color:#166534; font-weight:600 }
+        .pr-fields { display:flex; flex-direction:column; gap:10px }
+        .pr-fields .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end }
+        .pr-fields label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-light) }
+        .pr-fields .f-answer { flex:2; min-width:220px }
+        .pr-fields .f-score { width:120px }
+        .pr-fields textarea { min-height:56px; resize:vertical }
+        .pr-q-actions { margin-top:12px; display:flex; gap:8px; justify-content:flex-end }
+        .pr-empty { color:var(--text-light); font-size:13px; padding:20px; text-align:center }
+        /* —— 配图绑定（阶段 2）—— */
+        .pr-imgs { margin-top:12px; padding-top:10px; border-top:1px dashed var(--border, #e2e8f0) }
+        .pr-imgs-head { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-light); margin-bottom:8px }
+        .pr-imgs-head .btn { margin-left:auto }
+        .pr-img-thumbs { display:flex; flex-wrap:wrap; gap:8px }
+        .pr-img-thumbs img { width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--border,#e2e8f0); background:#f8fafc }
+        .pr-img-none { font-size:12px; color:#94a3b8 }
+        /* 选图弹窗 */
+        .ip-tabs { display:flex; gap:6px; margin-bottom:12px }
+        .ip-tab { font-size:13px; padding:6px 14px; border-radius:8px; border:1px solid var(--border,#e2e8f0); background:#fff; cursor:pointer; color:var(--text) }
+        .ip-tab.active { background:var(--primary,#2563eb); color:#fff; border-color:var(--primary,#2563eb) }
+        .ip-tools { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap }
+        .ip-tools input { flex:1; min-width:160px }
+        .ip-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; max-height:46vh; overflow:auto; padding:4px }
+        .ip-cell { position:relative; border:2px solid transparent; border-radius:10px; cursor:pointer; overflow:hidden; background:#f8fafc }
+        .ip-cell img { width:100%; height:88px; object-fit:cover; display:block }
+        .ip-cell .ip-cap { font-size:10px; color:var(--text-light); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+        .ip-cell.sel { border-color:var(--primary,#2563eb) }
+        .ip-cell.sel::after { content:"✓"; position:absolute; top:3px; right:5px; width:18px; height:18px; border-radius:50%; background:var(--primary,#2563eb); color:#fff; font-size:12px; line-height:18px; text-align:center }
+        .ip-sel { margin-top:12px; border-top:1px solid var(--border,#e2e8f0); padding-top:10px }
+        .ip-sel-label { font-size:12px; color:var(--text-light); margin-bottom:6px }
+        .ip-sel-row { display:flex; flex-wrap:wrap; gap:8px }
+        .ip-sel-item { position:relative; width:64px }
+        .ip-sel-item img { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border,#e2e8f0); display:block }
+        .ip-sel-item .ip-order { position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:rgba(37,99,235,.9); color:#fff; font-size:10px; line-height:16px; text-align:center }
+        .ip-sel-item .ip-rm { position:absolute; right:-4px; top:-4px; width:18px; height:18px; border-radius:50%; background:#ef4444; color:#fff; border:none; font-size:12px; line-height:16px; cursor:pointer; padding:0 }
+        .ip-sel-item .ip-mv { position:absolute; bottom:2px; right:2px; display:flex; gap:2px }
+        .ip-sel-item .ip-mv button { width:16px; height:16px; font-size:10px; line-height:14px; padding:0; border:1px solid var(--border,#e2e8f0); background:#fff; border-radius:4px; cursor:pointer }
+        .ip-empty { font-size:12px; color:#94a3b8; text-align:center; padding:24px 0 }
+        .ip-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px }
+    </style>
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="layout">
+    <div class="topbar" id="topbar"></div>
+    <div class="content">
+        <div class="page-header">
+            <h2>试卷校对</h2>
+            <p>出卷即切分后的结构化逐题校对；校验通过并经批准后方可发布开考（发布门禁）</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="pending-count" style="color:var(--warning)">-</div>
+                <div class="stat-label">待校对 / 待修正</div>
+            </div>
+        </div>
+
+        <!-- 待校对列表 -->
+        <div class="card" id="list-card">
+            <div class="card-head">
+                <div class="card-title" style="margin:0">待校对试卷（校验通过待批准 / 校验未通过待修正）</div>
+                <button class="btn btn-outline btn-sm" onclick="loadPending()">刷新</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>主题</th><th>难度</th><th>分类</th><th>质量分</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="pending-list">
+                    <tr><td colspan="7" class="loading">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 校对详情（选中某份试卷后展开） -->
+        <div class="card" id="detail-card" style="display:none">
+            <div class="card-head">
+                <div class="card-title" style="margin:0" id="detail-title">试卷校对详情</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-outline btn-sm" onclick="closeDetail()">返回列表</button>
+                    <button class="btn btn-outline btn-sm" onclick="doResplit()" title="按试卷原文重新切分回灌">重新切分</button>
+                    <button class="btn btn-primary btn-sm" id="approve-btn" onclick="doApprove()">校对通过并发布</button>
+                </div>
+            </div>
+            <div id="detail-summary" class="pr-summary"></div>
+            <div id="detail-validation" class="pr-validation"></div>
+            <div id="detail-questions" class="pr-questions"></div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script src="assets/js/paper-review.js"></script>
+</body>
+</html>

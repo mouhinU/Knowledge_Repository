@@ -1,69 +1,72 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.DepartmentManagementApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mouhin.knowledge.repository.client.api.DepartmentServiceI;
+import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
+import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
+import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
 /**
- * 部门管理控制器
+ * 部门管理控制器（adapter 层）
+ *
+ * <p>仅负责请求适配：解析入参组装 Command，调用 app 层 {@link DepartmentServiceI}， 把返回的 VO 直接作为 REST 响应体（JSON
+ * 结构与既有前端契约保持一致）。
  *
  * @author Knowledge-Repository
  * @date 2026-09-02
  */
 @RestController
 @RequestMapping("/api/admin/department")
+@Slf4j
 public class DepartmentAdminController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DepartmentAdminController.class);
+    /** 请求体 map 的父部门字段名（java:S1192 抽常量防 4 处漂移）。 */
+    private static final String FIELD_PARENT_ID = "parentId";
 
-    private final DepartmentManagementApplicationService departmentService;
+    private final DepartmentServiceI departmentService;
 
-    public DepartmentAdminController(DepartmentManagementApplicationService departmentService) {
+    public DepartmentAdminController(DepartmentServiceI departmentService) {
         this.departmentService = departmentService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> list() {
-        List<Department> depts = departmentService.listAll();
-        return ResponseEntity.ok(depts.stream().map(this::toResponse).toList());
+    public ResponseEntity<List<DepartmentVO>> list() {
+        return ResponseEntity.ok(departmentService.listDepartments());
     }
 
     @GetMapping("/tree")
-    public ResponseEntity<List<Map<String, Object>>> tree() {
-        return ResponseEntity.ok(departmentService.getTree());
+    public ResponseEntity<List<DepartmentTreeNodeVO>> tree() {
+        return ResponseEntity.ok(departmentService.getDepartmentTree());
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
-        String departmentName = (String) body.get("departmentName");
-        Long parentId = body.get("parentId") != null ? ((Number) body.get("parentId")).longValue() : null;
+    public ResponseEntity<DepartmentVO> create(@RequestBody Map<String, Object> body) {
+        DepartmentCreateCmd cmd = new DepartmentCreateCmd();
+        cmd.setDepartmentName((String) body.get("departmentName"));
+        cmd.setParentId(
+                body.get(FIELD_PARENT_ID) != null
+                        ? ((Number) body.get(FIELD_PARENT_ID)).longValue()
+                        : null);
 
-        Department dept = departmentService.create(departmentName, parentId);
-        return ResponseEntity.ok(toResponse(dept));
+        return ResponseEntity.ok(departmentService.createDepartment(cmd));
     }
 
     @PutMapping("/{departmentKey}")
-    public ResponseEntity<Map<String, Object>> update(@PathVariable String departmentKey,
-                                                      @RequestBody Map<String, Object> body) {
-        String departmentName = (String) body.get("departmentName");
-        Long parentId = body.get("parentId") != null ? ((Number) body.get("parentId")).longValue() : null;
+    public ResponseEntity<DepartmentVO> update(
+            @PathVariable String departmentKey, @RequestBody Map<String, Object> body) {
+        DepartmentUpdateCmd cmd = new DepartmentUpdateCmd();
+        cmd.setDepartmentKey(departmentKey);
+        cmd.setDepartmentName((String) body.get("departmentName"));
+        cmd.setParentId(
+                body.get(FIELD_PARENT_ID) != null
+                        ? ((Number) body.get(FIELD_PARENT_ID)).longValue()
+                        : null);
 
-        Department dept = departmentService.update(departmentKey, departmentName, parentId);
-        return ResponseEntity.ok(toResponse(dept));
-    }
-
-    private Map<String, Object> toResponse(Department dept) {
-        return Map.of(
-                "id", dept.getId(),
-                "departmentKey", dept.getDepartmentKey(),
-                "departmentName", dept.getDepartmentName(),
-                "parentId", dept.getParentId() != null ? dept.getParentId() : 0
-        );
+        return ResponseEntity.ok(departmentService.updateDepartment(cmd));
     }
 }

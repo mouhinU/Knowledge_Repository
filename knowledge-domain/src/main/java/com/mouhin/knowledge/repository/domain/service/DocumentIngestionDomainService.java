@@ -2,76 +2,64 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkWindow;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * 文档摄入领域服务
- * <p>
- * 负责将提取的文本按配置进行分块，并为每个分块附加权限元数据。
- * 支持五种切分策略，每种策略均追踪页码信息。
- * </p>
+ *
+ * <p>负责将提取的文本按配置进行分块，并为每个分块附加权限元数据。 支持五种切分策略，每种策略均追踪页码信息。
  *
  * @author Knowledge-Repository
  * @date 2026-09-02
  */
 @Service
+@Slf4j
 public class DocumentIngestionDomainService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DocumentIngestionDomainService.class);
+    /** 增强句子分割正则： - 中英文句号、问号、叹号、分号、冒号 - 省略号（中英文） - 换行符（作为弱句子边界） - 避免在缩写、数字中间断开 */
+    private static final Pattern SENTENCE_BOUNDARY = Pattern.compile("(?<=[.。!！?？;；…\\n])\\s+");
 
-    /**
-     * 增强句子分割正则：
-     * - 中英文句号、问号、叹号、分号、冒号
-     * - 省略号（中英文）
-     * - 换行符（作为弱句子边界）
-     * - 避免在缩写、数字中间断开
-     */
-    private static final Pattern SENTENCE_BOUNDARY = Pattern.compile(
-            "(?<=[.。!！?？;；…\\n])\\s+"
-    );
+    /** 中文句子结尾标点 */
+    private static final Pattern CHINESE_SENTENCE_END = Pattern.compile("[.。!！?？;；…]+\\s*");
 
-    /**
-     * 中文句子结尾标点
-     */
-    private static final Pattern CHINESE_SENTENCE_END =
-            Pattern.compile("[.。!！?？;；…]+\\s*");
-
-    /**
-     * 列表项模式：数字编号、字母编号、中文编号
-     */
-    private static final Pattern LIST_ITEM_PATTERN = Pattern.compile(
-            "^\\s*(\\d+[.、)）]|\\([0-9]+\\)|[a-zA-Z][.、)）]|[-•·]\\s|[一二三四五六七八九十]+[、.．])"
-    );
+    /** 列表项模式：数字编号、字母编号、中文编号 */
+    private static final Pattern LIST_ITEM_PATTERN =
+            Pattern.compile(
+                    "^\\s*(\\d+[.、)）]|\\([0-9]+\\)|[a-zA-Z][.、)）]|[-•·]\\s|[一二三四五六七八九十]+[、.．])");
 
     /**
      * 将文本内容按配置分块，并附加文档权限元数据
      *
      * @param document 文档聚合根
-     * @param pages    按页提取的文本列表（index 0 = page 1）
-     * @param config   分块配置
+     * @param pages 按页提取的文本列表（index 0 = page 1）
+     * @param config 分块配置
      * @return 分块列表
      */
-    public List<DocumentChunk> chunkDocument(Document document, List<String> pages, ChunkingConfig config) {
+    public List<DocumentChunk> chunkDocument(
+            Document document, List<String> pages, ChunkingConfig config) {
         if (pages == null || pages.isEmpty()) {
-            logger.warn("Document {} has no pages to chunk", document.getDocumentKey());
+            log.warn("Document {} has no pages to chunk", document.getDocumentKey());
             return List.of();
         }
 
         ChunkingStrategyEnum strategy = config.getStrategy();
-        if (logger.isInfoEnabled()) {
-            logger.info("Chunking document {} with strategy={}, maxChunk={}, overlap={}",
-                    document.getDocumentKey(), strategy, config.getMaxChunkSize(), config.getOverlapSize());
+        if (log.isInfoEnabled()) {
+            log.info(
+                    "Chunking document {} with strategy={}, maxChunk={}, overlap={}",
+                    document.getDocumentKey(),
+                    strategy,
+                    config.getMaxChunkSize(),
+                    config.getOverlapSize());
         }
 
         // 构建带页码的文本段列表
@@ -83,13 +71,14 @@ public class DocumentIngestionDomainService {
             }
         }
 
-        List<RawChunk> rawChunks = switch (strategy) {
-            case FIXED_SIZE -> chunkFixedSize(pageTexts, config);
-            case RECURSIVE -> chunkRecursive(pageTexts, config);
-            case SENTENCE -> chunkSentence(pageTexts, config);
-            case PAGE -> chunkPage(pageTexts);
-            case PARAGRAPH -> chunkParagraph(pageTexts, config);
-        };
+        List<RawChunk> rawChunks =
+                switch (strategy) {
+                    case FIXED_SIZE -> chunkFixedSize(pageTexts, config);
+                    case RECURSIVE -> chunkRecursive(pageTexts, config);
+                    case SENTENCE -> chunkSentence(pageTexts, config);
+                    case PAGE -> chunkPage(pageTexts);
+                    case PARAGRAPH -> chunkParagraph(pageTexts, config);
+                };
 
         // 将中间表示转为 DocumentChunk 并附加元数据
         List<DocumentChunk> chunks = new ArrayList<>(rawChunks.size());
@@ -98,23 +87,24 @@ public class DocumentIngestionDomainService {
             if (raw.content() == null || raw.content().isBlank()) {
                 continue;
             }
-            DocumentChunk chunk = buildChunk(document, chunkIndex,
-                    raw.startPage(), raw.endPage(), raw.content());
+            DocumentChunk chunk =
+                    buildChunk(document, chunkIndex, raw.startPage(), raw.endPage(), raw.content());
             chunks.add(chunk);
             chunkIndex++;
         }
 
-        logger.info("Document {} chunked into {} pieces (strategy={})",
-                document.getDocumentKey(), chunks.size(), strategy);
+        log.info(
+                "Document {} chunked into {} pieces (strategy={})",
+                document.getDocumentKey(),
+                chunks.size(),
+                strategy);
         return chunks;
     }
 
     /**
      * FIXED_SIZE：按 Token 上限切分
-     * <p>
-     * 优先在段落边界切分；单个段落超长时，降级到句子边界；
-     * 句子仍超长时，降级到空格/词边界；最后兜底按字符强制切分。
-     * </p>
+     *
+     * <p>优先在段落边界切分；单个段落超长时，降级到句子边界； 句子仍超长时，降级到空格/词边界；最后兜底按字符强制切分。
      */
     private List<RawChunk> chunkFixedSize(List<PageText> pages, ChunkingConfig config) {
         // 合并所有页面文本，同时记录每个字符对应的页码
@@ -130,7 +120,7 @@ public class DocumentIngestionDomainService {
             int pageStart = merged.length();
             merged.append(pt.text());
             for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[]{i, pt.pageNumber()});
+                charPageMap.add(new int[] {i, pt.pageNumber()});
             }
         }
 
@@ -161,13 +151,15 @@ public class DocumentIngestionDomainService {
                 if (chunkStart < paraStart && chunkTokens > 0) {
                     String chunkContent = text.substring(chunkStart, paraStart).trim();
                     int startPage = lookupPage(charPageMap, chunkStart);
-                    int endPage = lookupPage(charPageMap, Math.min(paraStart - 1, charPageMap.size() - 1));
+                    int endPage =
+                            lookupPage(
+                                    charPageMap, Math.min(paraStart - 1, charPageMap.size() - 1));
                     result.add(new RawChunk(chunkContent, startPage, endPage));
                 }
 
                 // 对超长段落进行句子级切分
-                List<RawChunk> subChunks = splitLongText(
-                        paraText, maxTokens, overlapTokens, charPageMap, paraStart);
+                List<RawChunk> subChunks =
+                        splitLongText(paraText, maxTokens, overlapTokens, charPageMap, paraStart);
                 result.addAll(subChunks);
 
                 chunkStart = paraEnd;
@@ -181,12 +173,14 @@ public class DocumentIngestionDomainService {
                 // 当前块已满，输出
                 String chunkContent = text.substring(chunkStart, paraStart).trim();
                 int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage = lookupPage(charPageMap, Math.min(paraStart - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(charPageMap, Math.min(paraStart - 1, charPageMap.size() - 1));
                 result.add(new RawChunk(chunkContent, startPage, endPage));
 
                 // 重叠处理
                 if (overlapTokens > 0 && chunkTokens > 0) {
-                    int overlapStart = findOverlapStart(text, chunkStart, paraStart, overlapTokens);
+                    int overlapStart =
+                            findOverlapStart(new ChunkWindow(chunkStart, paraStart, overlapTokens));
                     chunkStart = overlapStart;
                     chunkTokens = estimateTokenCount(text.substring(chunkStart, paraStart));
                 } else {
@@ -203,7 +197,9 @@ public class DocumentIngestionDomainService {
             String chunkContent = text.substring(chunkStart).trim();
             if (!chunkContent.isEmpty()) {
                 int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage = lookupPage(charPageMap, Math.min(text.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap, Math.min(text.length() - 1, charPageMap.size() - 1));
                 result.add(new RawChunk(chunkContent, startPage, endPage));
             }
         }
@@ -213,9 +209,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * RECURSIVE：递归分隔符切分
-     * <p>
-     * 分隔符层级：双换行(段落) → 单换行(行) → 句子边界 → 空格(词) → 强制字符
-     * </p>
+     *
+     * <p>分隔符层级：双换行(段落) → 单换行(行) → 句子边界 → 空格(词) → 强制字符
      */
     private List<RawChunk> chunkRecursive(List<PageText> pages, ChunkingConfig config) {
         StringBuilder merged = new StringBuilder();
@@ -228,7 +223,7 @@ public class DocumentIngestionDomainService {
             int pageStart = merged.length();
             merged.append(pt.text());
             for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[]{i, pt.pageNumber()});
+                charPageMap.add(new int[] {i, pt.pageNumber()});
             }
         }
 
@@ -239,16 +234,20 @@ public class DocumentIngestionDomainService {
         // 分隔符层级：段落 → 行 → 句子 → 空格 → 字符
         String[] separators = {"\n\n", "\n", "。.!！?？;；…", " ", ""};
         List<RawChunk> result = new ArrayList<>();
-        recursiveSplitWithPages(text, maxChars, overlapChars, separators, 0,
-                charPageMap, result);
+        recursiveSplitWithPages(text, maxChars, overlapChars, separators, 0, charPageMap, result);
         return result;
     }
 
     // ==================== FIXED_SIZE 策略 ====================
 
-    private void recursiveSplitWithPages(String text, int maxChars, int overlapChars,
-                                         String[] separators, int sepIndex,
-                                         List<int[]> charPageMap, List<RawChunk> result) {
+    private void recursiveSplitWithPages(
+            String text,
+            int maxChars,
+            int overlapChars,
+            String[] separators,
+            int sepIndex,
+            List<int[]> charPageMap,
+            List<RawChunk> result) {
         if (text.length() <= maxChars) {
             if (!text.isBlank()) {
                 int startPage = lookupPage(charPageMap, 0);
@@ -289,17 +288,20 @@ public class DocumentIngestionDomainService {
                 continue;
             }
 
-            String candidate = !current.isEmpty()
-                    ? current + (sep.length() <= 2 ? sep : " ") + part
-                    : part;
+            String candidate =
+                    !current.isEmpty() ? current + (sep.length() <= 2 ? sep : " ") + part : part;
 
             if (candidate.length() > maxChars && !current.isEmpty()) {
                 // 输出当前块
                 String chunkText = current.toString().trim();
                 if (!chunkText.isEmpty()) {
                     int startPage = lookupPage(charPageMap, currentOffset);
-                    int endPage = lookupPage(charPageMap,
-                            Math.min(currentOffset + current.length() - 1, charPageMap.size() - 1));
+                    int endPage =
+                            lookupPage(
+                                    charPageMap,
+                                    Math.min(
+                                            currentOffset + current.length() - 1,
+                                            charPageMap.size() - 1));
                     result.add(new RawChunk(chunkText, startPage, endPage));
                 }
 
@@ -321,12 +323,22 @@ public class DocumentIngestionDomainService {
         if (current.length() > 0) {
             String remaining = current.toString();
             if (remaining.length() > maxChars && sepIndex + 1 < separators.length) {
-                recursiveSplitWithPages(remaining, maxChars, overlapChars,
-                        separators, sepIndex + 1, charPageMap, result);
+                recursiveSplitWithPages(
+                        remaining,
+                        maxChars,
+                        overlapChars,
+                        separators,
+                        sepIndex + 1,
+                        charPageMap,
+                        result);
             } else if (!remaining.isBlank()) {
                 int startPage = lookupPage(charPageMap, currentOffset);
-                int endPage = lookupPage(charPageMap,
-                        Math.min(currentOffset + remaining.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap,
+                                Math.min(
+                                        currentOffset + remaining.length() - 1,
+                                        charPageMap.size() - 1));
                 result.add(new RawChunk(remaining.trim(), startPage, endPage));
             }
         }
@@ -336,9 +348,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * SENTENCE：按句子边界切分，合并至 Token 上限
-     * <p>
-     * 增强句子检测：支持中英文标点、省略号、列表项、换行边界。
-     * </p>
+     *
+     * <p>增强句子检测：支持中英文标点、省略号、列表项、换行边界。
      */
     private List<RawChunk> chunkSentence(List<PageText> pages, ChunkingConfig config) {
         StringBuilder merged = new StringBuilder();
@@ -351,7 +362,7 @@ public class DocumentIngestionDomainService {
             int pageStart = merged.length();
             merged.append(pt.text());
             for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[]{i, pt.pageNumber()});
+                charPageMap.add(new int[] {i, pt.pageNumber()});
             }
         }
 
@@ -371,15 +382,17 @@ public class DocumentIngestionDomainService {
                 continue;
             }
 
-            String candidate = !current.isEmpty()
-                    ? current + " " + trimmed
-                    : trimmed;
+            String candidate = !current.isEmpty() ? current + " " + trimmed : trimmed;
 
             if (candidate.length() > maxChars && !current.isEmpty()) {
                 String chunkText = current.toString().trim();
                 int startPage = lookupPage(charPageMap, currentOffset);
-                int endPage = lookupPage(charPageMap,
-                        Math.min(currentOffset + current.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap,
+                                Math.min(
+                                        currentOffset + current.length() - 1,
+                                        charPageMap.size() - 1));
                 result.add(new RawChunk(chunkText, startPage, endPage));
 
                 // 重叠：保留上一块末尾内容
@@ -401,8 +414,12 @@ public class DocumentIngestionDomainService {
             String chunkText = current.toString().trim();
             if (!chunkText.isEmpty()) {
                 int startPage = lookupPage(charPageMap, currentOffset);
-                int endPage = lookupPage(charPageMap,
-                        Math.min(currentOffset + current.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap,
+                                Math.min(
+                                        currentOffset + current.length() - 1,
+                                        charPageMap.size() - 1));
                 result.add(new RawChunk(chunkText, startPage, endPage));
             }
         }
@@ -412,9 +429,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * PAGE：每页作为一个独立分块
-     * <p>
-     * 过滤空白页，保留页码信息。
-     * </p>
+     *
+     * <p>过滤空白页，保留页码信息。
      */
     private List<RawChunk> chunkPage(List<PageText> pages) {
         List<RawChunk> result = new ArrayList<>();
@@ -431,10 +447,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * PARAGRAPH：按段落切分，小段落合并至 Token 上限
-     * <p>
-     * 识别列表项结构，尽量不在列表中间断开。
-     * 超长段落降级到句子级切分。
-     * </p>
+     *
+     * <p>识别列表项结构，尽量不在列表中间断开。 超长段落降级到句子级切分。
      */
     private List<RawChunk> chunkParagraph(List<PageText> pages, ChunkingConfig config) {
         StringBuilder merged = new StringBuilder();
@@ -447,7 +461,7 @@ public class DocumentIngestionDomainService {
             int pageStart = merged.length();
             merged.append(pt.text());
             for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[]{i, pt.pageNumber()});
+                charPageMap.add(new int[] {i, pt.pageNumber()});
             }
         }
 
@@ -473,16 +487,17 @@ public class DocumentIngestionDomainService {
             // 超长段落：先输出已有内容，再对超长段落做句子级切分
             if (paraLen > maxChars) {
                 if (chunkLen > 0) {
-                    String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-                    int startPage = lookupPage(charPageMap, chunkStart);
-                    int endPage = lookupPage(charPageMap, Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                    result.add(new RawChunk(chunkText, startPage, endPage));
+                    result.add(buildWindowChunk(text, charPageMap, chunkStart, chunkLen));
                     chunkLen = 0;
                 }
 
-                List<RawChunk> subChunks = splitLongText(
-                        paraText, config.getMaxChunkSize(), config.getOverlapSize(),
-                        charPageMap, paraStart);
+                List<RawChunk> subChunks =
+                        splitLongText(
+                                paraText,
+                                config.getMaxChunkSize(),
+                                config.getOverlapSize(),
+                                charPageMap,
+                                paraStart);
                 result.addAll(subChunks);
                 chunkStart = paraEnd;
                 continue;
@@ -491,10 +506,7 @@ public class DocumentIngestionDomainService {
             int candidateLen = chunkLen + (chunkLen > 0 ? 2 : 0) + paraLen;
 
             if (candidateLen > maxChars && chunkLen > 0) {
-                String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-                int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage = lookupPage(charPageMap, Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                result.add(new RawChunk(chunkText, startPage, endPage));
+                result.add(buildWindowChunk(text, charPageMap, chunkStart, chunkLen));
 
                 if (overlapChars > 0 && chunkLen > overlapChars) {
                     int overlapStart = chunkStart + chunkLen - overlapChars;
@@ -515,40 +527,47 @@ public class DocumentIngestionDomainService {
         }
 
         if (chunkLen > 0) {
-            String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-            if (!chunkText.isEmpty()) {
-                int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage = lookupPage(charPageMap, Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                result.add(new RawChunk(chunkText, startPage, endPage));
+            RawChunk tail = buildWindowChunk(text, charPageMap, chunkStart, chunkLen);
+            if (!tail.content().isEmpty()) {
+                result.add(tail);
             }
         }
 
         return result;
     }
 
+    /**
+     * 从合并文本中按 [start, start+len) 窗口构造一个分块，并回填其起止页码。
+     *
+     * <p>窗口上界自动收敛到 charPageMap 末位，行为与原内联实现一致。
+     */
+    private RawChunk buildWindowChunk(String text, List<int[]> charPageMap, int start, int len) {
+        String chunkText = text.substring(start, start + len).trim();
+        int startPage = lookupPage(charPageMap, start);
+        int endPage = lookupPage(charPageMap, Math.min(start + len - 1, charPageMap.size() - 1));
+        return new RawChunk(chunkText, startPage, endPage);
+    }
+
     // ==================== PAGE 策略 ====================
 
-    /**
-     * 查找段落范围：返回 List of [start, end]
-     */
+    /** 查找段落范围：返回 List of [start, end] */
     private List<int[]> findParagraphRanges(String text) {
         List<int[]> ranges = new ArrayList<>();
-        Pattern paraPattern = Pattern.compile("(?:^|\\n\\s*\\n)\\s*(.+?)(?=\\n\\s*\\n|$)", Pattern.DOTALL);
+        Pattern paraPattern =
+                Pattern.compile("(?:^|\\n\\s*\\n)\\s*(.+?)(?=\\n\\s*\\n|$)", Pattern.DOTALL);
         Matcher matcher = paraPattern.matcher(text);
         while (matcher.find()) {
-            ranges.add(new int[]{matcher.start(1), matcher.end(1)});
+            ranges.add(new int[] {matcher.start(1), matcher.end(1)});
         }
         if (ranges.isEmpty() && !text.isBlank()) {
-            ranges.add(new int[]{0, text.length()});
+            ranges.add(new int[] {0, text.length()});
         }
         return ranges;
     }
 
     // ==================== PARAGRAPH 策略 ====================
 
-    /**
-     * 按字符集分割文本（用于句子边界分割）
-     */
+    /** 按字符集分割文本（用于句子边界分割） */
     private String[] splitByCharSet(String text, String charSet) {
         String regex = "(?<=[" + Pattern.quote(charSet) + "])\\s*";
         return text.split(regex);
@@ -556,9 +575,7 @@ public class DocumentIngestionDomainService {
 
     // ==================== 工具方法 ====================
 
-    /**
-     * 增强句子分割
-     */
+    /** 增强句子分割 */
     private List<String> splitSentences(String text) {
         List<String> sentences = new ArrayList<>();
         // 先按段落/换行分割
@@ -580,11 +597,13 @@ public class DocumentIngestionDomainService {
         return sentences;
     }
 
-    /**
-     * 对超长文本进行句子级切分
-     */
-    private List<RawChunk> splitLongText(String text, int maxTokens, int overlapTokens,
-                                         List<int[]> charPageMap, int textOffset) {
+    /** 对超长文本进行句子级切分 */
+    private List<RawChunk> splitLongText(
+            String text,
+            int maxTokens,
+            int overlapTokens,
+            List<int[]> charPageMap,
+            int textOffset) {
         List<RawChunk> result = new ArrayList<>();
         List<String> sentences = splitSentences(text);
         StringBuilder current = new StringBuilder();
@@ -598,8 +617,12 @@ public class DocumentIngestionDomainService {
             if (current.length() + sentence.length() + 1 > maxChars && current.length() > 0) {
                 String chunkText = current.toString().trim();
                 int startPage = lookupPage(charPageMap, chunkOffset);
-                int endPage = lookupPage(charPageMap,
-                        Math.min(chunkOffset + current.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap,
+                                Math.min(
+                                        chunkOffset + current.length() - 1,
+                                        charPageMap.size() - 1));
                 result.add(new RawChunk(chunkText, startPage, endPage));
 
                 if (overlapChars > 0 && current.length() > overlapChars) {
@@ -623,8 +646,12 @@ public class DocumentIngestionDomainService {
             String chunkText = current.toString().trim();
             if (!chunkText.isEmpty()) {
                 int startPage = lookupPage(charPageMap, chunkOffset);
-                int endPage = lookupPage(charPageMap,
-                        Math.min(chunkOffset + current.length() - 1, charPageMap.size() - 1));
+                int endPage =
+                        lookupPage(
+                                charPageMap,
+                                Math.min(
+                                        chunkOffset + current.length() - 1,
+                                        charPageMap.size() - 1));
                 result.add(new RawChunk(chunkText, startPage, endPage));
             }
         }
@@ -632,11 +659,9 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    /**
-     * 强制字符切分（带页码追踪）
-     */
-    private List<RawChunk> forceSplitWithPages(String text, int maxChars, int overlapChars,
-                                               List<int[]> charPageMap) {
+    /** 强制字符切分（带页码追踪） */
+    private List<RawChunk> forceSplitWithPages(
+            String text, int maxChars, int overlapChars, List<int[]> charPageMap) {
         List<RawChunk> result = new ArrayList<>();
         int start = 0;
         while (start < text.length()) {
@@ -655,9 +680,7 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    /**
-     * 根据字符位置查找页码
-     */
+    /** 根据字符位置查找页码 */
     private int lookupPage(List<int[]> charPageMap, int charIndex) {
         if (charPageMap == null || charPageMap.isEmpty()) {
             return 1;
@@ -666,19 +689,16 @@ public class DocumentIngestionDomainService {
         return charPageMap.get(idx)[1];
     }
 
-    /**
-     * 查找重叠起始位置
-     */
-    private int findOverlapStart(String text, int chunkStart, int chunkEnd, int overlapTokens) {
-        int overlapChars = Math.min(overlapTokens * 3, chunkEnd - chunkStart);
-        return chunkEnd - overlapChars;
+    /** 查找重叠起始位置 */
+    private int findOverlapStart(ChunkWindow window) {
+        int overlapChars =
+                Math.min(window.overlapTokens() * 3, window.chunkEnd() - window.chunkStart());
+        return window.chunkEnd() - overlapChars;
     }
 
-    /**
-     * 构建分块对象，附加权限元数据
-     */
-    private DocumentChunk buildChunk(Document document, int chunkIndex,
-                                     int startPage, int endPage, String content) {
+    /** 构建分块对象，附加权限元数据 */
+    private DocumentChunk buildChunk(
+            Document document, int chunkIndex, int startPage, int endPage, String content) {
         DocumentChunk chunk = new DocumentChunk();
         chunk.setChunkKey(UUID.randomUUID().toString());
         chunk.setDocumentId(document.getId());
@@ -691,9 +711,10 @@ public class DocumentIngestionDomainService {
 
         // 附加权限元数据（冗余到分块级别，用于 Milvus 过滤）
         chunk.setDepartmentId(document.getDepartmentId());
-        chunk.setVisibility(document.getVisibility() != null
-                ? document.getVisibility().name()
-                : DocumentVisibilityEnum.INTERNAL.name());
+        chunk.setVisibility(
+                document.getVisibility() != null
+                        ? document.getVisibility().name()
+                        : DocumentVisibilityEnum.INTERNAL.name());
         chunk.setAllowedRoles(document.getAllowedRoles());
         chunk.setOwnerId(document.getOwnerId());
 
@@ -708,9 +729,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * 估算文本 token 数
-     * <p>
-     * 中文约 1.5 字/token，英文约 4 字符/token，数字约 2 字符/token。
-     * </p>
+     *
+     * <p>中文约 1.5 字/token，英文约 4 字符/token，数字约 2 字符/token。
      */
     private int estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) {
@@ -735,9 +755,8 @@ public class DocumentIngestionDomainService {
 
     /**
      * 清理文本中的控制字符，避免 JSON 序列化失败
-     * <p>
-     * 保留换行符(\n)、回车符(\r)、制表符(\t)，移除其他 ASCII 控制字符(0x00-0x1F, 0x7F)。
-     * </p>
+     *
+     * <p>保留换行符(\n)、回车符(\r)、制表符(\t)，移除其他 ASCII 控制字符(0x00-0x1F, 0x7F)。
      */
     private String sanitizeContent(String content) {
         if (content == null || content.isEmpty()) {
@@ -754,15 +773,9 @@ public class DocumentIngestionDomainService {
         return sb.toString();
     }
 
-    /**
-     * 带页码信息的文本段
-     */
-    private record PageText(String text, int pageNumber) {
-    }
+    /** 带页码信息的文本段 */
+    private record PageText(String text, int pageNumber) {}
 
-    /**
-     * 带页码信息的分块中间表示
-     */
-    private record RawChunk(String content, int startPage, int endPage) {
-    }
+    /** 带页码信息的分块中间表示 */
+    private record RawChunk(String content, int startPage, int endPage) {}
 }

@@ -13,6 +13,5 @@ public record DocumentCreatedEvent(
         String fileName,
         String ownerId,
         String departmentId,
-        LocalDateTime occurredAt
-) implements DomainEvent {
-}
+        LocalDateTime occurredAt)
+        implements DomainEvent {}

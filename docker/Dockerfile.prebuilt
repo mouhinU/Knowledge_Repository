@@ -1,0 +1,25 @@
+# 极简运行时镜像：只塞 host-side 预编译好的 fat jar
+# 用途：绕开容器内 mvn dependency:go-offline 网络慢/挂起问题
+FROM eclipse-temurin:21-jre
+
+ARG APP_VERSION=unknown
+LABEL maintainer="Knowledge-Repository"
+LABEL description="Knowledge Repository - RAG 知识库管理系统 (prebuilt jar)"
+LABEL version="${APP_VERSION}"
+
+RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
+
+WORKDIR /app
+
+COPY knowledge-web/target/knowledge-web-1.0.0-SNAPSHOT.jar app.jar
+
+RUN mkdir -p /app/data/documents && chown -R appuser:appuser /app
+
+USER appuser
+
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+ENV APP_VERSION=${APP_VERSION}
+
+EXPOSE 8091
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

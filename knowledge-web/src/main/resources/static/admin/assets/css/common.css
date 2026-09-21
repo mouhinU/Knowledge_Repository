@@ -155,6 +155,8 @@ a:hover { text-decoration: underline; }
 .breadcrumb .bc-current { color: var(--text); font-weight: 600; font-size: 15px; }
 .topbar-right { display: flex; align-items: center; gap: 14px; }
 .topbar-meta { font-size: 12px; color: var(--text-light); }
+.user-chip { font-size: 13px; color: var(--text-secondary); background: var(--surface-alt); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; white-space: nowrap; }
+.login-err { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 14px; }
 
 .content { padding: 24px 28px 48px; max-width: 1320px; width: 100%; }
 
@@ -288,6 +290,28 @@ textarea.form-input { min-height: 80px; resize: vertical; line-height: 1.6; }
 .tab.active .tab-count { background: #dbeafe; color: var(--primary); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* ---------- 9b. 纵向步骤向导（左侧步骤节点 · 右侧对应区块） ---------- */
+.wizard { display: flex; flex-direction: column; }
+.wizard-row { display: flex; align-items: stretch; gap: 16px; }
+.wizard-rail { display: flex; flex-direction: column; align-items: center; flex: 0 0 34px; padding-top: 2px; }
+.wizard-node {
+    width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: var(--text-light);
+    background: var(--surface-alt); border: 2px solid var(--border); transition: all .2s;
+}
+.wizard-node.active { color: #fff; background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+.wizard-node.done { color: var(--primary); background: var(--primary-soft); border-color: var(--primary); }
+.wizard-line { flex: 1 1 auto; width: 2px; min-height: 18px; background: var(--border); margin: 6px 0; transition: background .2s; }
+.wizard-line.done { background: var(--primary); }
+.wizard-main { flex: 1 1 auto; min-width: 0; }
+.wizard-hint { font-size: 12px; color: var(--text-light); font-weight: 500; }
+@media (max-width: 560px) {
+    .wizard-row { flex-direction: column; gap: 8px; }
+    .wizard-rail { flex-direction: row; flex: 0 0 auto; width: 100%; align-items: center; padding-top: 0; }
+    .wizard-line { display: none; }
+}
 
 /* ---------- 10. 上传区 ---------- */
 .upload-area { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 40px; text-align: center; cursor: pointer; transition: all .2s; background: var(--surface-alt); }
@@ -470,6 +494,11 @@ textarea.form-input { min-height: 80px; resize: vertical; line-height: 1.6; }
 .agent-materials summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-light); padding: 6px 0; }
 .agent-materials-content { font-size: 12px; line-height: 1.6; color: var(--text-light); background: var(--surface-alt); padding: 10px 12px; border-radius: 6px; max-height: 200px; overflow: auto; white-space: pre-wrap; margin: 6px 0 0; border: 1px dashed var(--border); }
 .agent-output-label { font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+/* 思考链（推理增量）流式区块：默认隐藏，收到 reasoning 增量时显示 */
+.agent-thinking { display: none; margin-bottom: 10px; }
+.agent-thinking.active { display: block; }
+.agent-thinking summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #8b5cf6; padding: 4px 0; user-select: none; }
+.agent-thinking pre { font-size: 12px; line-height: 1.6; color: var(--text-light); background: #f5f3ff; padding: 10px 12px; border-radius: 6px; max-height: 220px; overflow: auto; white-space: pre-wrap; margin: 6px 0 0; border: 1px solid #ddd6fe; font-style: italic; }
 
 /* 节点详情弹窗 */
 .node-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .4); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -533,9 +562,9 @@ textarea.form-input { min-height: 80px; resize: vertical; line-height: 1.6; }
 .history-modal-close:hover { color: var(--text); }
 
 /* ---------- 成绩复核详情弹窗 / AI 错题总结弹窗 ---------- */
-.review-modal-overlay, .wb-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 2000; overflow-y: auto; padding: 24px 0; }
-.review-modal-overlay.active, .wb-modal-overlay.active { display: block; }
-.review-modal, .wb-modal { background: #fff; border-radius: var(--radius-lg); width: 960px; max-width: 95vw; margin: 0 auto; position: relative; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; max-height: calc(100vh - 48px); }
+.review-modal-overlay, .wb-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 2000; overflow-y: auto; padding: 24px; }
+.review-modal-overlay.active, .wb-modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+.review-modal, .wb-modal { background: #fff; border-radius: var(--radius-lg); width: 960px; max-width: 95vw; margin: auto; position: relative; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; max-height: calc(100vh - 48px); }
 .wb-modal { width: 800px; }
 .review-modal-header, .wb-modal-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #f8fafc, #fff); border-radius: var(--radius-lg) var(--radius-lg) 0 0; flex-shrink: 0; }
 .review-modal-body, .wb-modal-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
@@ -638,3 +667,26 @@ textarea.form-input { min-height: 80px; resize: vertical; line-height: 1.6; }
 .menu-toggle { display: none; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 36px; height: 36px; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text); }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 90; }
 .sidebar-backdrop.show { display: block; }
+
+/* ===== 看图题配图（错题本 / 成绩复核共享渲染 KR.renderImages） ===== */
+.kr-imgs { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 12px; }
+.kr-img {
+    max-width: 300px; max-height: 240px; width: auto; height: auto;
+    object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #f8fafc; cursor: zoom-in; box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+    transition: box-shadow .15s ease;
+}
+.kr-img:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .14); }
+.kr-img-lightbox {
+    position: fixed; inset: 0; z-index: 2000; display: none;
+    align-items: center; justify-content: center; background: rgba(0, 0, 0, .82); padding: 24px;
+}
+.kr-img-lightbox.open { display: flex; }
+.kr-img-lightbox img {
+    max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+}
+.kr-img-lightbox .kr-img-close {
+    position: absolute; top: 18px; right: 24px; font-size: 34px; line-height: 1;
+    color: #fff; cursor: pointer; user-select: none;
+}

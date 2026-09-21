@@ -6,5 +6,4 @@ package com.mouhin.knowledge.repository.domain.event;
  * @author Knowledge-Repository
  * @date 2026-09-02
  */
-public interface DomainEvent {
-}
+public interface DomainEvent {}

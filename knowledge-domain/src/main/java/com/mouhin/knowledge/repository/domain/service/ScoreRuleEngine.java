@@ -2,23 +2,22 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-
 import java.util.*;
 
 /**
  * 试卷分数规则引擎
- * <p>
- * 依据学段与科目确定试卷目标满分，并按题型权重、小题数量把满分拆分为整数分值方案。
- * 纯计算，无外部依赖，供出卷分值分配 Agent、试卷编写与同步出题路径共同复用。
- * </p>
+ *
+ * <p>依据学段与科目确定试卷目标满分，并按题型权重、小题数量把满分拆分为整数分值方案。 纯计算，无外部依赖，供出卷分值分配 Agent、试卷编写与同步出题路径共同复用。
  *
  * <h3>满分规则</h3>
+ *
  * <ul>
- *     <li>小学：各科 100 分；</li>
- *     <li>初中：语文/数学/外语各 120；物理 70、化学 50（合卷 120）；道德与法治 60、历史 60（合卷 120）；
- *         实验操作（物理、化学、生物）各 10、共 30；体育与健康 50；</li>
- *     <li>高中：语文/数学/外语各 150；首选（物理、历史）100；再选（思想政治、地理、化学、生物学）100。</li>
+ *   <li>小学：各科 100 分；
+ *   <li>初中：语文/数学/外语各 120；物理 70、化学 50（合卷 120）；道德与法治 60、历史 60（合卷 120）； 实验操作（物理、化学、生物）各 10、共 30；体育与健康
+ *       50；
+ *   <li>高中：语文/数学/外语各 150；首选（物理、历史）100；再选（思想政治、地理、化学、生物学）100。
  * </ul>
+ *
  * 主题中若同时识别到合卷的两科（如"物理""化学"），则按合卷满分（两科之和）出为一张卷子。
  *
  * @author Knowledge-Repository
@@ -26,34 +25,35 @@ import java.util.*;
  */
 public final class ScoreRuleEngine {
 
-    /**
-     * 识别不到学段/科目时的兜底满分
-     */
+    /** 识别不到学段/科目时的兜底满分 */
     public static final int DEFAULT_FULL_MARK = 100;
-    /**
-     * 科目识别关键词表（按匹配优先级）
-     */
+
+    /** 分值行分隔符（java:S1192：抽常量防 4 处重复）。 */
+    private static final String SCORE_SEP_INLINE = " 分 | ";
+
+    /** 分值行末换行分隔符（java:S1192：抽常量防 4 处重复）。 */
+    private static final String SCORE_SEP_EOL = " 分 |\n";
+
+    /** 科目识别关键词表（按匹配优先级） */
     private static final Map<Subject, String[]> SUBJECT_KEYWORDS = new LinkedHashMap<>();
 
     // ==================== 学段 ====================
-    /**
-     * 题型权重（用于总分在各题型间的分配比例）
-     */
+    /** 题型权重（用于总分在各题型间的分配比例） */
     private static final Map<String, Integer> TYPE_WEIGHTS = new LinkedHashMap<>();
 
     static {
-        SUBJECT_KEYWORDS.put(Subject.CHINESE, new String[]{"语文", "中文"});
-        SUBJECT_KEYWORDS.put(Subject.MATH, new String[]{"数学"});
-        SUBJECT_KEYWORDS.put(Subject.FOREIGN, new String[]{"英语", "外语", "英文"});
-        SUBJECT_KEYWORDS.put(Subject.PHYSICS, new String[]{"物理"});
-        SUBJECT_KEYWORDS.put(Subject.CHEMISTRY, new String[]{"化学"});
-        SUBJECT_KEYWORDS.put(Subject.BIOLOGY, new String[]{"生物", "生命科学"});
-        SUBJECT_KEYWORDS.put(Subject.MORAL_LAW, new String[]{"道德与法治", "道法", "政治", "思想政治"});
-        SUBJECT_KEYWORDS.put(Subject.HISTORY, new String[]{"历史"});
-        SUBJECT_KEYWORDS.put(Subject.GEOGRAPHY, new String[]{"地理"});
-        SUBJECT_KEYWORDS.put(Subject.EXPERIMENT, new String[]{"实验操作", "实验"});
-        SUBJECT_KEYWORDS.put(Subject.PE, new String[]{"体育", "体育与健康", "健康"});
-        SUBJECT_KEYWORDS.put(Subject.SCIENCE, new String[]{"科学"});
+        SUBJECT_KEYWORDS.put(Subject.CHINESE, new String[] {"语文", "中文"});
+        SUBJECT_KEYWORDS.put(Subject.MATH, new String[] {"数学"});
+        SUBJECT_KEYWORDS.put(Subject.FOREIGN, new String[] {"英语", "外语", "英文"});
+        SUBJECT_KEYWORDS.put(Subject.PHYSICS, new String[] {"物理"});
+        SUBJECT_KEYWORDS.put(Subject.CHEMISTRY, new String[] {"化学"});
+        SUBJECT_KEYWORDS.put(Subject.BIOLOGY, new String[] {"生物", "生命科学"});
+        SUBJECT_KEYWORDS.put(Subject.MORAL_LAW, new String[] {"道德与法治", "道法", "政治", "思想政治"});
+        SUBJECT_KEYWORDS.put(Subject.HISTORY, new String[] {"历史"});
+        SUBJECT_KEYWORDS.put(Subject.GEOGRAPHY, new String[] {"地理"});
+        SUBJECT_KEYWORDS.put(Subject.EXPERIMENT, new String[] {"实验操作", "实验"});
+        SUBJECT_KEYWORDS.put(Subject.PE, new String[] {"体育", "体育与健康", "健康"});
+        SUBJECT_KEYWORDS.put(Subject.SCIENCE, new String[] {"科学"});
     }
 
     static {
@@ -65,12 +65,9 @@ public final class ScoreRuleEngine {
         TYPE_WEIGHTS.put("论述题", 10);
     }
 
-    private ScoreRuleEngine() {
-    }
+    private ScoreRuleEngine() {}
 
-    /**
-     * 学段中文名
-     */
+    /** 学段中文名 */
     public static String levelLabel(SchoolLevel level) {
         return switch (level) {
             case PRIMARY -> "小学";
@@ -85,7 +82,7 @@ public final class ScoreRuleEngine {
     /**
      * 解析学段：优先使用显式指定值，否则从主题文本识别。
      *
-     * @param topic  主题文本
+     * @param topic 主题文本
      * @param forced 前端显式选择的学段（可空）
      * @return 学段枚举，识别不到返回 {@link SchoolLevel#UNKNOWN}
      */
@@ -97,9 +94,7 @@ public final class ScoreRuleEngine {
         return detectLevel(topic);
     }
 
-    /**
-     * 学段编码解析（PRIMARY / JUNIOR / SENIOR，兼容中文）。
-     */
+    /** 学段编码解析（PRIMARY / JUNIOR / SENIOR，兼容中文）。 */
     public static SchoolLevel parseLevelCode(String code) {
         if (code == null || code.isBlank()) {
             return SchoolLevel.UNKNOWN;
@@ -113,9 +108,7 @@ public final class ScoreRuleEngine {
         };
     }
 
-    /**
-     * 从主题文本识别学段。
-     */
+    /** 从主题文本识别学段。 */
     public static SchoolLevel detectLevel(String topic) {
         if (topic == null || topic.isBlank()) {
             return SchoolLevel.UNKNOWN;
@@ -132,9 +125,7 @@ public final class ScoreRuleEngine {
         return SchoolLevel.UNKNOWN;
     }
 
-    /**
-     * 科目中文名
-     */
+    /** 科目中文名 */
     public static String subjectLabel(Subject subject) {
         return switch (subject) {
             case CHINESE -> "语文";
@@ -177,7 +168,7 @@ public final class ScoreRuleEngine {
     /**
      * 单科在指定学段下的满分。
      *
-     * @param level   学段
+     * @param level 学段
      * @param subject 科目
      * @return 满分；无法判定时返回 {@link #DEFAULT_FULL_MARK}
      */
@@ -211,14 +202,16 @@ public final class ScoreRuleEngine {
 
     /**
      * 计算试卷目标满分。
-     * <p>识别到多科时按各科满分累加（合卷一张卷）；识别不到科目时按学段兜底（小学/初中/高中默认 100）。</p>
      *
-     * @param topic           主题文本
-     * @param level           学段
+     * <p>识别到多科时按各科满分累加（合卷一张卷）；识别不到科目时按学段兜底（小学/初中/高中默认 100）。
+     *
+     * @param topic 主题文本
+     * @param level 学段
      * @param forcedLevelCode 前端显式学段（可空）
      * @return 目标满分
      */
-    public static int resolveTotalFullMark(String topic, SchoolLevel level, String forcedLevelCode) {
+    public static int resolveTotalFullMark(
+            String topic, SchoolLevel level, String forcedLevelCode) {
         SchoolLevel resolved = resolveLevel(topic, forcedLevelCode);
         List<Subject> subjects = detectSubjects(topic);
         if (subjects.isEmpty()) {
@@ -258,9 +251,10 @@ public final class ScoreRuleEngine {
 
     /**
      * 把目标满分按题型权重、再按小题拆分为整数分值方案，保证各题分值之和恰好等于满分。
-     * <p>单题（总题数为 1）时该题即为满分。</p>
      *
-     * @param total         目标满分
+     * <p>单题（总题数为 1）时该题即为满分。
+     *
+     * @param total 目标满分
      * @param orderedCounts 题型 → 数量（保持题型出现顺序）
      * @return 分值方案；total≤0 或无题时返回空方案
      */
@@ -310,9 +304,7 @@ public final class ScoreRuleEngine {
         return new ScoreScheme(total, allocations);
     }
 
-    /**
-     * 最大余额法：把 total 按 weight 比例拆成 n 份整数，且每份 ≥ 1（当 n ≤ total 时）。
-     */
+    /** 最大余额法：把 total 按 weight 比例拆成 n 份整数，且每份 ≥ 1（当 n ≤ total 时）。 */
     private static int[] distributeIntegers(int total, List<Double> weights, int n) {
         int[] pts = new int[n];
         double wSum = 0;
@@ -377,14 +369,17 @@ public final class ScoreRuleEngine {
      * 渲染分值分配方案为 Markdown 文本，供试卷编写 Agent 严格遵循。
      *
      * @param scheme 分值方案
-     * @param topic  主题（用于合卷说明）
-     * @param level  学段
+     * @param topic 主题（用于合卷说明）
+     * @param level 学段
      * @return 方案文本
      */
     public static String renderScheme(ScoreScheme scheme, String topic, SchoolLevel level) {
         StringBuilder sb = new StringBuilder();
-        sb.append("本卷满分：").append(scheme.total()).append(" 分（")
-                .append(levelLabel(level)).append("分数规则）\n\n");
+        sb.append("本卷满分：")
+                .append(scheme.total())
+                .append(" 分（")
+                .append(levelLabel(level))
+                .append("分数规则）\n\n");
 
         boolean allUniform = true;
         for (TypeAllocation a : scheme.allocations()) {
@@ -405,8 +400,15 @@ public final class ScoreRuleEngine {
             sb.append("|------|------|----------|------|\n");
             for (TypeAllocation a : scheme.allocations()) {
                 int perQ = a.perQuestion().length > 0 ? a.perQuestion()[0] : 0;
-                sb.append("| ").append(a.type()).append(" | ").append(a.count())
-                        .append(" | ").append(perQ).append(" 分 | ").append(a.subtotal()).append(" 分 |\n");
+                sb.append("| ")
+                        .append(a.type())
+                        .append(" | ")
+                        .append(a.count())
+                        .append(" | ")
+                        .append(perQ)
+                        .append(SCORE_SEP_INLINE)
+                        .append(a.subtotal())
+                        .append(SCORE_SEP_EOL);
             }
         } else {
             sb.append("| 题型 | 题数 | 各小题分值 | 小计 |\n");
@@ -419,8 +421,15 @@ public final class ScoreRuleEngine {
                     }
                     pq.append(a.perQuestion()[i]);
                 }
-                sb.append("| ").append(a.type()).append(" | ").append(a.count())
-                        .append(" | ").append(pq).append(" 分 | ").append(a.subtotal()).append(" 分 |\n");
+                sb.append("| ")
+                        .append(a.type())
+                        .append(" | ")
+                        .append(a.count())
+                        .append(" | ")
+                        .append(pq)
+                        .append(SCORE_SEP_INLINE)
+                        .append(a.subtotal())
+                        .append(SCORE_SEP_EOL);
             }
         }
         sb.append("| **合计** | | | **").append(scheme.total()).append(" 分** |\n");
@@ -444,40 +453,74 @@ public final class ScoreRuleEngine {
         return false;
     }
 
-    /**
-     * 学段
-     */
+    /** 学段 */
     public enum SchoolLevel {
-        /**
-         * 小学
-         */
+        /** 小学 */
         PRIMARY,
-        /**
-         * 初中
-         */
+        /** 初中 */
         JUNIOR,
-        /**
-         * 高中
-         */
+        /** 高中 */
         SENIOR,
-        /**
-         * 未知
-         */
+        /** 未知 */
         UNKNOWN
     }
 
-    /**
-     * 规范科目
-     */
+    /** 规范科目 */
     public enum Subject {
-        CHINESE, MATH, FOREIGN, PHYSICS, CHEMISTRY, BIOLOGY,
-        MORAL_LAW, HISTORY, GEOGRAPHY, SCIENCE, PE, EXPERIMENT, OTHER
+        CHINESE,
+        MATH,
+        FOREIGN,
+        PHYSICS,
+        CHEMISTRY,
+        BIOLOGY,
+        MORAL_LAW,
+        HISTORY,
+        GEOGRAPHY,
+        SCIENCE,
+        PE,
+        EXPERIMENT,
+        OTHER
     }
 
     /**
-     * 单个题型的分值分配结果
+     * 单个题型的分值分配结果。
+     *
+     * <p>java:S6218：record 含 int[] 时默认 equals/hashCode/toString 按引用比较，语义错误； 显式重写走 Arrays.* 深度语义。
      */
     public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof TypeAllocation other)) {
+                return false;
+            }
+            return count == other.count
+                    && subtotal == other.subtotal
+                    && java.util.Objects.equals(type, other.type)
+                    && java.util.Arrays.equals(perQuestion, other.perQuestion);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(
+                    type, count, subtotal, java.util.Arrays.hashCode(perQuestion));
+        }
+
+        @Override
+        public String toString() {
+            return "TypeAllocation[type="
+                    + type
+                    + ", count="
+                    + count
+                    + ", subtotal="
+                    + subtotal
+                    + ", perQuestion="
+                    + java.util.Arrays.toString(perQuestion)
+                    + "]";
+        }
     }
 
     // ==================== 题型分布方案（ExamPlan） ====================
@@ -524,8 +567,8 @@ public final class ScoreRuleEngine {
     /**
      * 由"题型 → 数量"映射构建默认分布方案（满分按题型权重再拆到每题）。
      *
-     * @param topic           主题（用于学段/科目/合卷识别）
-     * @param counts          题型（中文名或内核 key）→ 数量
+     * @param topic 主题（用于学段/科目/合卷识别）
+     * @param counts 题型（中文名或内核 key）→ 数量
      * @return 分值已归一化（Σ=满分）的方案
      */
     public static ExamPlan buildDefaultPlan(String topic, LinkedHashMap<String, Integer> counts) {
@@ -562,10 +605,8 @@ public final class ScoreRuleEngine {
 
     /**
      * 归一化方案：逐题数组长度对齐 count，并保证所有小题分值之和恰等于目标满分。
-     * <p>
-     * 若方案已平衡（题量匹配且 Σ=满分），保持用户逐题编辑不变；否则以各题现值为权重做
-     * 最大余额法整体重分配（目标 &lt; 题量时无法每题≥1，交由评估提示）。
-     * </p>
+     *
+     * <p>若方案已平衡（题量匹配且 Σ=满分），保持用户逐题编辑不变；否则以各题现值为权重做 最大余额法整体重分配（目标 &lt; 题量时无法每题≥1，交由评估提示）。
      *
      * @param plan 待归一化方案（原地修改）
      */
@@ -580,7 +621,10 @@ public final class ScoreRuleEngine {
         boolean sizesOk = true;
         for (TypePlan t : plan.getTypes()) {
             int c = Math.max(t.getCount(), 0);
-            List<Integer> pq = t.getPerQuestion() == null ? new ArrayList<>() : new ArrayList<>(t.getPerQuestion());
+            List<Integer> pq =
+                    t.getPerQuestion() == null
+                            ? new ArrayList<>()
+                            : new ArrayList<>(t.getPerQuestion());
             if (pq.size() != c) {
                 sizesOk = false;
                 pq = resizeScoreList(pq, c);
@@ -612,9 +656,7 @@ public final class ScoreRuleEngine {
         }
     }
 
-    /**
-     * 把逐题分值列表增删到指定长度：截断尾部；不足则以现值平均（无值时按 1）补齐。
-     */
+    /** 把逐题分值列表增删到指定长度：截断尾部；不足则以现值平均（无值时按 1）补齐。 */
     private static List<Integer> resizeScoreList(List<Integer> src, int size) {
         List<Integer> out = new ArrayList<>();
         if (size <= 0) {
@@ -637,7 +679,8 @@ public final class ScoreRuleEngine {
 
     /**
      * 依据内核题型权重，把满分分配到每一道小题（各题分值之和恰等于满分）。
-     * <p>用于方案生成初期，仅有题型与题量时给出"简答/论述分更高"的默认逐题分值。</p>
+     *
+     * <p>用于方案生成初期，仅有题型与题量时给出"简答/论述分更高"的默认逐题分值。
      *
      * @param plan 方案（原地写入各题型的 perQuestion）
      */
@@ -676,15 +719,20 @@ public final class ScoreRuleEngine {
     /**
      * 渲染分布方案为权威分值说明（供试卷编写 Agent 严格遵循：逐题分值 + 小计 + 满分）。
      *
-     * @param plan  已归一化的方案
+     * @param plan 已归一化的方案
      * @param topic 主题（用于合卷说明）
      * @return Markdown 文本
      */
     public static String renderPlan(ExamPlan plan, String topic) {
         SchoolLevel level = parseLevelCode(plan.getSchoolLevel());
         StringBuilder sb = new StringBuilder();
-        sb.append("本卷满分：").append(plan.getTotalFullMark()).append(" 分（")
-                .append(levelLabel(level)).append("分数规则），共 ").append(plan.totalQuestions()).append(" 道题\n\n");
+        sb.append("本卷满分：")
+                .append(plan.getTotalFullMark())
+                .append(" 分（")
+                .append(levelLabel(level))
+                .append("分数规则），共 ")
+                .append(plan.totalQuestions())
+                .append(" 道题\n\n");
 
         boolean allUniform = true;
         for (TypePlan t : plan.getTypes()) {
@@ -709,8 +757,15 @@ public final class ScoreRuleEngine {
             sb.append("|------|------|----------|------|\n");
             for (TypePlan t : plan.getTypes()) {
                 int perQ = t.getPerQuestion().isEmpty() ? 0 : t.getPerQuestion().get(0);
-                sb.append("| ").append(t.getLabel()).append(" | ").append(t.getCount())
-                        .append(" | ").append(perQ).append(" 分 | ").append(t.subtotal()).append(" 分 |\n");
+                sb.append("| ")
+                        .append(t.getLabel())
+                        .append(" | ")
+                        .append(t.getCount())
+                        .append(" | ")
+                        .append(perQ)
+                        .append(SCORE_SEP_INLINE)
+                        .append(t.subtotal())
+                        .append(SCORE_SEP_EOL);
             }
         } else {
             sb.append("| 题型 | 题数 | 各小题分值（按顺序） | 小计 |\n");
@@ -724,8 +779,15 @@ public final class ScoreRuleEngine {
                     }
                     pq.append(list.get(i));
                 }
-                sb.append("| ").append(t.getLabel()).append(" | ").append(t.getCount())
-                        .append(" | ").append(pq).append(" 分 | ").append(t.subtotal()).append(" 分 |\n");
+                sb.append("| ")
+                        .append(t.getLabel())
+                        .append(" | ")
+                        .append(t.getCount())
+                        .append(" | ")
+                        .append(pq)
+                        .append(SCORE_SEP_INLINE)
+                        .append(t.subtotal())
+                        .append(SCORE_SEP_EOL);
             }
         }
         sb.append("| **合计** | | | **").append(plan.getTotalFullMark()).append(" 分** |\n");
@@ -741,7 +803,8 @@ public final class ScoreRuleEngine {
 
     /**
      * 自动平衡：以每题当前值为权重，用最大余额法把总分重新分配到各题，保证 Σ=满分。
-     * <p>若方案已平衡则保持不变，仅返回说明。原地修改 {@code plan}。</p>
+     *
+     * <p>若方案已平衡则保持不变，仅返回说明。原地修改 {@code plan}。
      *
      * @param plan 待平衡方案（含用户已编辑的分值）
      * @return 平衡后的方案与人类可读的过程说明（Markdown）
@@ -760,14 +823,24 @@ public final class ScoreRuleEngine {
         int totalQ = 0;
         for (TypePlan t : plan.getTypes()) {
             int c = Math.max(t.getCount(), 0);
-            List<Integer> pq = t.getPerQuestion() == null ? new ArrayList<>() : new ArrayList<>(t.getPerQuestion());
+            List<Integer> pq =
+                    t.getPerQuestion() == null
+                            ? new ArrayList<>()
+                            : new ArrayList<>(t.getPerQuestion());
             if (pq.size() != c) {
                 pq = resizeScoreList(pq, c);
                 t.setPerQuestion(pq);
                 t.setCount(c);
             }
-            input.append("· ").append(t.getLabel()).append("：题量 ").append(c)
-                    .append("，每题 ").append(pq).append("，小计 ").append(t.subtotal()).append(" 分\n");
+            input.append("· ")
+                    .append(t.getLabel())
+                    .append("：题量 ")
+                    .append(c)
+                    .append("，每题 ")
+                    .append(pq)
+                    .append("，小计 ")
+                    .append(t.subtotal())
+                    .append(" 分\n");
             beforeSum += t.subtotal();
             totalQ += c;
         }
@@ -777,9 +850,15 @@ public final class ScoreRuleEngine {
 
         // 已平衡则原样返回
         if (beforeSum == target) {
-            String trace = "### 输入\n" + input
-                    + "\n### 思考\n当前合计已等于满分，保留用户逐题编辑，不做改动。\n"
-                    + "\n### 输出\n合计 " + beforeSum + " / 满分 " + target + " 分 ✓";
+            String trace =
+                    "### 输入\n"
+                            + input
+                            + "\n### 思考\n当前合计已等于满分，保留用户逐题编辑，不做改动。\n"
+                            + "\n### 输出\n合计 "
+                            + beforeSum
+                            + " / 满分 "
+                            + target
+                            + " 分 ✓";
             return new BalanceResult(plan, trace);
         }
 
@@ -803,29 +882,38 @@ public final class ScoreRuleEngine {
 
         StringBuilder output = new StringBuilder();
         for (TypePlan t : plan.getTypes()) {
-            output.append("· ").append(t.getLabel()).append("：每题 ").append(t.getPerQuestion())
-                    .append("，小计 ").append(t.subtotal()).append(" 分\n");
+            output.append("· ")
+                    .append(t.getLabel())
+                    .append("：每题 ")
+                    .append(t.getPerQuestion())
+                    .append("，小计 ")
+                    .append(t.subtotal())
+                    .append(" 分\n");
         }
-        output.append("合计：").append(plan.allocatedTotal()).append(" 分 / 满分 ").append(target).append(" 分");
+        output.append("合计：")
+                .append(plan.allocatedTotal())
+                .append(" 分 / 满分 ")
+                .append(target)
+                .append(" 分");
 
-        String thinking = "当前合计 " + beforeSum + " 分与目标 " + target + " 分不一致（差 "
-                + (beforeSum - target) + "）。以每道小题的现值为权重，用最大余额法整体缩放到满分，"
-                + "既保证 Σ=满分，也尽量保留用户设定的题型内/题型间相对分值差异。";
+        String thinking =
+                "当前合计 "
+                        + beforeSum
+                        + " 分与目标 "
+                        + target
+                        + " 分不一致（差 "
+                        + (beforeSum - target)
+                        + "）。以每道小题的现值为权重，用最大余额法整体缩放到满分，"
+                        + "既保证 Σ=满分，也尽量保留用户设定的题型内/题型间相对分值差异。";
         String trace = "### 输入\n" + input + "\n### 思考\n" + thinking + "\n\n### 输出\n" + output;
         return new BalanceResult(plan, trace);
     }
 
     // ==================== 工具 ====================
 
-    /**
-     * 完整分值分配方案
-     */
-    public record ScoreScheme(int total, List<TypeAllocation> allocations) {
-    }
+    /** 完整分值分配方案 */
+    public record ScoreScheme(int total, List<TypeAllocation> allocations) {}
 
-    /**
-     * 自动平衡结果：原地更新后的方案 + 过程说明（Markdown）
-     */
-    public record BalanceResult(ExamPlan plan, String trace) {
-    }
+    /** 自动平衡结果：原地更新后的方案 + 过程说明（Markdown） */
+    public record BalanceResult(ExamPlan plan, String trace) {}
 }

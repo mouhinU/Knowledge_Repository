@@ -6,36 +6,26 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 研究员 Agent
- * <p>
- * 负责从知识库检索结果中提取和组织关键信息。
- * 读取：knowledgeChunks（向量检索结果）
- * 写入：keyFindings（结构化的研究发现）
- * </p>
+ *
+ * <p>负责从知识库检索结果中提取和组织关键信息。 读取：knowledgeChunks（向量检索结果） 写入：keyFindings（结构化的研究发现）
  *
  * @author Knowledge-Repository
  * @date 2026-09-12
  */
 @Component("researcherAgent")
+@Slf4j
 public class ResearcherAgent implements BlackboardAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResearcherAgent.class);
-
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT =
+            """
             你是一个知识库研究员。你的任务是根据用户的问题，从知识库检索结果中提取和组织关键信息。
-            
+
             要求：
             1. 仔细阅读每个知识片段，提取与问题直接相关的信息
             2. 按主题或逻辑关系组织信息，形成结构化的研究发现
@@ -43,33 +33,36 @@ public class ResearcherAgent implements BlackboardAgent {
             4. 如果不同文档的信息有冲突或互补，请指出
             5. 如果检索结果不足以回答问题，明确指出缺失的信息方向
             6. 保持客观，不要添加自己的推测
-            
+
             输出格式：使用 Markdown 格式，按主题分节组织。
             """;
 
-    private final ChatModel chatModel;
+    private final BlackboardAgentStreamer agentStreamer;
 
-    public ResearcherAgent(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public ResearcherAgent(BlackboardAgentStreamer agentStreamer) {
+        this.agentStreamer = agentStreamer;
     }
 
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
         List<SearchResult> chunks = blackboard.getKnowledgeChunks();
-        logger.info("[Researcher] 开始分析 {} 个知识片段", chunks.size());
+        log.info("[Researcher] 开始分析 {} 个知识片段", chunks.size());
 
         blackboard.advanceTo(BlackboardPhase.RESEARCH);
 
         // 构建物料摘要
         String materials = buildMaterialsSummary(chunks);
-        emitProgress(progressCallback, BlackboardProgressEvent.agentStartedWithMaterials(
-                "researcher", "正在分析 " + chunks.size() + " 个知识片段...", materials));
+        emitProgress(
+                progressCallback,
+                BlackboardProgressEvent.agentStartedWithMaterials(
+                        "researcher", "正在分析 " + chunks.size() + " 个知识片段...", materials));
 
         if (chunks.isEmpty()) {
             blackboard.setKeyFindings("知识库中未找到与问题相关的内容。");
-            emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted(
-                    "researcher", "知识库中未找到与问题相关的内容。"));
-            logger.warn("[Researcher] 知识库无相关结果");
+            emitProgress(
+                    progressCallback,
+                    BlackboardProgressEvent.agentCompleted("researcher", "知识库中未找到与问题相关的内容。"));
+            log.warn("[Researcher] 知识库无相关结果");
             return;
         }
 
@@ -90,39 +83,34 @@ public class ResearcherAgent implements BlackboardAgent {
             contextBuilder.append(chunk.getText()).append("\n\n");
         }
 
-        String userPrompt = String.format("""
+        String userPrompt =
+                String.format(
+                        """
                 用户问题：%s
-                
+
                 以下是从知识库中检索到的相关片段：
-                
+
                 %s
                 请提取和组织与问题相关的关键信息。
-                """, blackboard.getQuestion(), contextBuilder);
+                """,
+                        blackboard.getQuestion(), contextBuilder);
 
-        ChatRequest request = ChatRequest.builder()
-                .messages(
-                        SystemMessage.from(SYSTEM_PROMPT),
-                        UserMessage.from(userPrompt)
-                )
-                .build();
-
-        ChatResponse response = chatModel.chat(request);
-        String findings = response.aiMessage().text();
+        String findings =
+                agentStreamer.stream("researcher", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         // LLM 超时或异常可能返回空结果，回退使用原始知识片段
         if (findings == null || findings.isBlank()) {
-            logger.warn("[Researcher] LLM 返回空结果，回退使用原始知识片段");
+            log.warn("[Researcher] LLM 返回空结果，回退使用原始知识片段");
             findings = buildFallbackFindings(chunks);
         }
 
         blackboard.setKeyFindings(findings);
-        emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("researcher", findings));
-        logger.info("[Researcher] 研究发现生成完成，长度：{} 字符", findings.length());
+        emitProgress(
+                progressCallback, BlackboardProgressEvent.agentCompleted("researcher", findings));
+        log.info("[Researcher] 研究发现生成完成，长度：{} 字符", findings.length());
     }
 
-    /**
-     * 构建检索物料摘要（展示给前端的输入信息）
-     */
+    /** 构建检索物料摘要（展示给前端的输入信息） */
     private String buildMaterialsSummary(List<SearchResult> chunks) {
         if (chunks.isEmpty()) {
             return "（无检索结果）";
@@ -150,9 +138,7 @@ public class ResearcherAgent implements BlackboardAgent {
         return sb.toString();
     }
 
-    /**
-     * LLM 返回空结果时，直接用原始知识片段作为研究发现
-     */
+    /** LLM 返回空结果时，直接用原始知识片段作为研究发现 */
     private String buildFallbackFindings(List<SearchResult> chunks) {
         StringBuilder sb = new StringBuilder();
         sb.append("以下是从知识库中检索到的原始内容（LLM 分析失败，直接使用原文）：\n\n");

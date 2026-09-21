@@ -15,6 +15,5 @@ public record DocumentProcessedEvent(
         int totalChunks,
         String ownerId,
         String departmentId,
-        LocalDateTime occurredAt
-) implements DomainEvent {
-}
+        LocalDateTime occurredAt)
+        implements DomainEvent {}

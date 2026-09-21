@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>错题本 · Knowledge Repository</title>
+    <title>错题库 · Knowledge Repository</title>
     <link href="assets/css/common.css" rel="stylesheet">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="topbar" id="topbar"></div>
     <div class="content">
         <div class="page-header">
-            <h2>错题本</h2>
+            <h2>错题库</h2>
             <p>收集考生错题，支持筛选、分页与 AI 总结</p>
         </div>
 
@@ -200,6 +200,7 @@
                 + '<div style="font-size:11px;color:var(--text-light)">得分率 ' + scorePercent + '%</div></div>'
                 + '</div>'
                 + '<div style="font-size:14px;line-height:1.6;margin-bottom:10px">' + esc(item.questionContent) + '</div>'
+                + KR.renderImages(item.images)
                 + optionsHtml
                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">'
                 + '<div class="wb-answer-box" style="background:#fff3e0"><div style="font-size:12px;color:#e65100;font-weight:600;margin-bottom:4px">学生答案</div><div style="font-size:13px">' + esc(item.studentAnswer || '（未作答）') + '</div></div>'

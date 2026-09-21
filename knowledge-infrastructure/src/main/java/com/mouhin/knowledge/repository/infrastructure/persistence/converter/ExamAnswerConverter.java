@@ -11,8 +11,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
  */
 public final class ExamAnswerConverter {
 
-    private ExamAnswerConverter() {
-    }
+    private ExamAnswerConverter() {}
 
     public static ExamAnswer toDomain(ExamAnswerDO doObj) {
         if (doObj == null) {
@@ -22,6 +21,7 @@ public final class ExamAnswerConverter {
         domain.setId(doObj.getId());
         domain.setSessionId(doObj.getSessionId());
         domain.setQuestionIndex(doObj.getQuestionIndex());
+        domain.setQuestionNumber(doObj.getQuestionNumber());
         domain.setQuestionType(doObj.getQuestionType());
         domain.setQuestionContent(doObj.getQuestionContent());
         domain.setOptionsJson(doObj.getOptionsJson());
@@ -50,6 +50,7 @@ public final class ExamAnswerConverter {
         doObj.setId(domain.getId());
         doObj.setSessionId(domain.getSessionId());
         doObj.setQuestionIndex(domain.getQuestionIndex());
+        doObj.setQuestionNumber(domain.getQuestionNumber());
         doObj.setQuestionType(domain.getQuestionType());
         doObj.setQuestionContent(domain.getQuestionContent());
         doObj.setOptionsJson(domain.getOptionsJson());

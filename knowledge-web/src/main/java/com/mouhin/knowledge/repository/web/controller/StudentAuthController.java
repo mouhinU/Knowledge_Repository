@@ -1,14 +1,14 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.mouhin.knowledge.repository.application.service.StudentAuthApplicationService;
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import com.mouhin.knowledge.repository.web.dto.StudentAuthRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mouhin.knowledge.repository.client.api.StudentServiceI;
+import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
+import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
+import com.mouhin.knowledge.repository.client.dto.StudentVO;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 考生认证控制器
@@ -18,54 +18,42 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/student/auth")
+@Slf4j
 public class StudentAuthController {
 
-    private static final Logger logger = LoggerFactory.getLogger(StudentAuthController.class);
+    private final StudentServiceI studentService;
 
-    private final StudentAuthApplicationService authService;
-
-    public StudentAuthController(StudentAuthApplicationService authService) {
-        this.authService = authService;
+    public StudentAuthController(StudentServiceI studentService) {
+        this.studentService = studentService;
     }
 
-    /**
-     * 考生注册
-     */
+    /** 考生注册 */
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody StudentAuthRequest request) {
+    public ResponseEntity<Map<String, Object>> register(@RequestBody StudentRegisterCmd cmd) {
         try {
-            Student student = authService.register(
-                    request.getUsername(),
-                    request.getPassword(),
-                    request.getDisplayName(),
-                    request.getStudentNo());
-            return ResponseEntity.ok(Map.of(
-                    "message", "注册成功",
-                    "studentId", student.getId(),
-                    "username", student.getUsername()));
+            StudentVO student = studentService.register(cmd).getData();
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message", "注册成功",
+                            "studentId", student.getStudentId(),
+                            "username", student.getUsername()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 考生登录
-     */
+    /** 考生登录 */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody StudentAuthRequest request) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody StudentLoginCmd cmd) {
         try {
-            String token = authService.login(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(Map.of(
-                    "message", "登录成功",
-                    "token", token));
+            String token = studentService.login(cmd).getData();
+            return ResponseEntity.ok(Map.of("message", "登录成功", "token", token));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 退出登录
-     */
+    /** 退出登录 */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken,
@@ -75,28 +63,27 @@ public class StudentAuthController {
             token = body.get("token");
         }
         if (token != null) {
-            authService.logout(token);
+            studentService.logout(token);
         }
         return ResponseEntity.ok(Map.of("message", "已退出"));
     }
 
-    /**
-     * 验证令牌（获取当前考生信息）
-     */
+    /** 验证令牌（获取当前考生信息） */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         if (headerToken == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "未登录"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "未登录"));
         }
-        return authService.validateToken(headerToken)
-                .map(student -> ResponseEntity.ok(Map.<String, Object>of(
-                        "studentId", student.getId(),
+        StudentVO student = studentService.validateToken(headerToken).getData();
+        if (student == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "登录已过期"));
+        }
+        return ResponseEntity.ok(
+                Map.<String, Object>of(
+                        "studentId", student.getStudentId(),
                         "username", student.getUsername(),
-                        "displayName", student.getDisplayName() != null
-                                ? student.getDisplayName() : student.getUsername(),
-                        "studentNo", student.getStudentNo() != null ? student.getStudentNo() : ""
-                )))
-                .orElse(ResponseEntity.status(401).body(Map.of("error", "登录已过期")));
+                        "displayName", student.getDisplayName(),
+                        "studentNo", student.getStudentNo()));
     }
 }

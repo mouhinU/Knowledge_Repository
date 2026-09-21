@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.infrastructure.pdf;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -12,75 +16,56 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * 增强型 PDF 文本提取器
- * <p>
- * 功能特性：
+ *
+ * <p>功能特性：
+ *
  * <ul>
- *     <li>文本规范化：连字、特殊字符、空白字符处理</li>
- *     <li>扫描型 PDF 检测：基于文本密度分析</li>
- *     <li>加密检测：识别密码保护和权限限制</li>
- *     <li>页眉页脚过滤：基于位置和重复模式检测</li>
- *     <li>多栏排版检测：基于文本位置分析</li>
- *     <li>图像检测：统计每页图像数量</li>
- *     <li>元数据提取：作者、标题、创建时间等</li>
+ *   <li>文本规范化：连字、特殊字符、空白字符处理
+ *   <li>扫描型 PDF 检测：基于文本密度分析
+ *   <li>加密检测：识别密码保护和权限限制
+ *   <li>页眉页脚过滤：基于位置和重复模式检测
+ *   <li>多栏排版检测：基于文本位置分析
+ *   <li>图像检测：统计每页图像数量
+ *   <li>元数据提取：作者、标题、创建时间等
  * </ul>
  *
  * @author Knowledge-Repository
  * @date 2026-09-11
  */
+@Slf4j
 public class EnhancedPdfTextExtractor {
-
-    private static final Logger logger = LoggerFactory.getLogger(EnhancedPdfTextExtractor.class);
 
     // ==================== 常量定义 ====================
 
-    /**
-     * 扫描页检测：每页少于此字符数视为扫描页
-     */
+    /** 扫描页检测：每页少于此字符数视为扫描页 */
     private static final int SCAN_PAGE_CHAR_THRESHOLD = 50;
 
-    /**
-     * 扫描页检测：超过此比例的页面为扫描页则整体标记
-     */
+    /** 扫描页检测：超过此比例的页面为扫描页则整体标记 */
     private static final double SCAN_DOCUMENT_RATIO = 0.3;
 
-    /**
-     * 页眉页脚检测：出现在页面顶部/底部此比例区域内的文本
-     */
+    /** 页眉页脚检测：出现在页面顶部/底部此比例区域内的文本 */
     private static final double HEADER_FOOTER_ZONE_RATIO = 0.15;
 
-    /**
-     * 页眉页脚检测：至少在 N 页中重复出现才判定
-     */
+    /** 页眉页脚检测：至少在 N 页中重复出现才判定 */
     private static final int HEADER_FOOTER_MIN_OCCURRENCE = 3;
 
-    /**
-     * 连字映射表
-     */
+    /** 连字映射表 */
     private static final Map<Character, String> LIGATURE_MAP = createLigatureMap();
-    /**
-     * 空白字符规范化映射
-     */
+
+    /** 空白字符规范化映射 */
     private static final Map<Character, Character> WHITESPACE_MAP = createWhitespaceMap();
-    /**
-     * 软连字符
-     */
+
+    /** 软连字符 */
     private static final char SOFT_HYPHEN = '\u00AD';
-    /**
-     * 页码模式
-     */
-    private static final Pattern PAGE_NUMBER_PATTERN = Pattern.compile(
-            "^\\s*(-?\\d+|-\\s*\\d+|\\d+\\s*/\\s*\\d+|第\\s*\\d+\\s*页|Page\\s+\\d+)\\s*$",
-            Pattern.CASE_INSENSITIVE
-    );
+
+    /** 页码模式 */
+    private static final Pattern PAGE_NUMBER_PATTERN =
+            Pattern.compile(
+                    "^\\s*(-?\\d+|-\\s*\\d+|\\d+\\s*/\\s*\\d+|第\\s*\\d+\\s*页|Page\\s+\\d+)\\s*$",
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private static Map<Character, String> createLigatureMap() {
         Map<Character, String> map = new HashMap<>();
@@ -101,21 +86,21 @@ public class EnhancedPdfTextExtractor {
 
     private static Map<Character, Character> createWhitespaceMap() {
         Map<Character, Character> map = new HashMap<>();
-        map.put('\u00A0', ' ');  // 不换行空格
-        map.put('\u2000', ' ');  // 恩格空格
-        map.put('\u2001', ' ');  // 全角空格
-        map.put('\u2002', ' ');  // 半角空格
-        map.put('\u2003', ' ');  // 全角空格
-        map.put('\u2004', ' ');  // 三分之一空格
-        map.put('\u2005', ' ');  // 四分之一空格
-        map.put('\u2006', ' ');  // 六分之一空格
-        map.put('\u2007', ' ');  // 数字空格
-        map.put('\u2008', ' ');  // 标点空格
-        map.put('\u2009', ' ');  // 瘦空格
-        map.put('\u200A', ' ');  // 超瘦空格
-        map.put('\u202F', ' ');  // 窄不换行空格
-        map.put('\u205F', ' ');  // 中等数学空格
-        map.put('\u3000', ' ');  // 全角空格
+        map.put('\u00A0', ' '); // 不换行空格
+        map.put('\u2000', ' '); // 恩格空格
+        map.put('\u2001', ' '); // 全角空格
+        map.put('\u2002', ' '); // 半角空格
+        map.put('\u2003', ' '); // 全角空格
+        map.put('\u2004', ' '); // 三分之一空格
+        map.put('\u2005', ' '); // 四分之一空格
+        map.put('\u2006', ' '); // 六分之一空格
+        map.put('\u2007', ' '); // 数字空格
+        map.put('\u2008', ' '); // 标点空格
+        map.put('\u2009', ' '); // 瘦空格
+        map.put('\u200A', ' '); // 超瘦空格
+        map.put('\u202F', ' '); // 窄不换行空格
+        map.put('\u205F', ' '); // 中等数学空格
+        map.put('\u3000', ' '); // 全角空格
         return Collections.unmodifiableMap(map);
     }
 
@@ -140,7 +125,8 @@ public class EnhancedPdfTextExtractor {
      * @param password 打开密码
      * @return 提取结果
      */
-    public PdfExtractionResult extract(java.nio.file.Path filePath, String password) throws IOException {
+    public PdfExtractionResult extract(java.nio.file.Path filePath, String password)
+            throws IOException {
         try (PDDocument document = Loader.loadPDF(filePath.toFile(), password)) {
             return extractFromDocument(document);
         }
@@ -152,33 +138,67 @@ public class EnhancedPdfTextExtractor {
 
         // 1. 检测加密状态
         boolean encrypted = document.isEncrypted();
-        AccessPermission permissions = document.getCurrentAccessPermission();
-        if (encrypted) {
-            if (permissions != null) {
-                if (!permissions.canExtractContent()) {
-                    warnings.add("PDF 禁止提取文本内容");
-                }
-                if (!permissions.canPrint()) {
-                    warnings.add("PDF 禁止打印");
-                }
-                if (!permissions.canModify()) {
-                    warnings.add("PDF 禁止修改");
-                }
-            }
-            logger.info("PDF is encrypted with restrictions: {}", warnings);
-        }
+        collectEncryptionWarnings(document, encrypted, warnings);
 
         // 2. 提取元数据
         PdfMetadata metadata = extractMetadata(document);
 
-        // 3. 逐页提取
-        List<PageContent> pages = new ArrayList<>(totalPages);
-        int scannedPages = 0;
+        // 3~5. 逐页提取（含页眉页脚跨页检测）
+        PageExtraction extraction = extractPages(document, totalPages);
+        List<PageContent> pages = extraction.pages();
+        int scannedPages = extraction.scannedPages();
 
+        // 6. 整体扫描检测
+        boolean ocrRecommended =
+                totalPages > 0 && (double) scannedPages / totalPages > SCAN_DOCUMENT_RATIO;
+
+        if (ocrRecommended) {
+            warnings.add(
+                    String.format("PDF 疑似扫描件 (%d/%d 页无文本)，建议使用 OCR", scannedPages, totalPages));
+        }
+
+        // 7. 跨页段落合并（可选）
+        // pages = mergeCrossPageParagraphs(pages);
+
+        log.info(
+                "PDF extraction completed: {} pages, {} scanned, {} warnings",
+                totalPages,
+                scannedPages,
+                warnings.size());
+
+        return new PdfExtractionResult(pages, metadata, warnings, encrypted, ocrRecommended);
+    }
+
+    /** 加密受限时收集权限告警（禁止提取 / 打印 / 修改）。 */
+    private void collectEncryptionWarnings(
+            PDDocument document, boolean encrypted, List<String> warnings) {
+        if (!encrypted) {
+            return;
+        }
+        AccessPermission permissions = document.getCurrentAccessPermission();
+        if (permissions != null) {
+            if (!permissions.canExtractContent()) {
+                warnings.add("PDF 禁止提取文本内容");
+            }
+            if (!permissions.canPrint()) {
+                warnings.add("PDF 禁止打印");
+            }
+            if (!permissions.canModify()) {
+                warnings.add("PDF 禁止修改");
+            }
+        }
+        log.info("PDF is encrypted with restrictions: {}", warnings);
+    }
+
+    /**
+     * 逐页提取：先跑原始文本 / 位置捕获，再做跨页页眉页脚检测，最后组装每页 {@link PageContent}。
+     *
+     * @return 页内容列表与疑似扫描页计数
+     */
+    private PageExtraction extractPages(PDDocument document, int totalPages) throws IOException {
         // 第一遍：提取原始文本和位置信息
         List<String> rawTexts = new ArrayList<>(totalPages);
         List<List<TextPosition>> pageTextPositions = new ArrayList<>(totalPages);
-
         for (int pageNum = 1; pageNum <= totalPages; pageNum++) {
             PositionCapturingStripper stripper = new PositionCapturingStripper();
             stripper.setStartPage(pageNum);
@@ -188,13 +208,15 @@ public class EnhancedPdfTextExtractor {
             pageTextPositions.add(stripper.getCapturedPositions());
         }
 
-        // 4. 检测页眉页脚（跨页分析）
+        // 检测页眉页脚（跨页分析）
         Set<String> headerFooterPatterns = detectHeaderFooter(rawTexts);
         if (!headerFooterPatterns.isEmpty()) {
-            logger.info("Detected header/footer patterns: {}", headerFooterPatterns);
+            log.info("Detected header/footer patterns: {}", headerFooterPatterns);
         }
 
-        // 5. 处理每页内容
+        // 处理每页内容
+        List<PageContent> pages = new ArrayList<>(totalPages);
+        int scannedPages = 0;
         for (int pageNum = 1; pageNum <= totalPages; pageNum++) {
             String rawText = rawTexts.get(pageNum - 1);
             List<TextPosition> positions = pageTextPositions.get(pageNum - 1);
@@ -220,32 +242,23 @@ public class EnhancedPdfTextExtractor {
             // 页面元数据
             PageMetadata pageMetadata = extractPageMetadata(document.getPage(pageNum - 1));
 
-            pages.add(new PageContent(
-                    pageNum, normalizedText, filteredText, likelyScanned,
-                    imageCount, hasMultiColumns, pageMetadata
-            ));
+            pages.add(
+                    new PageContent(
+                            pageNum,
+                            normalizedText,
+                            filteredText,
+                            likelyScanned,
+                            imageCount,
+                            hasMultiColumns,
+                            pageMetadata));
         }
-
-        // 6. 整体扫描检测
-        boolean ocrRecommended = totalPages > 0
-                && (double) scannedPages / totalPages > SCAN_DOCUMENT_RATIO;
-
-        if (ocrRecommended) {
-            warnings.add(String.format("PDF 疑似扫描件 (%d/%d 页无文本)，建议使用 OCR", scannedPages, totalPages));
-        }
-
-        // 7. 跨页段落合并（可选）
-        // pages = mergeCrossPageParagraphs(pages);
-
-        logger.info("PDF extraction completed: {} pages, {} scanned, {} warnings",
-                totalPages, scannedPages, warnings.size());
-
-        return new PdfExtractionResult(pages, metadata, warnings, encrypted, ocrRecommended);
+        return new PageExtraction(pages, scannedPages);
     }
 
-    /**
-     * 文本规范化处理
-     */
+    /** 逐页提取结果：页内容列表与疑似扫描页计数。 */
+    private record PageExtraction(List<PageContent> pages, int scannedPages) {}
+
+    /** 文本规范化处理 */
     private String normalizeText(String text) {
         if (text == null || text.isEmpty()) {
             return text;
@@ -263,7 +276,7 @@ public class EnhancedPdfTextExtractor {
 
             // 软连字符处理
             if (c == SOFT_HYPHEN) {
-                continue;  // 跳过软连字符
+                continue; // 跳过软连字符
             }
 
             // 空白字符规范化
@@ -291,9 +304,7 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 公开 API ====================
 
-    /**
-     * 检测页眉页脚模式
-     */
+    /** 检测页眉页脚模式 */
     private Set<String> detectHeaderFooter(List<String> pageTexts) {
         Map<String, Integer> lineFrequency = new HashMap<>();
 
@@ -335,9 +346,7 @@ public class EnhancedPdfTextExtractor {
         return patterns;
     }
 
-    /**
-     * 过滤页眉页脚
-     */
+    /** 过滤页眉页脚 */
     private String filterHeaderFooter(String text, Set<String> patterns) {
         if (text == null || patterns.isEmpty()) {
             return text;
@@ -360,9 +369,7 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 核心提取逻辑 ====================
 
-    /**
-     * 统计页面图像数量
-     */
+    /** 统计页面图像数量 */
     private int countPageImages(PDDocument document, int pageNum) throws IOException {
         PDPage page = document.getPage(pageNum - 1);
         PDResources resources = page.getResources();
@@ -382,9 +389,7 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 文本规范化 ====================
 
-    /**
-     * 检测多栏排版
-     */
+    /** 检测多栏排版 */
     private boolean detectMultiColumn(List<TextPosition> positions, PDPage page) {
         if (positions == null || positions.isEmpty()) {
             return false;
@@ -393,7 +398,7 @@ public class EnhancedPdfTextExtractor {
         PDRectangle mediaBox = page.getMediaBox();
         float pageWidth = mediaBox.getWidth();
         float pageCenter = pageWidth / 2;
-        float gapThreshold = pageWidth * 0.05f;  // 5% 页面宽度作为中缝阈值
+        float gapThreshold = pageWidth * 0.05f; // 5% 页面宽度作为中缝阈值
 
         // 统计中缝附近的文本位置
         int leftCount = 0;
@@ -421,9 +426,7 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 页眉页脚检测 ====================
 
-    /**
-     * 提取文档元数据
-     */
+    /** 提取文档元数据 */
     private PdfMetadata extractMetadata(PDDocument document) {
         PDDocumentInformation info = document.getDocumentInformation();
         return new PdfMetadata(
@@ -434,28 +437,21 @@ public class EnhancedPdfTextExtractor {
                 info.getCreator(),
                 info.getProducer(),
                 info.getCreationDate() != null ? info.getCreationDate().getTime().toString() : null,
-                info.getModificationDate() != null ? info.getModificationDate().getTime().toString() : null,
-                String.format("%.1f", document.getVersion())
-        );
+                info.getModificationDate() != null
+                        ? info.getModificationDate().getTime().toString()
+                        : null,
+                String.format("%.1f", document.getVersion()));
     }
 
-    /**
-     * 提取页面元数据
-     */
+    /** 提取页面元数据 */
     private PageMetadata extractPageMetadata(PDPage page) {
         PDRectangle mediaBox = page.getMediaBox();
-        return new PageMetadata(
-                mediaBox.getWidth(),
-                mediaBox.getHeight(),
-                page.getRotation()
-        );
+        return new PageMetadata(mediaBox.getWidth(), mediaBox.getHeight(), page.getRotation());
     }
 
     // ==================== 图像检测 ====================
 
-    /**
-     * 合并跨页段落（实验性）
-     */
+    /** 合并跨页段落（实验性） */
     @SuppressWarnings("unused")
     private List<PageContent> mergeCrossPageParagraphs(List<PageContent> pages) {
         if (pages.size() < 2) {
@@ -487,22 +483,30 @@ public class EnhancedPdfTextExtractor {
                 }
             }
 
-            merged.add(new PageContent(
-                    page.pageNumber(), text, text,
-                    page.likelyScanned(), page.imageCount(),
-                    page.hasMultiColumns(), page.pageMetadata()
-            ));
+            merged.add(
+                    new PageContent(
+                            page.pageNumber(),
+                            text,
+                            text,
+                            page.likelyScanned(),
+                            page.imageCount(),
+                            page.hasMultiColumns(),
+                            page.pageMetadata()));
         }
 
         // 处理最后一页的 carryOver
         if (carryOver.length() > 0 && !merged.isEmpty()) {
             PageContent last = merged.get(merged.size() - 1);
-            merged.set(merged.size() - 1, new PageContent(
-                    last.pageNumber(), last.text() + carryOver,
-                    last.filteredText() + carryOver,
-                    last.likelyScanned(), last.imageCount(),
-                    last.hasMultiColumns(), last.pageMetadata()
-            ));
+            merged.set(
+                    merged.size() - 1,
+                    new PageContent(
+                            last.pageNumber(),
+                            last.text() + carryOver,
+                            last.filteredText() + carryOver,
+                            last.likelyScanned(),
+                            last.imageCount(),
+                            last.hasMultiColumns(),
+                            last.pageMetadata()));
         }
 
         return merged;
@@ -520,16 +524,13 @@ public class EnhancedPdfTextExtractor {
 
     // ==================== 元数据提取 ====================
 
-    /**
-     * PDF 提取结果
-     */
+    /** PDF 提取结果 */
     public record PdfExtractionResult(
             List<PageContent> pages,
             PdfMetadata metadata,
             List<String> warnings,
             boolean encrypted,
-            boolean ocrRecommended
-    ) {
+            boolean ocrRecommended) {
         public List<String> getAllTexts() {
             return pages.stream().map(PageContent::text).toList();
         }
@@ -539,25 +540,19 @@ public class EnhancedPdfTextExtractor {
         }
     }
 
-    /**
-     * 单页内容
-     */
+    /** 单页内容 */
     public record PageContent(
             int pageNumber,
             String text,
-            String filteredText,  // 过滤页眉页脚后的文本
+            String filteredText, // 过滤页眉页脚后的文本
             boolean likelyScanned,
             int imageCount,
             boolean hasMultiColumns,
-            PageMetadata pageMetadata
-    ) {
-    }
+            PageMetadata pageMetadata) {}
 
     // ==================== 跨页段落合并 ====================
 
-    /**
-     * PDF 文档元数据
-     */
+    /** PDF 文档元数据 */
     public record PdfMetadata(
             String title,
             String author,
@@ -567,25 +562,14 @@ public class EnhancedPdfTextExtractor {
             String producer,
             String creationDate,
             String modificationDate,
-            String pdfVersion
-    ) {
-    }
+            String pdfVersion) {}
 
-    /**
-     * 页面元数据
-     */
-    public record PageMetadata(
-            float width,
-            float height,
-            int rotation
-    ) {
-    }
+    /** 页面元数据 */
+    public record PageMetadata(float width, float height, int rotation) {}
 
     // ==================== 内部类：位置捕获文本提取器 ====================
 
-    /**
-     * 自定义文本提取器，捕获文本位置信息
-     */
+    /** 自定义文本提取器，捕获文本位置信息 */
     private static class PositionCapturingStripper extends PDFTextStripper {
         private final List<TextPosition> capturedPositions = new ArrayList<>();
 
@@ -594,7 +578,8 @@ public class EnhancedPdfTextExtractor {
         }
 
         @Override
-        protected void writeString(String text, List<TextPosition> textPositions) throws IOException {
+        protected void writeString(String text, List<TextPosition> textPositions)
+                throws IOException {
             capturedPositions.addAll(textPositions);
             super.writeString(text, textPositions);
         }

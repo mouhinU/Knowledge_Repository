@@ -3,7 +3,6 @@ package com.mouhin.knowledge.repository.domain.model.aggregate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -17,89 +16,55 @@ public class Document {
 
     private Long id;
 
-    /**
-     * 文档唯一标识（UUID）
-     */
+    /** 文档唯一标识（UUID） */
     private String documentKey;
 
-    /**
-     * 原始文件名
-     */
+    /** 原始文件名 */
     private String fileName;
 
-    /**
-     * 文件 MIME 类型
-     */
+    /** 文件 MIME 类型 */
     private String fileType;
 
-    /**
-     * 文件大小（字节）
-     */
+    /** 文件大小（字节） */
     private Long fileSize;
 
-    /**
-     * 文件存储路径（对象存储 / 本地）
-     */
+    /** 文件存储路径（对象存储 / 本地） */
     private String storagePath;
 
-    /**
-     * 文件 MD5 校验值（用于去重）
-     */
+    /** 文件 MD5 校验值（用于去重） */
     private String fileChecksum;
 
-    /**
-     * 文档总页数
-     */
+    /** 文档总页数 */
     private Integer totalPages;
 
-    /**
-     * 处理状态
-     */
+    /** 处理状态 */
     private DocumentStatusEnum status;
 
-    /**
-     * 可见性
-     */
+    /** 可见性 */
     private DocumentVisibilityEnum visibility;
 
-    /**
-     * 所有者用户 ID
-     */
+    /** 所有者用户 ID */
     private String ownerId;
 
-    /**
-     * 所属部门 ID
-     */
+    /** 所属部门 ID */
     private String departmentId;
 
-    /**
-     * 允许访问的角色（JSON 数组字符串，如 ["ADMIN","MANAGER"]）
-     */
+    /** 允许访问的角色（JSON 数组字符串，如 ["ADMIN","MANAGER"]） */
     private String allowedRoles;
 
-    /**
-     * 文档摘要（AI 生成或手动填写）
-     */
+    /** 文档摘要（AI 生成或手动填写） */
     private String summary;
 
-    /**
-     * 分块配置
-     */
+    /** 分块配置 */
     private ChunkingConfig chunkingConfig;
 
-    /**
-     * 错误信息（处理失败时记录）
-     */
+    /** 错误信息（处理失败时记录） */
     private String errorMessage;
 
-    /**
-     * 标签（逗号分隔）
-     */
+    /** 标签（逗号分隔） */
     private String tags;
 
-    /**
-     * 文档分类（如：工作、学习、休闲）
-     */
+    /** 文档分类（如：工作、学习、休闲） */
     private String category;
 
     private LocalDateTime createdTime;
@@ -108,41 +73,32 @@ public class Document {
 
     // ==================== 业务方法 ====================
 
-    /**
-     * 标记为处理中
-     */
+    /** 标记为处理中 */
     public void markProcessing() {
-        if (this.status != DocumentStatusEnum.UPLOADED && this.status != DocumentStatusEnum.FAILED) {
-            throw new IllegalStateException(
-                    "Cannot start processing from status: " + this.status);
+        if (this.status != DocumentStatusEnum.UPLOADED
+                && this.status != DocumentStatusEnum.FAILED) {
+            throw new IllegalStateException("Cannot start processing from status: " + this.status);
         }
         this.status = DocumentStatusEnum.PROCESSING;
         this.errorMessage = null;
     }
 
-    /**
-     * 标记为已索引
-     */
+    /** 标记为已索引 */
     public void markIndexed(int totalPages) {
         if (this.status != DocumentStatusEnum.PROCESSING) {
-            throw new IllegalStateException(
-                    "Cannot mark indexed from status: " + this.status);
+            throw new IllegalStateException("Cannot mark indexed from status: " + this.status);
         }
         this.status = DocumentStatusEnum.INDEXED;
         this.totalPages = totalPages;
     }
 
-    /**
-     * 标记为处理失败
-     */
+    /** 标记为处理失败 */
     public void markFailed(String errorMessage) {
         this.status = DocumentStatusEnum.FAILED;
         this.errorMessage = errorMessage;
     }
 
-    /**
-     * 归档文档
-     */
+    /** 归档文档 */
     public void archive() {
         if (this.status != DocumentStatusEnum.INDEXED) {
             throw new IllegalStateException("Only indexed documents can be archived");
@@ -150,9 +106,7 @@ public class Document {
         this.status = DocumentStatusEnum.ARCHIVED;
     }
 
-    /**
-     * 校验文档创建参数
-     */
+    /** 校验文档创建参数 */
     public void validateForCreate() {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("fileName must not be blank");
@@ -168,9 +122,7 @@ public class Document {
         }
     }
 
-    /**
-     * 判断文档是否可被检索
-     */
+    /** 判断文档是否可被检索 */
     public boolean isSearchable() {
         return this.status == DocumentStatusEnum.INDEXED;
     }
@@ -358,14 +310,25 @@ public class Document {
 
     @Override
     public String toString() {
-        return "Document{" +
-                "id=" + id +
-                ", documentKey='" + documentKey + '\'' +
-                ", fileName='" + fileName + '\'' +
-                ", status=" + status +
-                ", visibility=" + visibility +
-                ", ownerId='" + ownerId + '\'' +
-                ", departmentId='" + departmentId + '\'' +
-                '}';
+        return "Document{"
+                + "id="
+                + id
+                + ", documentKey='"
+                + documentKey
+                + '\''
+                + ", fileName='"
+                + fileName
+                + '\''
+                + ", status="
+                + status
+                + ", visibility="
+                + visibility
+                + ", ownerId='"
+                + ownerId
+                + '\''
+                + ", departmentId='"
+                + departmentId
+                + '\''
+                + '}';
     }
 }

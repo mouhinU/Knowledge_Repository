@@ -5,10 +5,9 @@ import java.util.List;
 
 /**
  * 单个题型的分布计划（值对象）
- * <p>
- * {@code key} 为内核题型（决定做题端渲染与评分方式），{@code label} 为按科目显示的题型名称，
- * {@code perQuestion} 为每一道小题的分值，长度须等于 {@code count}。小计由逐题分值求和得到。
- * </p>
+ *
+ * <p>{@code key} 为内核题型（决定做题端渲染与评分方式），{@code label} 为按科目显示的题型名称， {@code perQuestion} 为每一道小题的分值，长度须等于
+ * {@code count}。小计由逐题分值求和得到。
  *
  * @author Knowledge-Repository
  * @date 2026-09-16
@@ -30,8 +29,7 @@ public class TypePlan {
     /** Agent 选题 / 定题量的简要理由（供评估与页面提示） */
     private String reason;
 
-    public TypePlan() {
-    }
+    public TypePlan() {}
 
     public TypePlan(String key, String label, int count, List<Integer> perQuestion) {
         this.key = key;
@@ -42,9 +40,7 @@ public class TypePlan {
         }
     }
 
-    /**
-     * 该题型小计（逐题分值之和）
-     */
+    /** 该题型小计（逐题分值之和） */
     public int subtotal() {
         int sum = 0;
         if (perQuestion != null) {

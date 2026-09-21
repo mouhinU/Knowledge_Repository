@@ -8,24 +8,16 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public final class Permission {
 
-    /**
-     * 用户 ID
-     */
+    /** 用户 ID */
     private final String userId;
 
-    /**
-     * 用户所属部门 ID
-     */
+    /** 用户所属部门 ID */
     private final String departmentId;
 
-    /**
-     * 用户角色列表（逗号分隔）
-     */
+    /** 用户角色列表（逗号分隔） */
     private final String roles;
 
-    /**
-     * 是否为超级管理员
-     */
+    /** 是否为超级管理员 */
     private final boolean admin;
 
     public Permission(String userId, String departmentId, String roles, boolean admin) {

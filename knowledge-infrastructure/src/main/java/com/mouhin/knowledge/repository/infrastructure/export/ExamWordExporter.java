@@ -1,34 +1,29 @@
 package com.mouhin.knowledge.repository.infrastructure.export;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * 试卷 Word 导出工具
- * <p>
- * 将 Markdown 格式的试卷内容转换为 Word 文档。
- * 解析 Markdown 标题、粗体、列表等格式，映射为 Word 样式。
- * </p>
+ *
+ * <p>将 Markdown 格式的试卷内容转换为 Word 文档。 解析 Markdown 标题、粗体、列表等格式，映射为 Word 样式。
  *
  * @author Knowledge-Repository
  * @date 2026-09-13
  */
 @Component
+@Slf4j
 public class ExamWordExporter {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamWordExporter.class);
 
     /**
      * 将 Markdown 试卷内容导出为 Word 文档
      *
-     * @param markdown     Markdown 格式的试卷内容
+     * @param markdown Markdown 格式的试卷内容
      * @param outputStream 输出流
      * @throws IOException 写入失败
      */
@@ -66,13 +61,11 @@ public class ExamWordExporter {
             }
 
             document.write(outputStream);
-            logger.info("试卷 Word 文档导出完成");
+            log.info("试卷 Word 文档导出完成");
         }
     }
 
-    /**
-     * 添加标题
-     */
+    /** 添加标题 */
     private void addHeading(XWPFDocument document, String text, int level) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setSpacingBefore(level == 1 ? 240 : 160);
@@ -97,9 +90,7 @@ public class ExamWordExporter {
         }
     }
 
-    /**
-     * 添加列表项
-     */
+    /** 添加列表项 */
     private void addListItem(XWPFDocument document, String text) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setIndentationLeft(480);
@@ -107,18 +98,14 @@ public class ExamWordExporter {
         addFormattedText(paragraph, text, "  \u2022  ");
     }
 
-    /**
-     * 添加普通段落
-     */
+    /** 添加普通段落 */
     private void addBodyParagraph(XWPFDocument document, String text) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setSpacingAfter(60);
         addFormattedText(paragraph, text, "");
     }
 
-    /**
-     * 添加带格式的文本（处理 **bold** 标记）
-     */
+    /** 添加带格式的文本（处理 **bold** 标记） */
     private void addFormattedText(XWPFParagraph paragraph, String text, String prefix) {
         if (prefix != null && !prefix.isEmpty()) {
             XWPFRun prefixRun = paragraph.createRun();
