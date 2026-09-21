@@ -28,6 +28,12 @@ public final class ScoreRuleEngine {
     /** 识别不到学段/科目时的兜底满分 */
     public static final int DEFAULT_FULL_MARK = 100;
 
+    /** 分值行分隔符（java:S1192：抽常量防 4 处重复）。 */
+    private static final String SCORE_SEP_INLINE = " 分 | ";
+
+    /** 分值行末换行分隔符（java:S1192：抽常量防 4 处重复）。 */
+    private static final String SCORE_SEP_EOL = " 分 |\n";
+
     /** 科目识别关键词表（按匹配优先级） */
     private static final Map<Subject, String[]> SUBJECT_KEYWORDS = new LinkedHashMap<>();
 
@@ -400,9 +406,9 @@ public final class ScoreRuleEngine {
                         .append(a.count())
                         .append(" | ")
                         .append(perQ)
-                        .append(" 分 | ")
+                        .append(SCORE_SEP_INLINE)
                         .append(a.subtotal())
-                        .append(" 分 |\n");
+                        .append(SCORE_SEP_EOL);
             }
         } else {
             sb.append("| 题型 | 题数 | 各小题分值 | 小计 |\n");
@@ -421,9 +427,9 @@ public final class ScoreRuleEngine {
                         .append(a.count())
                         .append(" | ")
                         .append(pq)
-                        .append(" 分 | ")
+                        .append(SCORE_SEP_INLINE)
                         .append(a.subtotal())
-                        .append(" 分 |\n");
+                        .append(SCORE_SEP_EOL);
             }
         }
         sb.append("| **合计** | | | **").append(scheme.total()).append(" 分** |\n");
@@ -719,9 +725,9 @@ public final class ScoreRuleEngine {
                         .append(t.getCount())
                         .append(" | ")
                         .append(perQ)
-                        .append(" 分 | ")
+                        .append(SCORE_SEP_INLINE)
                         .append(t.subtotal())
-                        .append(" 分 |\n");
+                        .append(SCORE_SEP_EOL);
             }
         } else {
             sb.append("| 题型 | 题数 | 各小题分值（按顺序） | 小计 |\n");
@@ -741,9 +747,9 @@ public final class ScoreRuleEngine {
                         .append(t.getCount())
                         .append(" | ")
                         .append(pq)
-                        .append(" 分 | ")
+                        .append(SCORE_SEP_INLINE)
                         .append(t.subtotal())
-                        .append(" 分 |\n");
+                        .append(SCORE_SEP_EOL);
             }
         }
         sb.append("| **合计** | | | **").append(plan.getTotalFullMark()).append(" 分** |\n");

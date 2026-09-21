@@ -35,7 +35,9 @@ public class ExamPlan {
     /** 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定） */
     private boolean manualAdjusted;
 
-    public ExamPlan() {}
+    public ExamPlan() {
+        // java:S1186：显式声明供 Jackson / MyBatis 反射反序列化使用；字段初始化在类顶完成。
+    }
 
     /** 当前所有小题分值之和 */
     public int allocatedTotal() {

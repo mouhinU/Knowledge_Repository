@@ -32,7 +32,7 @@ public class KnowledgeQueryController {
      * @param body 请求体：query, userId, departmentId, roles, admin, maxResults, minScore, category
      */
     @PostMapping("/search")
-    public ResponseEntity<?> search(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Object> search(@RequestBody Map<String, Object> body) {
         String query = (String) body.get("query");
         String userId = (String) body.get("userId");
         String departmentId = (String) body.get("departmentId");

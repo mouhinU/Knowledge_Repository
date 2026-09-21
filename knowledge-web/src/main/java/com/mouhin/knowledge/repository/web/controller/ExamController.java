@@ -345,7 +345,7 @@ public class ExamController {
      * <p>以每题现值为权重把总分重新分配到各题，保证 Σ=满分；返回平衡后的方案与过程说明。
      */
     @PostMapping("/exam/distribution/balance")
-    public ResponseEntity<?> balanceDistribution(@RequestBody ExamGenerationRequest request) {
+    public ResponseEntity<Object> balanceDistribution(@RequestBody ExamGenerationRequest request) {
 
         ExamPlan plan = parsePlan(request.getDistribution());
         if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
