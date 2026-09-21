@@ -27,16 +27,16 @@
 
 ## 1. 分册地图（按维度拆分，按需阅读）
 
-| 分册                                                                         | 覆盖维度                                                                                   | 何时必读                                                | 来源章节                         |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- | -------------------------------- |
-| [docs/tech-stack.md](docs/tech-stack.md)                                     | **技术选型**：JDK/Spring/COLA 基线、依赖版本、五模块布局、本地运行命令、配置切换、版本纪律 | 引入依赖 / 改配置 / 本地编译运行 / 拿不准版本时         | 原引言 + §11 基线注              |
-| [docs/architecture-decisions.md](docs/architecture-decisions.md)             | **架构决策**：COLA 五层、依赖方向、对象模型分层、术语映射、Executor/CQRS、DI、组件复用     | 新增/移动任何类、定分层与依赖、命名对象时               | 原第十一章（含 1.4/1.6 交叉）    |
-| [docs/coding-guideline.md](docs/coding-guideline.md)                         | **编码规范**：命名、常量、格式、OOP、集合、并发、注释、异常、日志、方法与函数规范、常见反模式              | 写任何 Java 代码时                                      | 原第一~九章 + 第十三章           |
-| [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md) | **数据库与迁移**：建表、SQL、H2 方言、Flyway 实践                                          | 建表 / 写迁移 / 写 SQL / Mapper 时                      | 原第十章                         |
-| [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md)                 | **RAG 领域规范**：多格式解析、向量化、metadata、考试链路配图                               | 动文档抽取 / 分块 / 向量 / 出题相关代码时               | 原第十二章（12.1/12.2）          |
-| [docs/security-guideline.md](docs/security-guideline.md)                     | **安全注意事项**：注入防护、上传/解析、认证令牌、RBAC+ACL、日志脱敏、高风险改动确认        | 涉及鉴权 / 权限 / 上传 / SQL / 令牌 / 口令 / 对外响应时 | 原 §10.2+§12.1+§12.3 聚合 + 现状 |
-| [docs/testing-guideline.md](docs/testing-guideline.md)                       | **测试要求**：JUnit5/Mockito 风格、分层测试、门禁负向用例、Flyway 冒烟、运行验收           | 写/改测试，或提交前自验时                               | 新（从仓库现有测试归纳）         |
-| [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                  | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
+| 分册                                                                         | 覆盖维度                                                                                      | 何时必读                                                | 来源章节                         |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------- |
+| [docs/tech-stack.md](docs/tech-stack.md)                                     | **技术选型**：JDK/Spring/COLA 基线、依赖版本、五模块布局、本地运行命令、配置切换、版本纪律    | 引入依赖 / 改配置 / 本地编译运行 / 拿不准版本时         | 原引言 + §11 基线注              |
+| [docs/architecture-decisions.md](docs/architecture-decisions.md)             | **架构决策**：COLA 五层、依赖方向、对象模型分层、术语映射、Executor/CQRS、DI、组件复用        | 新增/移动任何类、定分层与依赖、命名对象时               | 原第十一章（含 1.4/1.6 交叉）    |
+| [docs/coding-guideline.md](docs/coding-guideline.md)                         | **编码规范**：命名、常量、格式、OOP、集合、并发、注释、异常、日志、方法与函数规范、常见反模式 | 写任何 Java 代码时                                      | 原第一~九章 + 第十三章           |
+| [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md) | **数据库与迁移**：建表、SQL、H2 方言、Flyway 实践                                             | 建表 / 写迁移 / 写 SQL / Mapper 时                      | 原第十章                         |
+| [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md)                 | **RAG 领域规范**：多格式解析、向量化、metadata、考试链路配图                                  | 动文档抽取 / 分块 / 向量 / 出题相关代码时               | 原第十二章（12.1/12.2）          |
+| [docs/security-guideline.md](docs/security-guideline.md)                     | **安全注意事项**：注入防护、上传/解析、认证令牌、RBAC+ACL、日志脱敏、高风险改动确认           | 涉及鉴权 / 权限 / 上传 / SQL / 令牌 / 口令 / 对外响应时 | 原 §10.2+§12.1+§12.3 聚合 + 现状 |
+| [docs/testing-guideline.md](docs/testing-guideline.md)                       | **测试要求**：JUnit5/Mockito 风格、分层测试、门禁负向用例、Flyway 冒烟、运行验收              | 写/改测试，或提交前自验时                               | 新（从仓库现有测试归纳）         |
+| [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                     | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
 
 ---
 
@@ -80,11 +80,11 @@
 
 - 目标：把可自动化的规范逐步移入 CI 校验，降低人工误差并提高合规性。
 - 初始建议项：
-	- 代码格式：使用 Checkstyle / Spotless 严格化缩进与行长（可在 PR hook 中运行）。
-	- 静态分析：SpotBugs / PMD 检查常见 bug 模式与未处理异常。 
-	- 日志/敏感信息扫描：在 CI 中运行简单规则扫描（禁止在日志模板或响应中包含 `password|token|secret` 等关键字），必要时集成更强的 SAST。 
-	- SQL 模式检查：在构建时运行自定义脚本或 linters，检查是否使用 `#{}` 参数化和禁止裸 `${}`（对 Mapper XML 做抽样检测）。
-	- Javadoc 存在性：对 `public` 类和方法运行存在性检查（非强制内容完整度）。
+  - 代码格式：使用 Checkstyle / Spotless 严格化缩进与行长（可在 PR hook 中运行）。
+  - 静态分析：SpotBugs / PMD 检查常见 bug 模式与未处理异常。
+  - 日志/敏感信息扫描：在 CI 中运行简单规则扫描（禁止在日志模板或响应中包含 `password|token|secret` 等关键字），必要时集成更强的 SAST。
+  - SQL 模式检查：在构建时运行自定义脚本或 linters，检查是否使用 `#{}` 参数化和禁止裸 `${}`（对 Mapper XML 做抽样检测）。
+  - Javadoc 存在性：对 `public` 类和方法运行存在性检查（非强制内容完整度）。
 - 推进方式：先把格式与行长/缩进作为强制校验，其他规则做为 warning 级别，逐步提升为 fail-on-error，当团队熟悉规则并处理历史遗留后，再收紧为必须通过。
 
 ---
