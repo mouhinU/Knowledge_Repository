@@ -65,6 +65,9 @@ public class ExamGradingSupport {
     /** 匹配 AI 返回的理由 */
     private static final Pattern REASON_PATTERN = Pattern.compile("理由[：:]\\s*(.+)", Pattern.DOTALL);
 
+    /** 关闭评分 Agent 线程池时等待在途任务收尾的秒数 */
+    private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
+
     /** 场次状态：已交卷，待评分 */
     private static final String STATUS_SUBMITTED = "SUBMITTED";
 
@@ -103,7 +106,8 @@ public class ExamGradingSupport {
     public void shutdown() {
         agentExecutor.shutdown();
         try {
-            if (!agentExecutor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS)) {
+            if (!agentExecutor.awaitTermination(
+                    AGENT_SHUTDOWN_AWAIT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)) {
                 agentExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {

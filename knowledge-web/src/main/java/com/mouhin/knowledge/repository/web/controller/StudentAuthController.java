@@ -6,6 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -72,11 +73,11 @@ public class StudentAuthController {
     public ResponseEntity<Map<String, Object>> me(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
         if (headerToken == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "未登录"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "未登录"));
         }
         StudentVO student = studentService.validateToken(headerToken).getData();
         if (student == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "登录已过期"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "登录已过期"));
         }
         return ResponseEntity.ok(
                 Map.<String, Object>of(

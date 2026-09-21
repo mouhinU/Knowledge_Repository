@@ -47,6 +47,9 @@ public class ExamGenerationSupport {
     private static final int QUALITY_SCORE_THRESHOLD = 80;
     private static final int MAX_REVIEW_RETRIES = 2;
 
+    /** 关闭 Agent 线程池时等待在途任务收尾的秒数 */
+    private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
+
     /** 手动调整方案下，连续两轮评分差 ≤ 该值即视为已收敛，提前结束改进循环 */
     private static final int SCORE_CONVERGENCE_DELTA = 3;
 
@@ -122,7 +125,7 @@ public class ExamGenerationSupport {
     public void shutdown() {
         agentExecutor.shutdown();
         try {
-            if (!agentExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!agentExecutor.awaitTermination(AGENT_SHUTDOWN_AWAIT_SECONDS, TimeUnit.SECONDS)) {
                 agentExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {

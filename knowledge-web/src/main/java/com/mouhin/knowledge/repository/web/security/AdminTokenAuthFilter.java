@@ -123,6 +123,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         objectMapper.writeValue(
-                response.getOutputStream(), Map.of("error", "未认证或登录已过期", "code", 401));
+                response.getOutputStream(),
+                Map.of("error", "未认证或登录已过期", "code", HttpServletResponse.SC_UNAUTHORIZED));
     }
 }

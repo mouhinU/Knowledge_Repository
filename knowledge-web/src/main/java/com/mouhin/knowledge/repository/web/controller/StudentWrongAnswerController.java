@@ -6,6 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,11 +41,11 @@ public class StudentWrongAnswerController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (token == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "未登录"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "未登录"));
         }
         StudentVO student = studentService.validateToken(token).getData();
         if (student == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "登录已过期"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "登录已过期"));
         }
         WrongAnswerPageVO result =
                 wrongAnswerService.pageWrongAnswers(

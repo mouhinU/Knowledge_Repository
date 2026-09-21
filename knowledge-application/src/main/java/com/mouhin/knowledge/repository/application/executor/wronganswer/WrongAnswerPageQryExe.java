@@ -23,6 +23,9 @@ public class WrongAnswerPageQryExe {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
+    /** 平均得分率显示保留 4 位小数的放大倍数。 */
+    private static final double RATE_SCALE_4DP = 10000.0;
+
     private final WrongAnswerListQryExe wrongAnswerListQryExe;
 
     public WrongAnswerPageQryExe(WrongAnswerListQryExe wrongAnswerListQryExe) {
@@ -95,7 +98,7 @@ public class WrongAnswerPageQryExe {
         stats.setTopicCount(topicCount);
         stats.setStudentCount(studentCount);
         stats.setTopType(topType);
-        stats.setAvgScoreRate(Math.round(avgScoreRate * 10000.0) / 10000.0);
+        stats.setAvgScoreRate(Math.round(avgScoreRate * RATE_SCALE_4DP) / RATE_SCALE_4DP);
         return stats;
     }
 }

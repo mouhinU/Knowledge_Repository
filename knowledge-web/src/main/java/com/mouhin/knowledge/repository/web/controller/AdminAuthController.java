@@ -9,6 +9,7 @@ import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,7 +53,8 @@ public class AdminAuthController {
                             "admin", Boolean.TRUE.equals(data.getAdmin()),
                             "expiresAt", data.getExpiresAt()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(401).body(Map.of("error", e.getMessage(), "code", 401));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage(), "code", HttpStatus.UNAUTHORIZED.value()));
         }
     }
 
@@ -77,7 +79,8 @@ public class AdminAuthController {
     public ResponseEntity<Map<String, Object>> me(HttpServletRequest request) {
         AdminPrincipalDTO principal = currentPrincipal(request);
         if (principal == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "未登录", "code", 401));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
         }
         return ResponseEntity.ok(
                 Map.of(
@@ -92,7 +95,8 @@ public class AdminAuthController {
             @RequestBody AdminChangePasswordCmd cmd, HttpServletRequest request) {
         AdminPrincipalDTO principal = currentPrincipal(request);
         if (principal == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "未登录", "code", 401));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "未登录", "code", HttpStatus.UNAUTHORIZED.value()));
         }
         cmd.setUserKey(principal.getUserKey());
         try {

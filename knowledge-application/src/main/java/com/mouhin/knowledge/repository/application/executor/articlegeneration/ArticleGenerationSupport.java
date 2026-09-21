@@ -46,6 +46,9 @@ public class ArticleGenerationSupport {
     private static final int DEFAULT_MAX_RESULTS = 10;
     private static final double DEFAULT_MIN_SCORE = 0.5;
 
+    /** 关闭 Agent 线程池时等待在途任务收尾的秒数。 */
+    private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
+
     private final BlackboardAgent researcherAgent;
     private final BlackboardAgent writerAgent;
     private final BlackboardAgent reviewerAgent;
@@ -85,7 +88,7 @@ public class ArticleGenerationSupport {
     public void shutdown() {
         agentExecutor.shutdown();
         try {
-            if (!agentExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!agentExecutor.awaitTermination(AGENT_SHUTDOWN_AWAIT_SECONDS, TimeUnit.SECONDS)) {
                 agentExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {
