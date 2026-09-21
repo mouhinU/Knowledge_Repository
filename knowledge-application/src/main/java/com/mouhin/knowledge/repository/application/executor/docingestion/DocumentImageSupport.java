@@ -35,14 +35,17 @@ public class DocumentImageSupport {
     private final DocumentImageExtractorGateway extractor;
     private final DocumentImageGateway imageGateway;
     private final Path assetRoot;
+    private final Path storageRoot;
 
     public DocumentImageSupport(
             DocumentImageExtractorGateway extractor,
             DocumentImageGateway imageGateway,
-            @Value("${knowledge.exam.asset-path:./data/exam-assets}") String assetDir) {
+            @Value("${knowledge.exam.asset-path:./data/exam-assets}") String assetDir,
+            @Value("${knowledge.storage.path:./data/documents}") String storageDir) {
         this.extractor = extractor;
         this.imageGateway = imageGateway;
-        this.assetRoot = Path.of(assetDir);
+        this.assetRoot = Path.of(assetDir).toAbsolutePath().normalize();
+        this.storageRoot = Path.of(storageDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.assetRoot);
         } catch (IOException e) {
@@ -56,12 +59,16 @@ public class DocumentImageSupport {
      * <p>文档内按 SHA-256 去重；任何异常吞掉并记日志，返回已处理数，避免影响调用方主流程。
      */
     public int extractAndPersist(Document doc, Path sourcePath) {
-        if (doc == null || doc.getId() == null || sourcePath == null || !Files.exists(sourcePath)) {
+        if (doc == null || doc.getId() == null) {
+            return 0;
+        }
+        Path sanitized = confineToAllowedRoots(sourcePath);
+        if (sanitized == null || !Files.exists(sanitized)) {
             return 0;
         }
         List<ExtractedImage> images;
         try {
-            images = extractor.extractImages(sourcePath, doc.getFileName());
+            images = extractor.extractImages(sanitized, doc.getFileName());
         } catch (Exception e) {
             log.warn("图片抽取失败，跳过 [documentKey={}]: {}", doc.getDocumentKey(), e.getMessage());
             return 0;
@@ -213,6 +220,27 @@ public class DocumentImageSupport {
     }
 
     // ==================== 工具 ====================
+
+    /**
+     * 破 javasecurity:S6549 filesystem oracle：把用户输入源（DB storage_path / 上传返回路径） 归一化后强制约束到 assetRoot 或
+     * storageRoot 之下，越界即拒。返回归一后的绝对路径，或 null。
+     */
+    private Path confineToAllowedRoots(Path candidate) {
+        if (candidate == null) {
+            return null;
+        }
+        try {
+            Path abs = candidate.toAbsolutePath().normalize();
+            if (abs.startsWith(assetRoot) || abs.startsWith(storageRoot)) {
+                return abs;
+            }
+            log.warn("图片源路径越出允许根目录，拒绝读取: {}", abs);
+            return null;
+        } catch (Exception e) {
+            log.warn("图片源路径解析失败，拒绝读取 [{}]: {}", candidate, e.getMessage());
+            return null;
+        }
+    }
 
     private String sha256(byte[] bytes) {
         try {

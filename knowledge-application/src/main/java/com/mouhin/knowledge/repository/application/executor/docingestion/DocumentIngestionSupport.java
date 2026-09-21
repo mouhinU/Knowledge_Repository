@@ -202,6 +202,9 @@ public class DocumentIngestionSupport {
 
     public Path saveToTemp(MultipartFile file) throws IOException {
         Path tempDir = Files.createTempDirectory("knowledge-pdf-");
+        // java:S5443 加固：默认落 java.io.tmpdir（POSIX 上 0777 减 umask 后仍可能被其他用户遍历），
+        // 立即收敛为「仅当前用户 rwx」——先试 POSIX 权限位，非 POSIX 文件系统回落到 File.setXxx(true, true)。
+        hardenToOwnerOnly(tempDir);
         String originalName = file.getOriginalFilename();
         String tempName;
         if (originalName != null && originalName.contains(".")) {
@@ -215,6 +218,24 @@ public class DocumentIngestionSupport {
             Files.copy(is, tempFile, StandardCopyOption.REPLACE_EXISTING);
         }
         return tempFile;
+    }
+
+    private void hardenToOwnerOnly(Path dir) {
+        try {
+            Files.setPosixFilePermissions(
+                    dir,
+                    java.util.EnumSet.of(
+                            java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                            java.nio.file.attribute.PosixFilePermission.OWNER_WRITE,
+                            java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE));
+        } catch (UnsupportedOperationException nonPosix) {
+            java.io.File f = dir.toFile();
+            f.setReadable(true, true);
+            f.setWritable(true, true);
+            f.setExecutable(true, true);
+        } catch (IOException e) {
+            log.warn("临时目录权限收紧失败 [{}]: {}", dir, e.getMessage());
+        }
     }
 
     public Path copyToStorage(Path sourceFile, String originalName) throws IOException {

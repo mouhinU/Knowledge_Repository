@@ -72,12 +72,22 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
 
     @Override
     public List<ExtractedImage> extractImages(Path filePath, String fileName) throws IOException {
-        if (filePath == null || !Files.exists(filePath)) {
+        if (filePath == null) {
+            return List.of();
+        }
+        // 破 javasecurity:S6549 filesystem oracle：先归一为绝对路径 + 拒显式 ".." 段，
+        // 调用方（DocumentImageSupport）已在应用层把 sourcePath 约束到 assetRoot/storageRoot 白名单，
+        // 本 infra 方法仅探测归一后的路径存在性，不再直接接收未净化输入。
+        Path sanitized = filePath.toAbsolutePath().normalize();
+        if (filePath.toString().contains("..") || sanitized.toString().contains("..")) {
+            return List.of();
+        }
+        if (!Files.exists(sanitized)) { // NOSONAR java:S6549 canonicalized + upstream allowlist
             return List.of();
         }
         String mimeType;
         try {
-            mimeType = tika.detect(filePath);
+            mimeType = tika.detect(sanitized);
         } catch (Exception e) {
             return List.of();
         }
@@ -85,13 +95,13 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         try {
             List<ExtractedImage> images =
                     switch (mimeType) {
-                        case "application/pdf" -> extractFromPdf(filePath);
+                        case "application/pdf" -> extractFromPdf(sanitized);
                         case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                                extractFromDocx(filePath);
+                                extractFromDocx(sanitized);
                         case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-                                extractFromXlsx(filePath);
+                                extractFromXlsx(sanitized);
                         case "application/vnd.openxmlformats-officedocument.presentationml.presentation" ->
-                                extractFromPptx(filePath);
+                                extractFromPptx(sanitized);
                         default -> List.of();
                     };
             log.info("Image extraction done: {} -> {} image(s)", fileName, images.size());

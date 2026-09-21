@@ -43,7 +43,12 @@ class DocumentImageSupportDeleteImagesTest {
 
     @BeforeEach
     void setUp() {
-        support = new DocumentImageSupport(extractor, imageGateway, assetRoot.toString());
+        support =
+                new DocumentImageSupport(
+                        extractor,
+                        imageGateway,
+                        assetRoot.toString(),
+                        assetRoot.toString()); // storageRoot 未在本用例路径中使用，复用 assetRoot 即可
     }
 
     private DocumentImage imageAt(Long id, String storagePath) {

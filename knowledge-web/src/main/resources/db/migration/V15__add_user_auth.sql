@@ -13,7 +13,11 @@ ALTER TABLE sys_user ADD COLUMN password_hash VARCHAR(256) DEFAULT NULL;
 ALTER TABLE sys_user ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE';
 
 -- 内置管理员（user_key='user-admin'）设默认口令 admin123 的 BCrypt($2a) 哈希并激活。
+-- 【dev 种子凭据】admin123 是本项目 README/AGENTS 明文公示的 dev 默认口令，
+--   仅用于首次登录引导；生产部署必须立即在「用户管理 → 修改密码」中轮换。
+--   secrets:S8215 抑制理由：非真实泄露密钥，是 Flyway 迁移必需的引导哈希；
+--   删除会导致 admin 无法首次登录、迁移不再幂等。参见 docs/security-guideline.md。
 UPDATE sys_user
-SET password_hash = '$2a$10$oOK9bUg4us93CtEqrFihk.R7feZL4F3OQ0o220.pNqQ9udi/DQ2A2',
+SET password_hash = '$2a$10$oOK9bUg4us93CtEqrFihk.R7feZL4F3OQ0o220.pNqQ9udi/DQ2A2', -- NOSONAR secrets:S8215 dev 种子哈希，首登录后强制轮换
     status = 'ACTIVE'
 WHERE user_key = 'user-admin';

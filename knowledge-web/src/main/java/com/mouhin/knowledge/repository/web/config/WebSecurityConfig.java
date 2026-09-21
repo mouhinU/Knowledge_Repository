@@ -42,7 +42,12 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http, AdminTokenAuthFilter adminTokenAuthFilter) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
+        // CSRF 关闭合理性（java:S4502 例外）：本服务纯前后端分离 + 无状态令牌鉴权——
+        //   1) SessionCreationPolicy.STATELESS，服务端不建任何 HttpSession，浏览器 Cookie 里没有 JSESSIONID；
+        //   2) 管理端凭证走自定义头 X-Admin-Token / Authorization: Bearer，浏览器同源策略禁止跨站脚本读取或复用；
+        //   3) httpBasic / formLogin 均显式 disable，不存在依赖 Cookie 的自动认证通道。
+        // 结论：无 ambient credential 可被跨站伪造携带，关闭 CSRF 安全。若未来引入 Cookie 会话需同步启用。
+        http.csrf(AbstractHttpConfigurer::disable) // NOSONAR java:S4502 无 Cookie 会话，前后端分离令牌鉴权
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 鉴权职责移交集中过滤器，Security 链本身放行全部请求
