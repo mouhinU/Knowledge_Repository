@@ -482,8 +482,46 @@ public final class ScoreRuleEngine {
         OTHER
     }
 
-    /** 单个题型的分值分配结果 */
-    public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {}
+    /**
+     * 单个题型的分值分配结果。
+     *
+     * <p>java:S6218：record 含 int[] 时默认 equals/hashCode/toString 按引用比较，语义错误； 显式重写走 Arrays.* 深度语义。
+     */
+    public record TypeAllocation(String type, int count, int subtotal, int[] perQuestion) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof TypeAllocation other)) {
+                return false;
+            }
+            return count == other.count
+                    && subtotal == other.subtotal
+                    && java.util.Objects.equals(type, other.type)
+                    && java.util.Arrays.equals(perQuestion, other.perQuestion);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(
+                    type, count, subtotal, java.util.Arrays.hashCode(perQuestion));
+        }
+
+        @Override
+        public String toString() {
+            return "TypeAllocation[type="
+                    + type
+                    + ", count="
+                    + count
+                    + ", subtotal="
+                    + subtotal
+                    + ", perQuestion="
+                    + java.util.Arrays.toString(perQuestion)
+                    + "]";
+        }
+    }
 
     // ==================== 题型分布方案（ExamPlan） ====================
 

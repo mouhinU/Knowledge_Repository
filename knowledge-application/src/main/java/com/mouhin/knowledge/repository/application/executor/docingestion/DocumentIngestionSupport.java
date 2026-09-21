@@ -200,11 +200,13 @@ public class DocumentIngestionSupport {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * java:S5443：临时目录必须 owner-only。Sonar 认可的 sanitizer 是「在创建时通过 FileAttribute 传入权限位」， 后续 chmod
+     * 无法被识别。POSIX 走 PosixFilePermissions.asFileAttribute(OWNER_RWX)； 非 POSIX（Windows
+     * FAT/exFAT）回落为无属性创建+File.setXxx(true,true)，且必须消费返回值（java:S899）。
+     */
     public Path saveToTemp(MultipartFile file) throws IOException {
-        Path tempDir = Files.createTempDirectory("knowledge-pdf-");
-        // java:S5443 加固：默认落 java.io.tmpdir（POSIX 上 0777 减 umask 后仍可能被其他用户遍历），
-        // 立即收敛为「仅当前用户 rwx」——先试 POSIX 权限位，非 POSIX 文件系统回落到 File.setXxx(true, true)。
-        hardenToOwnerOnly(tempDir);
+        Path tempDir = createOwnerOnlyTempDir("knowledge-pdf-");
         String originalName = file.getOriginalFilename();
         String tempName;
         if (originalName != null && originalName.contains(".")) {
@@ -220,21 +222,30 @@ public class DocumentIngestionSupport {
         return tempFile;
     }
 
-    private void hardenToOwnerOnly(Path dir) {
+    private Path createOwnerOnlyTempDir(String prefix) throws IOException {
         try {
-            Files.setPosixFilePermissions(
-                    dir,
+            java.util.Set<java.nio.file.attribute.PosixFilePermission> ownerOnly =
                     java.util.EnumSet.of(
                             java.nio.file.attribute.PosixFilePermission.OWNER_READ,
                             java.nio.file.attribute.PosixFilePermission.OWNER_WRITE,
-                            java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE));
+                            java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE);
+            java.nio.file.attribute.FileAttribute<
+                            java.util.Set<java.nio.file.attribute.PosixFilePermission>>
+                    attrs = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(ownerOnly);
+            return Files.createTempDirectory(prefix, attrs);
         } catch (UnsupportedOperationException nonPosix) {
+            Path dir = Files.createTempDirectory(prefix);
             java.io.File f = dir.toFile();
-            f.setReadable(true, true);
-            f.setWritable(true, true);
-            f.setExecutable(true, true);
-        } catch (IOException e) {
-            log.warn("临时目录权限收紧失败 [{}]: {}", dir, e.getMessage());
+            if (!f.setReadable(true, true)) {
+                log.warn("临时目录 owner-only 可读位设置失败 [{}]", dir);
+            }
+            if (!f.setWritable(true, true)) {
+                log.warn("临时目录 owner-only 可写位设置失败 [{}]", dir);
+            }
+            if (!f.setExecutable(true, true)) {
+                log.warn("临时目录 owner-only 可执行位设置失败 [{}]", dir);
+            }
+            return dir;
         }
     }
 
