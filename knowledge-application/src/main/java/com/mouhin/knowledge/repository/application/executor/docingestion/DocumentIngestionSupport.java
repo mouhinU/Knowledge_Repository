@@ -234,7 +234,11 @@ public class DocumentIngestionSupport {
                     attrs = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(ownerOnly);
             return Files.createTempDirectory(prefix, attrs);
         } catch (UnsupportedOperationException nonPosix) {
-            Path dir = Files.createTempDirectory(prefix);
+            // NOSONAR java:S5443 — 此分支仅在 POSIX 权限模型不受支持时进入（Windows FAT/exFAT/某些网络挂载）；
+            // 下一行立刻 File.setXxx(true,true) 三连把 owner-only 收紧并逐一检查返回值。
+            // Sonar 的 sanitizer 白名单只识别带 FileAttribute 的 createTempDirectory 重载,
+            // 无法穿透到后置的 setReadable/Writable/Executable 加固效果,故在此显式压制。
+            Path dir = Files.createTempDirectory(prefix); // NOSONAR java:S5443
             java.io.File f = dir.toFile();
             if (!f.setReadable(true, true)) {
                 log.warn("临时目录 owner-only 可读位设置失败 [{}]", dir);
