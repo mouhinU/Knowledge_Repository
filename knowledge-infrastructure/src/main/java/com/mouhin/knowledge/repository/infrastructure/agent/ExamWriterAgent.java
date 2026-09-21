@@ -93,61 +93,15 @@ public class ExamWriterAgent implements BlackboardAgent {
             return;
         }
 
-        String difficultyDesc =
-                switch (difficulty) {
-                    case "EASY" -> "简单（侧重基础概念和记忆）";
-                    case "HARD" -> "困难（侧重综合分析和应用）";
-                    default -> "中等（侧重理解和简单应用）";
-                };
-
-        String scoringSection =
-                (scoringScheme != null && !scoringScheme.isBlank())
-                        ? "\n\n【分值分配方案（严格遵守）】\n" + scoringScheme
-                        : "";
-
-        String userPrompt;
-        if (isRetry) {
-            userPrompt =
-                    String.format(
-                            """
-                    考试主题：%s
-                    难度要求：%s
-                    题型分布：%s
-                    %s
-                    以下是相关知识点：
-
-                    %s
-
-                    【上一轮审核意见】
-                    %s
-
-                    请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
-                    重点解决审核中指出的问题，保持优点，修正不足。
-                    每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
-                    """,
-                            topic,
-                            difficultyDesc,
-                            questionConfig,
-                            scoringSection,
-                            findings,
-                            reviewFeedback);
-        } else {
-            userPrompt =
-                    String.format(
-                            """
-                    考试主题：%s
-                    难度要求：%s
-                    题型分布：%s
-                    %s
-                    以下是相关知识点：
-
-                    %s
-
-                    请根据以上知识点和要求，编写一份完整的考试试卷。
-                    每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
-                    """,
-                            topic, difficultyDesc, questionConfig, scoringSection, findings);
-        }
+        String userPrompt =
+                buildUserPrompt(
+                        topic,
+                        difficulty,
+                        questionConfig,
+                        scoringScheme,
+                        findings,
+                        reviewFeedback,
+                        isRetry);
 
         String examPaper =
                 agentStreamer.stream("exam-writer", SYSTEM_PROMPT, userPrompt, progressCallback);
@@ -168,6 +122,68 @@ public class ExamWriterAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
         log.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
+    }
+
+    /** 组装发送给试卷编写 Agent 的用户提示词（首轮 / 改进轮两种模板）。 */
+    private String buildUserPrompt(
+            String topic,
+            String difficulty,
+            String questionConfig,
+            String scoringScheme,
+            String findings,
+            String reviewFeedback,
+            boolean isRetry) {
+        String difficultyDesc =
+                switch (difficulty) {
+                    case "EASY" -> "简单（侧重基础概念和记忆）";
+                    case "HARD" -> "困难（侧重综合分析和应用）";
+                    default -> "中等（侧重理解和简单应用）";
+                };
+
+        String scoringSection =
+                (scoringScheme != null && !scoringScheme.isBlank())
+                        ? "\n\n【分值分配方案（严格遵守）】\n" + scoringScheme
+                        : "";
+
+        if (isRetry) {
+            return String.format(
+                    """
+                    考试主题：%s
+                    难度要求：%s
+                    题型分布：%s
+                    %s
+                    以下是相关知识点：
+
+                    %s
+
+                    【上一轮审核意见】
+                    %s
+
+                    请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
+                    重点解决审核中指出的问题，保持优点，修正不足。
+                    每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
+                    """,
+                    topic,
+                    difficultyDesc,
+                    questionConfig,
+                    scoringSection,
+                    findings,
+                    reviewFeedback);
+        }
+        return String.format(
+                """
+                考试主题：%s
+                难度要求：%s
+                题型分布：%s
+                %s
+                以下是相关知识点：
+
+                %s
+
+                请根据以上知识点和要求，编写一份完整的考试试卷。
+                每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
+                """,
+                topic, difficultyDesc, questionConfig, scoringSection, findings);
     }
 
     @Override

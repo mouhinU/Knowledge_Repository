@@ -138,33 +138,67 @@ public class EnhancedPdfTextExtractor {
 
         // 1. 检测加密状态
         boolean encrypted = document.isEncrypted();
-        AccessPermission permissions = document.getCurrentAccessPermission();
-        if (encrypted) {
-            if (permissions != null) {
-                if (!permissions.canExtractContent()) {
-                    warnings.add("PDF 禁止提取文本内容");
-                }
-                if (!permissions.canPrint()) {
-                    warnings.add("PDF 禁止打印");
-                }
-                if (!permissions.canModify()) {
-                    warnings.add("PDF 禁止修改");
-                }
-            }
-            log.info("PDF is encrypted with restrictions: {}", warnings);
-        }
+        collectEncryptionWarnings(document, encrypted, warnings);
 
         // 2. 提取元数据
         PdfMetadata metadata = extractMetadata(document);
 
-        // 3. 逐页提取
-        List<PageContent> pages = new ArrayList<>(totalPages);
-        int scannedPages = 0;
+        // 3~5. 逐页提取（含页眉页脚跨页检测）
+        PageExtraction extraction = extractPages(document, totalPages);
+        List<PageContent> pages = extraction.pages();
+        int scannedPages = extraction.scannedPages();
 
+        // 6. 整体扫描检测
+        boolean ocrRecommended =
+                totalPages > 0 && (double) scannedPages / totalPages > SCAN_DOCUMENT_RATIO;
+
+        if (ocrRecommended) {
+            warnings.add(
+                    String.format("PDF 疑似扫描件 (%d/%d 页无文本)，建议使用 OCR", scannedPages, totalPages));
+        }
+
+        // 7. 跨页段落合并（可选）
+        // pages = mergeCrossPageParagraphs(pages);
+
+        log.info(
+                "PDF extraction completed: {} pages, {} scanned, {} warnings",
+                totalPages,
+                scannedPages,
+                warnings.size());
+
+        return new PdfExtractionResult(pages, metadata, warnings, encrypted, ocrRecommended);
+    }
+
+    /** 加密受限时收集权限告警（禁止提取 / 打印 / 修改）。 */
+    private void collectEncryptionWarnings(
+            PDDocument document, boolean encrypted, List<String> warnings) {
+        if (!encrypted) {
+            return;
+        }
+        AccessPermission permissions = document.getCurrentAccessPermission();
+        if (permissions != null) {
+            if (!permissions.canExtractContent()) {
+                warnings.add("PDF 禁止提取文本内容");
+            }
+            if (!permissions.canPrint()) {
+                warnings.add("PDF 禁止打印");
+            }
+            if (!permissions.canModify()) {
+                warnings.add("PDF 禁止修改");
+            }
+        }
+        log.info("PDF is encrypted with restrictions: {}", warnings);
+    }
+
+    /**
+     * 逐页提取：先跑原始文本 / 位置捕获，再做跨页页眉页脚检测，最后组装每页 {@link PageContent}。
+     *
+     * @return 页内容列表与疑似扫描页计数
+     */
+    private PageExtraction extractPages(PDDocument document, int totalPages) throws IOException {
         // 第一遍：提取原始文本和位置信息
         List<String> rawTexts = new ArrayList<>(totalPages);
         List<List<TextPosition>> pageTextPositions = new ArrayList<>(totalPages);
-
         for (int pageNum = 1; pageNum <= totalPages; pageNum++) {
             PositionCapturingStripper stripper = new PositionCapturingStripper();
             stripper.setStartPage(pageNum);
@@ -174,13 +208,15 @@ public class EnhancedPdfTextExtractor {
             pageTextPositions.add(stripper.getCapturedPositions());
         }
 
-        // 4. 检测页眉页脚（跨页分析）
+        // 检测页眉页脚（跨页分析）
         Set<String> headerFooterPatterns = detectHeaderFooter(rawTexts);
         if (!headerFooterPatterns.isEmpty()) {
             log.info("Detected header/footer patterns: {}", headerFooterPatterns);
         }
 
-        // 5. 处理每页内容
+        // 处理每页内容
+        List<PageContent> pages = new ArrayList<>(totalPages);
+        int scannedPages = 0;
         for (int pageNum = 1; pageNum <= totalPages; pageNum++) {
             String rawText = rawTexts.get(pageNum - 1);
             List<TextPosition> positions = pageTextPositions.get(pageNum - 1);
@@ -216,27 +252,11 @@ public class EnhancedPdfTextExtractor {
                             hasMultiColumns,
                             pageMetadata));
         }
-
-        // 6. 整体扫描检测
-        boolean ocrRecommended =
-                totalPages > 0 && (double) scannedPages / totalPages > SCAN_DOCUMENT_RATIO;
-
-        if (ocrRecommended) {
-            warnings.add(
-                    String.format("PDF 疑似扫描件 (%d/%d 页无文本)，建议使用 OCR", scannedPages, totalPages));
-        }
-
-        // 7. 跨页段落合并（可选）
-        // pages = mergeCrossPageParagraphs(pages);
-
-        log.info(
-                "PDF extraction completed: {} pages, {} scanned, {} warnings",
-                totalPages,
-                scannedPages,
-                warnings.size());
-
-        return new PdfExtractionResult(pages, metadata, warnings, encrypted, ocrRecommended);
+        return new PageExtraction(pages, scannedPages);
     }
+
+    /** 逐页提取结果：页内容列表与疑似扫描页计数。 */
+    private record PageExtraction(List<PageContent> pages, int scannedPages) {}
 
     /** 文本规范化处理 */
     private String normalizeText(String text) {

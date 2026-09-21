@@ -162,23 +162,7 @@ public class ExamGradingSupport {
             // （生成期一次性绑定 + 契约校验，缺失时 resolveStructuredAnswerMap 惰性回灌）。
             // 已删除自由文本答案键（parseAnswerKey）回退——下游纯读结构，杜绝评分 / 展示双解析口径漂移。
             Map<Integer, String> structuredAnswers = resolveStructuredAnswerMap(session);
-            for (ExamAnswer answer : answers) {
-                if (answer.getQuestionNumber() == null && answer.getQuestionIndex() != null) {
-                    // V2 题目号 == 全局连续印刷号 == 落库位置序号，缺失时按位置对齐
-                    answer.setQuestionNumber(answer.getQuestionIndex());
-                }
-                if (answer.getCorrectAnswer() == null || answer.getCorrectAnswer().isBlank()) {
-                    String correctAnswer =
-                            answer.getQuestionNumber() != null
-                                    ? structuredAnswers.get(answer.getQuestionNumber())
-                                    : null;
-                    if (correctAnswer != null && !correctAnswer.isBlank()) {
-                        answer.setCorrectAnswer(correctAnswer);
-                    }
-                }
-                // trace 无需在此显式清空：每题稍后都会在 gradeObjective / gradeSubjectiveWithAi 中被完整重写，
-                // 若本轮某题意外不产生 trace（如题目类型变更）则在下方 update 后走 clearAiTrace 兜底清残留。
-            }
+            applyStructuredAnswers(answers, structuredAnswers);
 
             int totalAiScore = 0;
             boolean stillOwner = true;
@@ -235,19 +219,7 @@ public class ExamGradingSupport {
 
             // V2 阶段 2-E：卷面总分取试卷结构化题目满分合计（与答题情况无关），
             // 避免"未答题无落库行 → 分母偏小 → 得分率虚高"。结构化行缺失时回退已入库答案行合计。
-            int paperTotal =
-                    examQuestionGateway
-                            .listBySessionKey(
-                                    structuredQuestionSupport.resolvePaperSessionKey(session))
-                            .stream()
-                            .mapToInt(q -> q.getMaxScore() == null ? 0 : q.getMaxScore())
-                            .sum();
-            if (paperTotal <= 0) {
-                paperTotal =
-                        answers.stream()
-                                .mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore())
-                                .sum();
-            }
+            int paperTotal = resolvePaperTotalScore(session, answers);
 
             // 终态原子落库（带围栏令牌 CAS GRADING→AI_GRADED + 分数）。若期间已被超时回收并重新认领
             // （令牌已轮换），本次令牌失配返回 false，本场慢速评分不得再盲写覆盖，交由接管者收尾。
@@ -274,6 +246,53 @@ public class ExamGradingSupport {
             examSessionGateway.releaseGradingToSubmitted(sessionId, gradingToken);
             throw ex;
         }
+    }
+
+    /**
+     * 用结构化标准答案回填答题行（V2 阶段 2-A）。
+     *
+     * <p>题号缺失时按全局连续印刷号 / 落库位置序号对齐；{@code correct_answer} 为空时从 {@code structuredAnswers} 回填。trace
+     * 字段无需在此清空：每题稍后都会在 gradeObjective / gradeSubjectiveWithAi 中被完整重写，若某题意外不产生 trace（如题型变更）则在主循环
+     * update 后走 clearAiTrace 兜底清残留。
+     */
+    private void applyStructuredAnswers(
+            List<ExamAnswer> answers, Map<Integer, String> structuredAnswers) {
+        for (ExamAnswer answer : answers) {
+            if (answer.getQuestionNumber() == null && answer.getQuestionIndex() != null) {
+                // V2 题目号 == 全局连续印刷号 == 落库位置序号，缺失时按位置对齐
+                answer.setQuestionNumber(answer.getQuestionIndex());
+            }
+            if (answer.getCorrectAnswer() == null || answer.getCorrectAnswer().isBlank()) {
+                String correctAnswer =
+                        answer.getQuestionNumber() != null
+                                ? structuredAnswers.get(answer.getQuestionNumber())
+                                : null;
+                if (correctAnswer != null && !correctAnswer.isBlank()) {
+                    answer.setCorrectAnswer(correctAnswer);
+                }
+            }
+        }
+    }
+
+    /**
+     * 卷面总分：取试卷结构化题目满分合计（与答题情况无关），避免未答题导致的分母偏小、得分率虚高。
+     *
+     * <p>结构化行缺失或合计 ≤ 0 时回退到已入库答案行的满分合计。
+     */
+    private int resolvePaperTotalScore(ExamSession session, List<ExamAnswer> answers) {
+        int paperTotal =
+                examQuestionGateway
+                        .listBySessionKey(structuredQuestionSupport.resolvePaperSessionKey(session))
+                        .stream()
+                        .mapToInt(q -> q.getMaxScore() == null ? 0 : q.getMaxScore())
+                        .sum();
+        if (paperTotal <= 0) {
+            paperTotal =
+                    answers.stream()
+                            .mapToInt(a -> a.getMaxScore() == null ? 0 : a.getMaxScore())
+                            .sum();
+        }
+        return paperTotal;
     }
 
     /**

@@ -485,13 +485,7 @@ public class DocumentIngestionDomainService {
             // 超长段落：先输出已有内容，再对超长段落做句子级切分
             if (paraLen > maxChars) {
                 if (chunkLen > 0) {
-                    String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-                    int startPage = lookupPage(charPageMap, chunkStart);
-                    int endPage =
-                            lookupPage(
-                                    charPageMap,
-                                    Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                    result.add(new RawChunk(chunkText, startPage, endPage));
+                    result.add(buildWindowChunk(text, charPageMap, chunkStart, chunkLen));
                     chunkLen = 0;
                 }
 
@@ -510,13 +504,7 @@ public class DocumentIngestionDomainService {
             int candidateLen = chunkLen + (chunkLen > 0 ? 2 : 0) + paraLen;
 
             if (candidateLen > maxChars && chunkLen > 0) {
-                String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-                int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage =
-                        lookupPage(
-                                charPageMap,
-                                Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                result.add(new RawChunk(chunkText, startPage, endPage));
+                result.add(buildWindowChunk(text, charPageMap, chunkStart, chunkLen));
 
                 if (overlapChars > 0 && chunkLen > overlapChars) {
                     int overlapStart = chunkStart + chunkLen - overlapChars;
@@ -537,18 +525,25 @@ public class DocumentIngestionDomainService {
         }
 
         if (chunkLen > 0) {
-            String chunkText = text.substring(chunkStart, chunkStart + chunkLen).trim();
-            if (!chunkText.isEmpty()) {
-                int startPage = lookupPage(charPageMap, chunkStart);
-                int endPage =
-                        lookupPage(
-                                charPageMap,
-                                Math.min(chunkStart + chunkLen - 1, charPageMap.size() - 1));
-                result.add(new RawChunk(chunkText, startPage, endPage));
+            RawChunk tail = buildWindowChunk(text, charPageMap, chunkStart, chunkLen);
+            if (!tail.content().isEmpty()) {
+                result.add(tail);
             }
         }
 
         return result;
+    }
+
+    /**
+     * 从合并文本中按 [start, start+len) 窗口构造一个分块，并回填其起止页码。
+     *
+     * <p>窗口上界自动收敛到 charPageMap 末位，行为与原内联实现一致。
+     */
+    private RawChunk buildWindowChunk(String text, List<int[]> charPageMap, int start, int len) {
+        String chunkText = text.substring(start, start + len).trim();
+        int startPage = lookupPage(charPageMap, start);
+        int endPage = lookupPage(charPageMap, Math.min(start + len - 1, charPageMap.size() - 1));
+        return new RawChunk(chunkText, startPage, endPage);
     }
 
     // ==================== PAGE 策略 ====================

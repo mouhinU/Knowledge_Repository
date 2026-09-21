@@ -45,14 +45,28 @@ public final class ExamContractValidator {
             return new Result(false, issues);
         }
 
-        // 1. 题数对齐
+        checkCountAlignment(questions, plan, issues);
+        checkScoreSumAlignment(questions, plan, issues);
+        checkTypeCounts(questions, plan, issues);
+        checkQuestionNumbers(questions, issues);
+        checkAnswersPerQuestion(questions, issues);
+
+        return new Result(issues.isEmpty(), issues);
+    }
+
+    /** 1. 题数对齐：切分题数须等于方案总题量。 */
+    private static void checkCountAlignment(
+            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
         if (plan != null
                 && plan.totalQuestions() > 0
                 && questions.size() != plan.totalQuestions()) {
             issues.add("切分题数 " + questions.size() + " ≠ 方案总题量 " + plan.totalQuestions());
         }
+    }
 
-        // 3. 分值合计对齐
+    /** 3. 分值合计对齐：题目满分之和须等于方案总分值。 */
+    private static void checkScoreSumAlignment(
+            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
         int sumScore = 0;
         for (ExamQuestion q : questions) {
             sumScore += q.getMaxScore() == null ? 0 : q.getMaxScore();
@@ -60,31 +74,31 @@ public final class ExamContractValidator {
         if (plan != null && plan.getTotalFullMark() > 0 && sumScore != plan.getTotalFullMark()) {
             issues.add("题目分值合计 " + sumScore + " ≠ 方案满分 " + plan.getTotalFullMark());
         }
+    }
 
-        // 2. 分题型数量对齐
-        if (plan != null && plan.getTypes() != null) {
-            for (TypePlan t : plan.getTypes()) {
-                if (t.getCount() <= 0) {
-                    continue;
-                }
-                String key = t.getKey() == null ? "" : t.getKey().toUpperCase();
-                long actual =
-                        questions.stream()
-                                .filter(q -> key.equalsIgnoreCase(q.getQuestionType()))
-                                .count();
-                if (actual != t.getCount()) {
-                    issues.add(
-                            "题型「"
-                                    + labelOf(t, key)
-                                    + "」切分数量 "
-                                    + actual
-                                    + " ≠ 方案题量 "
-                                    + t.getCount());
-                }
+    /** 2. 分题型数量对齐：逐题型的切分数量须等于方案该题型题量。 */
+    private static void checkTypeCounts(
+            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
+        if (plan == null || plan.getTypes() == null) {
+            return;
+        }
+        for (TypePlan t : plan.getTypes()) {
+            if (t.getCount() <= 0) {
+                continue;
+            }
+            String key = t.getKey() == null ? "" : t.getKey().toUpperCase();
+            long actual =
+                    questions.stream()
+                            .filter(q -> key.equalsIgnoreCase(q.getQuestionType()))
+                            .count();
+            if (actual != t.getCount()) {
+                issues.add("题型「" + labelOf(t, key) + "」切分数量 " + actual + " ≠ 方案题量 " + t.getCount());
             }
         }
+    }
 
-        // 4. 印刷题号非空且唯一
+    /** 4. 印刷题号非空且全局唯一。 */
+    private static void checkQuestionNumbers(List<ExamQuestion> questions, List<String> issues) {
         Set<Integer> numbers = new HashSet<>();
         for (ExamQuestion q : questions) {
             Integer num = q.getQuestionNumber();
@@ -97,49 +111,54 @@ public final class ExamContractValidator {
                 break;
             }
         }
+    }
 
-        // 5/6/7. 逐题答案规范与选项校验
+    /** 5/6/7. 逐题答案规范与选项校验（含出处/位置类记忆题的内容确定性复核）。 */
+    private static void checkAnswersPerQuestion(List<ExamQuestion> questions, List<String> issues) {
         for (ExamQuestion q : questions) {
-            Integer num = q.getQuestionNumber();
-            String tag = num != null ? ("第 " + num + " 题") : "（无题号题）";
-            // 内容确定性复核：出处/位置类记忆题——考查教材编排位置而非内容，强制人工改写后方可发布
-            if (ExamMetaQuestionDetector.isMetaRecall(q.getStem())) {
-                String stem = q.getStem();
-                String brief = stem.length() > 40 ? stem.substring(0, 40) + "…" : stem;
-                issues.add(tag + " " + ExamMetaQuestionDetector.ADVISORY + "：" + brief);
+            checkSingleQuestion(q, issues);
+        }
+    }
+
+    /** 校验单题：先复核元记忆题，再按题型校验答案规范与选项。 */
+    private static void checkSingleQuestion(ExamQuestion q, List<String> issues) {
+        Integer num = q.getQuestionNumber();
+        String tag = num != null ? ("第 " + num + " 题") : "（无题号题）";
+        // 内容确定性复核：出处/位置类记忆题——考查教材编排位置而非内容，强制人工改写后方可发布
+        if (ExamMetaQuestionDetector.isMetaRecall(q.getStem())) {
+            String stem = q.getStem();
+            String brief = stem.length() > 40 ? stem.substring(0, 40) + "…" : stem;
+            issues.add(tag + " " + ExamMetaQuestionDetector.ADVISORY + "：" + brief);
+        }
+        String answer = q.getCorrectAnswer();
+        if (answer == null || answer.isBlank()) {
+            issues.add(tag + " 缺少标准答案");
+            return;
+        }
+        String type = q.getQuestionType() == null ? "" : q.getQuestionType().toUpperCase();
+        switch (type) {
+            case "SINGLE_CHOICE" -> {
+                if (ExamAnswerNormalizer.choiceLetters(answer).length() != 1) {
+                    issues.add(tag + " 单选答案非法（应为 A~D 单个字母）：" + answer);
+                }
+                requireOptions(q, tag, issues);
             }
-            String answer = q.getCorrectAnswer();
-            if (answer == null || answer.isBlank()) {
-                issues.add(tag + " 缺少标准答案");
-                continue;
+            case "MULTI_CHOICE" -> {
+                if (ExamAnswerNormalizer.choiceLetters(answer).length() < 2) {
+                    issues.add(tag + " 多选答案非法（应为 A~D 两个及以上字母）：" + answer);
+                }
+                requireOptions(q, tag, issues);
             }
-            String type = q.getQuestionType() == null ? "" : q.getQuestionType().toUpperCase();
-            switch (type) {
-                case "SINGLE_CHOICE" -> {
-                    if (ExamAnswerNormalizer.choiceLetters(answer).length() != 1) {
-                        issues.add(tag + " 单选答案非法（应为 A~D 单个字母）：" + answer);
-                    }
-                    requireOptions(q, tag, issues);
+            case "TRUE_FALSE" -> {
+                if (ExamAnswerNormalizer.trueFalseToken(answer) == null) {
+                    issues.add(tag + " 判断答案非法（应为 正确/错误 等判词）：" + answer);
                 }
-                case "MULTI_CHOICE" -> {
-                    if (ExamAnswerNormalizer.choiceLetters(answer).length() < 2) {
-                        issues.add(tag + " 多选答案非法（应为 A~D 两个及以上字母）：" + answer);
-                    }
-                    requireOptions(q, tag, issues);
-                }
-                case "TRUE_FALSE" -> {
-                    if (ExamAnswerNormalizer.trueFalseToken(answer) == null) {
-                        issues.add(tag + " 判断答案非法（应为 正确/错误 等判词）：" + answer);
-                    }
-                    // 判断题为隐式二选一（正确/错误），试卷切分不产出 options_json，故不校验选项
-                }
-                default -> {
-                    // 填空 / 简答 / 论述：仅需答案非空（已在上方校验），不做字母规范约束
-                }
+                // 判断题为隐式二选一（正确/错误），试卷切分不产出 options_json，故不校验选项
+            }
+            default -> {
+                // 填空 / 简答 / 论述：仅需答案非空（已在上方校验），不做字母规范约束
             }
         }
-
-        return new Result(issues.isEmpty(), issues);
     }
 
     /** 渲染校验报告为 Markdown（供校对视图 / 日志展示）。 */
