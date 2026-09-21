@@ -11,8 +11,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,9 +23,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/exam")
+@Slf4j
 public class ExamTakingController {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamTakingController.class);
 
     private final ExamTakingServiceI examTakingService;
     private final ListPublishedHistoryQryExe listPublishedHistoryQryExe;

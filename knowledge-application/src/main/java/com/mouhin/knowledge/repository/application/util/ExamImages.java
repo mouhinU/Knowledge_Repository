@@ -4,8 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 看图题配图 assetKey 解析工具（app 层共享）。
@@ -17,9 +16,8 @@ import org.slf4j.LoggerFactory;
  * @author Knowledge-Repository
  * @date 2026-09-20
  */
+@Slf4j
 public final class ExamImages {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamImages.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -46,7 +44,7 @@ public final class ExamImages {
             }
             return keys;
         } catch (Exception e) {
-            logger.warn("解析题目 images_json 失败，忽略配图: {}", e.getMessage());
+            log.warn("解析题目 images_json 失败，忽略配图: {}", e.getMessage());
             return List.of();
         }
     }

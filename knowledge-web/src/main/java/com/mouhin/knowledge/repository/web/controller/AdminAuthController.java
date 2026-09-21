@@ -8,8 +8,7 @@ import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,9 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/admin/auth")
+@Slf4j
 public class AdminAuthController {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminAuthController.class);
 
     private final AdminAuthServiceI adminAuthService;
 
@@ -110,7 +108,7 @@ public class AdminAuthController {
         if (attribute instanceof AdminPrincipalDTO principal) {
             return principal;
         }
-        logger.debug("请求属性中无管理端身份，回退按令牌头校验");
+        log.debug("请求属性中无管理端身份，回退按令牌头校验");
         String headerToken = request.getHeader(AdminTokenAuthFilter.TOKEN_HEADER);
         return adminAuthService.validateToken(headerToken).getData();
     }

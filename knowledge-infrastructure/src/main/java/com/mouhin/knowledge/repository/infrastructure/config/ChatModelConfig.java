@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.infrastructure.llm.OpenAiCompatibleStream
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -27,9 +26,8 @@ import org.springframework.context.annotation.Configuration;
  * @date 2026-09-12
  */
 @Configuration
+@Slf4j
 public class ChatModelConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(ChatModelConfig.class);
 
     /** DashScope 对话模型 */
     @Bean
@@ -40,7 +38,7 @@ public class ChatModelConfig {
             @Value("${knowledge.llm.temperature:0.7}") double temperature,
             @Value("${knowledge.llm.max-tokens:4096}") int maxTokens) {
         String baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-        logger.info("Initializing DashScope chat model: {} at {}", modelName, baseUrl);
+        log.info("Initializing DashScope chat model: {} at {}", modelName, baseUrl);
         return OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .modelName(modelName)
@@ -60,7 +58,7 @@ public class ChatModelConfig {
             @Value("${knowledge.llm.temperature:0.7}") double temperature,
             @Value("${knowledge.llm.max-tokens:4096}") int maxTokens) {
         String baseUrl = "https://api.deepseek.com";
-        logger.info("Initializing DeepSeek chat model: {} at {}", modelName, baseUrl);
+        log.info("Initializing DeepSeek chat model: {} at {}", modelName, baseUrl);
         return OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .modelName(modelName)
@@ -80,7 +78,7 @@ public class ChatModelConfig {
             @Value("${knowledge.llm.ollama.api-key:ollama}") String apiKey,
             @Value("${knowledge.llm.temperature:0.7}") double temperature,
             @Value("${knowledge.llm.max-tokens:4096}") int maxTokens) {
-        logger.info("Initializing Ollama chat model: {} at {}", modelName, baseUrl);
+        log.info("Initializing Ollama chat model: {} at {}", modelName, baseUrl);
         return OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .modelName(modelName)

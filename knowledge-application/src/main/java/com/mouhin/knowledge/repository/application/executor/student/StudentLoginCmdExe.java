@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class StudentLoginCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(StudentLoginCmdExe.class);
 
     /** 令牌有效期：24 小时 */
     private static final int TOKEN_VALIDITY_HOURS = 24;
@@ -58,7 +56,7 @@ public class StudentLoginCmdExe {
         student.setUpdateTime(LocalDateTime.now());
         studentGateway.update(student);
 
-        logger.info("考生登录成功: username='{}', id={}", cmd.getUsername(), student.getId());
+        log.info("考生登录成功: username='{}', id={}", cmd.getUsername(), student.getId());
         return token;
     }
 }

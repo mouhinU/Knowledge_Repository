@@ -13,8 +13,7 @@ import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -28,10 +27,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class IndexCustomChunksAsyncCmdExe {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(IndexCustomChunksAsyncCmdExe.class);
 
     private final DocumentIngestionSupport support;
     private final ExtractionCacheHolder extractionCache;
@@ -114,7 +111,7 @@ public class IndexCustomChunksAsyncCmdExe {
 
                         extractionCache.remove(documentKey);
 
-                        logger.info(
+                        log.info(
                                 "Document {} indexed with custom chunks: {} chunks",
                                 document.getDocumentKey(),
                                 chunks.size());
@@ -124,7 +121,7 @@ public class IndexCustomChunksAsyncCmdExe {
                         }
 
                     } catch (Exception e) {
-                        logger.error(
+                        log.error(
                                 "Async custom indexing failed for document {}: {}",
                                 documentKey,
                                 e.getMessage(),

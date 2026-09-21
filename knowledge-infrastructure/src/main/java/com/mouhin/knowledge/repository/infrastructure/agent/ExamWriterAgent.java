@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,9 +20,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examWriterAgent")
+@Slf4j
 public class ExamWriterAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamWriterAgent.class);
 
     /** 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。 */
     private static final int MIN_VALID_EXAM_LENGTH = 200;
@@ -72,7 +70,7 @@ public class ExamWriterAgent implements BlackboardAgent {
         String scoringScheme = blackboard.getScoringScheme();
 
         boolean isRetry = reviewFeedback != null && !reviewFeedback.isBlank();
-        logger.info("[ExamWriter] 开始{}编写试卷，主题：{}，难度：{}", isRetry ? "改进" : "", topic, difficulty);
+        log.info("[ExamWriter] 开始{}编写试卷，主题：{}，难度：{}", isRetry ? "改进" : "", topic, difficulty);
 
         blackboard.advanceTo(BlackboardPhase.WRITING);
 
@@ -91,7 +89,7 @@ public class ExamWriterAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("exam-writer", fallback));
-            logger.warn("[ExamWriter] 知识点不足，使用回退方案");
+            log.warn("[ExamWriter] 知识点不足，使用回退方案");
             return;
         }
 
@@ -160,7 +158,7 @@ public class ExamWriterAgent implements BlackboardAgent {
                 || examPaper.isBlank()
                 || examPaper.length() < MIN_VALID_EXAM_LENGTH) {
             String msg = "试卷编写失败：模型未产出有效内容（可能是思考链耗尽 token 预算），请重试或调大流式 max-tokens";
-            logger.error(
+            log.error(
                     "[ExamWriter] LLM 返回空/过短试卷，长度：{}", examPaper == null ? 0 : examPaper.length());
             emitProgress(progressCallback, BlackboardProgressEvent.agentFailed("exam-writer", msg));
             throw new RuntimeException(msg);
@@ -169,7 +167,7 @@ public class ExamWriterAgent implements BlackboardAgent {
         blackboard.setExamPaper(examPaper);
         emitProgress(
                 progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
-        logger.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
+        log.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
     }
 
     @Override

@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -24,9 +23,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class AdminLoginCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminLoginCmdExe.class);
 
     private final UserGateway userGateway;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -80,7 +78,7 @@ public class AdminLoginCmdExe {
         result.setExpiresAt(
                 Optional.ofNullable(payload.expiresAt()).map(Object::toString).orElse(""));
 
-        logger.info("管理端登录成功: username='{}', userKey={}", user.getUsername(), user.getUserKey());
+        log.info("管理端登录成功: username='{}', userKey={}", user.getUsername(), user.getUserKey());
         return result;
     }
 }

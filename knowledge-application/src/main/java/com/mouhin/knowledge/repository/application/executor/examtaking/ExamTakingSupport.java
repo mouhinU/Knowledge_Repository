@@ -18,8 +18,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,9 +30,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamTakingSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamTakingSupport.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -173,7 +171,7 @@ public class ExamTakingSupport {
             }
             return OBJECT_MAPPER.writeValueAsString(questions);
         } catch (Exception e) {
-            logger.warn("注入看图题配图失败，回退原快照：{}", e.getMessage());
+            log.warn("注入看图题配图失败，回退原快照：{}", e.getMessage());
             return questionsJson;
         }
     }
@@ -217,7 +215,7 @@ public class ExamTakingSupport {
         PaperValidationReport report = contentValidatorAgent.validate(questionsJson);
         if (!report.pass()) {
             String detail = String.join("；", report.errors());
-            logger.warn("试卷内容校验未通过，阻止开考：{}", detail);
+            log.warn("试卷内容校验未通过，阻止开考：{}", detail);
             throw new IllegalArgumentException("试卷内容校验未通过：" + detail);
         }
     }
@@ -237,7 +235,7 @@ public class ExamTakingSupport {
             }
             return sum > 0 ? sum : DEFAULT_TOTAL_SCORE;
         } catch (Exception e) {
-            logger.warn("累加题目总分失败，回退为 100：{}", e.getMessage());
+            log.warn("累加题目总分失败，回退为 100：{}", e.getMessage());
             return DEFAULT_TOTAL_SCORE;
         }
     }
@@ -250,7 +248,7 @@ public class ExamTakingSupport {
         try {
             return OBJECT_MAPPER.readValue(questionsJson, List.class);
         } catch (JsonProcessingException e) {
-            logger.warn("解析题目 JSON 失败: {}", e.getMessage());
+            log.warn("解析题目 JSON 失败: {}", e.getMessage());
             return List.of();
         }
     }
@@ -286,7 +284,7 @@ public class ExamTakingSupport {
                 }
             }
         } catch (Exception e) {
-            logger.warn("检查 questionsJson 是否需要重新解析时出错: {}", e.getMessage());
+            log.warn("检查 questionsJson 是否需要重新解析时出错: {}", e.getMessage());
         }
         return false;
     }

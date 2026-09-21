@@ -10,8 +10,7 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,9 +31,9 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-16
  */
 @Component("examDistributionAgent")
+@Slf4j
 public class ExamDistributionAgent implements ExamDistributionGateway {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamDistributionAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** 允许的内核题型 */
@@ -88,7 +87,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         ScoreRuleEngine.SchoolLevel level = ScoreRuleEngine.resolveLevel(topic, schoolLevelCode);
         int fullMark = ScoreRuleEngine.resolveTotalFullMark(topic, level, schoolLevelCode);
 
-        logger.info(
+        log.info(
                 "[Distribution] 开始生成方案 [topic='{}', difficulty='{}', level='{}', fullMark={}]",
                 topic,
                 difficulty,
@@ -198,7 +197,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         }
         emitDone(callback, "dist-evaluate", noteText.toString().trim());
 
-        logger.info(
+        log.info(
                 "[Distribution] 方案生成完成，共 {} 题型 {} 题，满分 {} 分",
                 plan.getTypes().size(),
                 plan.totalQuestions(),
@@ -387,7 +386,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
             String text = agentStreamer.stream(agentName, systemPrompt, userPrompt, callback);
             return extractJson(text);
         } catch (Exception e) {
-            logger.warn("[Distribution] 流式 LLM 调用/解析失败: {}", e.getMessage());
+            log.warn("[Distribution] 流式 LLM 调用/解析失败: {}", e.getMessage());
             return null;
         }
     }

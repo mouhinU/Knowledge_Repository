@@ -1,8 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,9 +11,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class DeleteHistoryCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(DeleteHistoryCmdExe.class);
 
     private final ExamHistoryGateway examHistoryGateway;
 
@@ -24,6 +22,6 @@ public class DeleteHistoryCmdExe {
 
     public void execute(String sessionId) {
         examHistoryGateway.deleteBySessionId(sessionId);
-        logger.info("出卷历史记录已删除 [session={}]", sessionId);
+        log.info("出卷历史记录已删除 [session={}]", sessionId);
     }
 }

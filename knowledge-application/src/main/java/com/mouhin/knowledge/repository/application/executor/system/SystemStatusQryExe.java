@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class SystemStatusQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(SystemStatusQryExe.class);
 
     private final EmbeddingModel embeddingModel;
     private final VectorStoreGateway vectorStoreGateway;
@@ -83,7 +81,7 @@ public class SystemStatusQryExe {
             vectorStoreGateway.search("health_check", 1, 0.0, null);
             return "connected";
         } catch (Exception e) {
-            logger.warn("Milvus connection check failed: {}", e.getMessage());
+            log.warn("Milvus connection check failed: {}", e.getMessage());
             return "disconnected: " + e.getMessage();
         }
     }

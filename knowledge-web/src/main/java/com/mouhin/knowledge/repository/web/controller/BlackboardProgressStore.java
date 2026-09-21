@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -20,9 +19,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * @date 2026-09-13
  */
 @Component
+@Slf4j
 public class BlackboardProgressStore {
-
-    private static final Logger logger = LoggerFactory.getLogger(BlackboardProgressStore.class);
 
     /** SSE 超时时间：10 分钟 */
     private static final long SSE_TIMEOUT_MS = 600_000L;
@@ -58,7 +56,7 @@ public class BlackboardProgressStore {
         emitter.onTimeout(() -> removeEmitter(sessionId, emitter));
         emitter.onError(e -> removeEmitter(sessionId, emitter));
 
-        logger.debug(
+        log.debug(
                 "SSE emitter 创建 [session={}, buffered={}]",
                 sessionId,
                 buffered != null ? buffered.size() : 0);
@@ -107,7 +105,7 @@ public class BlackboardProgressStore {
                 emitter.send(SseEmitter.event().name(event.getType()).data(eventToMap(event)));
             }
         } catch (IOException e) {
-            logger.debug("SSE 推送失败: {}", e.getMessage());
+            log.debug("SSE 推送失败: {}", e.getMessage());
         }
     }
 
@@ -132,7 +130,7 @@ public class BlackboardProgressStore {
                                     }
                                 }
                             }
-                            logger.debug("已清理 session 进度数据 [session={}]", sessionId);
+                            log.debug("已清理 session 进度数据 [session={}]", sessionId);
                         });
     }
 

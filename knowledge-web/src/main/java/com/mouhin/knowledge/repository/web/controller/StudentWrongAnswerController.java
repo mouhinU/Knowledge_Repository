@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.client.api.WrongAnswerServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,10 +19,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/student/wrong-answers")
+@Slf4j
 public class StudentWrongAnswerController {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(StudentWrongAnswerController.class);
 
     private final WrongAnswerServiceI wrongAnswerService;
     private final StudentServiceI studentService;

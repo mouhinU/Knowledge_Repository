@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class UpdateQuestionImagesCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(UpdateQuestionImagesCmdExe.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -57,7 +55,7 @@ public class UpdateQuestionImagesCmdExe {
         List<String> cleaned = sanitize(assetKeys);
         String imagesJson = writeJson(cleaned);
         examQuestionGateway.updateImagesJson(history.getSessionId(), questionNumber, imagesJson);
-        logger.info(
+        log.info(
                 "校对页配图绑定 [session={}, number={}, images={}]",
                 history.getSessionId(),
                 questionNumber,

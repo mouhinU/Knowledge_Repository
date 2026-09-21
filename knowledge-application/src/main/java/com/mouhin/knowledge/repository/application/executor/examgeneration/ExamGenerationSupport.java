@@ -24,8 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -40,9 +39,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamGenerationSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamGenerationSupport.class);
 
     private static final int DEFAULT_MAX_RESULTS = 20;
     private static final double DEFAULT_MIN_SCORE = 0.3;
@@ -145,7 +143,7 @@ public class ExamGenerationSupport {
             String schoolLevel,
             ExamPlan plan,
             boolean skipScoringValidation) {
-        logger.info(
+        log.info(
                 "启动异步试卷生成 [session={}, topic='{}', difficulty='{}', category='{}', level='{}', hasPlan={}, skipValidation={}]",
                 sessionId,
                 topic,
@@ -178,7 +176,7 @@ public class ExamGenerationSupport {
         } catch (RejectedExecutionException rex) {
             // 线程池已达并发上限：不在请求线程上同步跑流水线（AbortPolicy），
             // 先经 SSE 推送友好错误让前端优雅收尾，再向上冒泡由控制器转 429。
-            logger.warn("出卷任务被拒绝（并发已达上限）[session={}]", sessionId);
+            log.warn("出卷任务被拒绝（并发已达上限）[session={}]", sessionId);
             if (progressCallback != null) {
                 progressCallback.onProgress(
                         BlackboardProgressEvent.error("系统繁忙，出卷任务已达并发上限，请稍后重试。"));
@@ -228,7 +226,7 @@ public class ExamGenerationSupport {
                     authorizedSearch.searchAuthorized(
                             topic, maxResults, minScore, filterExpr, category, permission);
             blackboard.setKnowledgeChunks(results);
-            logger.info("[ExamPipeline] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
+            log.info("[ExamPipeline] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
 
             // 知识库无召回结果时，回退到大模型补充
             if (results.isEmpty()) {
@@ -319,7 +317,7 @@ public class ExamGenerationSupport {
                         blackboard.setQualityScore(QUALITY_SCORE_THRESHOLD);
                         score = QUALITY_SCORE_THRESHOLD;
                     }
-                    logger.info(
+                    log.info(
                             "[ExamPipeline] 手动方案评分收敛（首轮 {}，本轮 {}，差值 ≤ {}），提前结束改进 [session={}, attempt={}]",
                             firstAttemptScore,
                             score,
@@ -341,7 +339,7 @@ public class ExamGenerationSupport {
                 if (score >= QUALITY_SCORE_THRESHOLD
                         || attempt == MAX_REVIEW_RETRIES
                         || converged) {
-                    logger.info(
+                    log.info(
                             "[ExamPipeline] 审核完成 [session={}, attempt={}, score={}, threshold={}, manual={}, converged={}]",
                             sessionId,
                             attempt + 1,
@@ -352,7 +350,7 @@ public class ExamGenerationSupport {
                     break;
                 }
 
-                logger.info(
+                log.info(
                         "[ExamPipeline] 评分 {} 低于阈值 {}，启动第 {} 次改进 [session={}]",
                         score,
                         QUALITY_SCORE_THRESHOLD,
@@ -371,7 +369,7 @@ public class ExamGenerationSupport {
                 }
             }
 
-            logger.info(
+            log.info(
                     "试卷生成完成 [session={}, phase={}, score={}]",
                     sessionId,
                     blackboard.getPhase(),
@@ -409,7 +407,7 @@ public class ExamGenerationSupport {
 
         } catch (Exception e) {
             String friendly = unwrapErrorMessage(e);
-            logger.error("试卷生成失败 [session={}, msg={}]", sessionId, friendly, e);
+            log.error("试卷生成失败 [session={}, msg={}]", sessionId, friendly, e);
             blackboard.markFailed(friendly);
 
             // 保存失败记录
@@ -462,7 +460,7 @@ public class ExamGenerationSupport {
             Permission permission,
             String category) {
 
-        logger.info(
+        log.info(
                 "同步生成试卷 [topic='{}', difficulty='{}', level='{}', total={}]",
                 topic,
                 difficulty,
@@ -501,7 +499,7 @@ public class ExamGenerationSupport {
         List<SearchResult> results =
                 authorizedSearch.searchAuthorized(
                         topic, maxResults, minScore, filterExpr, category, permission);
-        logger.info("[Exam] 检索到 {} 个知识片段 [topic='{}']", results.size(), topic);
+        log.info("[Exam] 检索到 {} 个知识片段 [topic='{}']", results.size(), topic);
 
         String knowledgeContext = buildKnowledgeContext(results);
         String systemPrompt = buildSystemPrompt();
@@ -528,11 +526,11 @@ public class ExamGenerationSupport {
         String examPaper = response.aiMessage().text();
 
         if (examPaper == null || examPaper.isBlank()) {
-            logger.error("[Exam] LLM 返回空结果 [topic='{}']", topic);
+            log.error("[Exam] LLM 返回空结果 [topic='{}']", topic);
             return "# 试卷生成失败\n\n大模型返回了空结果，请重试。";
         }
 
-        logger.info("[Exam] 试卷生成完成，长度: {} 字符 [topic='{}']", examPaper.length(), topic);
+        log.info("[Exam] 试卷生成完成，长度: {} 字符 [topic='{}']", examPaper.length(), topic);
         return examPaper;
     }
 
@@ -555,7 +553,7 @@ public class ExamGenerationSupport {
                 knowledgeHint = buildKnowledgeContext(results);
             }
         } catch (Exception e) {
-            logger.warn("[Distribution] 生成前检索知识点失败（忽略，继续出题）: {}", e.getMessage());
+            log.warn("[Distribution] 生成前检索知识点失败（忽略，继续出题）: {}", e.getMessage());
         }
         return examDistributionAgent.generate(topic, difficulty, schoolLevel, knowledgeHint);
     }
@@ -569,7 +567,7 @@ public class ExamGenerationSupport {
             String category,
             Permission permission,
             BlackboardProgressCallback progressCallback) {
-        logger.info(
+        log.info(
                 "启动题型分布方案生成 [session={}, topic='{}', difficulty='{}', level='{}']",
                 sessionId,
                 topic,
@@ -603,7 +601,7 @@ public class ExamGenerationSupport {
                                 knowledgeHint = buildKnowledgeContext(results);
                             }
                         } catch (Exception e) {
-                            logger.warn("[Distribution] 检索知识点失败（忽略）: {}", e.getMessage());
+                            log.warn("[Distribution] 检索知识点失败（忽略）: {}", e.getMessage());
                         }
                         ExamPlan plan =
                                 examDistributionAgent.generate(
@@ -617,14 +615,14 @@ public class ExamGenerationSupport {
                             progressCallback.onProgress(
                                     BlackboardProgressEvent.distributionCompleted(planJson));
                         }
-                        logger.info(
+                        log.info(
                                 "[Distribution] 方案生成完成 [session={}, types={}, questions={}, fullMark={}]",
                                 sessionId,
                                 plan.getTypes().size(),
                                 plan.totalQuestions(),
                                 plan.getTotalFullMark());
                     } catch (Exception e) {
-                        logger.error("[Distribution] 方案生成失败 [session={}]", sessionId, e);
+                        log.error("[Distribution] 方案生成失败 [session={}]", sessionId, e);
                         if (progressCallback != null) {
                             progressCallback.onProgress(
                                     BlackboardProgressEvent.error(
@@ -643,7 +641,7 @@ public class ExamGenerationSupport {
     /** 异步校验题型分布方案（Node 2：分值检验和平衡）。 */
     public void validatePlanAsync(
             String sessionId, ExamPlan plan, BlackboardProgressCallback progressCallback) {
-        logger.info(
+        log.info(
                 "启动方案校验 [session={}, types={}, fullMark={}]",
                 sessionId,
                 plan != null && plan.getTypes() != null ? plan.getTypes().size() : 0,
@@ -688,7 +686,7 @@ public class ExamGenerationSupport {
                         String aiAnalysis =
                                 streamValidationAnalysis(plan, report, progressCallback);
                         if (aiAnalysis != null) {
-                            logger.debug(
+                            log.debug(
                                     "[PlanValidate] 模型解读输出长度 {} 字符 [session={}]",
                                     aiAnalysis.length(),
                                     sessionId);
@@ -700,7 +698,7 @@ public class ExamGenerationSupport {
                                         BlackboardProgressEvent.agentCompleted(
                                                 "exam-plan-validator", report));
                             }
-                            logger.info(
+                            log.info(
                                     "[PlanValidate] 校验通过 [session={}, fullMark={}]",
                                     sessionId,
                                     plan.getTotalFullMark());
@@ -713,13 +711,13 @@ public class ExamGenerationSupport {
                                         BlackboardProgressEvent.error(
                                                 "分值校验未通过，共 " + result.issues().size() + " 项硬性错误"));
                             }
-                            logger.warn(
+                            log.warn(
                                     "[PlanValidate] 校验未通过 [session={}, issues={}]",
                                     sessionId,
                                     result.issues());
                         }
                     } catch (Exception e) {
-                        logger.error("[PlanValidate] 校验失败 [session={}]", sessionId, e);
+                        log.error("[PlanValidate] 校验失败 [session={}]", sessionId, e);
                         if (progressCallback != null) {
                             progressCallback.onProgress(
                                     BlackboardProgressEvent.error(
@@ -786,7 +784,7 @@ public class ExamGenerationSupport {
                                     BlackboardProgressEvent.tokenDelta(
                                             "exam-plan-validator", kind, delta)));
         } catch (Exception e) {
-            logger.warn("[PlanValidate] 模型解读失败（忽略，仅用规则结果）: {}", e.getMessage());
+            log.warn("[PlanValidate] 模型解读失败（忽略，仅用规则结果）: {}", e.getMessage());
             return null;
         }
     }
@@ -833,10 +831,10 @@ public class ExamGenerationSupport {
         ChatResponse response = chatModel.chat(request);
         String examPaper = response.aiMessage().text();
         if (examPaper == null || examPaper.isBlank()) {
-            logger.error("[Exam/Plan] LLM 返回空结果 [topic='{}']", topic);
+            log.error("[Exam/Plan] LLM 返回空结果 [topic='{}']", topic);
             return "# 试卷生成失败\n\n大模型返回了空结果，请重试。";
         }
-        logger.info("[Exam/Plan] 依据方案生成试卷完成，长度 {} 字符 [topic='{}']", examPaper.length(), topic);
+        log.info("[Exam/Plan] 依据方案生成试卷完成，长度 {} 字符 [topic='{}']", examPaper.length(), topic);
         return examPaper;
     }
 
@@ -899,10 +897,10 @@ public class ExamGenerationSupport {
 
             ChatResponse response = chatModel.chat(request);
             String answer = response.aiMessage().text();
-            logger.info("大模型补充资料生成完成，长度: {}", answer != null ? answer.length() : 0);
+            log.info("大模型补充资料生成完成，长度: {}", answer != null ? answer.length() : 0);
             return answer;
         } catch (Exception e) {
-            logger.error("大模型补充资料调用失败", e);
+            log.error("大模型补充资料调用失败", e);
             return null;
         }
     }
@@ -1089,20 +1087,20 @@ public class ExamGenerationSupport {
                             blackboard.getAnswerKey(),
                             blackboard.getExamPlan());
             validation = outcome.validation();
-            logger.info(
+            log.info(
                     "[ExamPipeline] 出卷即切分落库完成 [session={}, questions={}, pass={}]",
                     sessionId,
                     outcome.count(),
                     validation.pass());
         } catch (Exception splitEx) {
-            logger.error(
+            log.error(
                     "[ExamPipeline] 出卷即切分失败，置 VALIDATION_FAILED [session={}]", sessionId, splitEx);
             examAlertGateway.validationFailed(sessionId, -1);
             return ExamHistory.STATUS_VALIDATION_FAILED;
         }
 
         if (!validation.pass()) {
-            logger.warn(
+            log.warn(
                     "[ExamPipeline] 出卷契约校验未通过，强制人工校对 [session={}, issues={}]",
                     sessionId,
                     validation.issues());
@@ -1115,7 +1113,7 @@ public class ExamGenerationSupport {
             examAlertGateway.lowQualityScore(sessionId, quality, QUALITY_SCORE_THRESHOLD);
         }
         if (!examReviewRequired && quality >= QUALITY_SCORE_THRESHOLD) {
-            logger.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
+            log.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
             return ExamHistory.STATUS_PUBLISHED;
         }
         return ExamHistory.STATUS_REVIEWABLE;
@@ -1159,7 +1157,7 @@ public class ExamGenerationSupport {
                 try {
                     history.setExamPlan(objectMapper.writeValueAsString(plan));
                 } catch (Exception pe) {
-                    logger.warn("序列化题型分布方案失败，考试端将回退到试卷解析: {}", pe.getMessage());
+                    log.warn("序列化题型分布方案失败，考试端将回退到试卷解析: {}", pe.getMessage());
                 }
             }
             history.setExamPaper(blackboard.getExamPaper());
@@ -1185,9 +1183,9 @@ public class ExamGenerationSupport {
             history.setCreateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
             history.setUpdateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
             examHistoryGateway.save(history);
-            logger.info("出卷历史记录已保存 [session={}, status={}]", sessionId, history.getStatus());
+            log.info("出卷历史记录已保存 [session={}, status={}]", sessionId, history.getStatus());
         } catch (Exception e) {
-            logger.error("保存出卷历史记录失败 [session={}]", sessionId, e);
+            log.error("保存出卷历史记录失败 [session={}]", sessionId, e);
         }
     }
 }

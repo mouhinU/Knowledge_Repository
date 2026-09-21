@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.examtaking;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamUpdateDurationCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamUpdateDurationCmdExe.class);
 
     private final ExamSessionGateway examSessionGateway;
 
@@ -34,6 +32,6 @@ public class ExamUpdateDurationCmdExe {
         session.setDurationMinutes(durationMinutes);
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
-        logger.info("已更新考试时长 [session={}, duration={}]", sessionKey, durationMinutes);
+        log.info("已更新考试时长 [session={}, duration={}]", sessionKey, durationMinutes);
     }
 }

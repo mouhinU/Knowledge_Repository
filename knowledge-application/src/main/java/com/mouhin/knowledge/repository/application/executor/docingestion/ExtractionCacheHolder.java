@@ -8,8 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,9 +21,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExtractionCacheHolder {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExtractionCacheHolder.class);
 
     private final Map<String, ExtractionResult> cache = new ConcurrentHashMap<>();
 
@@ -56,7 +54,7 @@ public class ExtractionCacheHolder {
         }
 
         try {
-            logger.info(
+            log.info(
                     "Re-extracting text for document {}: {}",
                     document.getDocumentKey(),
                     document.getFileName());

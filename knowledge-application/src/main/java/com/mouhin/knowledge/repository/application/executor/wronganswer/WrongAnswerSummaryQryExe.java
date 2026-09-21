@@ -9,8 +9,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,9 +21,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class WrongAnswerSummaryQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(WrongAnswerSummaryQryExe.class);
 
     /** 提示词中最多列举的错题数量 */
     private static final int PROMPT_ITEM_LIMIT = 50;
@@ -116,7 +114,7 @@ public class WrongAnswerSummaryQryExe {
 
             return output;
         } catch (Exception e) {
-            logger.error("AI 错题总结失败", e);
+            log.error("AI 错题总结失败", e);
             return "AI 总结生成失败：" + e.getMessage();
         }
     }

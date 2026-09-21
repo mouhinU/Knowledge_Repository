@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerSummaryRequest;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +18,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/admin/wrong-answers")
+@Slf4j
 public class WrongAnswerController {
-
-    private static final Logger logger = LoggerFactory.getLogger(WrongAnswerController.class);
 
     private final WrongAnswerServiceI wrongAnswerService;
 
@@ -51,7 +49,7 @@ public class WrongAnswerController {
                             request.getStudentId(), request.getTopic(), request.getQuestionType());
             return ResponseEntity.ok(Map.of("summary", summary));
         } catch (Exception e) {
-            logger.error("AI 错题总结失败", e);
+            log.error("AI 错题总结失败", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

@@ -11,8 +11,7 @@ import java.util.Base64;
 import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +35,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class AdminJwtGatewayImpl implements AdminJwtService {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminJwtGatewayImpl.class);
 
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final String HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
@@ -84,7 +82,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
         try {
             encodedPayload = B64_ENCODER.encodeToString(objectMapper.writeValueAsBytes(payload));
         } catch (Exception e) {
-            logger.error("Failed to serialize JWT payload for userKey: {}", userKey, e);
+            log.error("Failed to serialize JWT payload for userKey: {}", userKey, e);
             throw new IllegalStateException("Failed to issue admin token", e);
         }
         String signingInput = encodedHeader + "." + encodedPayload;
@@ -124,7 +122,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             return Optional.of(
                     new AdminTokenPayload(userKey, username, admin, Instant.ofEpochSecond(exp)));
         } catch (Exception e) {
-            logger.debug("Admin token verification failed: {}", e.getMessage());
+            log.debug("Admin token verification failed: {}", e.getMessage());
             return Optional.empty();
         }
     }
@@ -135,7 +133,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             mac.init(new SecretKeySpec(secretBytes, HMAC_ALGORITHM));
             return mac.doFinal(signingInput.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            logger.error("HMAC computation failed", e);
+            log.error("HMAC computation failed", e);
             throw new IllegalStateException("Failed to sign admin token", e);
         }
     }

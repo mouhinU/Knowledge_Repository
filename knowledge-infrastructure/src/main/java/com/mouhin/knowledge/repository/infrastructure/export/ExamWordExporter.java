@@ -2,11 +2,10 @@ package com.mouhin.knowledge.repository.infrastructure.export;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,9 +17,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-13
  */
 @Component
+@Slf4j
 public class ExamWordExporter {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamWordExporter.class);
 
     /**
      * 将 Markdown 试卷内容导出为 Word 文档
@@ -63,7 +61,7 @@ public class ExamWordExporter {
             }
 
             document.write(outputStream);
-            logger.info("试卷 Word 文档导出完成");
+            log.info("试卷 Word 文档导出完成");
         }
     }
 

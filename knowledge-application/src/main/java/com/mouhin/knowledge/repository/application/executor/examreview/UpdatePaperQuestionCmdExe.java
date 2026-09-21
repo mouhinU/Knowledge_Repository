@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-18
  */
 @Component
+@Slf4j
 public class UpdatePaperQuestionCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(UpdatePaperQuestionCmdExe.class);
 
     private final PaperReviewSupport support;
     private final ExamQuestionGateway examQuestionGateway;
@@ -47,7 +45,7 @@ public class UpdatePaperQuestionCmdExe {
         ExamHistory history = support.requireHistory(sessionKey);
         examQuestionGateway.updateCorrection(
                 sessionKey, questionNumber, correctAnswer, analysis, maxScore);
-        logger.info("校对就地编辑 [session={}, number={}]", sessionKey, questionNumber);
+        log.info("校对就地编辑 [session={}, number={}]", sessionKey, questionNumber);
 
         List<ExamQuestion> questions = support.listQuestions(sessionKey);
         ExamPlan plan = support.planOf(history);

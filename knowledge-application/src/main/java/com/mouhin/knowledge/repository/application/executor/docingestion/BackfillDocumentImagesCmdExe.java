@@ -2,8 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,10 +15,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class BackfillDocumentImagesCmdExe {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(BackfillDocumentImagesCmdExe.class);
 
     private final DocumentGateway documentGateway;
     private final DocumentImageSupport documentImageSupport;
@@ -45,7 +42,7 @@ public class BackfillDocumentImagesCmdExe {
                         .findById(documentId)
                         .orElseThrow(() -> new IllegalArgumentException("文档不存在: id=" + documentId));
         int added = documentImageSupport.backfill(document);
-        logger.info(
+        log.info(
                 "文档图片回填完成 [documentId={}, documentKey={}, added={}]",
                 documentId,
                 document.getDocumentKey(),

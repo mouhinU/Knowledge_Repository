@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -22,9 +21,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-15
  */
 @Component
+@Slf4j
 public class ExamGradingScheduler {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamGradingScheduler.class);
 
     /** 每轮扫描的待评分场次上限 */
     private static final int PENDING_BATCH_SIZE = 50;
@@ -78,13 +76,13 @@ public class ExamGradingScheduler {
                     gradingService.triggerGrading(session.getId());
                     triggered++;
                 } catch (Exception e) {
-                    logger.error("定时评分失败 [session={}]", session.getId(), e);
+                    log.error("定时评分失败 [session={}]", session.getId(), e);
                 }
             }
         }
 
         if (triggered > 0) {
-            logger.info("定时评分：本轮触发 {} 场考试（延迟阈值 {} 分钟）", triggered, gradingDelayMinutes);
+            log.info("定时评分：本轮触发 {} 场考试（延迟阈值 {} 分钟）", triggered, gradingDelayMinutes);
         }
     }
 
@@ -109,7 +107,7 @@ public class ExamGradingScheduler {
                 // 仅当确实回收了本场次（affected=1）才告警，避免与刚完成评分的行竞争误报。
                 if (examSessionGateway.reclaimStuckGrading(session.getId(), deadline)) {
                     recovered++;
-                    logger.warn(
+                    log.warn(
                             "回收超时评分场次 [session={}, lastUpdate={}]",
                             session.getId(),
                             session.getUpdateTime());
@@ -117,10 +115,10 @@ public class ExamGradingScheduler {
                 }
             }
             if (recovered > 0) {
-                logger.info("超时评分回收：本轮回退 {} 场（超时阈值 {} 分钟）", recovered, gradingTimeoutMinutes);
+                log.info("超时评分回收：本轮回退 {} 场（超时阈值 {} 分钟）", recovered, gradingTimeoutMinutes);
             }
         } catch (Exception e) {
-            logger.error("超时评分回收任务异常", e);
+            log.error("超时评分回收任务异常", e);
         }
     }
 }

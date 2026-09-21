@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -39,9 +38,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class ReindexAsyncCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReindexAsyncCmdExe.class);
 
     /** 允许重新入库的起始状态：已入库、入库失败、已归档。 */
     private static final Set<DocumentStatusEnum> REINDEXABLE_STATUSES =
@@ -117,7 +115,7 @@ public class ReindexAsyncCmdExe {
                             support.processDocument(document, result, callback);
                         }
                     } catch (Exception e) {
-                        logger.error(
+                        log.error(
                                 "Async reindex failed for document {}: {}",
                                 documentKey,
                                 e.getMessage(),
@@ -225,7 +223,7 @@ public class ReindexAsyncCmdExe {
                             document.getDepartmentId(),
                             LocalDateTime.now()));
 
-            logger.info(
+            log.info(
                     "Document {} reindexed with custom chunks: {} chunks",
                     document.getDocumentKey(),
                     chunks.size());
@@ -234,7 +232,7 @@ public class ReindexAsyncCmdExe {
                 callback.onComplete();
             }
         } catch (Exception e) {
-            logger.error(
+            log.error(
                     "Failed to store reindex chunks for {}: {}",
                     document.getDocumentKey(),
                     e.getMessage(),

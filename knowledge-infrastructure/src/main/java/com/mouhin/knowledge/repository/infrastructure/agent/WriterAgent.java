@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,9 +17,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-12
  */
 @Component("writerAgent")
+@Slf4j
 public class WriterAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(WriterAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -44,7 +42,7 @@ public class WriterAgent implements BlackboardAgent {
 
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
-        logger.info("[Writer] 开始撰写文章");
+        log.info("[Writer] 开始撰写文章");
 
         blackboard.advanceTo(BlackboardPhase.WRITING);
 
@@ -70,7 +68,7 @@ public class WriterAgent implements BlackboardAgent {
             blackboard.setDraftArticle(fallback);
             emitProgress(
                     progressCallback, BlackboardProgressEvent.agentCompleted("writer", fallback));
-            logger.warn("[Writer] 无有效研究发现，跳过 LLM 调用");
+            log.warn("[Writer] 无有效研究发现，跳过 LLM 调用");
             return;
         }
 
@@ -91,7 +89,7 @@ public class WriterAgent implements BlackboardAgent {
 
         blackboard.setDraftArticle(draft);
         emitProgress(progressCallback, BlackboardProgressEvent.agentCompleted("writer", draft));
-        logger.info("[Writer] 文章草稿完成，长度：{} 字符", draft.length());
+        log.info("[Writer] 文章草稿完成，长度：{} 字符", draft.length());
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -23,8 +24,6 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.sax.BodyContentHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -46,9 +45,8 @@ import org.springframework.stereotype.Service;
  * @date 2026-09-02
  */
 @Service
+@Slf4j
 public class DocumentExtractionService implements DocumentExtractionGateway {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentExtractionService.class);
 
     /** 最大文件大小：200MB */
     private static final long MAX_FILE_SIZE = 200L * 1024 * 1024;
@@ -107,7 +105,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
         String checksum = calculateChecksum(filePath);
         String mimeType = tika.detect(filePath);
 
-        logger.info("Extracting text from: {} (type={}, size={})", fileName, mimeType, fileSize);
+        log.info("Extracting text from: {} (type={}, size={})", fileName, mimeType, fileSize);
 
         return switch (mimeType) {
             case "application/pdf" -> extractPdf(filePath);
@@ -146,10 +144,10 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
 
         // 记录警告
         for (String warning : result.warnings()) {
-            logger.warn("PDF extraction warning: {}", warning);
+            log.warn("PDF extraction warning: {}", warning);
         }
 
-        logger.info(
+        log.info(
                 "PDF extracted (enhanced): {} pages, encrypted={}, ocrRecommended={}, warnings={}",
                 result.getTotalPages(),
                 result.encrypted(),
@@ -207,7 +205,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 sections.add("");
             }
 
-            logger.info(
+            log.info(
                     "Word document extracted: {} paragraphs, {} sections",
                     paragraphs.size(),
                     sections.size());
@@ -255,7 +253,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 sheetTexts.add("");
             }
 
-            logger.info("Excel extracted: {} sheets", totalSheets);
+            log.info("Excel extracted: {} sheets", totalSheets);
             return new ExtractionResult(
                     sheetTexts, totalSheets, false, calculateChecksum(filePath), "xlsx");
         }
@@ -295,7 +293,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 slideTexts.add("");
             }
 
-            logger.info("PowerPoint extracted: {} slides", slides.size());
+            log.info("PowerPoint extracted: {} slides", slides.size());
             return new ExtractionResult(
                     slideTexts, slides.size(), false, calculateChecksum(filePath), "pptx");
         }
@@ -321,7 +319,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
             sections.add(fullText.isEmpty() ? "" : fullText);
         }
 
-        logger.info(
+        log.info(
                 "Plain text extraction ({}): {} sections, {} chars",
                 mimeType,
                 sections.size(),
@@ -358,7 +356,7 @@ public class DocumentExtractionService implements DocumentExtractionGateway {
                 sections.add(fullText.isEmpty() ? "" : fullText);
             }
 
-            logger.info(
+            log.info(
                     "Generic extraction ({}): {} sections, {} chars",
                     mimeType,
                     sections.size(),

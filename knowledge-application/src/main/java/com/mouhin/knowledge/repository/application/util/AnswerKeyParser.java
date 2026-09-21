@@ -4,8 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 标准答案与评分标准 Markdown 解析器
@@ -16,9 +15,8 @@ import org.slf4j.LoggerFactory;
  * @author Knowledge-Repository
  * @date 2026-09-16
  */
+@Slf4j
 public final class AnswerKeyParser {
-
-    private static final Logger logger = LoggerFactory.getLogger(AnswerKeyParser.class);
 
     /**
      * 题号标记（标题）：仅「以第N题开头」的标题才算一道题，如 {@code ### 第5题 …} / {@code 第 5 题}。
@@ -200,7 +198,7 @@ public final class AnswerKeyParser {
 
         flush(result, currentSeq, answerBuf.toString(), analysisBuf, criteriaBuf);
 
-        logger.debug("解析标准答案与评分标准：共 {} 道题（按全局题序）", result.size());
+        log.debug("解析标准答案与评分标准：共 {} 道题（按全局题序）", result.size());
         return result;
     }
 

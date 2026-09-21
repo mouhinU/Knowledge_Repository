@@ -2,8 +2,7 @@ package com.mouhin.knowledge.repository.web.config;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,13 +16,12 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
  * @date 2026-09-02
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
-        logger.warn("Bad request: {}", e.getMessage());
+        log.warn("Bad request: {}", e.getMessage());
         return ResponseEntity.badRequest()
                 .body(
                         Map.of(
@@ -34,7 +32,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-        logger.warn("Conflict: {}", e.getMessage());
+        log.warn("Conflict: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(
                         Map.of(
@@ -56,7 +54,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
-        logger.error("Unexpected error: {}", e.getMessage(), e);
+        log.error("Unexpected error: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(
                         Map.of(

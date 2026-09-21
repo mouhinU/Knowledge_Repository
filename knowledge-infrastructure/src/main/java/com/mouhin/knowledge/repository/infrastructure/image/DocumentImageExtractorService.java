@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import javax.imageio.ImageIO;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSName;
@@ -39,8 +40,6 @@ import org.apache.poi.xwpf.usermodel.XWPFPictureData;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.tika.Tika;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -60,10 +59,8 @@ import org.springframework.stereotype.Service;
  * @date 2026-09-20
  */
 @Service
+@Slf4j
 public class DocumentImageExtractorService implements DocumentImageExtractorGateway {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(DocumentImageExtractorService.class);
 
     /** 过滤边长小于该值的装饰性小图（px） */
     private static final int MIN_EDGE = 80;
@@ -84,7 +81,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         } catch (Exception e) {
             return List.of();
         }
-        logger.info("Extracting images from: {} (type={})", fileName, mimeType);
+        log.info("Extracting images from: {} (type={})", fileName, mimeType);
         try {
             List<ExtractedImage> images =
                     switch (mimeType) {
@@ -97,11 +94,10 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                                 extractFromPptx(filePath);
                         default -> List.of();
                     };
-            logger.info("Image extraction done: {} -> {} image(s)", fileName, images.size());
+            log.info("Image extraction done: {} -> {} image(s)", fileName, images.size());
             return images;
         } catch (Exception e) {
-            logger.warn(
-                    "Image extraction failed for {} ({}): {}", fileName, mimeType, e.getMessage());
+            log.warn("Image extraction failed for {} ({}): {}", fileName, mimeType, e.getMessage());
             return List.of();
         }
     }

@@ -10,8 +10,7 @@ import com.mouhin.knowledge.repository.infrastructure.upload.UploadSessionManage
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping("/api/document")
+@Slf4j
 public class DocumentUploadController {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentUploadController.class);
 
     private final UploadOnlyCmdExe uploadOnlyCmdExe;
     private final UploadFromFileCmdExe uploadFromFileCmdExe;
@@ -78,7 +76,7 @@ public class DocumentUploadController {
         String departmentId = request.getDepartmentId();
         String visibility = request.getVisibility() != null ? request.getVisibility() : "INTERNAL";
 
-        logger.info(
+        log.info(
                 "Uploading document: {}, owner={}, dept={}",
                 file.getOriginalFilename(),
                 ownerId,
@@ -136,7 +134,7 @@ public class DocumentUploadController {
                     uploadSessionManager.createSession(
                             request.getFileName(), request.getFileSize(), request.getTotalChunks());
 
-            logger.info(
+            log.info(
                     "初始化分片上传 [uploadId={}, fileName={}, chunks={}]",
                     uploadId,
                     request.getFileName(),
@@ -144,7 +142,7 @@ public class DocumentUploadController {
 
             return ResponseEntity.ok(Map.of("uploadId", uploadId, "uploadedChunks", Set.of()));
         } catch (Exception e) {
-            logger.error("初始化分片上传失败", e);
+            log.error("初始化分片上传失败", e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("errorCode", "INIT_FAILED", "errorMessage", e.getMessage()));
         }
@@ -169,7 +167,7 @@ public class DocumentUploadController {
             return ResponseEntity.badRequest()
                     .body(Map.of("errorCode", "INVALID_SESSION", "errorMessage", e.getMessage()));
         } catch (Exception e) {
-            logger.error("上传分片失败 [uploadId={}, chunk={}]", uploadId, chunkIndex, e);
+            log.error("上传分片失败 [uploadId={}, chunk={}]", uploadId, chunkIndex, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("errorCode", "CHUNK_FAILED", "errorMessage", e.getMessage()));
         }
@@ -231,7 +229,7 @@ public class DocumentUploadController {
                             "status", document.getStatus(),
                             "message", "Document uploaded. Please preview and confirm indexing."));
         } catch (Exception e) {
-            logger.error("完成分片上传失败 [uploadId={}]", uploadId, e);
+            log.error("完成分片上传失败 [uploadId={}]", uploadId, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("errorCode", "COMPLETE_FAILED", "errorMessage", e.getMessage()));
         }

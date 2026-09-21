@@ -26,8 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -42,9 +41,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamGradingSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamGradingSupport.class);
 
     private static final String AI_GRADING_SYSTEM_PROMPT =
             """
@@ -135,7 +133,7 @@ public class ExamGradingSupport {
             // 被定时任务反复认领却永不进入终态。改为仅告警并继续走后续流程：逐题循环空转 0 次
             // （totalAiScore 保持 0），随后照常执行认领 CAS 与终态 CAS，按卷面满分合计、得分 0 落
             // AI_GRADED（语义等同"客观题全部零分判定"），使空卷也能收敛到终态、可被人工复核。
-            logger.warn("考试场次无答题记录，按零分落终态 [session={}]", sessionId);
+            log.warn("考试场次无答题记录，按零分落终态 [session={}]", sessionId);
         }
 
         // CONC-1：并发认领改用围栏令牌——原子将 SUBMITTED 抢占为 GRADING 并写入一次性 UUID，
@@ -145,7 +143,7 @@ public class ExamGradingSupport {
         // 杜绝新旧评分者对同一场次交叉写、覆盖终态。
         String gradingToken = examSessionGateway.claimForGrading(sessionId);
         if (gradingToken == null) {
-            logger.info("评分认领失败，跳过重复评分 [session={}]", sessionId);
+            log.info("评分认领失败，跳过重复评分 [session={}]", sessionId);
             if (callback != null) {
                 callback.onComplete(0, 0);
             }
@@ -219,7 +217,7 @@ public class ExamGradingSupport {
                 // 心跳续约（带围栏令牌）：仅当仍为本次认领的 GRADING 时刷新 update_time；令牌失配说明已被
                 // 超时回收并重新认领，立即停止，杜绝两个评分者对同场次交叉写。
                 if (!examSessionGateway.touchGradingHeartbeat(sessionId, gradingToken)) {
-                    logger.warn("评分心跳失败，场次已被接管，停止本次评分 [session={}]", sessionId);
+                    log.warn("评分心跳失败，场次已被接管，停止本次评分 [session={}]", sessionId);
                     stillOwner = false;
                     break;
                 }
@@ -253,7 +251,7 @@ public class ExamGradingSupport {
             session.setTotalScore(paperTotal);
             if (!examSessionGateway.completeGrading(
                     sessionId, gradingToken, STATUS_AI_GRADED, totalAiScore, paperTotal)) {
-                logger.warn("评分终态落库失败：场次已非本次认领的 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
+                log.warn("评分终态落库失败：场次已非本次认领的 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
                 if (callback != null) {
                     callback.onError("评分结果未被采纳：场次已被其它流程接管");
                 }
@@ -264,11 +262,11 @@ public class ExamGradingSupport {
                 callback.onComplete(answers.size(), totalAiScore);
             }
 
-            logger.info(
+            log.info(
                     "评分完成 [session={}, aiScore={}, total={}]", sessionId, totalAiScore, paperTotal);
         } catch (RuntimeException | Error ex) {
             // 认领后任何异常：以本次令牌安全回退为 SUBMITTED（令牌失配则不动，不误伤接管者），再上抛。
-            logger.error("评分过程异常，回退本场次待重评 [session={}]: {}", sessionId, ex.getMessage(), ex);
+            log.error("评分过程异常，回退本场次待重评 [session={}]: {}", sessionId, ex.getMessage(), ex);
             examSessionGateway.releaseGradingToSubmitted(sessionId, gradingToken);
             throw ex;
         }
@@ -293,13 +291,13 @@ public class ExamGradingSupport {
                 examQuestionSplitSupport.splitAndPersist(
                         paperKey, session.getExamPaper(), session.getAnswerKey(), plan);
                 questions = examQuestionGateway.listBySessionKey(paperKey);
-                logger.info(
+                log.info(
                         "惰性回灌结构化题目 [session={}, paperKey={}, rows={}]",
                         session.getId(),
                         paperKey,
                         questions.size());
             } catch (Exception e) {
-                logger.warn(
+                log.warn(
                         "惰性回灌结构化题目失败，本次评分按缺失标准答案处理（待人工确认）[session={}, paperKey={}]: {}",
                         session.getId(),
                         paperKey,
@@ -331,7 +329,7 @@ public class ExamGradingSupport {
                             gradeExamInternal(sessionId, callback);
                         } catch (Exception e) {
                             // 认领后的异常已在 gradeExamInternal 内以围栏令牌安全回退并记日志，这里只负责把错误上报回调。
-                            logger.error("异步评分异常 [session={}]", sessionId, e);
+                            log.error("异步评分异常 [session={}]", sessionId, e);
                             if (callback != null) {
                                 try {
                                     callback.onError(
@@ -347,7 +345,7 @@ public class ExamGradingSupport {
         } catch (RejectedExecutionException rex) {
             // 线程池已达并发上限：AbortPolicy 在提交瞬间同步抛出，任务体尚未执行、
             // 未认领任何场次，无需回退围栏令牌。上报繁忙提示后向上冒泡由控制器转 429。
-            logger.warn("评分任务被拒绝（并发已达上限）[session={}]", sessionId);
+            log.warn("评分任务被拒绝（并发已达上限）[session={}]", sessionId);
             if (callback != null) {
                 try {
                     callback.onError("系统繁忙，评分任务已达并发上限，请稍后重试");
@@ -414,7 +412,7 @@ public class ExamGradingSupport {
 
         // 缺少标准答案：判 0 分 + 标记待复核 + 告警，绝不静默给满分
         if (rawCorrect == null || rawCorrect.isBlank()) {
-            logger.warn(
+            log.warn(
                     "grading: sessionId answer_key missing for questionIndex={}, forcing 0 + review",
                     qIdx);
             answer.setCorrect(false);
@@ -534,7 +532,7 @@ public class ExamGradingSupport {
                             });
 
             if (output == null || output.isBlank()) {
-                logger.warn("AI 评分返回空 [question={}]", answer.getQuestionIndex());
+                log.warn("AI 评分返回空 [question={}]", answer.getQuestionIndex());
                 answer.setAiScore(0);
                 answer.setAiFeedback("AI 评分失败，请人工复核");
                 answer.setAiRawOutput("[EMPTY] 模型返回空内容");
@@ -549,14 +547,14 @@ public class ExamGradingSupport {
             answer.setAiFeedback(reason);
             answer.setAiRawOutput(output);
 
-            logger.debug(
+            log.debug(
                     "AI 评分完成 [question={}, score={}/{}]",
                     answer.getQuestionIndex(),
                     score,
                     answer.getMaxScore());
 
         } catch (Exception e) {
-            logger.error("AI 评分异常 [question={}]", answer.getQuestionIndex(), e);
+            log.error("AI 评分异常 [question={}]", answer.getQuestionIndex(), e);
             answer.setAiScore(0);
             answer.setAiFeedback("AI 评分异常：" + e.getMessage());
             answer.setAiRawOutput(

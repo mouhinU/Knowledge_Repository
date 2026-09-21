@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.application.agent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,9 +27,9 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-15
  */
 @Component("examContentValidatorAgent")
+@Slf4j
 public class ExamContentValidatorAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamContentValidatorAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final Set<String> KNOWN_TYPES =
@@ -113,7 +112,7 @@ public class ExamContentValidatorAgent {
         }
 
         boolean pass = errors.isEmpty();
-        logger.info(
+        log.info(
                 "校验 Agent：共 {} 题，pass={}，errors={}，warnings={}",
                 questions.size(),
                 pass,
@@ -131,7 +130,7 @@ public class ExamContentValidatorAgent {
         try {
             return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
-            logger.warn("校验 Agent：questionsJson 解析失败: {}", e.getMessage());
+            log.warn("校验 Agent：questionsJson 解析失败: {}", e.getMessage());
             return List.of();
         }
     }

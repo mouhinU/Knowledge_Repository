@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 试卷 Markdown 解析器
@@ -27,9 +26,9 @@ import org.slf4j.LoggerFactory;
  * @author Knowledge-Repository
  * @date 2026-09-16
  */
+@Slf4j
 public final class ExamPaperParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamPaperParser.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** 六大内核题型 → 枚举 key */
@@ -147,7 +146,7 @@ public final class ExamPaperParser {
         try {
             return OBJECT_MAPPER.writeValueAsString(questions);
         } catch (JsonProcessingException e) {
-            logger.error("序列化题目 JSON 失败", e);
+            log.error("序列化题目 JSON 失败", e);
             return "[]";
         }
     }
@@ -160,7 +159,7 @@ public final class ExamPaperParser {
         try {
             return OBJECT_MAPPER.readValue(planJson, ExamPlan.class);
         } catch (Exception e) {
-            logger.warn("题型分布方案解析失败，考试端回退到试卷关键词判定: {}", e.getMessage());
+            log.warn("题型分布方案解析失败，考试端回退到试卷关键词判定: {}", e.getMessage());
             return null;
         }
     }

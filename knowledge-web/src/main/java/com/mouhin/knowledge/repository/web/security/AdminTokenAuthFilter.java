@@ -10,8 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,9 +28,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * @author Knowledge-Repository
  * @date 2026-09-19
  */
+@Slf4j
 public class AdminTokenAuthFilter extends OncePerRequestFilter {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminTokenAuthFilter.class);
 
     /** 管理端令牌请求头。 */
     public static final String TOKEN_HEADER = "X-Admin-Token";
@@ -120,7 +118,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     }
 
     private void writeUnauthorized(HttpServletResponse response) throws IOException {
-        logger.debug("管理端鉴权失败：缺少或无效令牌");
+        log.debug("管理端鉴权失败：缺少或无效令牌");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

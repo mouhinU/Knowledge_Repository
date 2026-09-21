@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("answerKeyGeneratorAgent")
+@Slf4j
 public class AnswerKeyGeneratorAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(AnswerKeyGeneratorAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -58,7 +56,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
         String examPaper = blackboard.getExamPaper();
         String findings = blackboard.getKeyFindings();
 
-        logger.info("[AnswerKeyGenerator] 开始生成答案与评分标准");
+        log.info("[AnswerKeyGenerator] 开始生成答案与评分标准");
 
         blackboard.advanceTo(BlackboardPhase.ANSWER_GENERATING);
 
@@ -101,7 +99,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
                         "answer-generator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (answerKey == null || answerKey.isBlank()) {
-            logger.error("[AnswerKeyGenerator] LLM 返回空答案");
+            log.error("[AnswerKeyGenerator] LLM 返回空答案");
             answerKey = "> 答案生成失败，请重试。";
         }
 
@@ -109,7 +107,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted("answer-generator", answerKey));
-        logger.info("[AnswerKeyGenerator] 答案生成完成，长度：{} 字符", answerKey.length());
+        log.info("[AnswerKeyGenerator] 答案生成完成，长度：{} 字符", answerKey.length());
     }
 
     @Override

@@ -16,8 +16,7 @@ import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -30,9 +29,8 @@ import org.springframework.stereotype.Service;
  * @date 2026-09-02
  */
 @Service
+@Slf4j
 public class MilvusVectorStoreService implements VectorStoreGateway {
-
-    private static final Logger logger = LoggerFactory.getLogger(MilvusVectorStoreService.class);
 
     /** 每批向量化处理的分块数量 */
     private static final int EMBEDDING_BATCH_SIZE = 20;
@@ -123,7 +121,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         // 一次性存储到 Milvus
         embeddingStore.addAll(allEmbeddings, segments);
 
-        logger.info("Stored {} chunks in Milvus", totalChunks);
+        log.info("Stored {} chunks in Milvus", totalChunks);
     }
 
     /**
@@ -171,7 +169,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
                             metadata.getString("category")));
         }
 
-        logger.debug("Search for '{}' returned {} results", query, searchResults.size());
+        log.debug("Search for '{}' returned {} results", query, searchResults.size());
         return searchResults;
     }
 
@@ -199,7 +197,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     public void deleteByDocumentKey(String documentKey) {
         Filter filter = new IsEqualTo("document_key", documentKey);
         embeddingStore.removeAll(filter);
-        logger.info("Deleted vectors for document {}", documentKey);
+        log.info("Deleted vectors for document {}", documentKey);
     }
 
     private Integer parseIntOrNull(String value) {

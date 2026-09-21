@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,9 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class VoidPaperCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(VoidPaperCmdExe.class);
 
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamSessionGateway examSessionGateway;
@@ -57,7 +55,7 @@ public class VoidPaperCmdExe {
                         .findBySessionId(sessionId)
                         .orElseThrow(() -> new IllegalArgumentException("试卷不存在: " + sessionId));
         if (history.isVoided()) {
-            logger.info("试卷已处于作废态，幂等返回 [session={}]", sessionId);
+            log.info("试卷已处于作废态，幂等返回 [session={}]", sessionId);
             return examSessionGateway.markVoidedByExamHistoryId(history.getId(), true);
         }
         String actor = (operator != null && !operator.isBlank()) ? operator : "admin";
@@ -65,7 +63,7 @@ public class VoidPaperCmdExe {
         history.setUpdateTime(LocalDateTime.now());
         examHistoryGateway.update(history);
         int cascaded = examSessionGateway.markVoidedByExamHistoryId(history.getId(), true);
-        logger.info(
+        log.info(
                 "试卷已作废并级联场次 [session={}, operator={}, cascadedSessions={}]",
                 sessionId,
                 actor,

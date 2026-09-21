@@ -7,8 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,9 +27,9 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-15
  */
 @Component("examContentRenderAgent")
+@Slf4j
 public class ExamContentRenderAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExamContentRenderAgent.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** 默认每题分值（解析不到时使用） */
@@ -60,7 +59,7 @@ public class ExamContentRenderAgent {
 
         // 1. questionsJson 缺失或为空 → 从 Markdown 回退解析（带方案则以方案为真源）
         if (questions.isEmpty() && examPaper != null && !examPaper.isBlank()) {
-            logger.info(
+            log.info(
                     "渲染 Agent：questionsJson 为空，回退到 Markdown 解析（plan={}）",
                     planJson != null ? "有" : "无");
             questions = ExamPaperParser.parse(examPaper, ExamPaperParser.readPlan(planJson));
@@ -86,7 +85,7 @@ public class ExamContentRenderAgent {
                 if (split.options().size() >= 2) {
                     content = cleanContent(split.content());
                     options = split.options();
-                    logger.info("渲染 Agent：第 {} 题选项缺失，已从正文修复 {} 个选项", index, options.size());
+                    log.info("渲染 Agent：第 {} 题选项缺失，已从正文修复 {} 个选项", index, options.size());
                 }
             }
 
@@ -103,7 +102,7 @@ public class ExamContentRenderAgent {
         try {
             return OBJECT_MAPPER.writeValueAsString(rendered);
         } catch (Exception e) {
-            logger.error("渲染 Agent：序列化失败，回退为 []", e);
+            log.error("渲染 Agent：序列化失败，回退为 []", e);
             return "[]";
         }
     }
@@ -117,7 +116,7 @@ public class ExamContentRenderAgent {
         try {
             return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
-            logger.warn("渲染 Agent：questionsJson 解析失败: {}", e.getMessage());
+            log.warn("渲染 Agent：questionsJson 解析失败: {}", e.getMessage());
             return new ArrayList<>();
         }
     }

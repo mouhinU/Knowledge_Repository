@@ -17,8 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,9 +32,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/admin/paper-review")
+@Slf4j
 public class PaperReviewController {
-
-    private static final Logger logger = LoggerFactory.getLogger(PaperReviewController.class);
 
     private final ListReviewPendingQryExe listReviewPendingQryExe;
     private final GetPaperQuestionsQryExe getPaperQuestionsQryExe;
@@ -128,7 +126,7 @@ public class PaperReviewController {
                             sessionId, questionNumber, correctAnswer, analysis, maxScore);
             return ResponseEntity.ok(validationMap(result));
         } catch (Exception e) {
-            logger.warn(
+            log.warn(
                     "校对就地编辑失败 [session={}, number={}]: {}",
                     sessionId,
                     questionNumber,
@@ -153,7 +151,7 @@ public class PaperReviewController {
             result.put("assetKeys", saved);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            logger.warn(
+            log.warn(
                     "校对配图绑定失败 [session={}, number={}]: {}",
                     sessionId,
                     questionNumber,
@@ -176,7 +174,7 @@ public class PaperReviewController {
             }
             return ResponseEntity.ok(Map.of("message", "试卷已校对通过并发布", "published", true));
         } catch (Exception e) {
-            logger.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
+            log.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", String.valueOf(e.getMessage())));
         }
@@ -190,7 +188,7 @@ public class PaperReviewController {
             int cascaded = voidPaperCmdExe.execute(sessionId, operator);
             return ResponseEntity.ok(Map.of("message", "试卷已作废", "cascadedSessions", cascaded));
         } catch (Exception e) {
-            logger.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
+            log.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", String.valueOf(e.getMessage())));
         }
@@ -205,7 +203,7 @@ public class PaperReviewController {
             body.put("count", outcome.count());
             return ResponseEntity.ok(body);
         } catch (Exception e) {
-            logger.warn("重新切分失败 [session={}]: {}", sessionId, e.getMessage());
+            log.warn("重新切分失败 [session={}]: {}", sessionId, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", String.valueOf(e.getMessage())));
         }

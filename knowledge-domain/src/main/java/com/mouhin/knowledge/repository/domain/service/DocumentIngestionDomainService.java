@@ -10,8 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,10 +22,8 @@ import org.springframework.stereotype.Service;
  * @date 2026-09-02
  */
 @Service
+@Slf4j
 public class DocumentIngestionDomainService {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(DocumentIngestionDomainService.class);
 
     /** 增强句子分割正则： - 中英文句号、问号、叹号、分号、冒号 - 省略号（中英文） - 换行符（作为弱句子边界） - 避免在缩写、数字中间断开 */
     private static final Pattern SENTENCE_BOUNDARY = Pattern.compile("(?<=[.。!！?？;；…\\n])\\s+");
@@ -50,13 +47,13 @@ public class DocumentIngestionDomainService {
     public List<DocumentChunk> chunkDocument(
             Document document, List<String> pages, ChunkingConfig config) {
         if (pages == null || pages.isEmpty()) {
-            logger.warn("Document {} has no pages to chunk", document.getDocumentKey());
+            log.warn("Document {} has no pages to chunk", document.getDocumentKey());
             return List.of();
         }
 
         ChunkingStrategyEnum strategy = config.getStrategy();
-        if (logger.isInfoEnabled()) {
-            logger.info(
+        if (log.isInfoEnabled()) {
+            log.info(
                     "Chunking document {} with strategy={}, maxChunk={}, overlap={}",
                     document.getDocumentKey(),
                     strategy,
@@ -95,7 +92,7 @@ public class DocumentIngestionDomainService {
             chunkIndex++;
         }
 
-        logger.info(
+        log.info(
                 "Document {} chunked into {} pieces (strategy={})",
                 document.getDocumentKey(),
                 chunks.size(),

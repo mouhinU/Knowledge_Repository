@@ -2,8 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.user;
 
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class UserDeleteCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserDeleteCmdExe.class);
 
     private final UserGateway userGateway;
 
@@ -35,6 +33,6 @@ public class UserDeleteCmdExe {
                         .orElseThrow(
                                 () -> new IllegalArgumentException("User not found: " + userKey));
         userGateway.findByUserKey(user.getUserKey());
-        logger.info("User deleted: {}", userKey);
+        log.info("User deleted: {}", userKey);
     }
 }

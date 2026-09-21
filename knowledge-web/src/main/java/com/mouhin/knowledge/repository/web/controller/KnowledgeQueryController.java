@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,9 +17,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/knowledge")
+@Slf4j
 public class KnowledgeQueryController {
-
-    private static final Logger logger = LoggerFactory.getLogger(KnowledgeQueryController.class);
 
     private final KnowledgeQueryServiceI queryService;
 
@@ -73,7 +71,7 @@ public class KnowledgeQueryController {
         cmd.setCategory(category);
 
         SearchResponseVO response = queryService.search(cmd);
-        logger.debug("knowledge search returned {} results", response.getTotalResults());
+        log.debug("knowledge search returned {} results", response.getTotalResults());
         return ResponseEntity.ok(response);
     }
 

@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.infrastructure.config;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,9 +20,8 @@ import org.springframework.context.annotation.Lazy;
  * @date 2026-09-19
  */
 @Configuration
+@Slf4j
 public class MilvusConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(MilvusConfig.class);
 
     /** 建连失败最大重试次数。 */
     private static final int MAX_CONNECT_ATTEMPTS = 5;
@@ -49,7 +47,7 @@ public class MilvusConfig {
     @Lazy
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
-        logger.info(
+        log.info(
                 "Initializing Milvus embedding store (lazy): {}:{}, collection={}",
                 host,
                 port,
@@ -76,12 +74,12 @@ public class MilvusConfig {
                                 .databaseName(databaseName)
                                 .build();
                 if (attempt > 1) {
-                    logger.info("Milvus embedding store 建连成功（第 {} 次尝试）", attempt);
+                    log.info("Milvus embedding store 建连成功（第 {} 次尝试）", attempt);
                 }
                 return store;
             } catch (RuntimeException e) {
                 lastError = e;
-                logger.warn(
+                log.warn(
                         "Milvus embedding store 建连失败（第 {}/{} 次）：{}",
                         attempt,
                         MAX_CONNECT_ATTEMPTS,

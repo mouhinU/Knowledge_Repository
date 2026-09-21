@@ -14,8 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -29,9 +28,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class UploadFromFileCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(UploadFromFileCmdExe.class);
 
     private final DocumentIngestionSupport support;
     private final ExtractionCacheHolder extractionCache;
@@ -105,7 +103,7 @@ public class UploadFromFileCmdExe {
         try {
             documentImageSupport.extractAndPersist(document, assembledFile);
         } catch (Exception imgEx) {
-            logger.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}", documentKey, imgEx.getMessage());
+            log.warn("图片抽取失败，忽略以保上传主流程 [documentKey={}]: {}", documentKey, imgEx.getMessage());
         }
 
         eventPublisher.publishEvent(
@@ -114,7 +112,7 @@ public class UploadFromFileCmdExe {
 
         extractionCache.put(documentKey, result);
 
-        logger.info(
+        log.info(
                 "Document uploaded from assembled file (pending index): {} -> {}",
                 documentKey,
                 fileName);

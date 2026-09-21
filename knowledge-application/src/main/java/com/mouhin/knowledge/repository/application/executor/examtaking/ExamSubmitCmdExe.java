@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamSubmitCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamSubmitCmdExe.class);
 
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
@@ -54,7 +52,7 @@ public class ExamSubmitCmdExe {
             long allowedSeconds =
                     (long) session.getDurationMinutes() * SECONDS_PER_MINUTE + SUBMIT_GRACE_SECONDS;
             if (elapsedSeconds > allowedSeconds) {
-                logger.warn(
+                log.warn(
                         "考试超时提交 [session={}, elapsed={}s, allowed={}s]",
                         sessionKey,
                         elapsedSeconds,
@@ -67,6 +65,6 @@ public class ExamSubmitCmdExe {
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
 
-        logger.info("考生交卷 [session={}, student={}]", sessionKey, session.getStudentId());
+        log.info("考生交卷 [session={}, student={}]", sessionKey, session.getStudentId());
     }
 }

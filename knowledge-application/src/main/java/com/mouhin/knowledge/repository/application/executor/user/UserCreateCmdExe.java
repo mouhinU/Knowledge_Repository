@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.UserVO;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class UserCreateCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserCreateCmdExe.class);
 
     private final UserGateway userGateway;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -52,7 +50,7 @@ public class UserCreateCmdExe {
         }
         userGateway.save(user);
 
-        logger.info("User created: {} ({})", cmd.getUsername(), user.getUserKey());
+        log.info("User created: {} ({})", cmd.getUsername(), user.getUserKey());
         return UserConverter.toVO(user);
     }
 }

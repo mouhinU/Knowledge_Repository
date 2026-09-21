@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import java.util.Arrays;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,9 +16,8 @@ import org.springframework.stereotype.Service;
  * @date 2026-09-02
  */
 @Service
+@Slf4j
 public class PermissionDomainService {
-
-    private static final Logger logger = LoggerFactory.getLogger(PermissionDomainService.class);
 
     /**
      * 根据用户权限构建 Milvus 过滤表达式
@@ -37,7 +35,7 @@ public class PermissionDomainService {
 
         // 超级管理员：不过滤
         if (permission.isAdmin()) {
-            logger.debug("Admin user {}, no filter applied", permission.getUserId());
+            log.debug("Admin user {}, no filter applied", permission.getUserId());
             return null;
         }
 
@@ -81,7 +79,7 @@ public class PermissionDomainService {
                 String.join(
                         " or ", conditions.stream().map(c -> "(" + c + ")").toArray(String[]::new));
 
-        logger.debug("Permission filter for user {}: {}", permission.getUserId(), expression);
+        log.debug("Permission filter for user {}: {}", permission.getUserId(), expression);
         return expression;
     }
 

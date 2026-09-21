@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,9 +17,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class SearchImagesQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(SearchImagesQryExe.class);
 
     /** 单页上限，防止前端误传超大 limit 拖垮查询。 */
     private static final int MAX_LIMIT = 200;
@@ -42,7 +40,7 @@ public class SearchImagesQryExe {
                         .map(SearchImagesQryExe::toVO)
                         .toList();
         long total = documentImageSupport.countImages(trimToNull(keyword), trimToNull(documentKey));
-        logger.debug(
+        log.debug(
                 "全局配图检索 [keyword={}, documentKey={}, limit={}, offset={}, hit={}, total={}]",
                 keyword,
                 documentKey,

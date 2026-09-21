@@ -13,8 +13,7 @@ import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -27,9 +26,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 @RestController
 @RequestMapping("/api/admin/document")
+@Slf4j
 public class DocumentAdminController {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentAdminController.class);
 
     private final DocumentServiceI documentService;
     private final DocumentIngestionServiceI ingestionService;
@@ -123,7 +121,7 @@ public class DocumentAdminController {
     public ResponseEntity<Map<String, Object>> reindex(
             @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info(
+        log.info(
                 "Async reindexing document {}: chunkSize={}, strategy={}",
                 documentKey,
                 chunkingRequest.getChunkSize(),
@@ -154,7 +152,7 @@ public class DocumentAdminController {
     public ResponseEntity<Map<String, Object>> reindexWithCustomChunks(
             @PathVariable String documentKey, @RequestBody List<CustomChunkInput> customChunks) {
 
-        logger.info(
+        log.info(
                 "Async reindexing document {} with {} custom chunks",
                 documentKey,
                 customChunks != null ? customChunks.size() : 0);
@@ -174,7 +172,7 @@ public class DocumentAdminController {
     public ResponseEntity<PreviewResult> preview(
             @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info(
+        log.info(
                 "Preview document {}: chunkSize={}, strategy={}",
                 documentKey,
                 chunkingRequest.getChunkSize(),
@@ -193,7 +191,7 @@ public class DocumentAdminController {
     public ResponseEntity<Map<String, Object>> indexDocument(
             @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
 
-        logger.info(
+        log.info(
                 "Async indexing document {}: chunkSize={}, strategy={}",
                 documentKey,
                 chunkingRequest.getChunkSize(),
@@ -219,7 +217,7 @@ public class DocumentAdminController {
     public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
             @PathVariable String documentKey, @RequestBody List<CustomChunkInput> customChunks) {
 
-        logger.info(
+        log.info(
                 "Async indexing document {} with {} custom chunks",
                 documentKey,
                 customChunks != null ? customChunks.size() : 0);

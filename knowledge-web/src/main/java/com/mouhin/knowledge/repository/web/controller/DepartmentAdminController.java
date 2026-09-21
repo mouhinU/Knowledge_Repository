@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +22,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/admin/department")
+@Slf4j
 public class DepartmentAdminController {
-
-    private static final Logger logger = LoggerFactory.getLogger(DepartmentAdminController.class);
 
     private final DepartmentServiceI departmentService;
 

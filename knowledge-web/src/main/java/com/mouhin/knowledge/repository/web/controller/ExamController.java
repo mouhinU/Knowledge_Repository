@@ -22,8 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +46,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 @RestController
 @RequestMapping("/api/agent")
+@Slf4j
 public class ExamController {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamController.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -112,7 +110,7 @@ public class ExamController {
         Permission permission =
                 new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info(
+        log.info(
                 "收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
                 request.getTopic(),
                 request.getDifficulty(),
@@ -147,7 +145,7 @@ public class ExamController {
                     skipScoringValidation);
         } catch (RejectedExecutionException rex) {
             // 出卷线程池已达并发上限：任务未启动（未占用请求线程），返回 429 供前端退避重试。
-            logger.warn("出卷请求被限流（并发已达上限）[session={}]", sessionId);
+            log.warn("出卷请求被限流（并发已达上限）[session={}]", sessionId);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "系统繁忙，出卷并发已达上限，请稍后重试"));
         }
@@ -165,7 +163,7 @@ public class ExamController {
      */
     @GetMapping(value = "/exam/progress/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getExamProgress(@PathVariable String sessionId) {
-        logger.debug("试卷 SSE 连接建立 [session={}]", sessionId);
+        log.debug("试卷 SSE 连接建立 [session={}]", sessionId);
         return progressStore.createEmitter(sessionId);
     }
 
@@ -190,7 +188,7 @@ public class ExamController {
         Permission permission =
                 new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info(
+        log.info(
                 "收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
                 request.getTopic(),
                 request.getDifficulty(),
@@ -247,7 +245,7 @@ public class ExamController {
         Permission permission =
                 new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info("导出试卷 Word: topic='{}'", request.getTopic());
+        log.info("导出试卷 Word: topic='{}'", request.getTopic());
 
         ExamPlan plan = parsePlan(request.getDistribution());
         boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
@@ -318,7 +316,7 @@ public class ExamController {
                         ? requestedSessionId
                         : "dist-" + java.util.UUID.randomUUID();
 
-        logger.info(
+        log.info(
                 "收到题型分布方案生成请求（流式）: topic='{}', difficulty='{}', level='{}', session='{}'",
                 request.getTopic(),
                 request.getDifficulty(),
@@ -354,7 +352,7 @@ public class ExamController {
             return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
         }
 
-        logger.info(
+        log.info(
                 "收到题型分布方案自动平衡请求: types={}, fullMark={}",
                 plan.getTypes().size(),
                 plan.getTotalFullMark());
@@ -391,7 +389,7 @@ public class ExamController {
                         ? requestedSessionId
                         : "validate-" + java.util.UUID.randomUUID();
 
-        logger.info(
+        log.info(
                 "收到方案校验请求（流式）: types={}, fullMark={}, session={}",
                 plan.getTypes().size(),
                 plan.getTotalFullMark(),
@@ -439,7 +437,7 @@ public class ExamController {
         try {
             return OBJECT_MAPPER.readValue(distributionJson, ExamPlan.class);
         } catch (Exception e) {
-            logger.warn("解析题型分布方案失败，回退按题量模式: {}", e.getMessage());
+            log.warn("解析题型分布方案失败，回退按题量模式: {}", e.getMessage());
             return null;
         }
     }
@@ -550,9 +548,9 @@ public class ExamController {
             examWordExporter.export(history.getExamPaper(), response.getOutputStream());
             response.flushBuffer();
 
-            logger.info("历史试卷 Word 导出完成 [session={}, topic={}]", sessionId, topic);
+            log.info("历史试卷 Word 导出完成 [session={}, topic={}]", sessionId, topic);
         } catch (Exception e) {
-            logger.error("历史试卷 Word 导出失败 [session={}]", sessionId, e);
+            log.error("历史试卷 Word 导出失败 [session={}]", sessionId, e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }

@@ -11,8 +11,7 @@ import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,9 +32,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examScoringAgent")
+@Slf4j
 public class ExamScoringAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamScoringAgent.class);
 
     /** 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式 */
     private static final Pattern QUESTION_PATTERN =
@@ -57,7 +55,7 @@ public class ExamScoringAgent implements BlackboardAgent {
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
                         "exam-scoring", startMessage, materials));
-        logger.info(
+        log.info(
                 "[ExamScoring] 开始执行，主题：{}，学段：{}，题型配置：{}，skipValidation={}",
                 topic,
                 blackboard.getExamSchoolLevel(),
@@ -74,7 +72,7 @@ public class ExamScoringAgent implements BlackboardAgent {
             }
             plan = ScoreRuleEngine.buildDefaultPlan(topic, counts);
             blackboard.setExamPlan(plan);
-            logger.info("[ExamScoring] 未收到方案，基于 questionConfig 构建默认方案继续校验");
+            log.info("[ExamScoring] 未收到方案，基于 questionConfig 构建默认方案继续校验");
         }
 
         // Node 2 已校验通过：跳过校验，直接写入 scheme
@@ -86,7 +84,7 @@ public class ExamScoringAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("exam-scoring", output));
-            logger.info(
+            log.info(
                     "[ExamScoring] 跳过校验（Node 2 已通过），直接写入 scheme [topic='{}', fullMark={}]",
                     topic,
                     plan.getTotalFullMark());
@@ -106,7 +104,7 @@ public class ExamScoringAgent implements BlackboardAgent {
                             + result.issues().size()
                             + " 项硬性错误。请回到题型分布方案调整后再重新生成试卷。\n"
                             + String.join("\n", result.issues());
-            logger.warn("[ExamScoring] 校验未通过 [topic='{}', issues={}]", topic, result.issues());
+            log.warn("[ExamScoring] 校验未通过 [topic='{}', issues={}]", topic, result.issues());
             throw new IllegalStateException(error);
         }
 
@@ -120,12 +118,12 @@ public class ExamScoringAgent implements BlackboardAgent {
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted("exam-scoring", finalOutput));
         if (!result.suggestions().isEmpty()) {
-            logger.info(
+            log.info(
                     "[ExamScoring] 校验通过但含 {} 条优化建议 [topic='{}']",
                     result.suggestions().size(),
                     topic);
         } else {
-            logger.info("[ExamScoring] 校验通过（满分 {} 分）", plan.getTotalFullMark());
+            log.info("[ExamScoring] 校验通过（满分 {} 分）", plan.getTotalFullMark());
         }
     }
 

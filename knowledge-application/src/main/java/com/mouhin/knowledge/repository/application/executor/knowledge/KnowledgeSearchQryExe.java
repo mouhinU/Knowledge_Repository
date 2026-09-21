@@ -10,8 +10,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,9 +25,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class KnowledgeSearchQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(KnowledgeSearchQryExe.class);
 
     private static final int DEFAULT_MAX_RESULTS = 10;
     private static final double DEFAULT_MIN_SCORE = 0.5;
@@ -100,7 +98,7 @@ public class KnowledgeSearchQryExe {
         response.setTotalResults(items.size());
         response.setResults(items);
 
-        logger.info("Search for user '{}' returned {} results", cmd.getUserId(), items.size());
+        log.info("Search for user '{}' returned {} results", cmd.getUserId(), items.size());
         return response;
     }
 }

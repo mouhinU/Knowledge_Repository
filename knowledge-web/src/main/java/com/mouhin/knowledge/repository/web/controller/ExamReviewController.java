@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +27,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 @RestController
 @RequestMapping("/api/admin/exam-review")
+@Slf4j
 public class ExamReviewController {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamReviewController.class);
 
     private final ExamGradingServiceI gradingService;
     private final ExamTakingServiceI examTakingService;
@@ -97,7 +95,7 @@ public class ExamReviewController {
                             "streamId", streamId));
         } catch (RejectedExecutionException rex) {
             // 评分线程池已达并发上限：任务未启动（SSE 已上报繁忙），返回 429 供前端退避重试。
-            logger.warn("评分请求被限流（并发已达上限）[session={}]", sessionId);
+            log.warn("评分请求被限流（并发已达上限）[session={}]", sessionId);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "系统繁忙，评分并发已达上限，请稍后重试"));
         } catch (Exception e) {
@@ -135,7 +133,7 @@ public class ExamReviewController {
                 // 线程池饱和：本场次任务未启动。繁忙提示已由 support 经 wrapped.onError 上报，
                 // 该 onError 已对 remaining 递减一次，此处绝不可再次递减，否则会破坏批量完成计数。
                 rejected++;
-                logger.warn("批量评分中某场次被限流（并发已达上限）[session={}]", id);
+                log.warn("批量评分中某场次被限流（并发已达上限）[session={}]", id);
             }
         }
         if (accepted == 0) {
@@ -166,7 +164,7 @@ public class ExamReviewController {
      */
     @GetMapping(value = "/grading-stream/{streamId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter gradingStream(@PathVariable String streamId) {
-        logger.debug("评分 SSE 建立 [streamId={}]", streamId);
+        log.debug("评分 SSE 建立 [streamId={}]", streamId);
         return gradingProgressStore.createEmitter(streamId);
     }
 

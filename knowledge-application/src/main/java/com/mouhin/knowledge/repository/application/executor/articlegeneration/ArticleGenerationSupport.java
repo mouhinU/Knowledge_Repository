@@ -25,8 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,9 +40,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ArticleGenerationSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(ArticleGenerationSupport.class);
 
     private static final int DEFAULT_MAX_RESULTS = 10;
     private static final double DEFAULT_MIN_SCORE = 0.5;
@@ -111,7 +109,7 @@ public class ArticleGenerationSupport {
             BlackboardProgressCallback progressCallback,
             String sessionId,
             String category) {
-        logger.info(
+        log.info(
                 "启动异步文章生成 [session={}, question='{}', category='{}']",
                 sessionId,
                 truncate(question, 50),
@@ -132,7 +130,7 @@ public class ArticleGenerationSupport {
         } catch (RejectedExecutionException rex) {
             // 线程池已达并发上限：不在请求线程上同步跑流水线（AbortPolicy），
             // 先经 SSE 推送友好错误让前端优雅收尾，再向上冒泡由控制器转 429。
-            logger.warn("文章生成任务被拒绝（并发已达上限）[session={}]", sessionId);
+            log.warn("文章生成任务被拒绝（并发已达上限）[session={}]", sessionId);
             if (progressCallback != null) {
                 progressCallback.onProgress(
                         BlackboardProgressEvent.error("系统繁忙，生成任务已达并发上限，请稍后重试。"));
@@ -170,7 +168,7 @@ public class ArticleGenerationSupport {
                     authorizedSearch.searchAuthorized(
                             question, maxResults, minScore, filterExpr, category, permission);
             blackboard.setKnowledgeChunks(results);
-            logger.info("[Blackboard] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
+            log.info("[Blackboard] 检索到 {} 个知识片段 [session={}]", results.size(), sessionId);
 
             // 知识库无召回结果时，回退到大模型补充资料
             if (results.isEmpty()) {
@@ -179,14 +177,14 @@ public class ArticleGenerationSupport {
                             BlackboardProgressEvent.phaseChanged(
                                     BlackboardPhase.RESEARCH, "知识库无相关结果，正在使用大模型补充..."));
                 }
-                logger.info("[Blackboard] 知识库无召回结果，启用大模型补充 [session={}]", sessionId);
+                log.info("[Blackboard] 知识库无召回结果，启用大模型补充 [session={}]", sessionId);
                 String llmSupplement = callLlmForSupplement(question);
                 if (llmSupplement != null && !llmSupplement.isBlank()) {
                     SearchResult supplementResult =
                             new SearchResult(llmSupplement, null, "大模型补充", null, null, 0.5);
                     blackboard.setKnowledgeChunks(List.of(supplementResult));
                     results = blackboard.getKnowledgeChunks();
-                    logger.info(
+                    log.info(
                             "[Blackboard] 大模型补充资料已生成，长度: {} [session={}]",
                             llmSupplement.length(),
                             sessionId);
@@ -202,7 +200,7 @@ public class ArticleGenerationSupport {
             // 4. 审核员 Agent
             reviewerAgent.execute(blackboard, callback);
 
-            logger.info(
+            log.info(
                     "文章生成完成 [session={}, phase={}, score={}]",
                     sessionId,
                     blackboard.getPhase(),
@@ -217,7 +215,7 @@ public class ArticleGenerationSupport {
             }
 
         } catch (Exception e) {
-            logger.error("文章生成失败 [session={}]", sessionId, e);
+            log.error("文章生成失败 [session={}]", sessionId, e);
             blackboard.markFailed(e.getMessage());
 
             // 保存失败记录
@@ -255,7 +253,7 @@ public class ArticleGenerationSupport {
             history.setUpdateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
             writingHistoryGateway.save(history);
         } catch (Exception ex) {
-            logger.error("保存写作历史失败 [session={}]", sessionId, ex);
+            log.error("保存写作历史失败 [session={}]", sessionId, ex);
         }
     }
 
@@ -284,10 +282,10 @@ public class ArticleGenerationSupport {
 
             ChatResponse response = chatModel.chat(request);
             String answer = response.aiMessage().text();
-            logger.info("大模型补充资料生成完成，长度: {}", answer != null ? answer.length() : 0);
+            log.info("大模型补充资料生成完成，长度: {}", answer != null ? answer.length() : 0);
             return answer;
         } catch (Exception e) {
-            logger.error("大模型补充资料调用失败", e);
+            log.error("大模型补充资料调用失败", e);
             return null;
         }
     }

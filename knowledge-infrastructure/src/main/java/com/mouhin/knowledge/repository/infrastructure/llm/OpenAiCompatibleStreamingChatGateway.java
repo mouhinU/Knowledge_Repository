@@ -15,8 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OpenAI 兼容端点的流式对话网关实现。
@@ -28,10 +27,8 @@ import org.slf4j.LoggerFactory;
  * @author Knowledge-Repository
  * @date 2026-09-17
  */
+@Slf4j
 public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGateway {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(OpenAiCompatibleStreamingChatGateway.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -65,7 +62,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         this.maxTokens = maxTokens;
         this.requestTimeout = timeout;
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
-        logger.info("Initializing streaming chat gateway: {} at {}", modelName, chatCompletionsUrl);
+        log.info("Initializing streaming chat gateway: {} at {}", modelName, chatCompletionsUrl);
     }
 
     @Override
@@ -178,7 +175,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            logger.warn("解析流式增量失败，跳过该行: {}", abbreviate(payload));
+            log.warn("解析流式增量失败，跳过该行: {}", abbreviate(payload));
         }
     }
 

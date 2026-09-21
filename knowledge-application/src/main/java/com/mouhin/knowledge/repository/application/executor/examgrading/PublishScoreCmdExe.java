@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class PublishScoreCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(PublishScoreCmdExe.class);
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
@@ -60,8 +58,7 @@ public class PublishScoreCmdExe {
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
 
-        logger.info(
-                "成绩已发布 [session={}, finalScore={}, reviewer={}]", sessionId, finalScore, reviewer);
+        log.info("成绩已发布 [session={}, finalScore={}, reviewer={}]", sessionId, finalScore, reviewer);
     }
 
     /**

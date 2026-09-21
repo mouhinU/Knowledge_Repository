@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.examreview;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-18
  */
 @Component
+@Slf4j
 public class ResplitPaperCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ResplitPaperCmdExe.class);
 
     private final PaperReviewSupport support;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
@@ -41,7 +39,7 @@ public class ResplitPaperCmdExe {
         ExamQuestionSplitSupport.SplitOutcome outcome =
                 examQuestionSplitSupport.splitAndPersist(
                         sessionKey, history.getExamPaper(), history.getAnswerKey(), plan);
-        logger.info(
+        log.info(
                 "重新切分完成 [session={}, questions={}, pass={}]",
                 sessionKey,
                 outcome.count(),

@@ -13,8 +13,7 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,9 +29,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class DocumentImageSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentImageSupport.class);
 
     private final DocumentImageExtractorGateway extractor;
     private final DocumentImageGateway imageGateway;
@@ -65,7 +63,7 @@ public class DocumentImageSupport {
         try {
             images = extractor.extractImages(sourcePath, doc.getFileName());
         } catch (Exception e) {
-            logger.warn("图片抽取失败，跳过 [documentKey={}]: {}", doc.getDocumentKey(), e.getMessage());
+            log.warn("图片抽取失败，跳过 [documentKey={}]: {}", doc.getDocumentKey(), e.getMessage());
             return 0;
         }
         int added = 0;
@@ -98,16 +96,16 @@ public class DocumentImageSupport {
                 } catch (Exception dup) {
                     // 唯一键冲突等：清理刚落盘的孤儿文件后继续
                     Files.deleteIfExists(file);
-                    logger.debug("图片落库冲突，跳过并清理: {}", file);
+                    log.debug("图片落库冲突，跳过并清理: {}", file);
                     continue;
                 }
                 added++;
             } catch (Exception e) {
-                logger.warn("单张图片落盘失败 [documentKey={}]: {}", doc.getDocumentKey(), e.getMessage());
+                log.warn("单张图片落盘失败 [documentKey={}]: {}", doc.getDocumentKey(), e.getMessage());
             }
         }
         if (added > 0) {
-            logger.info("文档图片落盘完成 [documentKey={}, added={}]", doc.getDocumentKey(), added);
+            log.info("文档图片落盘完成 [documentKey={}, added={}]", doc.getDocumentKey(), added);
         }
         return added;
     }
@@ -133,7 +131,7 @@ public class DocumentImageSupport {
             try {
                 Path file = Path.of(image.getStoragePath()).normalize();
                 if (!file.startsWith(assetRoot.normalize())) {
-                    logger.warn(
+                    log.warn(
                             "配图文件越界，跳过删除 [assetKey={}, path={}]",
                             image.getAssetKey(),
                             image.getStoragePath());
@@ -143,7 +141,7 @@ public class DocumentImageSupport {
                     filesRemoved++;
                 }
             } catch (IOException e) {
-                logger.warn(
+                log.warn(
                         "删除配图文件失败 [assetKey={}, path={}]: {}",
                         image.getAssetKey(),
                         image.getStoragePath(),
@@ -151,8 +149,7 @@ public class DocumentImageSupport {
             }
         }
         imageGateway.deleteByDocumentId(doc.getId());
-        logger.info(
-                "文档配图已清除 [documentKey={}, filesRemoved={}]", doc.getDocumentKey(), filesRemoved);
+        log.info("文档配图已清除 [documentKey={}, filesRemoved={}]", doc.getDocumentKey(), filesRemoved);
         return filesRemoved;
     }
 
@@ -167,7 +164,7 @@ public class DocumentImageSupport {
         }
         Path source = Path.of(doc.getStoragePath());
         if (!Files.exists(source)) {
-            logger.warn("回填跳过：源文件不存在 [documentKey={}, path={}]", doc.getDocumentKey(), source);
+            log.warn("回填跳过：源文件不存在 [documentKey={}, path={}]", doc.getDocumentKey(), source);
             return 0;
         }
         return extractAndPersist(doc, source);
@@ -186,12 +183,12 @@ public class DocumentImageSupport {
         try {
             Path file = Path.of(image.getStoragePath()).normalize();
             if (!file.startsWith(assetRoot.normalize()) || !Files.exists(file)) {
-                logger.warn("图片文件越界或缺失，拒绝读取: {}", image.getStoragePath());
+                log.warn("图片文件越界或缺失，拒绝读取: {}", image.getStoragePath());
                 return Optional.empty();
             }
             return Optional.of(Files.readAllBytes(file));
         } catch (IOException e) {
-            logger.warn("读取图片失败 [assetKey={}]: {}", image.getAssetKey(), e.getMessage());
+            log.warn("读取图片失败 [assetKey={}]: {}", image.getAssetKey(), e.getMessage());
             return Optional.empty();
         }
     }

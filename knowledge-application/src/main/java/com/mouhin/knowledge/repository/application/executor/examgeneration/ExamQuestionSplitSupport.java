@@ -16,8 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,9 +30,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-18
  */
 @Component
+@Slf4j
 public class ExamQuestionSplitSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamQuestionSplitSupport.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -61,7 +59,7 @@ public class ExamQuestionSplitSupport {
         List<ExamQuestion> result = new ArrayList<>();
         List<Map<String, Object>> rawQuestions = ExamPaperParser.parse(examPaperMd, plan);
         if (rawQuestions.isEmpty()) {
-            logger.warn("[Split] 试卷切分为空 [session={}]", sessionKey);
+            log.warn("[Split] 试卷切分为空 [session={}]", sessionKey);
             return result;
         }
         Map<Integer, AnswerKeyParser.QuestionKey> keyMap = AnswerKeyParser.parse(answerKeyMd);
@@ -95,7 +93,7 @@ public class ExamQuestionSplitSupport {
             question.setUpdateTime(now);
             result.add(question);
         }
-        logger.info(
+        log.info(
                 "[Split] 切分完成 [session={}, questions={}, keyEntries={}]",
                 sessionKey,
                 result.size(),
@@ -111,7 +109,7 @@ public class ExamQuestionSplitSupport {
     public SplitOutcome splitAndPersist(
             String sessionKey, String examPaperMd, String answerKeyMd, ExamPlan plan) {
         if (sessionKey == null || sessionKey.isBlank()) {
-            logger.warn("[Split] sessionKey 为空，跳过落库");
+            log.warn("[Split] sessionKey 为空，跳过落库");
             return new SplitOutcome(
                     0, new ExamContractValidator.Result(false, List.of("试卷标识为空，无法落库校验")));
         }
@@ -129,7 +127,7 @@ public class ExamQuestionSplitSupport {
         examQuestionGateway.batchInsert(questions);
         ExamContractValidator.Result validation = ExamContractValidator.validate(questions, plan);
         if (preserved > 0) {
-            logger.info("[Split] 重新切分保留人工配图绑定 [session={}, preserved={}]", sessionKey, preserved);
+            log.info("[Split] 重新切分保留人工配图绑定 [session={}, preserved={}]", sessionKey, preserved);
         }
         return new SplitOutcome(questions.size(), validation);
     }
@@ -207,7 +205,7 @@ public class ExamQuestionSplitSupport {
         try {
             return OBJECT_MAPPER.writeValueAsString(optionsObj);
         } catch (Exception e) {
-            logger.warn("[Split] 选项序列化失败（忽略）: {}", e.getMessage());
+            log.warn("[Split] 选项序列化失败（忽略）: {}", e.getMessage());
             return null;
         }
     }

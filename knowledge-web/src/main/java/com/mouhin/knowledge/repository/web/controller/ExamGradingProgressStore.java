@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallbac
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -29,9 +28,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * @date 2026-09-16
  */
 @Component
+@Slf4j
 public class ExamGradingProgressStore {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamGradingProgressStore.class);
 
     /** SSE 超时：10 分钟 */
     private static final long SSE_TIMEOUT_MS = 600_000L;
@@ -59,7 +57,7 @@ public class ExamGradingProgressStore {
         emitter.onCompletion(() -> emitters.remove(streamId, emitter));
         emitter.onTimeout(() -> emitters.remove(streamId, emitter));
         emitter.onError(e -> emitters.remove(streamId, emitter));
-        logger.debug("评分 SSE 连接建立 [streamId={}]", streamId);
+        log.debug("评分 SSE 连接建立 [streamId={}]", streamId);
         return emitter;
     }
 
@@ -196,7 +194,7 @@ public class ExamGradingProgressStore {
     private void send(String streamId, String name, Map<String, Object> payload) {
         SseEmitter emitter = emitters.get(streamId);
         if (emitter == null) {
-            logger.debug("评分 SSE 未连接，丢弃事件 [streamId={}, event={}]", streamId, name);
+            log.debug("评分 SSE 未连接，丢弃事件 [streamId={}, event={}]", streamId, name);
             return;
         }
         try {
@@ -204,10 +202,10 @@ public class ExamGradingProgressStore {
                 emitter.send(SseEmitter.event().name(name).data(payload));
             }
         } catch (IOException e) {
-            logger.debug("评分 SSE 推送失败 [streamId={}, event={}]: {}", streamId, name, e.getMessage());
+            log.debug("评分 SSE 推送失败 [streamId={}, event={}]: {}", streamId, name, e.getMessage());
             emitters.remove(streamId, emitter);
         } catch (Exception e) {
-            logger.warn("评分 SSE 推送异常 [streamId={}, event={}]", streamId, name, e);
+            log.warn("评分 SSE 推送异常 [streamId={}, event={}]", streamId, name, e);
         }
     }
 

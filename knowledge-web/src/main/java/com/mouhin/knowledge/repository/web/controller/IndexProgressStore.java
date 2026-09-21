@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -18,9 +17,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * @date 2026-09-13
  */
 @Component
+@Slf4j
 public class IndexProgressStore {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexProgressStore.class);
 
     /** SSE 超时：5 分钟 */
     private static final long SSE_TIMEOUT = 300_000L;
@@ -96,7 +94,7 @@ public class IndexProgressStore {
         try {
             emitter.send(SseEmitter.event().data(data));
         } catch (IOException | IllegalStateException e) {
-            logger.debug("SSE send failed for document {}: {}", documentKey, e.getMessage());
+            log.debug("SSE send failed for document {}: {}", documentKey, e.getMessage());
             emitters.remove(documentKey);
         }
     }
@@ -107,7 +105,7 @@ public class IndexProgressStore {
             try {
                 emitter.complete();
             } catch (Exception e) {
-                logger.debug("SSE complete failed: {}", e.getMessage());
+                log.debug("SSE complete failed: {}", e.getMessage());
             }
         }
     }

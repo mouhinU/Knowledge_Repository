@@ -9,8 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamStartWithPaperCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamStartWithPaperCmdExe.class);
 
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
@@ -77,17 +75,15 @@ public class ExamStartWithPaperCmdExe {
             ExamQuestionSplitSupport.SplitOutcome outcome =
                     examQuestionSplitSupport.splitAndPersist(
                             session.getSessionKey(), examPaper, answerKey, null);
-            logger.info(
-                    "即时试卷结构化回灌完成 [session={}, rows={}]", session.getSessionKey(), outcome.count());
+            log.info("即时试卷结构化回灌完成 [session={}, rows={}]", session.getSessionKey(), outcome.count());
         } catch (Exception e) {
-            logger.warn(
+            log.warn(
                     "即时试卷结构化回灌失败（不影响开考，评分阶段回退答案键解析） [session={}]: {}",
                     session.getSessionKey(),
                     e.getMessage());
         }
 
-        logger.info(
-                "考生开始考试（即时试卷）[student={}, session={}]", student.getId(), session.getSessionKey());
+        log.info("考生开始考试（即时试卷）[student={}, session={}]", student.getId(), session.getSessionKey());
         return ExamTakingConverter.toSessionDTO(session);
     }
 }

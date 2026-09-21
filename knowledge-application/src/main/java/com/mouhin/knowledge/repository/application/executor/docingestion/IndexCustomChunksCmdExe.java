@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -35,9 +34,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class IndexCustomChunksCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexCustomChunksCmdExe.class);
 
     private final DocumentIngestionSupport support;
     private final ExtractionCacheHolder extractionCache;
@@ -109,7 +107,7 @@ public class IndexCustomChunksCmdExe {
                             document.getDepartmentId(),
                             LocalDateTime.now()));
 
-            logger.info(
+            log.info(
                     "Document {} indexed with custom chunks: {} chunks",
                     document.getDocumentKey(),
                     chunks.size());
@@ -119,7 +117,7 @@ public class IndexCustomChunksCmdExe {
             return DocumentConverter.toVO(document);
 
         } catch (Exception e) {
-            logger.error(
+            log.error(
                     "Failed to index document {} with custom chunks: {}",
                     documentKey,
                     e.getMessage(),

@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.document;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -20,9 +19,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class DocumentArchiveCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentArchiveCmdExe.class);
 
     private final DocumentGateway documentGateway;
     private final VectorStoreGateway vectorStoreService;
@@ -56,12 +54,12 @@ public class DocumentArchiveCmdExe {
         try {
             vectorStoreService.deleteByDocumentKey(documentKey);
         } catch (Exception e) {
-            logger.warn(
+            log.warn(
                     "归档文档向量删除失败（状态已置归档，向量残留待对账回收）[documentKey={}]: {}",
                     documentKey,
                     e.getMessage());
         }
 
-        logger.info("Document {} archived", documentKey);
+        log.info("Document {} archived", documentKey);
     }
 }

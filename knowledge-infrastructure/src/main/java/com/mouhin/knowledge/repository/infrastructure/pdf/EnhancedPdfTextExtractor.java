@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.infrastructure.pdf;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -15,8 +16,6 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 增强型 PDF 文本提取器
@@ -36,9 +35,8 @@ import org.slf4j.LoggerFactory;
  * @author Knowledge-Repository
  * @date 2026-09-11
  */
+@Slf4j
 public class EnhancedPdfTextExtractor {
-
-    private static final Logger logger = LoggerFactory.getLogger(EnhancedPdfTextExtractor.class);
 
     // ==================== 常量定义 ====================
 
@@ -153,7 +151,7 @@ public class EnhancedPdfTextExtractor {
                     warnings.add("PDF 禁止修改");
                 }
             }
-            logger.info("PDF is encrypted with restrictions: {}", warnings);
+            log.info("PDF is encrypted with restrictions: {}", warnings);
         }
 
         // 2. 提取元数据
@@ -179,7 +177,7 @@ public class EnhancedPdfTextExtractor {
         // 4. 检测页眉页脚（跨页分析）
         Set<String> headerFooterPatterns = detectHeaderFooter(rawTexts);
         if (!headerFooterPatterns.isEmpty()) {
-            logger.info("Detected header/footer patterns: {}", headerFooterPatterns);
+            log.info("Detected header/footer patterns: {}", headerFooterPatterns);
         }
 
         // 5. 处理每页内容
@@ -231,7 +229,7 @@ public class EnhancedPdfTextExtractor {
         // 7. 跨页段落合并（可选）
         // pages = mergeCrossPageParagraphs(pages);
 
-        logger.info(
+        log.info(
                 "PDF extraction completed: {} pages, {} scanned, {} warnings",
                 totalPages,
                 scannedPages,

@@ -9,8 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamStartFromHistoryCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamStartFromHistoryCmdExe.class);
 
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
@@ -70,7 +68,7 @@ public class ExamStartFromHistoryCmdExe {
         // 一次开考门禁：同一考生对同一份试卷仅允许开考一次（IN_PROGRESS / SUBMITTED / AI_GRADED 等任意状态均计入）
         if (examSessionGateway.existsByStudentIdAndExamHistoryId(
                 student.getId(), history.getId())) {
-            logger.warn("考生尝试重复开考同一试卷 [student={}, history={}]", student.getId(), historySessionId);
+            log.warn("考生尝试重复开考同一试卷 [student={}, history={}]", student.getId(), historySessionId);
             throw new IllegalStateException("该试卷仅允许考试一次，您已完成本次考试，如需重考请联系教师");
         }
 
@@ -99,7 +97,7 @@ public class ExamStartFromHistoryCmdExe {
         session.setUpdateTime(LocalDateTime.now());
 
         examSessionGateway.save(session);
-        logger.info(
+        log.info(
                 "考生开始考试 [student={}, history={}, session={}]",
                 student.getId(),
                 historySessionId,

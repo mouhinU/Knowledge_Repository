@@ -8,8 +8,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,9 +32,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 @RestController
 @RequestMapping("/api/agent")
+@Slf4j
 public class ArticleAgentController {
-
-    private static final Logger logger = LoggerFactory.getLogger(ArticleAgentController.class);
 
     private final ArticleGenerationServiceI articleGenerationService;
     private final GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe;
@@ -71,8 +69,7 @@ public class ArticleAgentController {
         Permission permission =
                 new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
 
-        logger.info(
-                "收到文章生成请求: question='{}', user='{}'", truncate(request.getQuestion(), 50), userId);
+        log.info("收到文章生成请求: question='{}', user='{}'", truncate(request.getQuestion(), 50), userId);
 
         // 使用前端预分配的 sessionId（与 SSE 连接关联）
         String requestedSessionId = request.getSessionId();
@@ -96,7 +93,7 @@ public class ArticleAgentController {
                     request.getCategory());
         } catch (RejectedExecutionException rex) {
             // 文章生成线程池已达并发上限：任务未启动（未占用请求线程），返回 429 供前端退避重试。
-            logger.warn("文章生成请求被限流（并发已达上限）[session={}]", sessionId);
+            log.warn("文章生成请求被限流（并发已达上限）[session={}]", sessionId);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "系统繁忙，生成并发已达上限，请稍后重试"));
         }
@@ -116,7 +113,7 @@ public class ArticleAgentController {
             value = "/article/progress/{sessionId}",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getProgress(@PathVariable String sessionId) {
-        logger.debug("SSE 连接建立 [session={}]", sessionId);
+        log.debug("SSE 连接建立 [session={}]", sessionId);
         return progressStore.createEmitter(sessionId);
     }
 

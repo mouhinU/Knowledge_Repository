@@ -1,8 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,9 +13,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class AdminLogoutCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminLogoutCmdExe.class);
 
     private final AdminJwtService adminJwtService;
 
@@ -29,7 +27,7 @@ public class AdminLogoutCmdExe {
                 .verify(token)
                 .ifPresent(
                         payload ->
-                                logger.info(
+                                log.info(
                                         "管理端退出登录: username='{}', userKey={}",
                                         payload.username(),
                                         payload.userKey()));

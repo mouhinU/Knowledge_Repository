@@ -3,8 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.adminauth;
 import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class AdminChangePasswordCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdminChangePasswordCmdExe.class);
 
     private final UserGateway userGateway;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -53,6 +51,6 @@ public class AdminChangePasswordCmdExe {
 
         user.setPasswordHash(passwordEncoder.encode(cmd.getNewPassword()));
         userGateway.update(user);
-        logger.info("管理端改密成功: userKey={}", user.getUserKey());
+        log.info("管理端改密成功: userKey={}", user.getUserKey());
     }
 }

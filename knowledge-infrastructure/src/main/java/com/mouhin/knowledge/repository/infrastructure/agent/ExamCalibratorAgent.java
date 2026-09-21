@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examCalibratorAgent")
+@Slf4j
 public class ExamCalibratorAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamCalibratorAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -59,7 +57,7 @@ public class ExamCalibratorAgent implements BlackboardAgent {
         String examPaper = blackboard.getExamPaper();
         String targetDifficulty = blackboard.getExamDifficulty();
 
-        logger.info("[ExamCalibrator] 开始难度校准，目标难度：{}", targetDifficulty);
+        log.info("[ExamCalibrator] 开始难度校准，目标难度：{}", targetDifficulty);
 
         blackboard.advanceTo(BlackboardPhase.CALIBRATING);
 
@@ -105,7 +103,7 @@ public class ExamCalibratorAgent implements BlackboardAgent {
                         "exam-calibrator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (assessment == null || assessment.isBlank()) {
-            logger.error("[ExamCalibrator] LLM 返回空评估结果");
+            log.error("[ExamCalibrator] LLM 返回空评估结果");
             assessment = "## 难度分析\n分析过程异常，请重试。\n\n## 难度分布\n无\n\n## 校准结论\n无法评估\n\n## 调整建议\n无";
         }
 
@@ -113,7 +111,7 @@ public class ExamCalibratorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted("exam-calibrator", assessment));
-        logger.info("[ExamCalibrator] 难度校准完成，长度：{} 字符", assessment.length());
+        log.info("[ExamCalibrator] 难度校准完成，长度：{} 字符", assessment.length());
     }
 
     @Override

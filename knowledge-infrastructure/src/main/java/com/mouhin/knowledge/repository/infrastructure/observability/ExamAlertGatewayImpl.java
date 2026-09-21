@@ -4,8 +4,7 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamAlertType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,9 +24,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-18
  */
 @Component
+@Slf4j
 public class ExamAlertGatewayImpl implements ExamAlertGateway {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamAlertGatewayImpl.class);
 
     /** 指标名：考试告警计数 */
     private static final String METRIC_NAME = "knowledge.exam.alert";
@@ -82,9 +80,9 @@ public class ExamAlertGatewayImpl implements ExamAlertGateway {
             }
         } catch (Exception e) {
             // 指标上报失败绝不影响主流程
-            logger.debug("考试告警指标上报失败 [type={}]: {}", type, e.getMessage());
+            log.debug("考试告警指标上报失败 [type={}]: {}", type, e.getMessage());
         }
-        logger.warn(
+        log.warn(
                 "{} type={} objectId={} detail={} desc={}",
                 LOG_MARKER,
                 type.getTag(),

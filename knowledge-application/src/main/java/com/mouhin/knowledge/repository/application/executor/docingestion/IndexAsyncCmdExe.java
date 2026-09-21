@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEn
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,9 +21,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class IndexAsyncCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexAsyncCmdExe.class);
 
     private final DocumentIngestionSupport support;
     private final ExtractionCacheHolder extractionCache;
@@ -71,7 +69,7 @@ public class IndexAsyncCmdExe {
 
                         extractionCache.remove(documentKey);
                     } catch (Exception e) {
-                        logger.error(
+                        log.error(
                                 "Async indexing failed for document {}: {}",
                                 documentKey,
                                 e.getMessage(),

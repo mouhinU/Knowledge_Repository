@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,9 +21,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examResearcherAgent")
+@Slf4j
 public class ExamResearcherAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamResearcherAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -50,8 +48,7 @@ public class ExamResearcherAgent implements BlackboardAgent {
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
         List<SearchResult> chunks = blackboard.getKnowledgeChunks();
-        logger.info(
-                "[ExamResearcher] 开始分析 {} 个知识片段，考试主题：{}", chunks.size(), blackboard.getQuestion());
+        log.info("[ExamResearcher] 开始分析 {} 个知识片段，考试主题：{}", chunks.size(), blackboard.getQuestion());
 
         blackboard.advanceTo(BlackboardPhase.RESEARCH);
 
@@ -66,7 +63,7 @@ public class ExamResearcherAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("exam-researcher", "知识库中未找到相关内容。"));
-            logger.warn("[ExamResearcher] 知识库无相关结果");
+            log.warn("[ExamResearcher] 知识库无相关结果");
             return;
         }
 
@@ -103,7 +100,7 @@ public class ExamResearcherAgent implements BlackboardAgent {
                         "exam-researcher", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (findings == null || findings.isBlank()) {
-            logger.warn("[ExamResearcher] LLM 返回空结果，回退使用原始知识片段");
+            log.warn("[ExamResearcher] LLM 返回空结果，回退使用原始知识片段");
             findings = buildFallbackFindings(chunks);
         }
 
@@ -111,7 +108,7 @@ public class ExamResearcherAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted("exam-researcher", findings));
-        logger.info("[ExamResearcher] 知识点分析完成，长度：{} 字符", findings.length());
+        log.info("[ExamResearcher] 知识点分析完成，长度：{} 字符", findings.length());
     }
 
     private String buildMaterialsSummary(List<SearchResult> chunks) {

@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
@@ -31,9 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/exam/assets")
+@Slf4j
 public class ExamAssetController {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamAssetController.class);
 
     /** 只接受 32 位十六进制字符（UUID.randomUUID().toString().replace("-","")） */
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[a-f0-9]{32}$");
@@ -56,7 +54,7 @@ public class ExamAssetController {
         }
         Optional<byte[]> bytes = documentImageSupport.readBytes(image.get());
         if (bytes.isEmpty()) {
-            logger.warn("配图句柄命中但文件缺失 [assetKey={}]", assetKey);
+            log.warn("配图句柄命中但文件缺失 [assetKey={}]", assetKey);
             return ResponseEntity.notFound().build();
         }
         MediaType mt = resolveMediaType(image.get().getMimeType());

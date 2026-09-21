@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,10 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/admin/exam-images")
+@Slf4j
 public class AdminDocumentImageController {
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(AdminDocumentImageController.class);
 
     private final ListDocumentImagesQryExe listDocumentImagesQryExe;
     private final BackfillDocumentImagesCmdExe backfillDocumentImagesCmdExe;
@@ -80,7 +77,7 @@ public class AdminDocumentImageController {
             int added = backfillDocumentImagesCmdExe.execute(documentId);
             return ResponseEntity.ok(Map.of("documentId", documentId, "added", added));
         } catch (IllegalArgumentException e) {
-            logger.warn("文档图片回填参数错误 [documentId={}]: {}", documentId, e.getMessage());
+            log.warn("文档图片回填参数错误 [documentId={}]: {}", documentId, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", String.valueOf(e.getMessage())));
         }

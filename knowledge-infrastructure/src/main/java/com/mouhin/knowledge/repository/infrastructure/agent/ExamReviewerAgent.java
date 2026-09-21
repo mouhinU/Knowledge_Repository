@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ExamMetaQuestionDetector;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,9 +22,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examReviewerAgent")
+@Slf4j
 public class ExamReviewerAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamReviewerAgent.class);
 
     /** 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。 */
     private static final int DETECTOR_SCORE_CAP = 70;
@@ -73,7 +71,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
         String answerKey = blackboard.getAnswerKey();
         String findings = blackboard.getKeyFindings();
 
-        logger.info("[ExamReviewer] 开始审核试卷");
+        log.info("[ExamReviewer] 开始审核试卷");
 
         blackboard.advanceTo(BlackboardPhase.REVIEWING);
 
@@ -115,7 +113,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 agentStreamer.stream("exam-reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (reviewOutput == null || reviewOutput.isBlank()) {
-            logger.error("[ExamReviewer] LLM 返回空审核结果");
+            log.error("[ExamReviewer] LLM 返回空审核结果");
             reviewOutput =
                     "## 审核意见\n审核过程异常，请重试。\n\n## 评分明细\n- 知识准确性：0\n- 题目表述：0\n- 知识点覆盖：0\n- 题型合理性：0\n- 难度适当性：0\n- 格式规范性：0\n\n## 质量评分\n0\n\n## 改进建议\n无";
         }
@@ -132,7 +130,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(
                         "exam-reviewer", blackboard.getExamReviewFeedback()));
-        logger.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
+        log.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
     }
 
     /**
@@ -166,7 +164,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
         if (current > DETECTOR_SCORE_CAP) {
             blackboard.setQualityScore(DETECTOR_SCORE_CAP);
         }
-        logger.warn(
+        log.warn(
                 "[ExamReviewer] 确定性复核命中 {} 道出处/位置类题目，质量分 {}→{}（触发打回重写）",
                 metaHits.size(),
                 current,
@@ -204,7 +202,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
                     weighted += dims[i] * WEIGHTS[i];
                 }
                 int result = (int) Math.min(100, Math.max(0, Math.round(weighted)));
-                logger.info(
+                log.info(
                         "[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
                         dims[0],
                         dims[1],
@@ -233,7 +231,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 }
             }
         } catch (Exception e) {
-            logger.warn("[ExamReviewer] 评分解析异常: {}", e.getMessage());
+            log.warn("[ExamReviewer] 评分解析异常: {}", e.getMessage());
         }
         return 70;
     }

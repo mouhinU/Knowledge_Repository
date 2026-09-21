@@ -8,8 +8,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,9 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-18
  */
 @Component
+@Slf4j
 public class ApprovePaperCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ApprovePaperCmdExe.class);
 
     private final PaperReviewSupport support;
     private final ExamHistoryGateway examHistoryGateway;
@@ -51,7 +49,7 @@ public class ApprovePaperCmdExe {
         List<ExamQuestion> questions = support.listQuestions(sessionKey);
         if (questions.isEmpty()) {
             // 惰性回灌：历史遗留 / 切分缺失的卷，先执行出卷即切分再校验
-            logger.info("校对发布前题目行为空，执行惰性回灌 [session={}]", sessionKey);
+            log.info("校对发布前题目行为空，执行惰性回灌 [session={}]", sessionKey);
             examQuestionSplitSupport.splitAndPersist(
                     sessionKey, history.getExamPaper(), history.getAnswerKey(), plan);
             questions = support.listQuestions(sessionKey);
@@ -59,7 +57,7 @@ public class ApprovePaperCmdExe {
 
         ExamContractValidator.Result validation = support.validate(questions, plan);
         if (!validation.pass()) {
-            logger.warn("校对发布被拒：契约校验未通过 [session={}, issues={}]", sessionKey, validation.issues());
+            log.warn("校对发布被拒：契约校验未通过 [session={}, issues={}]", sessionKey, validation.issues());
             return validation;
         }
 
@@ -67,7 +65,7 @@ public class ApprovePaperCmdExe {
         history.markPublished(actor);
         history.setUpdateTime(LocalDateTime.now());
         examHistoryGateway.update(history);
-        logger.info("试卷已校对通过并发布 [session={}, reviewer={}]", sessionKey, actor);
+        log.info("试卷已校对通过并发布 [session={}, reviewer={}]", sessionKey, actor);
         return validation;
     }
 }

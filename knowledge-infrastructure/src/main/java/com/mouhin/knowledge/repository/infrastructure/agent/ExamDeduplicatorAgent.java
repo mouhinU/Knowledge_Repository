@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-14
  */
 @Component("examDeduplicatorAgent")
+@Slf4j
 public class ExamDeduplicatorAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamDeduplicatorAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -56,7 +54,7 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
         String examPaper = blackboard.getExamPaper();
         String answerKey = blackboard.getAnswerKey();
 
-        logger.info("[ExamDeduplicator] 开始查重分析");
+        log.info("[ExamDeduplicator] 开始查重分析");
 
         blackboard.advanceTo(BlackboardPhase.DEDUPLICATING);
 
@@ -98,7 +96,7 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
                         "exam-deduplicator", SYSTEM_PROMPT, userPrompt, progressCallback);
 
         if (report == null || report.isBlank()) {
-            logger.error("[ExamDeduplicator] LLM 返回空查重报告");
+            log.error("[ExamDeduplicator] LLM 返回空查重报告");
             report = "## 查重结果\n未发现明显重复。\n\n## 重复率评估\n约 0%\n\n## 建议\n无需调整。";
         }
 
@@ -106,7 +104,7 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted("exam-deduplicator", report));
-        logger.info("[ExamDeduplicator] 查重完成，长度：{} 字符", report.length());
+        log.info("[ExamDeduplicator] 查重完成，长度：{} 字符", report.length());
     }
 
     @Override

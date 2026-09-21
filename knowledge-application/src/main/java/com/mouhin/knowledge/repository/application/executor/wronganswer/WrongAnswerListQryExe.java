@@ -15,8 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,9 +27,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class WrongAnswerListQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(WrongAnswerListQryExe.class);
 
     /** 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED） */
     private static final List<String> GRADED_STATUSES =
@@ -118,7 +116,7 @@ public class WrongAnswerListQryExe {
                         (WrongAnswerVO vo) -> vo.getSubmitTime() != null ? vo.getSubmitTime() : "",
                         Comparator.reverseOrder()));
 
-        logger.debug(
+        log.debug(
                 "查询错题列表 [studentId={}, topic={}, type={}, count={}]",
                 studentId,
                 topic,

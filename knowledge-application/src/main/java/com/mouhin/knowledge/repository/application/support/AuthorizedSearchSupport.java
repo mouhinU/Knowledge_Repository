@@ -9,8 +9,7 @@ import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,9 +31,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-19
  */
 @Component
+@Slf4j
 public class AuthorizedSearchSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(AuthorizedSearchSupport.class);
 
     /** over-fetch 倍率：受限文档密集时给足过滤后仍能凑够 maxResults 的空间。 */
     private static final int OVERFETCH_FACTOR = 3;
@@ -96,7 +94,7 @@ public class AuthorizedSearchSupport {
             return List.of();
         }
         if (permission == null) {
-            logger.warn("检索权限过滤：permission 为 null，按最小权限拒绝全部结果");
+            log.warn("检索权限过滤：permission 为 null，按最小权限拒绝全部结果");
             return List.of();
         }
         if (permission.isAdmin()) {
@@ -107,7 +105,7 @@ public class AuthorizedSearchSupport {
             Optional<Document> docOpt = documentGateway.findByDocumentKey(sr.getDocumentId());
             if (docOpt.isEmpty()) {
                 // 反向兜底：Document 元数据缺失时按不可访问处理，宁漏不越权。
-                logger.debug("检索权限过滤：Document 元数据缺失，剔除 [documentKey={}]", sr.getDocumentId());
+                log.debug("检索权限过滤：Document 元数据缺失，剔除 [documentKey={}]", sr.getDocumentId());
                 continue;
             }
             Document doc = docOpt.get();

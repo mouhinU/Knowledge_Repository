@@ -10,8 +10,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ExamSaveAnswersCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ExamSaveAnswersCmdExe.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -69,7 +67,7 @@ public class ExamSaveAnswersCmdExe {
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
 
-        logger.debug("保存答题 [session={}, rows={}]", sessionKey, answerEntities.size());
+        log.debug("保存答题 [session={}, rows={}]", sessionKey, answerEntities.size());
     }
 
     /** 以结构化题目行为权威源构建答题行：每道题必落一行，未答则 studentAnswer 置空。 */

@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,9 +17,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-20
  */
 @Component
+@Slf4j
 public class ListDocumentImagesQryExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ListDocumentImagesQryExe.class);
 
     private final DocumentGateway documentGateway;
     private final DocumentImageSupport documentImageSupport;
@@ -37,7 +35,7 @@ public class ListDocumentImagesQryExe {
         }
         Document document = documentGateway.findById(documentId).orElse(null);
         if (document == null) {
-            logger.debug("文档不存在，返回空图片列表 [documentId={}]", documentId);
+            log.debug("文档不存在，返回空图片列表 [documentId={}]", documentId);
             return List.of();
         }
         return documentImageSupport.listByDocument(document).stream()

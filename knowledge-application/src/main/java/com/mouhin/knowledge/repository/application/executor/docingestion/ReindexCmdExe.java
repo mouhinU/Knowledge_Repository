@@ -12,8 +12,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -26,9 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ReindexCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReindexCmdExe.class);
 
     private final DocumentIngestionSupport support;
     private final DocumentGateway documentGateway;
@@ -81,7 +79,7 @@ public class ReindexCmdExe {
                     documentGateway.clearErrorMessage(document.getId());
                 });
 
-        logger.info("Reindexing document {}: {}", documentKey, document.getFileName());
+        log.info("Reindexing document {}: {}", documentKey, document.getFileName());
 
         try {
             // 慢 IO（文件重解析 + 分块→向量化→存储）在事务之外执行，全程不占用 DB 连接。

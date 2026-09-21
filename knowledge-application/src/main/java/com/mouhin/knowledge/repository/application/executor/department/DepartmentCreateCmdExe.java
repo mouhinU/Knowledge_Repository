@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class DepartmentCreateCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(DepartmentCreateCmdExe.class);
 
     private final DepartmentGateway departmentGateway;
 
@@ -36,8 +34,7 @@ public class DepartmentCreateCmdExe {
         dept.setParentId(cmd.getParentId());
         departmentGateway.save(dept);
 
-        logger.info(
-                "Department created: {} ({})", cmd.getDepartmentName(), dept.getDepartmentKey());
+        log.info("Department created: {} ({})", cmd.getDepartmentName(), dept.getDepartmentKey());
         return DepartmentConverter.toVO(dept);
     }
 }

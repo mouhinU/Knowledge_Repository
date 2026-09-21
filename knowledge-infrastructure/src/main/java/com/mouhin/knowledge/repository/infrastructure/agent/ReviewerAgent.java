@@ -5,8 +5,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,9 +18,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-12
  */
 @Component("reviewerAgent")
+@Slf4j
 public class ReviewerAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReviewerAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -49,7 +47,7 @@ public class ReviewerAgent implements BlackboardAgent {
 
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
-        logger.info("[Reviewer] 开始审核文章");
+        log.info("[Reviewer] 开始审核文章");
 
         blackboard.advanceTo(BlackboardPhase.REVIEWING);
 
@@ -70,7 +68,7 @@ public class ReviewerAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("reviewer", "无法生成文章：草稿为空。"));
-            logger.warn("[Reviewer] 无草稿，跳过审核");
+            log.warn("[Reviewer] 无草稿，跳过审核");
             return;
         }
 
@@ -83,7 +81,7 @@ public class ReviewerAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("reviewer", "知识库检索结果为空，无法进行质量审核。"));
-            logger.info("[Reviewer] 信息不足模板，跳过 LLM 审核");
+            log.info("[Reviewer] 信息不足模板，跳过 LLM 审核");
             return;
         }
 
@@ -120,7 +118,7 @@ public class ReviewerAgent implements BlackboardAgent {
         blackboard.advanceTo(BlackboardPhase.COMPLETED);
         emitProgress(
                 progressCallback, BlackboardProgressEvent.agentCompleted("reviewer", reviewOutput));
-        logger.info("[Reviewer] 审核完成，质量评分：{}", blackboard.getQualityScore());
+        log.info("[Reviewer] 审核完成，质量评分：{}", blackboard.getQualityScore());
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

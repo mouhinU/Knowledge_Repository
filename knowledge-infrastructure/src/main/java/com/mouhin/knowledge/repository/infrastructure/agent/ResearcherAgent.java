@@ -7,8 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,9 +19,8 @@ import org.springframework.stereotype.Component;
  * @date 2026-09-12
  */
 @Component("researcherAgent")
+@Slf4j
 public class ResearcherAgent implements BlackboardAgent {
-
-    private static final Logger logger = LoggerFactory.getLogger(ResearcherAgent.class);
 
     private static final String SYSTEM_PROMPT =
             """
@@ -48,7 +46,7 @@ public class ResearcherAgent implements BlackboardAgent {
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
         List<SearchResult> chunks = blackboard.getKnowledgeChunks();
-        logger.info("[Researcher] 开始分析 {} 个知识片段", chunks.size());
+        log.info("[Researcher] 开始分析 {} 个知识片段", chunks.size());
 
         blackboard.advanceTo(BlackboardPhase.RESEARCH);
 
@@ -64,7 +62,7 @@ public class ResearcherAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted("researcher", "知识库中未找到与问题相关的内容。"));
-            logger.warn("[Researcher] 知识库无相关结果");
+            log.warn("[Researcher] 知识库无相关结果");
             return;
         }
 
@@ -102,14 +100,14 @@ public class ResearcherAgent implements BlackboardAgent {
 
         // LLM 超时或异常可能返回空结果，回退使用原始知识片段
         if (findings == null || findings.isBlank()) {
-            logger.warn("[Researcher] LLM 返回空结果，回退使用原始知识片段");
+            log.warn("[Researcher] LLM 返回空结果，回退使用原始知识片段");
             findings = buildFallbackFindings(chunks);
         }
 
         blackboard.setKeyFindings(findings);
         emitProgress(
                 progressCallback, BlackboardProgressEvent.agentCompleted("researcher", findings));
-        logger.info("[Researcher] 研究发现生成完成，长度：{} 字符", findings.length());
+        log.info("[Researcher] 研究发现生成完成，长度：{} 字符", findings.length());
     }
 
     /** 构建检索物料摘要（展示给前端的输入信息） */

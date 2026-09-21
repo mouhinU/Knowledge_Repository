@@ -25,8 +25,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -42,9 +41,8 @@ import org.springframework.web.multipart.MultipartFile;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class DocumentIngestionSupport {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentIngestionSupport.class);
 
     private final DocumentGateway documentGateway;
     private final DocumentChunkGateway chunkGateway;
@@ -108,7 +106,7 @@ public class DocumentIngestionSupport {
             documentGateway.update(document);
 
             if (result.likelyScanned()) {
-                logger.warn(
+                log.warn(
                         "Document {} appears to be a scanned PDF. Text extraction may be incomplete.",
                         document.getDocumentKey());
             }
@@ -143,7 +141,7 @@ public class DocumentIngestionSupport {
                             document.getDepartmentId(),
                             LocalDateTime.now()));
 
-            logger.info(
+            log.info(
                     "Document {} processed successfully: {} pages, {} chunks",
                     document.getDocumentKey(),
                     result.totalPages(),
@@ -154,7 +152,7 @@ public class DocumentIngestionSupport {
             }
 
         } catch (Exception e) {
-            logger.error(
+            log.error(
                     "Failed to process document {}: {}",
                     document.getDocumentKey(),
                     e.getMessage(),
@@ -237,7 +235,7 @@ public class DocumentIngestionSupport {
                 Files.deleteIfExists(tempFile.getParent());
             }
         } catch (IOException e) {
-            logger.warn("Failed to clean up temp file: {}", tempFile, e);
+            log.warn("Failed to clean up temp file: {}", tempFile, e);
         }
     }
 

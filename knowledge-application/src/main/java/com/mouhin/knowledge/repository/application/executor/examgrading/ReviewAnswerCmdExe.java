@@ -6,8 +6,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
  * @date 2026-09-17
  */
 @Component
+@Slf4j
 public class ReviewAnswerCmdExe {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReviewAnswerCmdExe.class);
 
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamSessionGateway examSessionGateway;
@@ -66,7 +64,7 @@ public class ReviewAnswerCmdExe {
             answer.setReviewedBy(null);
             answer.setReviewTime(null);
             examAnswerGateway.clearReviewOverride(answerId);
-            logger.info("人工复核清除改分覆盖 [answerId={}, reviewer={}]", answerId, reviewer);
+            log.info("人工复核清除改分覆盖 [answerId={}, reviewer={}]", answerId, reviewer);
         } else {
             answer.setReviewScore(reviewScore);
             answer.setReviewFeedback(reviewFeedback);
@@ -74,7 +72,7 @@ public class ReviewAnswerCmdExe {
             answer.setReviewTime(LocalDateTime.now());
             answer.setUpdateTime(LocalDateTime.now());
             examAnswerGateway.update(answer);
-            logger.info(
+            log.info(
                     "人工复核单题 [answerId={}, score={}, reviewer={}]", answerId, reviewScore, reviewer);
         }
 
@@ -99,6 +97,6 @@ public class ReviewAnswerCmdExe {
         session.markReviewed(finalScore);
         session.setUpdateTime(LocalDateTime.now());
         examSessionGateway.update(session);
-        logger.info("复核回刷场次聚合 [session={}, finalScore={}]", session.getId(), finalScore);
+        log.info("复核回刷场次聚合 [session={}, finalScore={}]", session.getId(), finalScore);
     }
 }
