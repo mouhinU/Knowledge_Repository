@@ -48,4 +48,15 @@ public record ExtractionResult(
                 null,
                 null);
     }
+
+    /**
+     * 无策略命中时的中性空结果（0 页、无文本、格式标记为 empty）。
+     *
+     * <p>供 {@code CompositeExtractionService} 在遍历完所有候选策略仍未命中时返回，避免 {@code null} 冒泡到应用层。
+     *
+     * @return 空提取结果
+     */
+    public static ExtractionResult empty() {
+        return new ExtractionResult(List.of(), 0, false, null, "empty");
+    }
 }

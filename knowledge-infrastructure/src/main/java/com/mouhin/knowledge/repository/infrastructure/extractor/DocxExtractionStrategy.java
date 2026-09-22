@@ -1,40 +1,61 @@
-package com.mouhin.knowledge.repository.infrastructure.extraction;
+package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
+import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
- * Word 文档提取服务（DOCX / DOC）
+ * Word 解析策略（DOCX / DOC）。
  *
- * <p>使用 Apache POI 按段落提取，每 30 段切一个 section 近似页面。
+ * <p>使用 Apache POI 按段落提取，每 {@value #PARAGRAPHS_PER_SECTION} 段切一个 section 近似页面。
  *
  * @author mouhinU
- * @date 2026-09-22 16:21:33
+ * @date 2026-09-23
  */
-@Service
+@Component
 @Slf4j
-public class DocxExtractionService {
+public class DocxExtractionStrategy implements ContentExtractor {
 
-    /** 每 section 最大段落数（近似页面） */
+    /** 每 section 最大段落数（近似页面）。 */
     private static final int PARAGRAPHS_PER_SECTION = 30;
 
-    /**
-     * 从 Word 文件提取文本
-     *
-     * @param filePath Word 文件路径
-     * @return 提取结果
-     * @throws IOException 读取失败
-     */
-    public ExtractionResult extract(Path filePath) throws IOException {
+    /** 本策略命中的 MIME 类型。 */
+    private static final Set<String> SUPPORTED_MIME_TYPES =
+            Set.of(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/msword");
+
+    @Override
+    public String name() {
+        return ExtractionStrategyEnum.DOCX.name();
+    }
+
+    @Override
+    public int priority() {
+        return 20;
+    }
+
+    @Override
+    public boolean supports(ExtractionCandidate candidate) {
+        return candidate != null && SUPPORTED_MIME_TYPES.contains(candidate.mimeType());
+    }
+
+    @Override
+    public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
+        Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath);
                 XWPFDocument document = new XWPFDocument(is)) {
 

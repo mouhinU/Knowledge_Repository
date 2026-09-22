@@ -1,39 +1,60 @@
-package com.mouhin.knowledge.repository.infrastructure.extraction;
+package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
+import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
- * Excel 文档提取服务（XLSX / XLS）
+ * Excel 解析策略（XLSX / XLS）。
  *
  * <p>使用 Apache POI 按工作表提取，每个工作表一个 section。
  *
  * @author mouhinU
- * @date 2026-09-22 16:21:33
+ * @date 2026-09-23
  */
-@Service
+@Component
 @Slf4j
-public class XlsxExtractionService {
+public class XlsxExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 从 Excel 文件提取文本
-     *
-     * @param filePath Excel 文件路径
-     * @return 提取结果
-     * @throws IOException 读取失败
-     */
-    public ExtractionResult extract(Path filePath) throws IOException {
+    /** 本策略命中的 MIME 类型。 */
+    private static final Set<String> SUPPORTED_MIME_TYPES =
+            Set.of(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.ms-excel");
+
+    @Override
+    public String name() {
+        return ExtractionStrategyEnum.XLSX.name();
+    }
+
+    @Override
+    public int priority() {
+        return 30;
+    }
+
+    @Override
+    public boolean supports(ExtractionCandidate candidate) {
+        return candidate != null && SUPPORTED_MIME_TYPES.contains(candidate.mimeType());
+    }
+
+    @Override
+    public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
+        Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath);
                 XSSFWorkbook workbook = new XSSFWorkbook(is)) {
 

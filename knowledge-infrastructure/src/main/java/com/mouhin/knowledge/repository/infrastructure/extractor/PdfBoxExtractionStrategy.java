@@ -1,33 +1,52 @@
-package com.mouhin.knowledge.repository.infrastructure.extraction;
+package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
+import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import com.mouhin.knowledge.repository.infrastructure.pdf.EnhancedPdfTextExtractor;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
- * PDF 文档提取服务（PDFBox 实现）
+ * PDF 解析策略（PDFBox 实现）。
  *
- * <p>使用 {@link EnhancedPdfTextExtractor} 按页提取，过滤页眉页脚。
+ * <p>委托 {@link EnhancedPdfTextExtractor} 按页提取并过滤页眉页脚，返回带 {@code ocrRecommended} / {@code encrypted}
+ * / 元数据的全字段结果，供 Phase C 混合策略路由。
  *
  * @author mouhinU
- * @date 2026-09-22 16:21:33
+ * @date 2026-09-23
  */
-@Service
+@Component
 @Slf4j
-public class PdfBoxExtractionService {
+public class PdfBoxExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 从 PDF 文件提取文本
-     *
-     * @param filePath PDF 文件路径
-     * @return 提取结果
-     * @throws IOException 读取失败
-     */
-    public ExtractionResult extract(Path filePath) throws IOException {
+    /** 本策略命中的 MIME 类型。 */
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of("application/pdf");
+
+    @Override
+    public String name() {
+        return ExtractionStrategyEnum.PDF_BOX.name();
+    }
+
+    @Override
+    public int priority() {
+        return 10;
+    }
+
+    @Override
+    public boolean supports(ExtractionCandidate candidate) {
+        return candidate != null && SUPPORTED_MIME_TYPES.contains(candidate.mimeType());
+    }
+
+    @Override
+    public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
+        Path filePath = candidate.filePath();
         EnhancedPdfTextExtractor extractor = new EnhancedPdfTextExtractor();
         EnhancedPdfTextExtractor.PdfExtractionResult result = extractor.extract(filePath);
 

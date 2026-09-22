@@ -1,6 +1,10 @@
-package com.mouhin.knowledge.repository.infrastructure.extraction;
+package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
+import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -12,29 +16,39 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.sax.BodyContentHandler;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
- * Tika 通用回退提取服务
+ * Tika 通用兜底解析策略。
  *
- * <p>当 MIME 类型不匹配任何专用策略时，使用 Apache Tika AutoDetectParser 兜底。
+ * <p>当 MIME 类型不匹配任何专用策略时，使用 Apache Tika {@link AutoDetectParser} 兜底。 {@link
+ * #supports(ExtractionCandidate)} 恒为 {@code true}，配合最低优先级充当路由栈末端。
  *
  * @author mouhinU
- * @date 2026-09-22 16:21:33
+ * @date 2026-09-23
  */
-@Service
+@Component
 @Slf4j
-public class TikaFallbackExtractionService {
+public class TikaFallbackExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 使用 Tika 通用解析提取文本
-     *
-     * @param filePath 文件路径
-     * @param mimeType MIME 类型（用于日志 + Tika 提示）
-     * @return 提取结果
-     * @throws IOException 解析失败
-     */
-    public ExtractionResult extract(Path filePath, String mimeType) throws IOException {
+    @Override
+    public String name() {
+        return ExtractionStrategyEnum.TIKA_FALLBACK.name();
+    }
+
+    @Override
+    public int priority() {
+        return 60;
+    }
+
+    @Override
+    public boolean supports(ExtractionCandidate candidate) {
+        return candidate != null;
+    }
+
+    @Override
+    public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
+        Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath)) {
             AutoDetectParser parser = new AutoDetectParser();
             BodyContentHandler handler = new BodyContentHandler(-1);
@@ -52,7 +66,7 @@ public class TikaFallbackExtractionService {
 
             log.info(
                     "Generic extraction ({}): {} sections, {} chars",
-                    mimeType,
+                    candidate.mimeType(),
                     sections.size(),
                     fullText.length());
             return new ExtractionResult(
