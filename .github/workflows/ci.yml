@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# 同一分支/PR 上串行，新 push 自动作废进行中的旧 run（避免刷出多条重复历史）
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest

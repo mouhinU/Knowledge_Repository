@@ -4,8 +4,34 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+    # 只有真正影响镜像内容的文件变化才 build+push;
+    # 纯改 README / docs / workflow 自身不再触发一次 GHCR 推送。
+    # tag push (v*) 忽略 paths 过滤(GitHub 限制: tags 与 paths 互斥,共存时 paths 无效),
+    # 因此 release tag 一定会打镜像。
+    paths:
+      - "**/*.java"
+      - "**/pom.xml"
+      - "pom.xml"
+      - "**/src/main/resources/**"
+      - "Dockerfile"
+      - "Dockerfile.*"
+      - "docker/**"
+      - ".mvn/**"
+      - "mvnw"
+      - "mvnw.cmd"
   pull_request:
     branches: [main]
+    paths:
+      - "**/*.java"
+      - "**/pom.xml"
+      - "pom.xml"
+      - "**/src/main/resources/**"
+      - "Dockerfile"
+      - "Dockerfile.*"
+      - "docker/**"
+      - ".mvn/**"
+      - "mvnw"
+      - "mvnw.cmd"
   workflow_dispatch: {}
 
 # Workflow-level 最小权限声明：即使仓库 Settings → Actions → General 把默认
@@ -14,6 +40,11 @@ on:
 permissions:
   contents: read
   packages: write
+
+# 同分支/PR 串行；新 push 自动作废进行中的旧 build(避免堆积/重复推 tag)
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
