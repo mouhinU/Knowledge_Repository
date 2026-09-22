@@ -42,13 +42,13 @@
 
 ### 2.2 Web:S6853 — 25 条 · MEDIUM
 
-**现象**：`<button>` 未显式指定 `type`，在 `<form>` 中默认 `submit`。
+**现象**：`<label>` 未与表单控件建立关联（Sonar 消息："A form label must be associated with a control and have accessible text."）。这条与 §2.1 是**同一问题的两面** —— S6853 从 label 侧看，InputWithoutLabelCheck 从 input 侧看；补 `for=` 一次满足。
 
-**分布**：`documents.html ×9` · `ai-exam.html ×5` · `wrong-answers.html ×3` · `ai-writing.html ×2` · `exam-review.html ×2` · `search.html ×2` · `exam.html ×2`。
+**分布**：与 §2.1 完全重叠（每对相邻 label+input/select 会同时命中两条规则）。
 
-**修法**：给非表单提交的 `<button>` 一律补 `type="button"`；确有提交意图的用 `type="submit"`。
+**修法**：见 §2.1。
 
-**工时**：~25 × 1min = 30 分钟。风险：低，但注意 `search.html` 若原意是提交，误改 `type="button"` 会破坏搜索按钮 —— 需要逐个肉眼确认。
+**工时**：与 §2.1 合并计算。
 
 ### 2.3 Web:S6848 — 18 条 · MEDIUM
 

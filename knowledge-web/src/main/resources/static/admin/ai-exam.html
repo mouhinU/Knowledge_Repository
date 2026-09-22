@@ -148,11 +148,11 @@
             <div class="card-title">试卷配置</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
                 <div>
-                    <label class="form-label">考试主题 / 科目</label>
+                    <label class="form-label" for="exam-topic">考试主题 / 科目</label>
                     <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
                 </div>
                 <div>
-                    <label class="form-label">难度</label>
+                    <label class="form-label" for="exam-difficulty">难度</label>
                     <select class="form-input" id="exam-difficulty">
                         <option value="EASY">简单（基础概念）</option>
                         <option selected value="MEDIUM">中等（理解应用）</option>
@@ -160,7 +160,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="form-label">学段（满分规则）</label>
+                    <label class="form-label" for="exam-school-level">学段（满分规则）</label>
                     <select class="form-input" id="exam-school-level">
                         <option selected value="">自动识别</option>
                         <option value="PRIMARY">小学（各科 100 分）</option>
@@ -170,12 +170,12 @@
                 </div>
             </div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px">
-                <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                <label class="form-label" style="margin:0;white-space:nowrap" for="exam-user">用户 ID</label>
                 <input class="form-input" id="exam-user" style="width:160px" value="user-admin">
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
                     <input checked id="exam-admin" type="checkbox"> 管理员模式
                 </label>
-                <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                <label class="form-label" style="margin:0;white-space:nowrap" for="exam-category">知识分类</label>
                 <select class="form-input" id="exam-category" style="width:120px">
                     <option value="">全部分类</option>
                     <option value="工作">工作</option>

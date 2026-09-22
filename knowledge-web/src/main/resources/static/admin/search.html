@@ -19,15 +19,15 @@
 
         <div class="card">
             <div class="search-box">
-                <input class="form-input" id="search-query"
+                <input class="form-input" id="search-query" aria-label="搜索关键词"
                        onkeydown="if(event.key==='Enter')doSearch()"
                        placeholder="输入问题或关键词进行语义搜索...">
-                <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+                <button class="btn btn-primary" type="button" onclick="doSearch()">搜索</button>
             </div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                <label class="form-label" style="margin:0;white-space:nowrap">用户ID</label>
+                <label class="form-label" style="margin:0;white-space:nowrap" for="search-user">用户ID</label>
                 <input class="form-input" id="search-user" style="width:160px" value="user-admin">
-                <label class="form-label" style="margin:0;white-space:nowrap">最大结果</label>
+                <label class="form-label" style="margin:0;white-space:nowrap" for="search-max">最大结果</label>
                 <input class="form-input" id="search-max" max="50" min="1" style="width:80px" type="number" value="10">
                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
                     <input checked id="search-admin" type="checkbox"> 管理员模式

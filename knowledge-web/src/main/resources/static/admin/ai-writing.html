@@ -27,20 +27,20 @@
             <div class="card">
                 <div class="card-title">写作输入</div>
                 <div class="writing-input-area">
-                    <textarea class="form-input" id="writing-question"
+                    <textarea class="form-input" id="writing-question" aria-label="写作主题或问题"
                               placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
                     <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()"
                             style="align-self:flex-end;height:42px;white-space:nowrap">生成文章
                     </button>
                 </div>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                    <label class="form-label" style="margin:0;white-space:nowrap">用户 ID</label>
+                    <label class="form-label" style="margin:0;white-space:nowrap" for="writing-user">用户 ID</label>
                     <input class="form-input" id="writing-user" style="width:160px" value="user-admin">
                     <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
                         <input checked id="writing-admin" type="checkbox"> 管理员模式
                     </label>
                     <div style="flex:1"></div>
-                    <label class="form-label" style="margin:0;white-space:nowrap">知识分类</label>
+                    <label class="form-label" style="margin:0;white-space:nowrap" for="writing-category">知识分类</label>
                     <select class="form-input" id="writing-category" style="width:120px">
                         <option value="">全部分类</option>
                         <option value="工作">工作</option>

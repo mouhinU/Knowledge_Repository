@@ -80,11 +80,11 @@
                 <div class="card-title">设置考试时长（覆盖进行中考试的时长）</div>
                 <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
                     <div style="flex:1;min-width:220px">
-                        <label class="form-label">Session Key</label>
+                        <label class="form-label" for="duration-session-key">Session Key</label>
                         <input class="form-input" id="duration-session-key" placeholder="输入考试场次的 Session Key" type="text">
                     </div>
                     <div style="width:140px">
-                        <label class="form-label">时长（分钟）</label>
+                        <label class="form-label" for="duration-minutes">时长（分钟）</label>
                         <input class="form-input" id="duration-minutes" max="600" min="1" placeholder="分钟" type="number">
                     </div>
                     <button class="btn btn-primary" onclick="updateSessionDuration()" style="height:38px">设置</button>

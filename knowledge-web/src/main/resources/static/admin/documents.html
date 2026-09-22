@@ -32,11 +32,11 @@
                     <p class="hint-box" style="text-align:center">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML / RTF，单文件 ≤ 200MB</p>
                 </div>
                 <div class="upload-actions">
-                    <a onclick="pickFiles()">选择文件</a>
-                    <a onclick="pickFolder()">选择目录</a>
+                    <button type="button" onclick="pickFiles()">选择文件</button>
+                    <button type="button" onclick="pickFolder()">选择目录</button>
                 </div>
-                <input id="file-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file">
-                <input id="dir-input" multiple onchange="handleFileSelect(this)" style="display:none" type="file" webkitdirectory>
+                <input id="file-input" aria-label="选择文件" multiple onchange="handleFileSelect(this)" style="display:none" type="file">
+                <input id="dir-input" aria-label="选择目录" multiple onchange="handleFileSelect(this)" style="display:none" type="file" webkitdirectory>
 
                 <div id="upload-form" style="display:none;margin-top:16px">
                     <div class="upload-queue" id="upload-queue"></div>
@@ -46,15 +46,15 @@
                     </div>
                     <div class="form-grid" style="margin-top:12px">
                         <div class="form-group">
-                            <label class="form-label">所有者 ID</label>
+                            <label class="form-label" for="upload-owner">所有者 ID</label>
                             <input class="form-input" id="upload-owner" value="user-admin">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">部门 ID</label>
+                            <label class="form-label" for="upload-dept">部门 ID</label>
                             <select class="form-select" id="upload-dept"></select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">可见性</label>
+                            <label class="form-label" for="upload-visibility">可见性</label>
                             <select class="form-select" id="upload-visibility">
                                 <option value="INTERNAL">内部（同部门可见）</option>
                                 <option value="PUBLIC">公开</option>
@@ -63,15 +63,15 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">允许角色（逗号分隔）</label>
+                            <label class="form-label" for="upload-roles">允许角色（逗号分隔）</label>
                             <input class="form-input" id="upload-roles" placeholder="ADMIN,MANAGER">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">标签</label>
+                            <label class="form-label" for="upload-tags">标签</label>
                             <input class="form-input" id="upload-tags" placeholder="技术,规范,手册">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">文档分类</label>
+                            <label class="form-label" for="upload-category">文档分类</label>
                             <select class="form-select" id="upload-category">
                                 <option value="工作">工作</option>
                                 <option value="学习">学习</option>
@@ -93,7 +93,7 @@
             <div class="card">
                 <div class="card-head">
                     <div class="card-title" style="margin:0">文档列表</div>
-                    <select class="form-select" id="doc-filter-status" onchange="loadDocuments()" style="width:160px">
+                    <select class="form-select" id="doc-filter-status" aria-label="状态筛选" onchange="loadDocuments()" style="width:160px">
                         <option value="">全部状态</option>
                         <option value="UPLOADED">待入库</option>
                         <option value="INDEXED">已索引</option>
@@ -125,7 +125,7 @@
         </div>
         <div class="pv-config-row">
             <div class="pv-field">
-                <label>切分策略</label>
+                <label for="pv-strategy">切分策略</label>
                 <select id="pv-strategy" onchange="triggerAutoPreview()">
                     <option value="FIXED_SIZE">固定大小</option>
                     <option value="RECURSIVE">递归切分</option>
@@ -135,14 +135,14 @@
                 </select>
             </div>
             <div class="pv-field pv-slider-field">
-                <label>分块大小</label>
+                <label for="pv-chunk-size">分块大小</label>
                 <div class="pv-slider-row">
                     <input id="pv-chunk-size" max="2000" min="200" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="50" type="range" value="500">
                     <span class="pv-slider-val">500</span>
                 </div>
             </div>
             <div class="pv-field pv-slider-field">
-                <label>重叠大小</label>
+                <label for="pv-overlap">重叠大小</label>
                 <div class="pv-slider-row">
                     <input id="pv-overlap" max="200" min="20" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="10" type="range" value="50">
                     <span class="pv-slider-val">50</span>
