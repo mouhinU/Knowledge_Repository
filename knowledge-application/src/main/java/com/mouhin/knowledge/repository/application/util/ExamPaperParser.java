@@ -36,7 +36,7 @@ public final class ExamPaperParser {
 
     /** 匹配大题标题（泛化）：{@code #~#### 一、<任意标签>（…）} 或无括号形式。 group(1)=中文序号，group(2)=标题正文（含可能的括注分值）。 */
     private static final Pattern SECTION_PATTERN =
-            Pattern.compile("^#{1,4}\\s*[一二三四五六七八九十]+\s*[、.．]\\s*(.+?)\\s*$");
+            Pattern.compile("^#{1,4}\\s*+[一二三四五六七八九十]+\\s*+[、.．]\\s*+(.+?)\\s*+$");
 
     /** 匹配"每题X分" */
     private static final Pattern SCORE_PATTERN = Pattern.compile("每题\\s*(\\d+)\\s*分");
@@ -49,11 +49,11 @@ public final class ExamPaperParser {
 
     /** 匹配小题分值标记：（5分）/（本题 3 分）/【2分】，通常紧跟在题干末尾 */
     private static final Pattern QUESTION_SCORE_PATTERN =
-            Pattern.compile("[（(【]\\s*(?:本题)?\\s*(\\d+)\\s*分\\s*[）)】]");
+            Pattern.compile("[（(【]\\s*+(?:本题)?\\s*+(\\d++)\\s*+分\\s*+[）)】]");
 
     /** 小题分值标记的整段（含前后空白），用于从正文/选项中剥离 */
     private static final Pattern QUESTION_SCORE_STRIP =
-            Pattern.compile("\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*");
+            Pattern.compile("\\s*+[（(【]\\s*+(?:本题)?\\s*+\\d++\\s*+分\\s*+[）)】]\\s*+");
 
     /** 匹配单个选项：A. xxx 或 A、xxx 或 **A.** xxx */
     private static final Pattern SINGLE_OPTION_PATTERN = Pattern.compile("([A-Da-d])\\s*[.、．]\\s*");
@@ -822,7 +822,7 @@ public final class ExamPaperParser {
                         .trim();
 
         Pattern optionPattern =
-                Pattern.compile("([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
+                Pattern.compile("([A-Da-d])\\s*+[.、．]\\s*+(.*?)(?=\\s++[A-Da-d]\\s*+[.、．]|$)");
         Matcher matcher = optionPattern.matcher(normalized);
 
         while (matcher.find()) {

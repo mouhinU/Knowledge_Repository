@@ -114,4 +114,25 @@ class ExamPaperParserTest {
         assertEquals("TRUE_FALSE", qs.get(3).get("type"));
         assertEquals("FILL_BLANK", qs.get(4).get("type"));
     }
+
+    @Test
+    @DisplayName("无方案：选项值内联分值括注被剥离且行内 A/B/C/D 正确切分（ReDoS 加固回归）")
+    void stripsScoreParenInsideInlineOptionValue() {
+        String paper =
+                """
+                ## 一、我会选（单选题）（共1题，每题2分，共2分）
+
+                **1.** 选出正确的一项。（2分）
+                A. 苹果（1分） B. 香蕉 C. 橘子 D. 葡萄
+                """;
+        Map<Integer, Map<String, Object>> qs = byNumber(ExamPaperParser.parse(paper, null));
+        assertEquals("SINGLE_CHOICE", qs.get(1).get("type"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> opts = (List<Map<String, String>>) qs.get(1).get("options");
+        assertNotNull(opts, "行内选项应被抽出");
+        assertEquals(4, opts.size());
+        assertEquals("A", opts.get(0).get("key"));
+        assertEquals("苹果", opts.get(0).get("value"), "选项内联分值括注应被剥离");
+        assertEquals("葡萄", opts.get(3).get("value"));
+    }
 }

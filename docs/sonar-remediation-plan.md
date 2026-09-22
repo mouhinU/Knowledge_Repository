@@ -83,6 +83,16 @@
 
 **工时**：~15 × 8min = 2 小时。风险：**中高** —— 正则改写容易破坏既有语义。每条改动必须补一条命中回归测试（现有 `ExamPaperParserTest` 已存在，扩用例即可）。
 
+**执行结果（PR-4 · 2026-09-22）**：以占有量词（`\s*+` / `\d++` / `[X]{m,n}+` / `[^…)】]*+`）消除相邻重叠量词的多项式回溯，语义等价（仅禁止不可能导致成功匹配的回溯路径），全套 `mvn test`（domain 28 + application 105）通过，spotless 校验通过。
+
+- `AnswerKeyParser.java ×5`：`ANSWER_MARK` / `ANALYSIS_MARK` / `CRITERIA_MARK`（`\s*+` 界定 `(.*)` 边界）、`INLINE_SCORE_PAREN`（首个字符类排除 `分` 使锚点确定 + 后段 `*+`）、`BARE_LABEL_ONLY`（可选冒号两侧 `\s*+` 与两端 `\*{0,2}+` 全部所有格化）。
+- `ExamPaperParser.java ×4`：`SECTION_PATTERN`、`QUESTION_SCORE_PATTERN`、`QUESTION_SCORE_STRIP`、`parseOptions` 内联选项切分正则。**附带修复一处潜在编译错误**：`SECTION_PATTERN` 原串内 `[一二三四五六七八九十]+` 之后为单反斜杠 `\s`（Java 字符串字面量非法转义），本次一并改回 `\\s` 所有格形式。
+- `ExamContentRenderAgent.java`：`extractOptionsFromContent` 的内联切分正则（同上所有格化）+ `cleanContent` 的水平线/分值括注/尾空白三处所有格化。
+- 回归测试：`AnswerKeyParserTest` +1（冒号两侧空格）、`ExamPaperParserTest` +1（选项值内联分值括注剥离）。
+
+**暂缓 2 处（原因）**：`DocumentIngestionDomainService` 的段落分割正则 `(?:^|\n\s*\n)\s*(.+?)(?=\n\s*\n|$)`（DOTALL）—— 安全修法需把 `\s` 收敛为 `[ \t]` 或改判分段语义，会改变 3+ 连续空行的分段口径，无对应单测保护，留待带测试的专项重构；`EnhancedPdfTextExtractor` 的 `[ \t]+\n` 经判定字符类与后继 `\n` 互斥、线性可证，待重扫 Sonar 确认是否为该条，若非则不动。**收尾项**：本轮无 token 无法即时回查 Sonar 精确 15 条行号（组件键匿名 API 暂返回空），改以工程判据覆盖全部具备重叠量词特征的模式；PR-5 合并后统一带 token 复核 S8786 归零情况。
+
+
 ### 2.6 javascript:S7773 — 11 条 · MEDIUM
 
 **现象**：ES6 起 `Number.isNaN / Number.parseInt` 优于全局 `isNaN / parseInt`。

@@ -164,7 +164,7 @@ public class ExamContentRenderAgent {
         }
         java.util.regex.Pattern pattern =
                 java.util.regex.Pattern.compile(
-                        "([A-Da-d])\\s*[.、．]\\s*(.*?)(?=\\s+[A-Da-d]\\s*[.、．]|$)");
+                        "([A-Da-d])\\s*+[.、．]\\s*+(.*?)(?=\\s++[A-Da-d]\\s*+[.、．]|$)");
         java.util.regex.Matcher matcher = pattern.matcher(content);
         int firstStart = -1;
         while (matcher.find()) {
@@ -196,11 +196,11 @@ public class ExamContentRenderAgent {
         if (content == null) {
             return "";
         }
-        return content.replaceAll("(?m)^\\s*[-*_]{3,}\\s*$", "")
-                .replaceAll("\\s*[-*_]{3,}\\s*$", "")
-                .replaceAll("\\s*[（(【]\\s*(?:本题)?\\s*\\d+\\s*分\\s*[）)】]\\s*", " ")
+        return content.replaceAll("(?m)^\\s*+[-*_]{3,}+\\s*+$", "")
+                .replaceAll("\\s*+[-*_]{3,}+\\s*+$", "")
+                .replaceAll("\\s*+[（(【]\\s*+(?:本题)?\\s*+\\d++\\s*+分\\s*+[）)】]\\s*+", " ")
                 .replaceAll("\\*{1,2}", "")
-                .replaceAll("\\s+$", "")
+                .replaceAll("\\s++$", "")
                 .trim();
     }
 

@@ -37,6 +37,18 @@ class AnswerKeyParserTest {
     }
 
     @Test
+    @DisplayName("冒号两侧带空格的标记行：所有格量词加固后仍精确剥离首尾空白（ReDoS 回归保护）")
+    void colonPaddedWithWhitespaceStillIsolatesBody() {
+        String md = "**7.（3分）答案 ：  B  **  \n" + "解析 ：  先算括号里的加法。  \n";
+
+        AnswerKeyParser.QuestionKey key = AnswerKeyParser.parse(md).get(1);
+
+        assertThat(key).isNotNull();
+        assertThat(key.answer()).as("冒号两侧空格不得污染捕获值").isEqualTo("B");
+        assertThat(key.analysis()).contains("先算括号里的加法");
+    }
+
+    @Test
     @DisplayName("空的行内「答案：」+后续多行正文 → 答案正文跨行收集（Q21 计算题）")
     void multilineAnswerAfterEmptyInlineMarker() {
         String md =

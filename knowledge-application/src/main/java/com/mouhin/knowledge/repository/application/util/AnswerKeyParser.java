@@ -32,15 +32,15 @@ public final class AnswerKeyParser {
 
     /** 答案标记 */
     private static final Pattern ANSWER_MARK =
-            Pattern.compile("\\*{0,2}(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*(.*)$");
+            Pattern.compile("\\*{0,2}(?:标准答案|参考答案|正确答案|答案)\\s*+[：:]\\s*+(.*)$");
 
     /** 解析标记 */
     private static final Pattern ANALYSIS_MARK =
-            Pattern.compile("\\*{0,2}(?:解析|分析|说明|理由)\\s*[：:]\\s*(.*)$");
+            Pattern.compile("\\*{0,2}(?:解析|分析|说明|理由)\\s*+[：:]\\s*+(.*)$");
 
     /** 评分标准标记 */
     private static final Pattern CRITERIA_MARK =
-            Pattern.compile("\\*{0,2}(?:评分标准|给分标准|赋分标准|得分标准|评分细则)\\s*[：:]\\s*(.*)$");
+            Pattern.compile("\\*{0,2}(?:评分标准|给分标准|赋分标准|得分标准|评分细则)\\s*+[：:]\\s*+(.*)$");
 
     /** 通用「加粗标签」标记（如 **题目：** / **知识点：**），命中则切换到无归属状态 */
     private static final Pattern OTHER_LABEL_MARK = Pattern.compile("^\\*{1,2}[^*：:]{1,10}[：:]");
@@ -50,7 +50,7 @@ public final class AnswerKeyParser {
 
     /** 行首「分值」括注（含"分"字），用于从行内答案中剥离，如 （2分） / （共35分） */
     private static final Pattern INLINE_SCORE_PAREN =
-            Pattern.compile("^[（(【][^）)】]*分[^）)】]*[）)】]\\s*");
+            Pattern.compile("^[（(【][^）)】分]*分[^）)】]*+[）)】]\\s*+");
 
     /** 行内答案前可能残留的「答案：」类标签，剥离后只留答案本体 */
     private static final Pattern ANSWER_LABEL_PREFIX =
@@ -63,7 +63,7 @@ public final class AnswerKeyParser {
      */
     private static final Pattern BARE_LABEL_ONLY =
             Pattern.compile(
-                    "^\\*{0,2}\\s*(?:示例|例题|参考答案|标准答案|正确答案|答案|解答|解析|分析|说明|理由)\\s*[：:]?\\s*\\*{0,2}$");
+                    "^\\*{0,2}+\\s*+(?:示例|例题|参考答案|标准答案|正确答案|答案|解答|解析|分析|说明|理由)\\s*+[：:]?\\s*+\\*{0,2}+$");
 
     private AnswerKeyParser() {}
 
