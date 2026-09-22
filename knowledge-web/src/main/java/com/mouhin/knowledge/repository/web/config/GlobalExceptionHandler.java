@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 全局异常处理器
@@ -60,6 +63,25 @@ public class GlobalExceptionHandler {
                                 "FILE_TOO_LARGE",
                                 "errorMessage",
                                 "Upload file exceeds maximum size limit",
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
+    }
+
+    /**
+     * 未知路由 → 404。Spring 6 无 handler 抛 {@link NoHandlerFoundException}、 静态资源缺失抛 {@link
+     * NoResourceFoundException}；两者合并映射，避免掉进 通用 {@link Exception} 兜底导致 500 + ERROR 堆栈污染日志。
+     */
+    @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+    public ResponseEntity<Map<String, Object>> handleNotFound(
+            Exception e, HttpServletRequest request) {
+        log.warn("404 {} {}", request.getMethod(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(
+                        Map.of(
+                                "errorCode",
+                                "NOT_FOUND",
+                                "errorMessage",
+                                "资源不存在: " + request.getRequestURI(),
                                 FIELD_TIMESTAMP,
                                 LocalDateTime.now().toString()));
     }
