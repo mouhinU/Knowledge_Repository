@@ -53,7 +53,7 @@
         const body = {
             query: query,
             userId: document.getElementById('search-user').value,
-            maxResults: parseInt(document.getElementById('search-max').value) || 10,
+            maxResults: Number.parseInt(document.getElementById('search-max').value) || 10,
             admin: document.getElementById('search-admin').checked
         };
 

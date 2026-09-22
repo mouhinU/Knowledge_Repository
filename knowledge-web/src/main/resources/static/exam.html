@@ -1772,7 +1772,7 @@
     function formatDateTime(str) {
         if (!str) return '';
         var d = new Date(str);
-        if (isNaN(d.getTime())) return str;
+        if (Number.isNaN(d.getTime())) return str;
         var y = d.getFullYear();
         var m = String(d.getMonth() + 1).padStart(2, '0');
         var day = String(d.getDate()).padStart(2, '0');
@@ -2327,7 +2327,7 @@
         // 未提供 serverNow（旧版接口 / 缓存兜底）时偏移保持为 0，退化为纯本地时钟。
         if (serverNowIso) {
             var sn = new Date(serverNowIso).getTime();
-            if (!isNaN(sn)) {
+            if (!Number.isNaN(sn)) {
                 serverClockOffsetMs = sn - Date.now();
             }
         }
@@ -2780,8 +2780,8 @@
         var slots = [];
         if (blankContent) {
             blankContent.querySelectorAll('.blank-inline-input').forEach(function(inp) {
-                var idx = parseInt(inp.getAttribute('data-slot'), 10);
-                if (isNaN(idx)) idx = slots.length;
+                var idx = Number.parseInt(inp.getAttribute('data-slot'), 10);
+                if (Number.isNaN(idx)) idx = slots.length;
                 slots.push({ idx: idx, val: inp.value || '' });
             });
         }
@@ -3211,7 +3211,7 @@
 
     function escapeAttr(str) {
         if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return String(str).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll("'", '&#39;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
     }
 </script>
 </body>

@@ -235,7 +235,7 @@
             const res = await fetch(API + '/api/admin/wrong-answers/summary', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    studentId: studentId ? parseInt(studentId) : null,
+                    studentId: studentId ? Number.parseInt(studentId) : null,
                     topic: topic || null,
                     questionType: questionType || null
                 })

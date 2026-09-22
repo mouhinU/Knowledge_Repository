@@ -293,7 +293,7 @@
 
     function generateStreamId() {
         if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-        return 'st-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        return 'st-' + Date.now().toString(36) + '-' + KR.randToken(8);
     }
 
     function openGradingPanel(title) {
@@ -798,7 +798,7 @@
         const sessionKey = document.getElementById('duration-session-key').value.trim();
         const minutesInput = document.getElementById('duration-minutes').value;
         if (!sessionKey) { toast('请输入 Session Key', 'error'); return; }
-        const minutes = minutesInput ? parseInt(minutesInput) : 0;
+        const minutes = minutesInput ? Number.parseInt(minutesInput) : 0;
         if (minutes < 0 || minutes > 600) { toast('时长必须在 1-600 分钟之间', 'error'); return; }
         try {
             const res = await fetch(API + '/api/admin/exam-review/' + encodeURIComponent(sessionKey) + '/duration', {

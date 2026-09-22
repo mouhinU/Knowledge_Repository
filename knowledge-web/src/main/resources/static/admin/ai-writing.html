@@ -365,7 +365,7 @@
         btn.textContent = '连接中...';
         resetWritingUI();
 
-        const sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
+        const sessionId = 'sess-' + Date.now() + '-' + KR.randToken(8);
         const eventSource = new EventSource(API + '/api/agent/article/progress/' + sessionId);
         let sseReady = false;
         eventSource.onopen = () => { sseReady = true; };

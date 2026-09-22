@@ -549,10 +549,26 @@
 
     function uuid() {
         if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0;
-            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+        // 无 randomUUID 的旧浏览器：用 crypto.getRandomValues 生成 RFC4122 v4 兼容字符串
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;   // version
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;   // variant
+        const hex = [];
+        for (let i = 0; i < 16; i++) hex.push((bytes[i] + 0x100).toString(16).slice(1));
+        return hex.slice(0, 4).join('') + '-' + hex.slice(4, 6).join('') + '-'
+            + hex.slice(6, 8).join('') + '-' + hex.slice(8, 10).join('') + '-'
+            + hex.slice(10, 16).join('');
+    }
+
+    /** 生成 n 位 base36 随机 token（默认 8 位），供 sessionId / streamId 等短标识使用。 */
+    function randToken(n) {
+        const len = n || 8;
+        const bytes = new Uint8Array(len);
+        crypto.getRandomValues(bytes);
+        let s = '';
+        for (let i = 0; i < len; i++) s += (bytes[i] % 36).toString(36);
+        return s;
     }
 
     /* ---------- 挂载到 window（供各页面内联脚本以全局函数名直接调用） ---------- */
@@ -570,7 +586,7 @@
         formatElapsed: formatElapsed, formatTime: formatTime, fmtDateTime: fmtDateTime,
         renderMarkdown: renderMarkdown, renderPager: renderPager, distributeInt: distributeInt,
         renderImages: renderImages, openImgLightbox: openImgLightbox, closeImgLightbox: closeImgLightbox,
-        uuid: uuid
+        uuid: uuid, randToken: randToken
     };
     window.KR = KR;
     // 全局别名：与旧代码保持一致，页面脚本可直接使用这些裸函数名

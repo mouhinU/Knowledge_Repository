@@ -501,8 +501,8 @@
 
     async function doModalPreview() {
         if (!_pvDocKey) return;
-        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
-        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const chunkSize = Number.parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = Number.parseInt(document.getElementById('pv-overlap').value) || 50;
         const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
         _pvMaxTokens = chunkSize;
         document.getElementById('pv-modal-summary').innerHTML = '<div class="loading" style="grid-column:1/-1">正在解析...</div>';
@@ -643,8 +643,8 @@
         const reindex = _pvReindex;
         const action = reindex ? '重新入库' : '入库';
         const confirmBtnLabel = reindex ? '确认重新入库' : '确认入库';
-        const chunkSize = parseInt(document.getElementById('pv-chunk-size').value) || 500;
-        const overlap = parseInt(document.getElementById('pv-overlap').value) || 50;
+        const chunkSize = Number.parseInt(document.getElementById('pv-chunk-size').value) || 500;
+        const overlap = Number.parseInt(document.getElementById('pv-overlap').value) || 50;
         const strategy = document.getElementById('pv-strategy').value || 'FIXED_SIZE';
         let msg = _pvChunksModified
             ? ('确认使用手动调整后的 ' + _pvChunks.length + ' 个分块' + action + '？')
