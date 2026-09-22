@@ -155,16 +155,19 @@ function randToken(n = 8) {
 
 ### 2.11 重复度：3.16% → <3%（专项）
 
-**现象**：新代码 1464 duplicated / 46351 total。要跌破 3% 至少要清出 ~200 行（安全余量建议 300 行）。
+**基线**：新代码 1464 duplicated / 46351 total；要跌破 3% 至少清出 ~74 行（安全余量 ~200）。
 
-**分布未知**：公开 API 拿不到每文件 dup 明细，需要登录 Sonar 或用带 token 的 `/api/duplications/show` 拉。
+**执行结果（PR-5 · 2026-09-22）**：无 token 拉不到 Sonar 精确 dup blocks，改用工程扫描（≥8 行 sliding-window、去注释与空白，同文件多命中聚类 + 跨文件命中），锁定 intra-file 为主战场，完成 4 项抽取：
 
-**候选来源**（凭工程直觉）：
-- 5 个 admin HTML 里的 `<style>` / agent-panel / modal 骨架重复 —— 抽成共享 CSS `admin/assets/css/patterns.css` 或 HTML 片段 include。
-- 5 个 admin HTML 里的 `common.js` 之外的重复函数（`esc()`、`fetchWithAuth()`、modal open/close） —— 迁移到 `common.js`。
-- Java 层：`AnswerKeyParser` 与 `ExamPaperParser` 里 5+5 条正则、结构相似的 `parseXxx()` 方法 —— 抽共同基类或 `ParserUtils`。
+- `DocumentIngestionDomainService.mergePages(pages, sep)` + `MergedPages` record：4 处 `StringBuilder merged + charPageMap` 8-18 行重复块 → 单 helper，附带删掉一处未使用局部变量。
+- `ExamPaperParser.splitQuestionBody(block, contentBuilder, rawOptionsBuilder)`：2 处 27/26 行"题干+选项块解析"合并为一处。
+- `ParserUtils.OPTION_SPLIT_PATTERN`：跨文件共享选项切分正则常量，`ExamPaperParser` 与 `ExamContentRenderAgent` 都从字面量 `Pattern.compile(...)` 改为 `ParserUtils.OPTION_SPLIT_PATTERN`，防未来 ReDoS 修复只改一侧漂移。
+- `ai-exam.js` 新增 `_pstBodyHtml()` + `_waitForSseReady(flagGetter, timeoutMs)`：两处 8 行 `pst-body` HTML 模板 + 两处 6 行 SSE 轮询 promise 收敛为单实现；`node --check` 通过。
 
-**工时**：先花 1 小时定位 top dup blocks，再估 3-4 小时集中改造。**这是唯一有不确定性的专项**。
+回归验证：`mvn test -pl knowledge-application -am` 28（domain）+ 105（application）全绿，`spotless:check` 通过；HTML/JS 无自动化回归，仅 `node --check` 保语法（无浏览器验证条件，页面功能层面依赖 PR 后手工点检）。
+
+**扫描后剩余 Java intra-file dup 主源**（8-行窗口近似）：`ExamController` 280 · `DocumentUploadController` 104 · `ExamGenerationSupport` 88 · `DocumentAdminController` 88 · `DocumentImageExtractorService` 80 · 合计 ~640 行。前三者主要是「try { return ResponseEntity.ok(service.xxx(...)); } catch (Exception e) { log.error(...); return ResponseEntity.badRequest().body(Map.of(\"errorCode\",\"BAD_REQUEST\",...)); }}」的 Controller 样板，`ExamGenerationSupport` 与 `DocumentImageExtractorService` 属于同类"方法体分步骨架"重复。**已归为架构级改动，独立提交待确认**（详见 §四 后续动作）。
+
 
 ## 三、分批 PR 建议
 

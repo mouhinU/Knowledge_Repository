@@ -108,23 +108,9 @@ public class DocumentIngestionDomainService {
      */
     private List<RawChunk> chunkFixedSize(List<PageText> pages, ChunkingConfig config) {
         // 合并所有页面文本，同时记录每个字符对应的页码
-        StringBuilder merged = new StringBuilder();
-        List<int[]> charPageMap = new ArrayList<>(); // [charIndex, pageNumber]
-
-        for (PageText pt : pages) {
-            if (!merged.isEmpty()) {
-                int pageBreakStart = merged.length();
-                merged.append("\n\n");
-                // 分页符不映射页码
-            }
-            int pageStart = merged.length();
-            merged.append(pt.text());
-            for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[] {i, pt.pageNumber()});
-            }
-        }
-
-        String text = merged.toString();
+        MergedPages merged = mergePages(pages, "\n\n");
+        String text = merged.text();
+        List<int[]> charPageMap = merged.charPageMap();
         int maxTokens = config.getMaxChunkSize();
         int overlapTokens = config.getOverlapSize();
 
@@ -213,21 +199,9 @@ public class DocumentIngestionDomainService {
      * <p>分隔符层级：双换行(段落) → 单换行(行) → 句子边界 → 空格(词) → 强制字符
      */
     private List<RawChunk> chunkRecursive(List<PageText> pages, ChunkingConfig config) {
-        StringBuilder merged = new StringBuilder();
-        List<int[]> charPageMap = new ArrayList<>();
-
-        for (PageText pt : pages) {
-            if (!merged.isEmpty()) {
-                merged.append("\n\n");
-            }
-            int pageStart = merged.length();
-            merged.append(pt.text());
-            for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[] {i, pt.pageNumber()});
-            }
-        }
-
-        String text = merged.toString();
+        MergedPages merged = mergePages(pages, "\n\n");
+        String text = merged.text();
+        List<int[]> charPageMap = merged.charPageMap();
         int maxChars = config.getMaxChunkSize() * 3;
         int overlapChars = config.getOverlapSize() * 3;
 
@@ -352,21 +326,9 @@ public class DocumentIngestionDomainService {
      * <p>增强句子检测：支持中英文标点、省略号、列表项、换行边界。
      */
     private List<RawChunk> chunkSentence(List<PageText> pages, ChunkingConfig config) {
-        StringBuilder merged = new StringBuilder();
-        List<int[]> charPageMap = new ArrayList<>();
-
-        for (PageText pt : pages) {
-            if (!merged.isEmpty()) {
-                merged.append("\n");
-            }
-            int pageStart = merged.length();
-            merged.append(pt.text());
-            for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[] {i, pt.pageNumber()});
-            }
-        }
-
-        String text = merged.toString();
+        MergedPages merged = mergePages(pages, "\n");
+        String text = merged.text();
+        List<int[]> charPageMap = merged.charPageMap();
         int maxChars = config.getMaxChunkSize() * 3;
         int overlapChars = config.getOverlapSize() * 3;
 
@@ -451,21 +413,9 @@ public class DocumentIngestionDomainService {
      * <p>识别列表项结构，尽量不在列表中间断开。 超长段落降级到句子级切分。
      */
     private List<RawChunk> chunkParagraph(List<PageText> pages, ChunkingConfig config) {
-        StringBuilder merged = new StringBuilder();
-        List<int[]> charPageMap = new ArrayList<>();
-
-        for (PageText pt : pages) {
-            if (!merged.isEmpty()) {
-                merged.append("\n\n");
-            }
-            int pageStart = merged.length();
-            merged.append(pt.text());
-            for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[] {i, pt.pageNumber()});
-            }
-        }
-
-        String text = merged.toString();
+        MergedPages merged = mergePages(pages, "\n\n");
+        String text = merged.text();
+        List<int[]> charPageMap = merged.charPageMap();
         int maxChars = config.getMaxChunkSize() * 3;
         int overlapChars = config.getOverlapSize() * 3;
 
@@ -772,6 +722,34 @@ public class DocumentIngestionDomainService {
         }
         return sb.toString();
     }
+
+    /**
+     * 按页合并文本，同时记录每个字符归属的页码，供下游 chunk 定位 startPage/endPage。
+     *
+     * <p>FIXED_SIZE / RECURSIVE / SENTENCE / PARAGRAPH 四种策略共用此合并骨架；PAGE 不合并。
+     *
+     * @param pages 带页码的文本段列表（已由 {@link #chunkDocument} 过滤空白页并按 1-based 编号）
+     * @param separator 页与页之间插入的分隔符：段落/固定/递归用 {@code \n\n}，句子级用 {@code \n}
+     * @return 合并文本 + 字符→页码映射（{@code charPageMap.get(i)[1]} 即位置 i 的页码）
+     */
+    private MergedPages mergePages(List<PageText> pages, String separator) {
+        StringBuilder merged = new StringBuilder();
+        List<int[]> charPageMap = new ArrayList<>();
+        for (PageText pt : pages) {
+            if (!merged.isEmpty()) {
+                merged.append(separator);
+            }
+            int pageStart = merged.length();
+            merged.append(pt.text());
+            for (int i = pageStart; i < merged.length(); i++) {
+                charPageMap.add(new int[] {i, pt.pageNumber()});
+            }
+        }
+        return new MergedPages(merged.toString(), charPageMap);
+    }
+
+    /** 页面合并中间产物：整体文本 + 每字符页码映射，供下游 chunk 使用。 */
+    private record MergedPages(String text, List<int[]> charPageMap) {}
 
     /** 带页码信息的文本段 */
     private record PageText(String text, int pageNumber) {}

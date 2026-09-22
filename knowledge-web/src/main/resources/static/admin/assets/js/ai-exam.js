@@ -217,6 +217,31 @@
             ? '…(前 ' + (st.text.output.length - _PST_MAX_RENDER) + ' 字省略)\n' + st.text.output.slice(-_PST_MAX_RENDER)
             : st.text.output;
     }
+    /** 生成 .pst-body 三段（输入/思考/输出）的固定 HTML 骨架，供 upsertPlanTraceStage 等复用。 */
+    function _pstBodyHtml() {
+        return '<div class="pst-body">'
+            + '<div class="pst-sec pst-sec-input"><div class="pst-label">📥 输入</div>'
+            + '<div class="pst-input-body"></div></div>'
+            + '<div class="pst-sec pst-sec-think"><div class="pst-label">💭 思考</div>'
+            + '<div class="pst-think-body"></div></div>'
+            + '<div class="pst-sec pst-sec-out"><div class="pst-label">📤 输出</div>'
+            + '<div class="pst-out-body"></div></div>'
+            + '</div>';
+    }
+
+    /**
+     * 轮询式 SSE ready 等待器：flag getter 为真立即 resolve；否则每 50ms 检查，超时 timeoutMs 后强制 resolve。
+     *
+     * <p>调用点自行决定 flag getter（通常捕获外层作用域的 sseReady 变量），以便同一段轮询代码复用于多个 SSE 场景。
+     */
+    function _waitForSseReady(flagGetter, timeoutMs) {
+        return new Promise((resolve) => {
+            if (flagGetter()) { resolve(); return; }
+            const check = () => { if (flagGetter()) resolve(); else setTimeout(check, 50); };
+            check();
+            setTimeout(resolve, timeoutMs || 3000);
+        });
+    }
 
     function resetPlanTrace() {
         ['exam-plan-trace', 'exam-val-trace'].forEach(id => {
@@ -248,14 +273,7 @@
                 + '<span class="pst-peek"></span>'
                 + '<span class="pst-status">进行中…</span>'
                 + '</div>'
-                + '<div class="pst-body">'
-                + '<div class="pst-sec pst-sec-input"><div class="pst-label">📥 输入</div>'
-                + '<div class="pst-input-body"></div></div>'
-                + '<div class="pst-sec pst-sec-think"><div class="pst-label">💭 思考</div>'
-                + '<div class="pst-think-body"></div></div>'
-                + '<div class="pst-sec pst-sec-out"><div class="pst-label">📤 输出</div>'
-                + '<div class="pst-out-body"></div></div>'
-                + '</div>';
+                + _pstBodyHtml();
             card.querySelector('.pst-header').addEventListener('click', () => {
                 const open = card.classList.toggle('open');
                 if (open) _pstFlushBody(card, agent);
@@ -344,14 +362,7 @@
                 + '<span class="pst-peek"></span>'
                 + '<span class="pst-status" style="color:#16a34a">后端确定性计算 · 已完成 ✓</span>'
                 + '</div>'
-                + '<div class="pst-body">'
-                + '<div class="pst-sec pst-sec-input"><div class="pst-label">📥 输入</div>'
-                + '<div class="pst-input-body"></div></div>'
-                + '<div class="pst-sec pst-sec-think"><div class="pst-label">💭 思考</div>'
-                + '<div class="pst-think-body"></div></div>'
-                + '<div class="pst-sec pst-sec-out"><div class="pst-label">📤 输出</div>'
-                + '<div class="pst-out-body"></div></div>'
-                + '</div>';
+                + _pstBodyHtml();
             card.querySelector('.pst-header').addEventListener('click', () => card.classList.toggle('open'));
             box.appendChild(card);
         }
@@ -644,12 +655,7 @@
             refreshStepGate();
         });
 
-        const waitForSse = () => new Promise((resolve) => {
-            if (sseReady) { resolve(); return; }
-            const check = () => { if (sseReady) resolve(); else setTimeout(check, 50); };
-            check();
-            setTimeout(resolve, 3000);
-        });
+        const waitForSse = () => _waitForSseReady(() => sseReady, 3000);
 
         try {
             await waitForSse();
@@ -1174,12 +1180,7 @@
             refreshStepGate();
         });
 
-        const waitForSse = () => new Promise((resolve) => {
-            if (sseReady) { resolve(); return; }
-            const check = () => { if (sseReady) resolve(); else setTimeout(check, 50); };
-            check();
-            setTimeout(resolve, 3000);
-        });
+        const waitForSse = () => _waitForSseReady(() => sseReady, 3000);
 
         try {
             btn.textContent = '生成中...';

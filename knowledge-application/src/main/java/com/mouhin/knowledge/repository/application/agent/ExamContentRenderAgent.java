@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.agent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.application.util.ParserUtils;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -162,9 +163,7 @@ public class ExamContentRenderAgent {
         if (content == null || content.isBlank()) {
             return new OptionSplit(content, options);
         }
-        java.util.regex.Pattern pattern =
-                java.util.regex.Pattern.compile(
-                        "([A-Da-d])\\s*+[.、．]\\s*+(.*?)(?=\\s++[A-Da-d]\\s*+[.、．]|$)");
+        java.util.regex.Pattern pattern = ParserUtils.OPTION_SPLIT_PATTERN;
         java.util.regex.Matcher matcher = pattern.matcher(content);
         int firstStart = -1;
         while (matcher.find()) {

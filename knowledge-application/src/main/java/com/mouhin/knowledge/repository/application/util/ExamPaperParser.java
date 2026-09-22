@@ -431,33 +431,9 @@ public final class ExamPaperParser {
         for (int bi = 0; bi < n; bi++) {
             List<String> block = blocks.get(bi);
             Integer printedNumber = extractQuestionNumber(block.get(0).trim());
-            String firstLine = removeQuestionNumber(block.get(0).trim());
             StringBuilder contentBuilder = new StringBuilder();
             StringBuilder rawOptionsBuilder = new StringBuilder();
-            String extractedContent = extractContentBeforeOptions(firstLine);
-            String inlineOptions = extractInlineOptions(firstLine);
-            contentBuilder.append(extractedContent);
-            if (!inlineOptions.isEmpty()) {
-                rawOptionsBuilder.append(inlineOptions).append("\n");
-            }
-            boolean inOptions = !inlineOptions.isEmpty();
-            for (int li = 1; li < block.size(); li++) {
-                String ln = block.get(li).trim();
-                if (ln.isEmpty()) {
-                    continue;
-                }
-                if (isHorizontalRule(ln)) {
-                    break;
-                }
-                if (startsOption(ln)) {
-                    inOptions = true;
-                    rawOptionsBuilder.append(stripLeadingBullet(ln)).append("\n");
-                } else if (!inOptions) {
-                    contentBuilder.append("\n").append(ln);
-                } else {
-                    rawOptionsBuilder.append(ln).append("\n");
-                }
-            }
+            splitQuestionBody(block, contentBuilder, rawOptionsBuilder);
 
             int inline = extractQuestionScore(contentBuilder.toString());
             if (inline == 0) {
@@ -582,32 +558,9 @@ public final class ExamPaperParser {
     private static Map<String, Object> buildOneQuestion(
             List<String> block, String type, String label, int defaultScore, int index) {
         Integer printedNumber = extractQuestionNumber(block.get(0).trim());
-        String firstLine = removeQuestionNumber(block.get(0).trim());
         StringBuilder contentBuilder = new StringBuilder();
         StringBuilder rawOptionsBuilder = new StringBuilder();
-        contentBuilder.append(extractContentBeforeOptions(firstLine));
-        String inlineOptions = extractInlineOptions(firstLine);
-        if (!inlineOptions.isEmpty()) {
-            rawOptionsBuilder.append(inlineOptions).append("\n");
-        }
-        boolean inOptions = !inlineOptions.isEmpty();
-        for (int li = 1; li < block.size(); li++) {
-            String ln = block.get(li).trim();
-            if (ln.isEmpty()) {
-                continue;
-            }
-            if (isHorizontalRule(ln)) {
-                break;
-            }
-            if (startsOption(ln)) {
-                inOptions = true;
-                rawOptionsBuilder.append(stripLeadingBullet(ln)).append("\n");
-            } else if (!inOptions) {
-                contentBuilder.append("\n").append(ln);
-            } else {
-                rawOptionsBuilder.append(ln).append("\n");
-            }
-        }
+        splitQuestionBody(block, contentBuilder, rawOptionsBuilder);
         Map<String, Object> q = new LinkedHashMap<>();
         q.put("index", index);
         q.put("number", printedNumber != null ? printedNumber : index);
@@ -752,6 +705,41 @@ public final class ExamPaperParser {
         return null;
     }
 
+    /**
+     * 把一道题的原始 Markdown 行块拆分追加到 {@code contentBuilder}（题干）与 {@code rawOptionsBuilder}（原始选项串）。
+     *
+     * <p>题干 = 首行去题号后 {@code extractContentBeforeOptions} 部分 + 后续未识别为选项标记的正文行；选项 = 首行内联 {@code
+     * extractInlineOptions} 结果 + 后续以 {@code startsOption} 判定或已处于选项模式下的原始行（剥离列表项符号）。 遇到水平线（{@code
+     * ---} 等）视为块结束、提前停止。
+     */
+    private static void splitQuestionBody(
+            List<String> block, StringBuilder contentBuilder, StringBuilder rawOptionsBuilder) {
+        String firstLine = removeQuestionNumber(block.get(0).trim());
+        contentBuilder.append(extractContentBeforeOptions(firstLine));
+        String inlineOptions = extractInlineOptions(firstLine);
+        if (!inlineOptions.isEmpty()) {
+            rawOptionsBuilder.append(inlineOptions).append("\n");
+        }
+        boolean inOptions = !inlineOptions.isEmpty();
+        for (int li = 1; li < block.size(); li++) {
+            String ln = block.get(li).trim();
+            if (ln.isEmpty()) {
+                continue;
+            }
+            if (isHorizontalRule(ln)) {
+                break;
+            }
+            if (startsOption(ln)) {
+                inOptions = true;
+                rawOptionsBuilder.append(stripLeadingBullet(ln)).append("\n");
+            } else if (!inOptions) {
+                contentBuilder.append("\n").append(ln);
+            } else {
+                rawOptionsBuilder.append(ln).append("\n");
+            }
+        }
+    }
+
     /** 提取题目内容中选项之前的部分 */
     private static String extractContentBeforeOptions(String line) {
         String cleaned = line.replaceAll("\\*{0,2}", "");
@@ -821,8 +809,7 @@ public final class ExamPaperParser {
                         .replaceAll("\\s+", " ")
                         .trim();
 
-        Pattern optionPattern =
-                Pattern.compile("([A-Da-d])\\s*+[.、．]\\s*+(.*?)(?=\\s++[A-Da-d]\\s*+[.、．]|$)");
+        Pattern optionPattern = ParserUtils.OPTION_SPLIT_PATTERN;
         Matcher matcher = optionPattern.matcher(normalized);
 
         while (matcher.find()) {
