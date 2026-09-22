@@ -15,7 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 起一直被占用到方法返回，Milvus 抖动时会拖长事务、耗尽连接池。 现"DB 先、慢 IO 后"：状态更新成功提交即视为归档完成；向量删除失败仅记录， 检索侧以 DB
  * 状态为准，已归档文档不会再被召回（残留向量可由对账回收）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

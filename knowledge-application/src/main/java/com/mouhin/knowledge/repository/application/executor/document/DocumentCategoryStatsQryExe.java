@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 /**
  * 各分类文档数量统计执行器（app 层用例）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * <p>锁定跨链路共享的解析口径：正常数组按序保留、逐项 trim 且跳过空白、null / 空 / 脏 JSON 安全降级为 空列表（不抛异常），以及 {@code parseOrNull}
  * 把「无有效配图」归一化为 null 以便 {@code @JsonInclude} 省略字段。 纯函数测试，确定且离线。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("看图题配图 assetKey 解析 (ExamImages)")

@@ -9,7 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  *
  * <p>为考生认证执行器提供 BCrypt 密码编码器单例，替代原先在各服务中手工 new 的做法。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Configuration

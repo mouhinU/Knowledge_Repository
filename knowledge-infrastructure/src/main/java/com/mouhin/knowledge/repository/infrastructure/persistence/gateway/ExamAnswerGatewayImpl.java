@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
 /**
  * 答题记录仓储实现
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Repository

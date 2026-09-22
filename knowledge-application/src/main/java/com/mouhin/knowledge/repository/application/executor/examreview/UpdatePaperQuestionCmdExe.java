@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>更新某题的标准答案 / 解析 / 分值后回写 {@code kb_exam_question}，并复跑契约校验返回最新问题清单，
  * 供前端即时反馈是否已满足发布条件。不自动改变试卷状态（发布须由 {@link ApprovePaperCmdExe} 触发）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

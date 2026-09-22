@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * 用户仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public interface UserGateway {

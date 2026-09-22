@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.client.dto;
 /**
  * 文章生成请求
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 public class ArticleGenerationRequest {

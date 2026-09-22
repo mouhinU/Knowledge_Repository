@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * <p>把 {@link StreamingChatGateway} 的逐 token 增量转成 {@link BlackboardProgressEvent} 的 AGENT_TOKEN
  * 事件，经 {@link BlackboardProgressCallback} 推给前端，使各 Agent 只需一行即可享受流式输出。返回模型完整回答文本，供 Agent 落库/后续处理。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

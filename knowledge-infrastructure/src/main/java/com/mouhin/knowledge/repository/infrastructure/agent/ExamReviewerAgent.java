@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * <p>读取：examPaper（试卷内容）、answerKey（答案）、keyFindings（知识点）、question（主题）
  * 写入：examReviewFeedback（审核反馈）、qualityScore（质量评分 0-100）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examReviewerAgent")

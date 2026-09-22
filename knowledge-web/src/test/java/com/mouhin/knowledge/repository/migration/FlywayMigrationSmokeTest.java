@@ -26,7 +26,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  *
  * <p>刻意不启动 Spring 上下文：仅验证迁移本身，保证快速、确定、可离线运行。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("Flyway V1-V18 迁移冒烟（H2/MySQL 模式）")

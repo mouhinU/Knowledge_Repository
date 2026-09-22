@@ -17,7 +17,7 @@ import java.util.List;
  * @param encrypted 是否加密文档
  * @param title 文档标题（元数据）
  * @param author 文档作者（元数据）
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public record ExtractionResult(

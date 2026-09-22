@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>解析以「大题分节」为单位：先按大题标题（{@code ## 一、<标签>（…）}）把试卷切成若干 section， 再把每个 section
  * 映射回题型分布方案中的内核类型与分值，保证考试端渲染的 题型分布 == 出卷方案 == 试卷，三者一致。当方案缺省时回退到关键词启发式判定。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 @Slf4j

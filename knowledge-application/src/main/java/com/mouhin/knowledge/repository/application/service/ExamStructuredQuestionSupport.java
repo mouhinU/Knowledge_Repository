@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>本类只做读取，不触发切分回灌：这些展示用例仅作用于已评分场次，其结构行在评分期 （{@code ExamGradingSupport} 的惰性回灌）即已就绪。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

@@ -11,7 +11,7 @@ import java.util.List;
  * <p>与 {@link DocumentExtractionGateway}（文本）平行：从 PDF / Word / Excel / PowerPoint 等原始文件中
  * 抽取位图，返回带尺寸与来源页信息的二进制列表，交由应用层落盘与持久化。具体解析技术 （PDFBox / POI）由基础设施层实现。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public interface DocumentImageExtractorGateway {

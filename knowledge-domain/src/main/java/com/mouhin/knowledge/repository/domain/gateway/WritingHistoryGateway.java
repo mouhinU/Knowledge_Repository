@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * AI 写作历史仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 public interface WritingHistoryGateway {

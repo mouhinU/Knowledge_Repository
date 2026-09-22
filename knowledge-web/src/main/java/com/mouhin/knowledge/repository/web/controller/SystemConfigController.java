@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 系统配置控制器（adapter 层）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @RestController

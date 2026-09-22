@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * 分页查询出卷历史执行器（records / total / page / size）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

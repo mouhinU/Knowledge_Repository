@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
  * <p>锁定「按印刷题号把 {@code images_json} 回填进 Markdown 渲染快照」这一口径：题号命中才注入 {@code images}、无绑定不误加、题号漂移不误绑、空 /
  * 异常输入原样返回，且注入不破坏原有字段。 {@code injectImagesIntoSnapshot} 只依赖快照 JSON 与结构化题目行，不触及网关，故以空依赖构造，纯函数测试。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("看图题配图注入开考快照 (按印刷题号回填 images)")

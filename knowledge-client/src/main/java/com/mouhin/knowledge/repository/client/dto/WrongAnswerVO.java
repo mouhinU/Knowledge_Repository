@@ -11,7 +11,7 @@ import lombok.Setter;
  * <p>字段声明顺序严格对齐原 {@code WrongAnswerApplicationService.buildWrongAnswerMap} 的 {@code LinkedHashMap}
  * 插入顺序，确保序列化后 JSON 键序不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

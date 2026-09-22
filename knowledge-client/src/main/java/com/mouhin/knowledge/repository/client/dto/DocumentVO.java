@@ -10,7 +10,7 @@ import lombok.Setter;
  * fileSize/totalPages（null→0）、status（枚举 name）、visibility（null→""）、 tags（null→""）、createdTime（{@code
  * LocalDateTime#toString}，null→""）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

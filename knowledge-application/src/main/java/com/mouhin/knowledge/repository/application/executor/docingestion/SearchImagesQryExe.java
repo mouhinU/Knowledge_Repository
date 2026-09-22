@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * <p>供校对页「全局图片搜索」入口：按关键词匹配来源文档名 / 文档 Key，或按 documentKey 限定到某篇文档， 分页返回配图缩略图所需元信息（含来源文档名与展示
  * URL）。keyword 与 documentKey 皆空时按最新入库顺序返回全部。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

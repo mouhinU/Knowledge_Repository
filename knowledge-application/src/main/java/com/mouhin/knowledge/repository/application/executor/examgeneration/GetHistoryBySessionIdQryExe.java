@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 /**
  * 根据会话 ID 查询出卷历史详情执行器（不存在时返回 null）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component("examGetHistoryBySessionIdQryExe")

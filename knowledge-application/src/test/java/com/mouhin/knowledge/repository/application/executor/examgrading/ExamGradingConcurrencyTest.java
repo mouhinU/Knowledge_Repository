@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
  * GRADING→AI_GRADED} 以令牌 CAS 落库、认领后异常以令牌安全回退。验证：认领失败（返回 null
  * 令牌）不重复评分；心跳/终态令牌失配（已被超时回收并重新认领）时立即停止且<b>绝不</b>上报完成或盲写覆盖； 评分过程异常时以本次令牌回退、不误伤接管者——杜绝新旧评分者对同一场次交叉写。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("评分并发状态机 (围栏令牌认领 / 心跳 / 终态 CAS / 异常回退)")

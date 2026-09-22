@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌， 控制器从请求属性读取已认证身份，其中改密的 {@code
  * userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @RestController

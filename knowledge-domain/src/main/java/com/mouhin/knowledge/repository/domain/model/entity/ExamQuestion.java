@@ -9,7 +9,7 @@ import java.util.Objects;
  * <p>试卷生成 / 开考时一次性切分并绑定标准答案，下游评分、展示、错题本均纯读本实体， 不再解析 answer_key 自由文本。权威题号以 {@link
  * #questionNumber}（印刷号，全局连续）为准。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 public class ExamQuestion {

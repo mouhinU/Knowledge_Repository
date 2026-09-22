@@ -8,7 +8,7 @@ import java.util.Optional;
 /**
  * 考试场次仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public interface ExamSessionGateway {

@@ -35,7 +35,7 @@ import org.springframework.stereotype.Component;
  * <p>承载出卷核心编排：同步出卷（单次 LLM）、异步 7 步流水线（含并行 + 低分自动重试）、 题型分布方案生成（同步 / 流式）、分值自动平衡、方案异步校验，以及出卷历史落库。
  * 这些用例出入参含领域类型（Permission / ExamPlan / 回调 / BalanceResult）， 故由 app 执行器承载并供适配层直接调用，不纳入 client 契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.indexWithCustomChunksAsync}：在 {@link
  * CompletableFuture#runAsync} 中转换自定义分块、批量落库、带回调向量化、标记完成并发布事件。 回调由适配层创建并传入（SSE 装配保持不变），故不入对外契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

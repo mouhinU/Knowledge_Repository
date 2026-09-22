@@ -6,7 +6,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
 /**
  * 答题记录 DO ↔ 领域对象转换器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public final class ExamAnswerConverter {

@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.client.dto;
  *
  * <p>组件名与顺序与原 {@code DocumentIngestionApplicationService.PageDetail} 完全一致， 保证预览接口 JSON 不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public record PageDetail(int pageNumber, int charCount, String preview) {}

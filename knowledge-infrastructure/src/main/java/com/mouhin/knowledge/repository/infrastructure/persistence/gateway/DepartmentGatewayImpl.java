@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 /**
  * 部门仓储实现
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Repository

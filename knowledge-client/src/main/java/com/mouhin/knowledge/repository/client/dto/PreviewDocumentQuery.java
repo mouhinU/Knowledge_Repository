@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>封装预览用例入参：目标文档 Key 与分块三件套（{@code chunkSize / overlap / strategy}）， 收敛为查询对象，避免 4 个位置参数（AGENTS.md
  * §十）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-21
  */
 @Getter

@@ -6,7 +6,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Wri
 /**
  * AI 写作历史 DO ↔ 领域对象转换器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 public final class WritingHistoryConverter {

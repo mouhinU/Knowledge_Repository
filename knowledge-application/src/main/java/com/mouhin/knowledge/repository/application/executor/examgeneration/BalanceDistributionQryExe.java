@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>因出入参含领域类型，不纳入 client 契约，由适配层直接调用并映射为响应。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

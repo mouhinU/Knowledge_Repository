@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * 答题记录仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public interface ExamAnswerGateway {

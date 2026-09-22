@@ -7,7 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamAlertType;
  *
  * <p>领域层仅声明"发生了什么需要告警"的语义，具体的指标埋点与日志 / 上报实现落在基础设施层。 出入参均为领域概念或基础类型，不出现 DO / DTO。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 public interface ExamAlertGateway {

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 /**
  * AI 写作历史仓储实现
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @Repository

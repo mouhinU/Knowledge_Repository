@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * B【解析】因为……}。若直接把这些整串当作答案，契约校验与客观题自动比对都会误判。 本工具统一负责：从答案串中剥离解释标记、只保留客观题的「答案头部」，并把判断题 / 选择题答案
  * 归一为可比对的规范形式。出卷契约校验（{@link ExamContractValidator}）与评分比对（app 层）共用本类， 避免两处判定口径分叉。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 public final class ExamAnswerNormalizer {

@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>实现位于 app 层 {@code DepartmentServiceImpl}，仅做分发到各用例 Executor。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface DepartmentServiceI {

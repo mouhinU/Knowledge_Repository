@@ -24,7 +24,7 @@ import org.mockito.ArgumentCaptor;
  * <p>锁定四项行为：（1）有序 assetKey 原样序列化为 images_json 并就地回写；（2）空白项与重复项被清洗、 保留首次出现顺序；（3）空列表 / null 触发清除（回写
  * null）；（4）题号为空抛非法参数、不落库。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("校对页配图绑定 (UpdateQuestionImagesCmdExe)")

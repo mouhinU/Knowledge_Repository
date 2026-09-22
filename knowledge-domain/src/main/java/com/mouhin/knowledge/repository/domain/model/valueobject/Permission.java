@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 /**
  * 权限检查值对象
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public final class Permission {

@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>封装「上传文件 + 分块三件套」入参，收敛 {@code PreviewFileQryExe.execute} 的 4 个位置参数（AGENTS.md §十）。 含 {@link
  * MultipartFile}（传输耦合），故置于 app 内部而非 client 契约：该用例由适配层直接调用执行器，不进对外接口。当前无 适配层调用点，作为完整用例保留。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-21
  */
 @Getter

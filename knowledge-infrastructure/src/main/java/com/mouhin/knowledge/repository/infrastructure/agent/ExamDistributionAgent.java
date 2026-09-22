@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
  *
  * 其中阶段①②由一次结构化 LLM 调用合并完成，阶段④为一次 LLM 调用，阶段③为纯计算。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 @Component("examDistributionAgent")

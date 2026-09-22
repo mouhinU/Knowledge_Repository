@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>字段与原 {@code UserAdminController.toResponse} 完全一致：userKey、username、
  * departmentId（null→""）、admin（null→false）、createdTime（LocalDateTime#toString，null→""）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

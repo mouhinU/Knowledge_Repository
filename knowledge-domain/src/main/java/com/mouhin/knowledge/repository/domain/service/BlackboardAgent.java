@@ -7,7 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
  *
  * <p>每个 Agent 负责一个阶段的工作，读取黑板前置阶段的输出，写入本阶段的输出。 执行过程中可通过 progressCallback 推送实时进度事件。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 public interface BlackboardAgent {

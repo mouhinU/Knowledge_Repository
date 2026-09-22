@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
  * DocumentIngestionSupport#processDocument} 的耗时向量化 IO，若被方法级事务包裹会在整个流程期间占用 HikariCP 连接。文档落库为单条原子写、
  * 创建事件亦无 {@code @TransactionalEventListener} 消费方，去掉事务不损失任何一致性。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

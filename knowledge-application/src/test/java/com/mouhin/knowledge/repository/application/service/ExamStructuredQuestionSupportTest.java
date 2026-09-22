@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * ExamGradingSupport}（评分）与成绩复核 / 错题本（展示）现均委托到本支撑的同一实现，
  * 因此这里即为跨层共用的权威口径基线：任何对这些分支的改动若偏离预期都会在此失败并强制确认。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("结构化题目读取支撑 (纯读单一实现)")

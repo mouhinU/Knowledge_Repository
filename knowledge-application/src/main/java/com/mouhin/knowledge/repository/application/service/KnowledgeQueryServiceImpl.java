@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * 知识库查询应用服务实现（app 层，仅分发到 Executor）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

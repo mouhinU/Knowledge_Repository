@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>userKey 由适配层从已认证令牌回填，<b>不信任</b>请求体传入，防止越权改他人密码。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Getter

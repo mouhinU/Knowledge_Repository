@@ -9,7 +9,7 @@ import java.util.List;
  *
  * <p>黑板模式的核心数据结构，所有 Agent 通过读写此对象协作完成文章生成。 每个阶段对应一个数据区域，Agent 只读取前置阶段的输出、写入自己阶段的输出。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 public class BlackboardState {

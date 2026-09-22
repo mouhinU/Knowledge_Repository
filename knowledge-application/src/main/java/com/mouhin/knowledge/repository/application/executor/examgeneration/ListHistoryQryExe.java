@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 查询出卷历史列表执行器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component("examListHistoryQryExe")

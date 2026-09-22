@@ -25,7 +25,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <p>放行边界（与鉴权链路配套）：健康探针、静态资源、以及考生侧 {@code /api/student/**}、 {@code /api/exam/**}（各自 app 层用学生 token
  * 校验）不参与本过滤器；管理端登录 / 登出端点 因获取令牌之前即需可达，也在放行之列。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Slf4j

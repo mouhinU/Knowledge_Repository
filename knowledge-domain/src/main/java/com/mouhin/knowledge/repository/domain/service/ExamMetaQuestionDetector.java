@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
  * <p>为压制误报，仅覆盖教材编排类名词（单元 / 课 / 页 / 册 / 章 / 节 / 章节 / 部分），刻意不含 「段 /
  * 篇」等常被用于指代试卷内短文段落的词；且必须与序数（第…）或疑问（哪…）搭配才判为位置题。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public final class ExamMetaQuestionDetector {

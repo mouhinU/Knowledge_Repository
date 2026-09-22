@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>管理大文件的分片上传会话，支持断点续传。 每个会话对应一个临时目录，分片按序号存储，全部到齐后组装为完整文件。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @Component

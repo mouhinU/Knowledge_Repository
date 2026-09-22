@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 /**
  * 在线做题应用服务实现（app 层，仅分发到执行器）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

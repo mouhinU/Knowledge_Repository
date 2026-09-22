@@ -21,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p>仅负责文件上传与文本提取，分块与向量化由管理端确认后执行。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @RestController

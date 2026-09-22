@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 可直接拉取而无需附带令牌。鉴权通过<b>不可枚举的随机 {@code assetKey}</b> 承载 （UUID 无连字符，32 位）：仅持有句柄者可访问，句柄无效 / 缺失即
  * 404，避免枚举与目录穿越。 命中后按 {@code assetKey} 稳定不变的特点返回长时强缓存。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @RestController

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 部门列表查询执行器（app 层用例）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

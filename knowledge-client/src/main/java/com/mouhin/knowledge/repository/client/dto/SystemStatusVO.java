@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>结构与既有 /api/admin/system/status 的 JSON 完全一致：embedding / milvus / knowledgeBase 三段，字段顺序亦保持一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

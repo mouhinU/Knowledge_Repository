@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  *   <li>统一选项结构为 {key, value}，丢弃空白选项。
  * </ol>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Component("examContentRenderAgent")

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>仅承载传输无关的确认类用例。文件上传（multipart）与 SSE 异步索引因与传输强耦合， 由适配层直接调用对应执行器，不经此对外契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

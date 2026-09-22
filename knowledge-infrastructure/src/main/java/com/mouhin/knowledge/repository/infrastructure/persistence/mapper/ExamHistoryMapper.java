@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * AI 出卷历史 Mapper
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Mapper

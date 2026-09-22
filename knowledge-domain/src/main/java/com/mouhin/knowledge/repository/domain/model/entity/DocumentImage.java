@@ -9,7 +9,7 @@ import java.util.Objects;
  * <p>记录从知识库文档中提取并落盘的单张位图，作为看图写话 / 看图题的配图来源。二进制存于文件系统， 本实体仅承载定位与展示所需的元数据。{@code assetKey}
  * 为对外访问句柄（随机、不可枚举）， 浏览器通过它拉取图片，避免暴露自增主键。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public class DocumentImage {

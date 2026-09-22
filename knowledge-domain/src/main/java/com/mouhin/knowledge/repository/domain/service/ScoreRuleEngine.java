@@ -20,7 +20,7 @@ import java.util.*;
  *
  * 主题中若同时识别到合卷的两科（如"物理""化学"），则按合卷满分（两科之和）出为一张卷子。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 public final class ScoreRuleEngine {

@@ -9,7 +9,7 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  * @param chunkStart 当前块起始字符下标（含）
  * @param chunkEnd 当前块结束字符下标（不含）
  * @param overlapTokens 期望重叠的 token 数
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-21
  */
 public record ChunkWindow(int chunkStart, int chunkEnd, int overlapTokens) {}

@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.domain.service;
  *
  * <p>在文档入库过程中，按分块数量报告进度。 由应用层传入，基础设施层（向量化）调用。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 public interface IndexProgressCallback {

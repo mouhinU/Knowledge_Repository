@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Select;
 /**
  * 用户-角色关联 Mapper
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Mapper

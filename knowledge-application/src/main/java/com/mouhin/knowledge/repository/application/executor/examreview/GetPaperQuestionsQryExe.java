@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>逐题返回题干 / 选项 / 答案 / 分值 / 解析，并复跑契约校验给出待修正项， 供管理端就地校对与发布门槛判断。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component("paperReviewGetQuestionsQryExe")

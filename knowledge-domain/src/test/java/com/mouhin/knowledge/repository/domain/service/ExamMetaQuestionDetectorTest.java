@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * <p>锁定「出处/位置类」记忆题的正负样本边界：命中序数 / 疑问 + 教材编排位置名词（单元 / 课 / 页 / 章 / 节）；刻意不含「段 /
  * 篇」以免误报阅读理解的短文段落引用。覆盖空白排版（第（ ）单元）、 出自哪篇、课本第几页等变体，并验证 markdown 逐题扫描只取题号行且去重。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("出处/位置类记忆题检测 (ExamMetaQuestionDetector)")

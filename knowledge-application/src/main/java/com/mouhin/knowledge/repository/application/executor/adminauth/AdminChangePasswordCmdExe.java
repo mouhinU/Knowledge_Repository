@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>校验旧密码后以 BCrypt 落库新密码。userKey 由适配层从已认证令牌回填，不信任请求体， 故只能修改自己的密码。新密码非空校验，避免误清空。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

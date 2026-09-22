@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 错题总结请求 DTO
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Getter

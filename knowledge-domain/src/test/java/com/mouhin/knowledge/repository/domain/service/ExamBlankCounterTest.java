@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * 2 个即短路返回」。 该口径同时供出卷切分落库 {@code blank_count}、学生端 questionsJson.blankCount 与考试端
  * 内联渲染共用，是本类存在的唯一目的，故重点回归混合题面（如下划线空与括号空并存）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("ExamBlankCounter 填空空数统计（两空相加）")

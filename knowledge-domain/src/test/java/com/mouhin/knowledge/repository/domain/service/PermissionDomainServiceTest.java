@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * <p>重点锁定 escapeMilvusValue 的转义顺序缺陷：曾先转义双引号、后转义反斜杠， 导致引号转义新插入的反斜杠被再次翻倍，破坏含引号 / 反斜杠的值，进而可能使 Milvus
  * 权限过滤表达式失效（ACL 越权风险）。此处通过公开入口 buildFilterExpression 验证嵌入到过滤条件中的值被正确转义。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("PermissionDomainService Milvus 过滤表达式")

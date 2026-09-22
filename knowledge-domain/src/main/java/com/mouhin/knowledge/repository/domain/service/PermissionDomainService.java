@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>负责构建 Milvus 查询过滤表达式，实现 RBAC + 文档级 ACL 权限隔离。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Service

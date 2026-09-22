@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * <p>收敛「按试卷标识加载历史 / 解析方案 / 读取结构化题目 / 复跑契约校验」这几步， 供待校对列表、逐题校对视图、就地编辑回写、批准发布、重切分等执行器复用，
  * 避免各执行器重复装配试卷标识解析与校验流程。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

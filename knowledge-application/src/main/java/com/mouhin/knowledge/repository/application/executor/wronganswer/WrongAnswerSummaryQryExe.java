@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>基于筛选后的错题构建提示词，调用大模型生成分析报告。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

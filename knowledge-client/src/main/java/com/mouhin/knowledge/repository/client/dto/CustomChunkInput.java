@@ -6,7 +6,7 @@ package com.mouhin.knowledge.repository.client.dto;
  * <p>组件名与顺序与原 {@code DocumentIngestionApplicationService.CustomChunkInput} 完全一致， 保证 {@code
  * /api/admin/document/{documentKey}/index-custom} 请求体反序列化不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public record CustomChunkInput(int chunkIndex, int startPage, int endPage, String content) {}

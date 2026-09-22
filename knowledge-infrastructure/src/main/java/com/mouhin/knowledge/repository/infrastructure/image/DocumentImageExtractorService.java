@@ -55,7 +55,7 @@ import org.springframework.stereotype.Service;
  *
  * 过滤过小装饰图（默认 {@code >=80x80}）并限制单文档上限，异常按格式吞掉、绝不中断文本摄入主流程。 仅返回二进制与元信息，落盘与持久化由应用层完成。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Service

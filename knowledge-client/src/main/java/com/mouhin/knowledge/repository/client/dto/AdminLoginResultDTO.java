@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>登录成功后返回：签发的访问令牌及令牌对应的管理者身份概览。不含密码等敏感字段。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Getter

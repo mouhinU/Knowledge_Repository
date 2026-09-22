@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 查询待复核考试列表执行器（AI_GRADED 状态）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

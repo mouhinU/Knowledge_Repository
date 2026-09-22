@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * <p>冻结「答案标记行内值为空、答案正文写在后续未标记行」这类计算 / 解答题的答案键解析行为 （如试卷校对阶段 {@code 计算与解决问题} 题型答案不渲染的历史缺陷），并顺带覆盖行内答案、
  * 解析、评分标准的既有口径，防止后续改动回归。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("标准答案与评分标准解析器")

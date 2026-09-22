@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * baseName 对齐命中 SINGLE_CHOICE， 且把内联 A/B/C/D 选项抽进 options，避免整卷塌成 SHORT_ANSWER 导致校对页「只有答案字母、没有选项可判」。
  * 另验证无方案时靠标题括注「（单选题）」的关键词回落也能识别单选。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("试卷切分题型/选项 (ExamPaperParser)")

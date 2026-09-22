@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * {@code ( )}）各计为一个待填空。 出卷切分落库（{@code kb_exam_question.blank_count}）、学生端题面
  * JSON（questionsJson.blankCount） 与考试端渲染共用本类，杜绝「后端一套、前端另一套」导致题干与填空数对不上。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 public final class ExamBlankCounter {

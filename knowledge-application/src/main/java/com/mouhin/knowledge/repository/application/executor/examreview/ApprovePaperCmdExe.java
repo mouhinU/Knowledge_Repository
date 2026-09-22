@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>发布前强制复跑出卷契约校验：通过则把试卷状态置 {@code PUBLISHED} 并记录审核人 / 时间，学生方可开考；
  * 未通过则抛业务异常并阻断发布（校验不过不可绕过）。若结构化题目行为空（如历史遗留卷），先惰性执行 出卷即切分回灌后再校验。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

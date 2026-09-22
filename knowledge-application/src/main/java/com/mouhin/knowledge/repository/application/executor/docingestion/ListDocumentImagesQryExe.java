@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>返回某文档已提取并落库的图片清单（含展示 URL 与元信息），供管理端校对选图界面渲染缩略图网格。 文档不存在时返回空列表。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

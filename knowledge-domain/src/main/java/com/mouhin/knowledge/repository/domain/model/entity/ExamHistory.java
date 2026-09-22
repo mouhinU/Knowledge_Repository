@@ -6,7 +6,7 @@ import java.util.Objects;
 /**
  * AI 出卷历史记录实体
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 public class ExamHistory {

@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code kb_exam_question.images_json}， 不改变试卷状态。图片本体经公开的 {@code /api/exam/assets/{assetKey}}
  * 端点由浏览器加载。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

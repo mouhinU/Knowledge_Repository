@@ -8,7 +8,7 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback
  *
  * <p>屏蔽 ChatModel / Prompt / 分阶段编排等技术细节，应用层仅依赖本接口获取已归一化 （Σ=满分）的 {@link ExamPlan}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface ExamDistributionGateway {

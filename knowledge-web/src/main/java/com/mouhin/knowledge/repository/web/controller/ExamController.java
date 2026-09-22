@@ -41,7 +41,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * 生成 / 方案 / 校验等含领域类型的路径由 app 层生成执行器承载；出卷历史读写走 client 契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @RestController

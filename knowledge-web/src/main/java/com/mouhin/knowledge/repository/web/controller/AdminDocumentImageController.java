@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * （3）全局配图检索（按关键词 / 限定文档），供校对页「全局图片搜索」选图。 图片二进制本体走公开的 {@code /api/exam/assets/{assetKey}} 端点由浏览器
  * {@code <img>} 直接加载。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @RestController

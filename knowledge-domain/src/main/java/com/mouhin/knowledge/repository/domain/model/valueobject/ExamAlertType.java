@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  *
  * <p>覆盖出卷与评分链路中"机器无法自助兜底、需要人工 / 运维关注"的关键异常信号， 用于统一指标埋点与结构化告警日志的维度标签。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 public enum ExamAlertType {

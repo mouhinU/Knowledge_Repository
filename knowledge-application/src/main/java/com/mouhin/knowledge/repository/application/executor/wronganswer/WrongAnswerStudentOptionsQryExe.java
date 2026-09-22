@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 考生下拉选项查询执行器（app 层用例，供错题本筛选使用）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -6,7 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
 /**
  * 知识库查询应用服务契约（client 层）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface KnowledgeQueryServiceI {

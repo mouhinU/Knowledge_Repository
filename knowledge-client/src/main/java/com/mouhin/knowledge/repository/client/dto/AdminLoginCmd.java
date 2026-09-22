@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 管理端登录命令
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Getter

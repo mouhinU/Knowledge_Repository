@@ -37,7 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>收敛原 {@code DocumentIngestionApplicationService} 中被多个用例复用的协作逻辑： 临时文件 /
  * 存储管理、文档聚合构建、分块→向量化→存储处理流水线、分块策略解析、JSON 文本清洗。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

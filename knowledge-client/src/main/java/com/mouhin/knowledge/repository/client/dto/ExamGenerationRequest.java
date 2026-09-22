@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.client.dto;
 /**
  * 试卷生成请求
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 public class ExamGenerationRequest {

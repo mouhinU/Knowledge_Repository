@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * 若目标卷已是 VOIDED 则幂等直接返回。作废后学生不可再开考此卷，可用列表亦会自动移除（{@code listPublished} 仅返回 PUBLISHED）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

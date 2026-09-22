@@ -16,7 +16,7 @@ import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
  * <p>依赖领域回调 {@code ExamGradingProgressCallback} 的异步 / SSE 评分路径 （{@code gradeExamAsync} / {@code
  * triggerGradingAsync}）刻意不纳入本契约， 由 app 层执行器承载并供适配层直接调用，以保证 client 层不引用 domain 类型。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface ExamGradingServiceI {

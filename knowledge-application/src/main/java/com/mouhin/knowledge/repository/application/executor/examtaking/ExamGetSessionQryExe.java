@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * <p>保留原有「读时重解析」副作用：当选择题选项解析异常，或存在考试方案但旧 questionsJson 缺少 sectionLabel
  * 需要按方案补齐时，重新解析并回写持久层，再返回最新的场次视图。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

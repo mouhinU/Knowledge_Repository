@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>读取：examPaper（试卷内容）、answerKey（答案）、question（主题） 写入：deduplicationReport（查重报告）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examDeduplicatorAgent")

@@ -12,7 +12,7 @@ import java.time.Instant;
  * @param username 用户名
  * @param admin 是否超级管理员
  * @param expiresAt 令牌过期时刻
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 public record AdminTokenPayload(

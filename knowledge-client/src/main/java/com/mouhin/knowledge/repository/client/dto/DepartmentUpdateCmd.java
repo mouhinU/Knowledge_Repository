@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>departmentName / parentId 为 null 时保持原值不变（沿用既有更新语义）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 /**
  * 文档已创建事件
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public record DocumentCreatedEvent(

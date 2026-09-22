@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * 后正常返回，方法级事务既提供不了回滚保证，又会在耗时的向量化 IO 期间持续占用 HikariCP 连接。去掉事务后与异步入口 {@code
  * IndexAsyncCmdExe}（同样无事务）行为一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

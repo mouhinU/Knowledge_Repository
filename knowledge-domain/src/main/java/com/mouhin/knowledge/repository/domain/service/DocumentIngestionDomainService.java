@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>负责将提取的文本按配置进行分块，并为每个分块附加权限元数据。 支持五种切分策略，每种策略均追踪页码信息。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Service

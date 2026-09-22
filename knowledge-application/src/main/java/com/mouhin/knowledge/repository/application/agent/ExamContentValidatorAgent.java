@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  *
  * 校验不通过（存在阻断性 error）时，调用方应阻止开考。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Component("examContentValidatorAgent")

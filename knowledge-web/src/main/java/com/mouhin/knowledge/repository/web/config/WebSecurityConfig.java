@@ -21,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>保留无状态（STATELESS）与会话禁用、CSRF 关闭（纯令牌前后端分离）。健康探针 （{@code /actuator/health}）与静态资源天然匿名可达；考生侧 {@code
  * /api/student/**}、{@code /api/exam/**} 由 app 层校验学生 token，均在过滤器放行清单内，不经管理端令牌。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Configuration

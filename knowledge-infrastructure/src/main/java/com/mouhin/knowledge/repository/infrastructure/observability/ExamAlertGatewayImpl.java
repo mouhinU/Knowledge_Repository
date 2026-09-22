@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *
  * {@link MeterRegistry} 由 actuator 自动装配提供；缺失时降级为仅日志，绝不影响主流程。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

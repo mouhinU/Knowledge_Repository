@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * 锁，定时任务批量评分时极易耗尽连接池、 且阻塞超时回收 CAS。并发正确性改由评分入口的原子状态机保证—— {@code SUBMITTED→GRADING} CAS 认领 + 每题心跳续约 +
  * 终态 {@code GRADING→AI_GRADED} CAS 落库， 与异步评分链路（本就无事务）保持一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

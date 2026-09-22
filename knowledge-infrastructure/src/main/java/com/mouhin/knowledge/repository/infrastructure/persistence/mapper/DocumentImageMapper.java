@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Select;
 /**
  * 文档图片 Mapper
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Mapper

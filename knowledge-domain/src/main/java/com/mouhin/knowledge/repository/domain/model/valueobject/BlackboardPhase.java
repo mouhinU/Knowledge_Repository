@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 /**
  * 黑板工作阶段枚举
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 public enum BlackboardPhase {

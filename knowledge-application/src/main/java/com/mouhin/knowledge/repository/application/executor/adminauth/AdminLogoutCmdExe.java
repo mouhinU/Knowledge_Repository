@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>JWT 无状态且不含服务端会话存储，退出仅需前端丢弃本地令牌；服务端这里做合法性宽松校验与审计日志， 不维护黑名单（令牌自然过期即失效）。此设计对当前单管理员后台规模足够。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

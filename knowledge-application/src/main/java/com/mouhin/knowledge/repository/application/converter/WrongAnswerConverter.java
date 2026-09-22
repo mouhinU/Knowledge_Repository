@@ -15,7 +15,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  * 回退、analysis / scoringCriteria 字段顺序）。自「出卷即切分」纯结构化收尾起，答案 / 解析 / 评分标准 统一取自结构化题目行 {@link
  * ExamQuestion}，不再解析 {@code answer_key} 自由文本。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class WrongAnswerConverter {

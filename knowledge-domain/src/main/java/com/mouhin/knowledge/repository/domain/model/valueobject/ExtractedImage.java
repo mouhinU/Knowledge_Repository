@@ -18,7 +18,7 @@ import java.util.Objects;
  * @param height 像素高
  * @param pageOrSeq 来源页码 / 工作表序号 / 幻灯片序号（1 起始），无法定位时可为 null
  * @param seqOnPage 同一页内的图片序号（0 起始），用于稳定排序
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public record ExtractedImage(

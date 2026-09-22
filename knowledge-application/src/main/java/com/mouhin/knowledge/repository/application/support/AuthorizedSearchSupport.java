@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
  * <p>召回补偿：向量层先 over-fetch（{@code max × factor + extra}，硬上限 {@link #MAX_OVERFETCH}）， 过滤后再截断至
  * max，避免受限文档占据 top-N 名额导致最终结果不足。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

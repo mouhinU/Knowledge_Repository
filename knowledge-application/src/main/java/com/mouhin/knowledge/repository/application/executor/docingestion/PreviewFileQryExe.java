@@ -21,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.preview(MultipartFile,...)}。出入参含 {@link
  * MultipartFile}（传输耦合），当前无适配层调用点，作为完整用例保留。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

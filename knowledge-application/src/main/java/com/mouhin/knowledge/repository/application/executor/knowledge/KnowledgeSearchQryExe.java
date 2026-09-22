@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * MilvusVectorStoreService .buildFilter} 直接 {@code return null} 导致表达式被丢弃、跨权限文档泄露。默认参数、score 4 位
  * 小数取整与空值归一逻辑与原 {@code KnowledgeQueryApplicationService} + 控制器 Map 组装完全一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

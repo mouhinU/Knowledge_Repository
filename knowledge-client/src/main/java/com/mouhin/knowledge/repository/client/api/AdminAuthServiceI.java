@@ -14,7 +14,7 @@ import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
  * AdminLoginResultDTO}；账号不存在 / 密码错误 / 已禁用 抛 {@link IllegalArgumentException}，由适配层转为 401 /
  * 400。令牌校验（{@link #validateToken}）在签名 无效、过期或账号已禁用时返回 {@code data} 为 null 的成功响应，由适配层 / 过滤器映射为 401。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 public interface AdminAuthServiceI {

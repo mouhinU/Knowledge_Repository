@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>返回状态为 REVIEWABLE / VALIDATION_FAILED 的试卷，按创建时间倒序分页。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component("paperReviewListPendingQryExe")

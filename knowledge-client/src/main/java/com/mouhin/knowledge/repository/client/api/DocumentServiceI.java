@@ -10,7 +10,7 @@ import java.util.Map;
  *
  * <p>提供文档查询、统计、归档、删除等管理操作的对外契约，出入参均为 DTO/VO，不暴露领域对象。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface DocumentServiceI {

@@ -11,7 +11,7 @@ import lombok.Setter;
 /**
  * 文档内嵌图片数据对象
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Getter

@@ -7,7 +7,7 @@ import java.time.Instant;
  *
  * <p>用于向前端推送各 Agent 的执行进度和中间输出， 支持 SSE（Server-Sent Events）实时刷新。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 public class BlackboardProgressEvent {

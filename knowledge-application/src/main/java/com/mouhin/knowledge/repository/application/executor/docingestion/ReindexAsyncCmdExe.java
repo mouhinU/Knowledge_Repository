@@ -34,7 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>回调由适配层从 {@code IndexProgressStore} 创建并传入（SSE 传输装配保持不变），故不入对外契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

@@ -25,7 +25,7 @@ import org.mockito.ArgumentCaptor;
  * 试卷作废命令执行器单测：锁定四种行为—— （1）正常作废：状态转 VOIDED、审计列回写、级联场次标 voided=true 并返回受影响数； （2）幂等：已是 VOIDED
  * 时不再改状态，仍触发级联（防止历史数据漂移）； （3）空 / 无效 sessionKey 抛非法参数，不落库； （4）操作人空白回退 "admin"。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("试卷作废命令执行器 (VoidPaperCmdExe)")

@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.domain.service;
  *
  * <p>屏蔽底层 LLM 提供商差异，向调用方以「增量回调」的方式流式吐字， 方法在流结束后返回完整文本。用于黑板 Agent 与主观题评分的实时输出场景。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface StreamingChatGateway {

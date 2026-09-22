@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>读取：examPaper（试卷内容）、question（考试主题）、keyFindings（知识点） 写入：answerKey（标准答案与评分标准）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("answerKeyGeneratorAgent")

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <p>组装逻辑与原 {@code SystemConfigApplicationService.getSystemStatus()} 一致： Embedding 信息、Milvus
  * 连接探测、知识库统计。返回值结构与既有 JSON 完全对应。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

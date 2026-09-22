@@ -10,7 +10,7 @@ import lombok.Setter;
  * <p>字段集合与顺序与原 {@code WritingHistory} 实体的 Jackson 序列化结果逐一对齐（15 个属性）， 保证 {@code
  * /api/agent/article/history} 返回 JSON 键集合、顺序与取值不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

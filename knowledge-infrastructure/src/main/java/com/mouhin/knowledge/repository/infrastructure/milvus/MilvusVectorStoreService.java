@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>封装 LangChain4j EmbeddingStore 操作，提供文档向量写入和带权限过滤的语义检索。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Service

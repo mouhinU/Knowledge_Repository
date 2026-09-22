@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  * 列表：保留印刷题号、按题序绑定标准答案与解析、序列化选项、 统计填空空数，并落库 {@code kb_exam_question}。下游评分 / 展示 / 错题本据此纯读结构化行，
  * 不再重复解析自由文本答案键。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

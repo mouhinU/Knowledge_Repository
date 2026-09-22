@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>封装配图检索入参：关键词、来源文档 Key 过滤、分页 {@code limit / offset}， 收敛为查询对象，避免 4 个位置参数（AGENTS.md §十）。{@code
  * keyword} 与 {@code documentKey} 皆空时按最新入库顺序返回全部。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-21
  */
 @Getter

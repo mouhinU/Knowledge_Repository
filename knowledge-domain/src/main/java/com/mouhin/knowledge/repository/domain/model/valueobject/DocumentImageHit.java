@@ -10,7 +10,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
  *
  * @param image 配图领域实体
  * @param sourceDocumentName 来源文档文件名（展示用，可为空）
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public record DocumentImageHit(DocumentImage image, String sourceDocumentName) {}

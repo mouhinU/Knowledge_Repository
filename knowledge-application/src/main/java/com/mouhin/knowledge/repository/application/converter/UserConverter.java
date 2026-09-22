@@ -9,7 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.User;
  * <p>映射与原 {@code UserAdminController.toResponse} 一致：departmentId null→""， admin
  * null→false，createdTime 使用 {@code LocalDateTime#toString}（null→""）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class UserConverter {

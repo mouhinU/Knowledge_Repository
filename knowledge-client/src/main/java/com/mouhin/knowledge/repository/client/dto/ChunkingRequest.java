@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.client.dto;
  *
  * <p>用于解析预览和确认入库接口，统一封装分块相关配置。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-11
  */
 public class ChunkingRequest {

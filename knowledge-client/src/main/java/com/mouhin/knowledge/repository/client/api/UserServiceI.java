@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 用户管理应用服务契约（client 层）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface UserServiceI {

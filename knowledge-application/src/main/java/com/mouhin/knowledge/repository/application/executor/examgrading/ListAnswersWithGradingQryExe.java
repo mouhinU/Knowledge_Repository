@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * kb_exam_question}，经 {@link ExamStructuredQuestionSupport} 纯读）为唯一权威来源，
  * 按印刷题号回填缺失的正确答案，供管理端「成绩复核详情」展示——不再解析 {@code answer_key} 自由文本，杜绝与评分链路的口径漂移。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

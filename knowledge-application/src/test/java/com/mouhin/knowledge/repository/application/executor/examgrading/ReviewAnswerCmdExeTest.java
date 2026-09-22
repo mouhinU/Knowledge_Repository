@@ -26,7 +26,7 @@ import org.mockito.ArgumentCaptor;
  * clearReviewOverride} 显式将 review_* 列置 NULL， 而非 {@code update()}——后者因 MyBatis-Plus 默认 {@code
  * FieldStrategy=NOT_NULL} 会跳过 null 列， 导致旧覆盖残留、分数永不回落。同时校验非空改分仍正常走 update、越界分数被拒。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("人工复核：清除覆盖走显式置 NULL，改分走 update")

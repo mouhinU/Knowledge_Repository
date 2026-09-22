@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
  * <p>仅承载出卷历史读写用例。试卷 / 方案的生成流程依赖领域类型，由适配层直接调用 {@code examgeneration}
  * 包下的生成执行器（GenerateExamAsyncCmdExe 等）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

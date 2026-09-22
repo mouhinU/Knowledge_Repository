@@ -9,7 +9,7 @@ import java.nio.file.Path;
  *
  * <p>屏蔽 PDFBox / POI / Tika 等解析技术细节，应用层仅依赖本接口。返回值与异常均为 领域 / JDK 类型，不泄露基础设施类型。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface DocumentExtractionGateway {

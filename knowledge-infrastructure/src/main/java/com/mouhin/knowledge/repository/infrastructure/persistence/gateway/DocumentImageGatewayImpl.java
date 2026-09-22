@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
 /**
  * 文档图片仓储实现（基础设施层）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Repository

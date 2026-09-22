@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>系统级门禁：（1）试卷未发布不可开考；（2）试卷已作废（VOIDED）不可开考； （3）同一考生对同一份试卷仅允许开考一次——已存在任意状态的历史场次即拒绝再次开考，
  * 需重考请由管理员走「重新开考」流程或联系技术支持。三道门禁均在写入前抛出，避免脏场次。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

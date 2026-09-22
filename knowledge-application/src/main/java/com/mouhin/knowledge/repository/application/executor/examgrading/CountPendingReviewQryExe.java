@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 /**
  * 统计待复核考试数量执行器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

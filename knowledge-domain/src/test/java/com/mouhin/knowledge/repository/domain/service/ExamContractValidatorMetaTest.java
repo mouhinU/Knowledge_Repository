@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * <p>回归新增的内容复核规则：切分行中若题干命中出处/位置类记忆题，校验须不通过并产出带题号与建议语的 issue（从而置
  * VALIDATION_FAILED、强制人工改写后方可发布）；同时验证正常卷仍通过，规则不产生误伤。 plan 传 null 以聚焦逐题内容校验，规避题数 / 分值对齐维度。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("出卷契约校验·出处/位置类门禁 (ExamContractValidator)")

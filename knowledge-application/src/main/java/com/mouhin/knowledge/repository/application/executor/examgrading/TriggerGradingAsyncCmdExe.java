@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>因入参携带领域回调 {@link ExamGradingProgressCallback}，不纳入 client 层契约， 由适配层在建立 SSE 通道后直接调用。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * AI 出卷历史仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 public interface ExamHistoryGateway {

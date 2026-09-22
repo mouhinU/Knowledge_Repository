@@ -11,7 +11,7 @@ import lombok.Setter;
  * <p>字段与既有 /tree 端点的嵌套 Map 完全一致：id、departmentKey、departmentName、 parentId（可为
  * null，保持原始语义）、children（子节点列表，默认空数组）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

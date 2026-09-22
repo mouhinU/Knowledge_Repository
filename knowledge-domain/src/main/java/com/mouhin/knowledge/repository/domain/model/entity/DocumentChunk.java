@@ -6,7 +6,7 @@ import java.util.Objects;
 /**
  * 文档分块实体
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public class DocumentChunk {

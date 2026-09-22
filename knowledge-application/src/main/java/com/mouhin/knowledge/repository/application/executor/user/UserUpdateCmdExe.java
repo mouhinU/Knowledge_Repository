@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>username / departmentId / admin / status / password 为 null（或 password 为空串）时保持原值不变； password
  * 提供时 BCrypt 后重置，status 仅接受 ACTIVE / DISABLED。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

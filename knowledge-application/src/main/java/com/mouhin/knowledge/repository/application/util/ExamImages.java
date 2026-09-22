@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  * ["k1","k2"]}）。开考快照注入、错题本、成绩复核等多条链路都需把它解析为 assetKey 列表， 统一收敛到本工具，避免各处重复实现导致口径漂移。解析失败 /
  * 空白项一律安全降级为空列表或跳过， 绝不抛出异常阻断上层展示流程。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Slf4j

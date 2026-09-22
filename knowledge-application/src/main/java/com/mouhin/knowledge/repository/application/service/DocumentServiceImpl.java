@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 /**
  * 文档管理应用服务实现（app 层，仅分发到 Executor）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

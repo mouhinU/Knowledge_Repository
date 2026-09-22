@@ -16,7 +16,7 @@ import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
  * ScoreRuleEngine.BalanceResult}，刻意不纳入本契约，由 app 层执行器承载并供适配层直接调用， 以保证 client 层不引用 domain 类型，且不改动前端
  * round-trip 的 ExamPlan JSON 形状。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface ExamGenerationServiceI {

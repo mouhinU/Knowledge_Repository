@@ -10,7 +10,7 @@ import lombok.Setter;
  * <p>字段集合与原 {@code ExamSession} 实体的 Jackson 序列化结果逐一对齐（21 个属性， 顺序一致），保证 {@code
  * /api/exam/my-sessions} 等直接返回该对象的端点 JSON 不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

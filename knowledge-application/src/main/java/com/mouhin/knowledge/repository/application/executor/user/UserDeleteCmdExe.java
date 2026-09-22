@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>注意：本实现严格保持原 {@code UserManagementApplicationService.delete} 的既有行为
  * （校验用户存在后当前并不执行实际删除），迁移不改变运行语义；如需真正删除应另行评估。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

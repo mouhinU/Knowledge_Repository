@@ -9,7 +9,7 @@ import java.util.List;
  * <p>描述一份试卷"有哪些题型、每种多少道、每道多少分"，由多阶段分布 Agent 生成、可在出题页面调整， 最终作为出卷流水线（分值分配 → 试卷编写）的权威输入。所有小题分值之和恒等于
  * {@code totalFullMark}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 public class ExamPlan {

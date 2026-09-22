@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>仅承载身份标识，不含密码。userKey 为令牌内可信标识，账号是否仍激活由校验方读库二次确认。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Getter

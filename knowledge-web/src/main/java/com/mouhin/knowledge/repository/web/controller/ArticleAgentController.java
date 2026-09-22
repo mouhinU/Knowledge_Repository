@@ -27,7 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * 前端先建立 SSE 连接，再发送 POST 启动生成，确保不丢失任何进度事件。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 @RestController

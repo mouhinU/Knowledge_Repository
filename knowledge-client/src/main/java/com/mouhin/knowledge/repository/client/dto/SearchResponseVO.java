@@ -11,7 +11,7 @@ import lombok.Setter;
  * text / documentKey / documentName / pageNumber / chunkIndex / score / category， null 归一为 0
  * 或空串，score 保留 4 位小数。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

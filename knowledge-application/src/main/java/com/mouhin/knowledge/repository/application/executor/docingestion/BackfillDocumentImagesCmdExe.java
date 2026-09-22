@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * <p>对既有文档按其持久存储路径重跑一次内嵌图片提取（阶段 1「补抽旧文档」）。文档不存在时抛业务异常； 源文件缺失 / 解析失败由 {@link DocumentImageSupport}
  * 内部吞并记日志，回填按幂等处理（文档内 SHA-256 去重）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

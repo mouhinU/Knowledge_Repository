@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
  * <p>回调 / SSE 耦合的异步评分路径不经此契约，由适配层直接调用 {@code GradeExamAsyncCmdExe} / {@code
  * TriggerGradingAsyncCmdExe}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

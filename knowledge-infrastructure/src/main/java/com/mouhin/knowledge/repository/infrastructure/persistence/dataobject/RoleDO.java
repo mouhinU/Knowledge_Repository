@@ -11,7 +11,7 @@ import lombok.Setter;
 /**
  * 角色数据对象
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Getter

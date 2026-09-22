@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 错题本控制器（管理端）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @RestController

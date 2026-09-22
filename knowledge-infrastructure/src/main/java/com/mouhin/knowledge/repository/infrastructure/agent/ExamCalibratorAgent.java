@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>读取：examPaper（试卷内容）、examDifficulty（目标难度）、question（主题） 写入：difficultyAssessment（难度评估报告）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examCalibratorAgent")

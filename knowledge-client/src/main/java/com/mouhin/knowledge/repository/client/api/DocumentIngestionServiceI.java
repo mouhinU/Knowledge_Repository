@@ -19,7 +19,7 @@ import java.util.List;
  *
  * <p>校验失败以 {@link IllegalArgumentException} / {@link IllegalStateException} 抛出，由适配层 或全局异常处理转换为响应。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface DocumentIngestionServiceI {

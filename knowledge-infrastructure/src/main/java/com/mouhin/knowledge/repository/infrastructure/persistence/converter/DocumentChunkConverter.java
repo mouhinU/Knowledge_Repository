@@ -6,7 +6,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
 /**
  * 文档分块 DO ↔ 领域对象转换器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public final class DocumentChunkConverter {

@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>字段顺序对齐原 {@code WrongAnswerApplicationService.buildStats}：
  * totalCount、topicCount、studentCount、topType（可为 null）、avgScoreRate（保留 4 位小数）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

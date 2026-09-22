@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Lazy;
  * DEADLINE_EXCEEDED 导致上下文启动失败（需整容器重启才能自愈）。 现将该 bean 标注 {@link Lazy}，把建连推迟到首次检索/写入时，避免启动期硬失败；同时加入有界
  * 退避重试，容忍 Milvus 冷启动的短暂不可用窗口——重试仍失败才向上抛错，使故障暴露在一次请求而非 静默。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Configuration

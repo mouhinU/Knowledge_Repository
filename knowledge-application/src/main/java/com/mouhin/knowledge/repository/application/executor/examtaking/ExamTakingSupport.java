@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>收敛考生 / 场次鉴权解析、试卷渲染校验、题目 JSON 解析与总分累加等被多个执行器复用的领域协作逻辑。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

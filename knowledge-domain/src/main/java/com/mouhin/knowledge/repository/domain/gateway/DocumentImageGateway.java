@@ -10,7 +10,7 @@ import java.util.Optional;
  *
  * <p>出入参均为领域对象，禁止出现 DO / DTO。实现类位于基础设施层。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 public interface DocumentImageGateway {

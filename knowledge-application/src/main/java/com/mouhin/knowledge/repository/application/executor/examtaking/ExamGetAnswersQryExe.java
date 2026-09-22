@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /**
  * 考试答题记录查询执行器（app 层用例）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

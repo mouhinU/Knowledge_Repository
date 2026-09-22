@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * <p>双重判定：先经 {@link AdminJwtService} 校验令牌签名与有效期，再回库确认账号仍处激活态——这样 令牌在被吊销 / 账号被禁用后立即失效，弥补 JWT
  * 无状态无法主动失效的短板。任一环节不通过即返回 {@code null}（由调用方映射为 401）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

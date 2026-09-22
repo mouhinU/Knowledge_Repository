@@ -5,7 +5,7 @@ package com.mouhin.knowledge.repository.domain.service;
  *
  * <p>评分过程中上报每题的输入 / 原始输出 / 解析结果，供管理端 SSE 实时展示。 由应用层定义、Web 层实现（持有 SseEmitter 并推送事件）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 public interface ExamGradingProgressCallback {

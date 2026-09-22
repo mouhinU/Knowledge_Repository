@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.previewFromDocument}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

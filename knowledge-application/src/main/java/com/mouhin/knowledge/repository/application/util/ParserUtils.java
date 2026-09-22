@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * ...application.agent.ExamContentRenderAgent}（LLM 输出渲染） 中重复出现的选项切分模式集中在此，避免字符串常量在两处各自维护、修复 ReDoS
  * 时容易漏改一侧。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-22
  */
 public final class ParserUtils {

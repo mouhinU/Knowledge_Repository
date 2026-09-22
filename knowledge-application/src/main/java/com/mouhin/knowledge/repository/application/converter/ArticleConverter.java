@@ -8,7 +8,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
  *
  * <p>15 个属性逐一映射，力求与原实体 Jackson 序列化结果保持键集合、顺序与取值一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class ArticleConverter {

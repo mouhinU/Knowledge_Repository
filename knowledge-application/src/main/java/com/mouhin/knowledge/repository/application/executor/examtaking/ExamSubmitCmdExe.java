@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>标记考试为已提交；评分由定时任务或管理员手动触发（已与交卷解耦）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

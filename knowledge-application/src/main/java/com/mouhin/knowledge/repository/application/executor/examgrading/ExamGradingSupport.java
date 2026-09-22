@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component;
  * 落库。同步评分由 {@code TriggerGradingCmdExe} 调用 {@link #gradeExamInternal}，异步评分由虚拟线程执行器调度，二者共享同一套 CAS
  * 语义。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

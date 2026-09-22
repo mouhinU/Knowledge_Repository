@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>字段语义与原 {@code StudentAuthController.me} 一致：studentId（Long）、username、
  * displayName（null→username）、studentNo（null→""）。不携带密码 / 令牌等敏感字段。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

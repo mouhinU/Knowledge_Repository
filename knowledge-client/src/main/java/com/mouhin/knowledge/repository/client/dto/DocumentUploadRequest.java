@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.client.dto;
 /**
  * 文档上传请求参数
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-11
  */
 public class DocumentUploadRequest {

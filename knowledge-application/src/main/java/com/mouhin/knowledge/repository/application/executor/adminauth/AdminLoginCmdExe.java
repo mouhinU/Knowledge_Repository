@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>安全考量：账号不存在与密码错误统一返回“用户名或密码错误”，避免用户名枚举；未设置密码 （passwordHash 为空）的账号同样按此提示拒绝。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

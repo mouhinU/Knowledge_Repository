@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadOnly}：空文件校验 → 临时落盘 → 提取 → 去重 → 持久存储 →
  * 建文档(UPLOADED) → 记录页数 → 发布创建事件 → 缓存提取结果。 由适配层直接调用（出入参含 {@link MultipartFile}，传输耦合，不入对外契约）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

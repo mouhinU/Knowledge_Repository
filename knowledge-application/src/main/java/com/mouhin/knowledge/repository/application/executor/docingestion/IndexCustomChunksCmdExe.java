@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
  * Ollama 向量化 + Milvus 写入，若被方法级事务包裹， 会在整个 embedding 期间持续占用 HikariCP 连接。而本用例的 try/catch 本就逐步落库、异常时标记
  * FAILED 并正常返回（事务无法回滚该吞掉的异常），去掉事务与异步索引入口（无事务）保持一致。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

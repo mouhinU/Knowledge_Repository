@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  *   <li>传入 {@code studentToken} 时，进一步剔除该考生已开考过的试卷（一人一卷一次系统级限制）； 未登录或不传 token 时保持原全量返回语义，以兼容旧行为。
  * </ol>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component("examListPublishedHistoryQryExe")

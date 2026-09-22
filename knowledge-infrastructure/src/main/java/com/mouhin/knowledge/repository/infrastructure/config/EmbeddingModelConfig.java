@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * 两种提供商均通过 OpenAI 兼容协议接入，统一使用 OpenAiEmbeddingModel。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @Configuration

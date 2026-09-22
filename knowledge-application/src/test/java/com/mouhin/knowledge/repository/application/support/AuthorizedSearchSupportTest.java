@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * PermissionDomainService} 走完整 ACL 判定，验证：超管短路、 INTERNAL/RESTRICTED/PRIVATE
  * 越权剔除、元数据缺失按最小权限拒绝、over-fetch 拉取 与截断、以及 {@code overFetchSize} 边界。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("AuthorizedSearchSupport 检索权限过滤")

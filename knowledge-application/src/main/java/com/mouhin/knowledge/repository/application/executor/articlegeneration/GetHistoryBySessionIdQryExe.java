@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 /**
  * 根据 sessionId 查询写作历史详情执行器（不存在时返回 null）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

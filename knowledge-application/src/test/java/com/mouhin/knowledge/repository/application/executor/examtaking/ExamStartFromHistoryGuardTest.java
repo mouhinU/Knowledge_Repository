@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>本测试仅覆盖新增门禁分支；正常开考路径依赖 renderWithPlan / injectImagesIntoSnapshot 等协作组件，不在此测试范围内。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("开考守卫：作废门禁 + 一人一卷一次 (ExamStartFromHistoryCmdExe)")

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>读取：knowledgeChunks（向量检索结果）、question（考试主题） 写入：keyFindings（结构化的知识点摘要）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examResearcherAgent")

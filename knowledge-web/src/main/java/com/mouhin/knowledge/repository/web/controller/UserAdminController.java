@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 用户管理控制器（adapter 层）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @RestController

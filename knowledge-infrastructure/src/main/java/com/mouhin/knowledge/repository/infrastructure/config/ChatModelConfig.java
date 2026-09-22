@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Configuration;
  *   <li>ollama — 本地 Ollama（OpenAI 兼容接口）
  * </ul>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 @Configuration

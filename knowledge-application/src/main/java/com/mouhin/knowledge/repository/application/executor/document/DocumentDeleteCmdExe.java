@@ -16,7 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 时才从连接池取连接、 直到方法返回才归还——一旦 Milvus 抖动变慢，会让 DB 连接被长事务白白占住、耗尽 HikariCP 池。 现按"DB 先、慢 IO
  * 后"：短事务提交后再删向量；向量删除失败仅记录，不会回滚已提交的 DB 删除， 残留向量因缺少对应 DB 记录而不再可达（可由后续对账 / 重索引回收）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

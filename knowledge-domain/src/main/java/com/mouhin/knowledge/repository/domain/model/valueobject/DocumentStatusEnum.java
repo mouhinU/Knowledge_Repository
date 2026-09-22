@@ -3,7 +3,7 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 /**
  * 文档处理状态枚举
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public enum DocumentStatusEnum {

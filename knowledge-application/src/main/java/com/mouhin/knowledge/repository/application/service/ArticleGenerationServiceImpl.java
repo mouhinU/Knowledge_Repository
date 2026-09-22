@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>权限 / SSE 回调耦合的异步生成路径不经此契约，由适配层直接调用 {@code GenerateArticleAsyncCmdExe}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Service

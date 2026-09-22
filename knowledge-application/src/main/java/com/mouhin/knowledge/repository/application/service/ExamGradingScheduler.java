@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * <p>每 5 分钟执行一次：先回收超时卡在 GRADING 的场次（进程崩溃兜底）， 再扫描 SUBMITTED 状态且交卷时间超过延迟阈值的考试自动触发 AI 评分。
  * 真正的并发去重由评分入口的 {@code SUBMITTED→GRADING} CAS 认领保证。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Component

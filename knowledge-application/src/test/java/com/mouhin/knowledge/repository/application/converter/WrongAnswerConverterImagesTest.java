@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * <p>锁定错题本（学生 / 教师端共用本转换器）对看图题配图的取数口径：从结构化题目行 {@code kb_exam_question.images_json} 解析为 {@code
  * images} assetKey 数组；无绑定行或 脏数据归一化为 {@code null}（配合 {@code @JsonInclude} 省略字段）。纯函数测试，确定且离线。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("错题转换器映射看图题配图 (WrongAnswerConverter)")

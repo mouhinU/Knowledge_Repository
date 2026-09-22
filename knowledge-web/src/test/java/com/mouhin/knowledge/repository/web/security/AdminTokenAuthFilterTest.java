@@ -23,7 +23,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 /**
  * 管理端令牌鉴权过滤器单元测试。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("AdminTokenAuthFilter 集中鉴权")

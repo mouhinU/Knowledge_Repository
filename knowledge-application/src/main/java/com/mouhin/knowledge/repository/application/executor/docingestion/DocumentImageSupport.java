@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  * 重跑一次图片提取；图片流接口调用 {@link #findByAssetKey} + {@link #readBytes} 回读。二进制落 {@code
  * knowledge.exam.asset-path} 独立目录。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Component

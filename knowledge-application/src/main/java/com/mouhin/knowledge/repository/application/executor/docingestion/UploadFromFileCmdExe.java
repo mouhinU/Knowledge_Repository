@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadFromFile}。出入参为 {@link Path} + 元数据，无
  * HTTP 传输类型，但当前由适配层分片上传完成流程直接调用。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

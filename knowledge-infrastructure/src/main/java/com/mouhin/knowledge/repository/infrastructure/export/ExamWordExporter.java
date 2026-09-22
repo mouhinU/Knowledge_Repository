@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>将 Markdown 格式的试卷内容转换为 Word 文档。 解析 Markdown 标题、粗体、列表等格式，映射为 Word 样式。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @Component

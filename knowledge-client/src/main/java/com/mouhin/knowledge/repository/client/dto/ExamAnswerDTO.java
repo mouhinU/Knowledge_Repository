@@ -13,7 +13,7 @@ import lombok.Setter;
  * objective} 为实体派生 getter 的计算结果，由转换器显式求值后写入， 保证 {@code /api/exam/{sessionKey}/answers} 直接返回该对象的
  * JSON 键集合与取值不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

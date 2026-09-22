@@ -17,7 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * <p>管理 SSE 连接和事件缓冲。支持客户端先连接 SSE、再启动生成的场景： 事件到达时若 SSE 已连接则直接推送，否则缓冲等待。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @Component

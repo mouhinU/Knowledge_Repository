@@ -9,7 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
  * <p>映射与原 {@code DocumentAdminController.buildDocumentResponse} 一致： fileSize/totalPages
  * null→0，status/visibility 取枚举 name，tags/createdTime null→""。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class DocumentConverter {

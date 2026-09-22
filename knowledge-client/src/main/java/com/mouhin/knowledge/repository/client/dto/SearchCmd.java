@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 知识库语义检索命令
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

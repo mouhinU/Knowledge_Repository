@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 人工复核请求
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @Getter

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>用 ImageIO 现造一张 300×200 的 PNG，注入 {@link XWPFDocument} 内联到段落，落盘为 docx， 再让 {@link
  * DocumentImageExtractorService} 从磁盘解析回图片，验证：识别到一张、MIME 正确、 尺寸与源图匹配；空文档返回空列表不抛异常。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("文档图片提取服务")

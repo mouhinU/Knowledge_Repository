@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * <p>读取：keyFindings（知识点摘要）、question（考试主题）、examDifficulty、examQuestionConfig 写入：examPaper（试卷
  * Markdown 内容）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examWriterAgent")

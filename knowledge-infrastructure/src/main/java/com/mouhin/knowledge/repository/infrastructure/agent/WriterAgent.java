@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>负责根据研究员的发现撰写文章草稿。 读取：question + keyFindings 写入：draftArticle
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 @Component("writerAgent")

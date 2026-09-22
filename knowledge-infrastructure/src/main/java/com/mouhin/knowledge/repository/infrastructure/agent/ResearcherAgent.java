@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>负责从知识库检索结果中提取和组织关键信息。 读取：knowledgeChunks（向量检索结果） 写入：keyFindings（结构化的研究发现）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 @Component("researcherAgent")

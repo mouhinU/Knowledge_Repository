@@ -41,7 +41,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>因执行体在 {@code CompletableFuture.runAsync} 中运行，断言统一使用 Mockito {@code timeout(...)}。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("异步重新入库 (ReindexAsyncCmdExe)")

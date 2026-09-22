@@ -9,7 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  * <p>映射与原 {@code StudentAuthController.me} 一致：displayName null→username， studentNo null→""。不输出密码 /
  * 令牌字段。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class StudentConverter {

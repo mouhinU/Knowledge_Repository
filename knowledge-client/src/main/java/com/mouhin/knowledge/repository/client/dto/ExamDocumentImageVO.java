@@ -8,7 +8,7 @@ import lombok.Setter;
  *
  * <p>供管理端图片检索 / 选图界面渲染缩略图与元信息；{@code url} 为浏览器直接可取的公开句柄路径。 仅暴露展示所需字段，不含磁盘路径等实现细节。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @Getter

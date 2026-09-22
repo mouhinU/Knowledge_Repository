@@ -10,7 +10,7 @@ import java.util.List;
  *
  * <p>屏蔽具体向量库（Milvus / LangChain4j EmbeddingStore）技术细节，应用层仅依赖本接口， 出入参均为领域对象。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface VectorStoreGateway {

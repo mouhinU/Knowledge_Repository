@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
  * <p>提供待校对试卷列表、逐题结构化校对视图、就地编辑回写 {@code kb_exam_question}、 校对通过发布（契约校验不过不可发布）、以及按原文重新切分回灌等接口。
  * 与面向考生答题的 {@code /api/admin/exam-review}（成绩复核）区分，此处针对「试卷本身」的发布前把关。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @RestController

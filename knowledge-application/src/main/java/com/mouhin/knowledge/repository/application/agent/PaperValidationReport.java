@@ -13,7 +13,7 @@ import java.util.List;
  * @param totalMaxScore 各题分值之和
  * @param errors 阻断性错误列表
  * @param warnings 非阻断性提示列表
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public record PaperValidationReport(

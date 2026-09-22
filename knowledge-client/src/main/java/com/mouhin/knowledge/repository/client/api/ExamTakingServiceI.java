@@ -16,7 +16,7 @@ import java.util.Map;
  * IllegalStateException} 抛出，由适配层转换为 400 / 409 响应。 {@link #validateReport} 的 data 为可直接序列化的 Map（等价于原
  * {@code PaperValidationReport#toMap}）， 避免 client 层引用 app 内部类型。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public interface ExamTakingServiceI {

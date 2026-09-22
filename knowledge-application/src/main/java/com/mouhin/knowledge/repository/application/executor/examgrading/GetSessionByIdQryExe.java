@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 /**
  * 根据场次 ID 查询考试场次执行器
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

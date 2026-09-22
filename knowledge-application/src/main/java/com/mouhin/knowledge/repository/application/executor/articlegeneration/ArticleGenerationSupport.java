@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
  * <p>编排黑板模式完整流程：初始化黑板 → 知识库检索（无召回回退大模型补充）→ 研究员 / 写手 / 审核员三 Agent 协作 → 落库历史 → 通过回调推送进度事件。
  * 异步执行经虚拟线程调度，回调由适配层提供以桥接 SSE。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

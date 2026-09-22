@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  * servlet 线程）同步执行整条 LLM / 出卷 / 评分流水线， 分钟级阻塞请求线程并放大对上游模型服务的踩踏。用例通过在调用线程上运行拒绝探针， 验证拒绝发生在调用线程本身（抛出
  * REE）而非被就地执行。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("智能体线程池：饱和时快速失败抛 RejectedExecutionException，不回退到调用线程执行")

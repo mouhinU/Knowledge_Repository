@@ -32,7 +32,7 @@ import org.apache.pdfbox.text.TextPosition;
  *   <li>元数据提取：作者、标题、创建时间等
  * </ul>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-11
  */
 @Slf4j

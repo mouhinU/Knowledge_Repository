@@ -6,7 +6,7 @@ import lombok.Setter;
 /**
  * 修改用户命令（字段为 null 表示不修改，沿用既有语义）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

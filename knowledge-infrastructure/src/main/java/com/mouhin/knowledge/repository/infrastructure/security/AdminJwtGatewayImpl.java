@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  * 缺省仅用于本地开发）配置；有效期 {@code knowledge.admin.jwt.expiration-hours}，默认 8 小时。 校验时以常量时间比较签名，并检查 {@code
  * exp}，任何篡改 / 过期 / 格式非法均返回 {@link Optional#empty()}。账号是否被禁用不在此判定（交由过滤器读库二次确认），保持职责分离。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @Component

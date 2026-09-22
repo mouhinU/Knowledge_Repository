@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 管理端 JWT 网关实现单元测试（HS256 手工签发 / 校验）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 @DisplayName("AdminJwtGatewayImpl HS256 签发与校验")

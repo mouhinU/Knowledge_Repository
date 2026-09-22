@@ -9,7 +9,7 @@ import lombok.Setter;
  *
  * <p>字段顺序对齐原 {@code WrongAnswerApplicationService.pageWrongAnswers}： records、total、page、size、stats。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

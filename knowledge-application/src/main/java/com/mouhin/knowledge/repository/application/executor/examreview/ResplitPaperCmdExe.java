@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>按试卷原始 Markdown（exam_paper + answer_key + exam_plan）重新执行「出卷即切分」并幂等回灌 {@code
  * kb_exam_question}，用于管理员修正原文或老数据首次结构化。重切分不改变试卷状态， 发布仍须经 {@link ApprovePaperCmdExe} 通过契约校验。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @Component

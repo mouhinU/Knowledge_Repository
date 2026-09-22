@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>因入参含领域类型，不纳入 client 契约，由适配层在建立 SSE 后直接调用。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

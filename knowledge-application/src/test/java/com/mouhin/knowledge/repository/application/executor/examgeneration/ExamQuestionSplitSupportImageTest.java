@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * <p>锁定「按印刷题号保留人工配图」这一保证：{@code snapshotImagesByNumber} 只收录非空绑定， {@code applyImageSnapshot}
  * 仅回填题号命中的行、题号漂移的行不误绑、空快照快速返回 0。 纯函数测试，不触发切分 / 解析，确定且离线。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("重新切分保留人工配图 (按题号回填)")

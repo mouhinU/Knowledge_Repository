@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * <p>管理每个文档索引过程的 SSE 连接，将进度事件实时推送到前端。 支持事件缓冲，防止 SSE 连接建立前的进度事件丢失。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-13
  */
 @Component

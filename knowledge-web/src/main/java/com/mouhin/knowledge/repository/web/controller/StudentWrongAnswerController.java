@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * <p>考生仅可查看自己的错题记录，通过 X-Student-Token 解析当前考生身份。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 @RestController

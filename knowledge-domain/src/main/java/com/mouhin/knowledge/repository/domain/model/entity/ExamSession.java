@@ -6,7 +6,7 @@ import java.util.Objects;
 /**
  * 考试场次实体（学生的一次答题记录）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public class ExamSession {

@@ -9,7 +9,7 @@ import java.util.Optional;
  * <p>面向接口做签发 / 校验，领域与应用层不感知令牌格式（当前实现为标准 HS256 JWT，密钥与有效期由 基础设施配置注入）。校验只负责<b>令牌本身</b>（签名 +
  * 过期）的合法性；账号是否被禁用等 需读库的状态由应用层 / 过滤器结合 {@code UserGateway} 二次判定，二者职责分离。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 public interface AdminJwtService {

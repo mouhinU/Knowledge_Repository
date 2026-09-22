@@ -11,7 +11,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
  * <p>字段逐一映射，力求与原实体 Jackson 序列化结果保持键集合与取值一致： 答题记录额外求值 {@code effectiveScore}、{@code objective}
  * 两个派生属性。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public final class ExamTakingConverter {

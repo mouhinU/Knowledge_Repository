@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>线程数与队列显式命名，避免魔法值散落。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-19
  */
 public final class AgentExecutorFactory {
@@ -56,7 +56,7 @@ public final class AgentExecutorFactory {
     /**
      * 带序号的守护线程工厂：线程名可读、设为守护线程，并兜底记录未捕获异常。
      *
-     * @author Knowledge-Repository
+     * @author mouhinU
      * @date 2026-09-19
      */
     private static final class NamedDaemonThreadFactory implements ThreadFactory {

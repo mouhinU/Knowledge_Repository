@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>基于已评分场次筛选答错 / 部分得分题目，按题型过滤并预读结构化题目行（答案 / 解析 / 评分标准）， 产出按提交时间倒序的错题视图列表。供分页与 AI 总结两个用例复用。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>无方案时（老路径只传 questionConfig），退回 {@link ScoreRuleEngine#buildDefaultPlan} 生成兜底方案， 再走同一份校验。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-14
  */
 @Component("examScoringAgent")

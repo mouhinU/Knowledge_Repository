@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>锁定「删图并重抽」前置清理行为：（1）assetRoot 之内落盘文件被删除、并删除全部关系记录； （2）越界（非 assetRoot 之下）文件跳过删除，但记录仍被删除；（3）空 /
  * 空白 storagePath 跳过； （4）doc / id 为空直接返回 0 且不动记录。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-20
  */
 @DisplayName("重新入库配图清理 (DocumentImageSupport.deleteImages)")

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * <p>仅负责请求适配：解析入参组装 Command，调用 app 层 {@link DepartmentServiceI}， 把返回的 VO 直接作为 REST 响应体（JSON
  * 结构与既有前端契约保持一致）。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 @RestController

@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>将试卷生成阶段产出的「标准答案与评分标准」Markdown 解析为按题号组织的答案、 解析（说明）与评分标准，供答题解析、错题本展示等场景复用。 兼容分块格式（{@code ### 第N题
  * ... **解析：** ... **评分标准：**}）与行内格式 （{@code **1. 答案：B**}）。解析不出来的题目仅缺失对应字段，不影响其它题。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 @Slf4j

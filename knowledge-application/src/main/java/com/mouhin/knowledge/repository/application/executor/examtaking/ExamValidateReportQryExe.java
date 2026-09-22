@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 /**
  * 题目 JSON 校验报告查询执行器（app 层用例，返回可序列化的报告 Map）
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * CompletableFuture#runAsync} 中执行分块入库，进度 / 错误经 {@link IndexProgressCallback} 推送。 回调由适配层从 SSE
  * 存储组件创建并传入（SSE 传输装配保持不变），故不入对外契约。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

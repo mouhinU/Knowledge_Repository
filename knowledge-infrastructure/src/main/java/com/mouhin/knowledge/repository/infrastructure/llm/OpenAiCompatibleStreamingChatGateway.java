@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
  * delta.content}（正常输出）与 {@code delta.reasoning_content / delta.reasoning}（思考链，取决于模型是否支持）。 dashscope
  * / deepseek / ollama 均为 OpenAI 兼容端点，故共用本实现，仅 base-url、 模型名与鉴权不同。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Slf4j

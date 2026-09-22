@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * <p>收敛原 {@code DocumentIngestionApplicationService} 中的 {@code extractionCache} 实例字段： 上传后放入、预览 /
  * 入库读取、入库完成后移除。以单例 Bean 承载，保证各执行器操作同一份缓存， 语义与原单体服务一致。缓存未命中时从存储文件重新提取。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

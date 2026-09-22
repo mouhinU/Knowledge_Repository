@@ -9,7 +9,7 @@ import java.util.List;
  * <p>{@code key} 为内核题型（决定做题端渲染与评分方式），{@code label} 为按科目显示的题型名称， {@code perQuestion} 为每一道小题的分值，长度须等于
  * {@code count}。小计由逐题分值求和得到。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 public class TypePlan {

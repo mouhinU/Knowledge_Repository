@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * <p>负责审核文章草稿的质量，给出修改建议和评分，并生成最终文章。 读取：question + keyFindings + draftArticle 写入：reviewFeedback +
  * qualityScore + finalArticle
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-12
  */
 @Component("reviewerAgent")

@@ -9,7 +9,7 @@ import lombok.Setter;
  * <p>字段顺序与键名对齐原 {@code WrongAnswerController.listStudents}：
  * id、username、displayName、studentNo。displayName / studentNo 保持原始值（可为 null）， 不做兜底转换。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Getter

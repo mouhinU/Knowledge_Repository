@@ -15,7 +15,7 @@ import java.util.List;
  *   <li>软评估（仅提示建议）：极端分值（单题 &gt; 满分 30% 或某题型小计占比 &gt; 60%）、 题量偏斜、缺少主观题或客观题、总分非标准（≠ 100/120/150）
  * </ul>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-16
  */
 public final class ScorePlanValidator {

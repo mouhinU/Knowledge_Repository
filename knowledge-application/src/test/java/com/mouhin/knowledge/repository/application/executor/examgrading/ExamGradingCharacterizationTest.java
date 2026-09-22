@@ -20,7 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * <p>阶段 0-B~0-E 上线后，本基线应全部保持绿色（这些改动本就已固化在当前实现中）； 阶段 2-A 若切换评分为纯结构化读取，需同步复核本测试的适用性。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 @DisplayName("客观题判分回归基线 (0-A)")

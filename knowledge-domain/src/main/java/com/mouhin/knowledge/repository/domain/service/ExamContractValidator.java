@@ -24,7 +24,7 @@ import java.util.Set;
  *   <li>选择题（单选 / 多选）选项非空（判断题为隐式二选一，不校验选项）。
  * </ol>
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-18
  */
 public final class ExamContractValidator {

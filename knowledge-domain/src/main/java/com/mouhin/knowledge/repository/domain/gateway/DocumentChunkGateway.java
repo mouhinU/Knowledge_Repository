@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * 文档分块仓储接口
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-02
  */
 public interface DocumentChunkGateway {

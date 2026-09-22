@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * <p>装配逻辑与原 {@code DepartmentManagementApplicationService.getTree()} 一致： 先为每个部门建节点（保持 listAll
  * 顺序），再按 parentId 挂接子节点；父不存在的节点视为根。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 @Component

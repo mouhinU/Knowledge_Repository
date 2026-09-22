@@ -6,7 +6,7 @@ import java.util.Objects;
 /**
  * 考生实体
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-15
  */
 public class Student {

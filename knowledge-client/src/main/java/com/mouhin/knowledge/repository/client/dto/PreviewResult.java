@@ -8,7 +8,7 @@ import java.util.List;
  * <p>组件名与顺序与原 {@code DocumentIngestionApplicationService.PreviewResult} 完全一致， 保证 {@code
  * /api/admin/document/{documentKey}/preview} 返回 JSON 不变。
  *
- * @author Knowledge-Repository
+ * @author mouhinU
  * @date 2026-09-17
  */
 public record PreviewResult(
