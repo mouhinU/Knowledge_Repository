@@ -22,80 +22,67 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /** 统一错误响应 map 的 timestamp 字段名（java:S1192 抽常量防 4 处漂移）。 */
+    /** 统一错误响应 map 的 timestamp 字段名（java:S1192 抽常量防多处漂移）。 */
     private static final String FIELD_TIMESTAMP = "timestamp";
+
+    /** 统一错误响应 map 的 errorCode 字段名。 */
+    private static final String FIELD_ERROR_CODE = "errorCode";
+
+    /** 统一错误响应 map 的 errorMessage 字段名。 */
+    private static final String FIELD_ERROR_MESSAGE = "errorMessage";
+
+    /** 未知路由对外返回的通用提示；请求路径只落到日志、不回显到响应体（防信息泄露 java:S2092 家族）。 */
+    private static final String MSG_NOT_FOUND = "资源不存在";
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Bad request: {}", e.getMessage());
-        return ResponseEntity.badRequest()
-                .body(
-                        Map.of(
-                                "errorCode",
-                                "BAD_REQUEST",
-                                "errorMessage",
-                                e.getMessage(),
-                                FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
+        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", e.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
         log.warn("Conflict: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(
-                        Map.of(
-                                "errorCode",
-                                "CONFLICT",
-                                "errorMessage",
-                                e.getMessage(),
-                                FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
+        return error(HttpStatus.CONFLICT, "CONFLICT", e.getMessage());
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleMaxUploadSize(
             MaxUploadSizeExceededException e) {
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(
-                        Map.of(
-                                "errorCode",
-                                "FILE_TOO_LARGE",
-                                "errorMessage",
-                                "Upload file exceeds maximum size limit",
-                                FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
+        return error(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "FILE_TOO_LARGE",
+                "Upload file exceeds maximum size limit");
     }
 
     /**
-     * 未知路由 → 404。Spring 6 无 handler 抛 {@link NoHandlerFoundException}、 静态资源缺失抛 {@link
-     * NoResourceFoundException}；两者合并映射，避免掉进 通用 {@link Exception} 兜底导致 500 + ERROR 堆栈污染日志。
+     * 未知路由 → 404。Spring 6 无 handler 抛 {@link NoHandlerFoundException}、静态资源缺失抛 {@link
+     * NoResourceFoundException}；两者合并映射，避免掉进通用 {@link Exception} 兜底导致 500 + ERROR
+     * 堆栈污染日志。请求路径只落日志、不回显到响应体。
      */
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
-    public ResponseEntity<Map<String, Object>> handleNotFound(
-            Exception e, HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> handleNotFound(HttpServletRequest request) {
         log.warn("404 {} {}", request.getMethod(), request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(
-                        Map.of(
-                                "errorCode",
-                                "NOT_FOUND",
-                                "errorMessage",
-                                "资源不存在: " + request.getRequestURI(),
-                                FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", MSG_NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
         log.error("Unexpected error: {}", e.getMessage(), e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        return error(
+                HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred");
+    }
+
+    /** 统一错误响应组装；只此一处 Map.of，消除各 handler 的构造重复（java:DuplicatedBlocks）。 */
+    private static ResponseEntity<Map<String, Object>> error(
+            HttpStatus status, String code, String message) {
+        return ResponseEntity.status(status)
                 .body(
                         Map.of(
-                                "errorCode",
-                                "INTERNAL_ERROR",
-                                "errorMessage",
-                                "An unexpected error occurred",
+                                FIELD_ERROR_CODE,
+                                code,
+                                FIELD_ERROR_MESSAGE,
+                                message,
                                 FIELD_TIMESTAMP,
                                 LocalDateTime.now().toString()));
     }
