@@ -42,6 +42,12 @@ services:
       LLM_EMBED_BASE_URL: http://host.docker.internal:11434/v1
       LLM_EMBED_MODEL: bge-m3
       LLM_EMBED_API_KEY: ollama
+      # 视觉角色（Phase B，默认关闭）：置 true 并指向本地 PaddleOCR-CPU / 云端视觉端点后启用增强
+      # LLM_VISION_ENABLED: "true"
+      # LLM_VISION_MODE: local-cpu
+      # LLM_VISION_BASE_URL: http://host.docker.internal:8080/v1
+      # LLM_VISION_API_KEY: your-vision-key
+      # LLM_VISION_MODEL: paddleocr-vl
       # 管理端登录鉴权（无状态 JWT）：签名密钥须由 .env 提供，勿用默认值
       KNOWLEDGE_ADMIN_JWT_SECRET: ${KNOWLEDGE_ADMIN_JWT_SECRET}
       KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS: "${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:-8}"

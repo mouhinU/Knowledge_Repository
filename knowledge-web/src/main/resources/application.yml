@@ -134,6 +134,20 @@ knowledge:
       connect-timeout-seconds: ${LLM_EMBED_CONNECT_TIMEOUT_SECONDS:2}
       read-timeout-seconds: ${LLM_EMBED_READ_TIMEOUT_SECONDS:10}
       call-timeout-seconds: ${LLM_EMBED_CALL_TIMEOUT_SECONDS:15}
+    # ----- 视觉角色（Phase B）：默认关闭，置 true 并指向本地 PaddleOCR-CPU / 云端视觉端点后启用增强 -----
+    vision:
+      enabled: ${LLM_VISION_ENABLED:false}
+      mode: ${LLM_VISION_MODE:local-cpu}
+      provider: openai-compatible
+      base-url: ${LLM_VISION_BASE_URL:http://localhost:8080/v1}
+      api-key: ${LLM_VISION_API_KEY:}
+      model-name: ${LLM_VISION_MODEL:paddleocr-vl}
+      temperature: 0.0
+      max-tokens: ${LLM_VISION_MAX_TOKENS:4096}
+      connect-timeout-seconds: ${LLM_VISION_CONNECT_TIMEOUT_SECONDS:3}
+      read-timeout-seconds: ${LLM_VISION_READ_TIMEOUT_SECONDS:30}
+      call-timeout-seconds: ${LLM_VISION_CALL_TIMEOUT_SECONDS:60}
+      prefer-embedded-images: true
     # ----- 韧性护栏（Phase R2）：按角色独立熔断/重试，一端点抖动不殃及他角色 -----
     resilience:
       chat:
