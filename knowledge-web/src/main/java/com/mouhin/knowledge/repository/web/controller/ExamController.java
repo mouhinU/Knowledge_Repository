@@ -82,6 +82,62 @@ public class ExamController {
         this.progressStore = progressStore;
     }
 
+    /** 从请求解析调用方权限（userId 缺省 {@code anonymous}）；收敛各端点重复的构造骨架（java:DuplicatedBlocks）。 */
+    private static Permission resolvePermission(ExamGenerationRequest request) {
+        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
+        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
+        return new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+    }
+
+    /** 题型分布方案是否含有效题型。 */
+    private static boolean hasTypes(ExamPlan plan) {
+        return plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+    }
+
+    /**
+     * 统一 {@code {error: msg}} 400 响应。考试前端读取的是 {@code data.error}，与全局 {@link
+     * com.mouhin.knowledge.repository.web.config.GlobalExceptionHandler} 输出的 {@code errorMessage}
+     * 字段名不同，故这些校验失败响应刻意保留在控制器本地、不外移到 advice，以免破坏前端契约。
+     */
+    private static ResponseEntity<Map<String, String>> badRequestError(String message) {
+        return ResponseEntity.badRequest().body(Map.of("error", message));
+    }
+
+    /**
+     * 生成试卷（同步）：有方案走 {@code executeWithPlan}，否则按各题型数量 {@code executeByCounts}。
+     *
+     * <p>抽出以消除 {@code generateExam} 与 {@code exportExamWord} 两处近乎逐字重复的分派块（java:DuplicatedBlocks）。
+     */
+    private String generateSyncPaper(
+            ExamGenerationRequest request, ExamPlan plan, boolean hasPlan, Permission permission) {
+        if (hasPlan) {
+            return generateExamSyncCmdExe.executeWithPlan(
+                    request.getTopic(),
+                    request.getDifficulty(),
+                    request.getSchoolLevel(),
+                    plan,
+                    permission,
+                    request.getCategory());
+        }
+        return generateExamSyncCmdExe.executeByCounts(
+                request.getTopic(),
+                request.getDifficulty(),
+                request.getSchoolLevel(),
+                nz(request.getSingleChoiceCount()),
+                nz(request.getMultiChoiceCount()),
+                nz(request.getTrueFalseCount()),
+                nz(request.getFillBlankCount()),
+                nz(request.getShortAnswerCount()),
+                nz(request.getEssayCount()),
+                permission,
+                request.getCategory());
+    }
+
+    /** {@code Integer} 计数缺省 0。 */
+    private static int nz(Integer value) {
+        return value != null ? value : 0;
+    }
+
     /**
      * 启动试卷生成（异步，7 步 Agent 流水线）
      *
@@ -95,20 +151,17 @@ public class ExamController {
             @RequestBody ExamGenerationRequest request) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
+            return badRequestError("考试主题不能为空");
         }
 
         ExamPlan plan = parsePlan(request.getDistribution());
-        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+        boolean hasPlan = hasTypes(plan);
 
         if (!hasPlan && request.getTotalCount() <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "请先生成或选择题型分布方案"));
+            return badRequestError("请先生成或选择题型分布方案");
         }
 
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission =
-                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+        Permission permission = resolvePermission(request);
 
         log.info(
                 "收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
@@ -173,20 +226,17 @@ public class ExamController {
             @RequestBody ExamGenerationRequest request) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
+            return badRequestError("考试主题不能为空");
         }
 
         ExamPlan plan = parsePlan(request.getDistribution());
-        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+        boolean hasPlan = hasTypes(plan);
 
         if (!hasPlan && request.getTotalCount() <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "请先生成或选择题型分布方案"));
+            return badRequestError("请先生成或选择题型分布方案");
         }
 
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission =
-                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+        Permission permission = resolvePermission(request);
 
         log.info(
                 "收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
@@ -194,37 +244,7 @@ public class ExamController {
                 request.getDifficulty(),
                 hasPlan);
 
-        String examPaper;
-        if (hasPlan) {
-            examPaper =
-                    generateExamSyncCmdExe.executeWithPlan(
-                            request.getTopic(),
-                            request.getDifficulty(),
-                            request.getSchoolLevel(),
-                            plan,
-                            permission,
-                            request.getCategory());
-        } else {
-            examPaper =
-                    generateExamSyncCmdExe.executeByCounts(
-                            request.getTopic(),
-                            request.getDifficulty(),
-                            request.getSchoolLevel(),
-                            request.getSingleChoiceCount() != null
-                                    ? request.getSingleChoiceCount()
-                                    : 0,
-                            request.getMultiChoiceCount() != null
-                                    ? request.getMultiChoiceCount()
-                                    : 0,
-                            request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                            request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                            request.getShortAnswerCount() != null
-                                    ? request.getShortAnswerCount()
-                                    : 0,
-                            request.getEssayCount() != null ? request.getEssayCount() : 0,
-                            permission,
-                            request.getCategory());
-        }
+        String examPaper = generateSyncPaper(request, plan, hasPlan, permission);
 
         return ResponseEntity.ok(Map.of("examPaper", examPaper));
     }
@@ -240,47 +260,14 @@ public class ExamController {
             return;
         }
 
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission =
-                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+        Permission permission = resolvePermission(request);
 
         log.info("导出试卷 Word: topic='{}'", request.getTopic());
 
         ExamPlan plan = parsePlan(request.getDistribution());
-        boolean hasPlan = plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
+        boolean hasPlan = hasTypes(plan);
 
-        String examPaper;
-        if (hasPlan) {
-            examPaper =
-                    generateExamSyncCmdExe.executeWithPlan(
-                            request.getTopic(),
-                            request.getDifficulty(),
-                            request.getSchoolLevel(),
-                            plan,
-                            permission,
-                            request.getCategory());
-        } else {
-            examPaper =
-                    generateExamSyncCmdExe.executeByCounts(
-                            request.getTopic(),
-                            request.getDifficulty(),
-                            request.getSchoolLevel(),
-                            request.getSingleChoiceCount() != null
-                                    ? request.getSingleChoiceCount()
-                                    : 0,
-                            request.getMultiChoiceCount() != null
-                                    ? request.getMultiChoiceCount()
-                                    : 0,
-                            request.getTrueFalseCount() != null ? request.getTrueFalseCount() : 0,
-                            request.getFillBlankCount() != null ? request.getFillBlankCount() : 0,
-                            request.getShortAnswerCount() != null
-                                    ? request.getShortAnswerCount()
-                                    : 0,
-                            request.getEssayCount() != null ? request.getEssayCount() : 0,
-                            permission,
-                            request.getCategory());
-        }
+        String examPaper = generateSyncPaper(request, plan, hasPlan, permission);
 
         String fileName =
                 URLEncoder.encode(request.getTopic() + "_试卷.docx", StandardCharsets.UTF_8);
@@ -302,13 +289,10 @@ public class ExamController {
             @RequestBody ExamGenerationRequest request) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "考试主题不能为空"));
+            return badRequestError("考试主题不能为空");
         }
 
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission =
-                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+        Permission permission = resolvePermission(request);
 
         String requestedSessionId = request.getSessionId();
         final String sessionId =
@@ -348,7 +332,7 @@ public class ExamController {
     public ResponseEntity<Object> balanceDistribution(@RequestBody ExamGenerationRequest request) {
 
         ExamPlan plan = parsePlan(request.getDistribution());
-        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
+        if (!hasTypes(plan)) {
             return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
         }
 
@@ -379,8 +363,8 @@ public class ExamController {
             @RequestBody ExamGenerationRequest request) {
 
         ExamPlan plan = parsePlan(request.getDistribution());
-        if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "缺少有效的题型分布方案"));
+        if (!hasTypes(plan)) {
+            return badRequestError("缺少有效的题型分布方案");
         }
 
         String requestedSessionId = request.getSessionId();

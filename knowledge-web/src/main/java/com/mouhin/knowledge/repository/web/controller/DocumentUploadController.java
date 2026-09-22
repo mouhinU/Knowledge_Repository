@@ -45,6 +45,21 @@ public class DocumentUploadController {
         this.uploadSessionManager = uploadSessionManager;
     }
 
+    /** 400 统一错误响应体。{@code {errorCode, errorMessage}} 与改造前内联 {@code Map.of} 完全一致，仅收敛重复构造骨架。 */
+    private static ResponseEntity<Map<String, Object>> badRequest(String code, String message) {
+        return ResponseEntity.badRequest().body(errorBody(code, message));
+    }
+
+    /** 500 统一错误响应体（同上，字段/状态码不变）。 */
+    private static ResponseEntity<Map<String, Object>> serverError(String code, String message) {
+        return ResponseEntity.internalServerError().body(errorBody(code, message));
+    }
+
+    /** 错误响应 map：{@code errorCode} + {@code errorMessage}（java:DuplicatedBlocks 收敛）。 */
+    private static Map<String, Object> errorBody(String code, String message) {
+        return Map.of("errorCode", code, FIELD_ERROR_MESSAGE, message);
+    }
+
     /**
      * 上传文档（仅提取文本，不分块、不向量化）
      *
@@ -87,26 +102,16 @@ public class DocumentUploadController {
 
         String contentType = file.getContentType();
         if (contentType == null || !isSupportedFileType(contentType)) {
-            return ResponseEntity.badRequest()
-                    .body(
-                            Map.of(
-                                    "errorCode",
-                                    "BAD_REQUEST",
-                                    FIELD_ERROR_MESSAGE,
-                                    "Unsupported file type. Supported formats: PDF, Word, Excel, PPT, TXT, CSV, HTML"));
+            return badRequest(
+                    "BAD_REQUEST",
+                    "Unsupported file type. Supported formats: PDF, Word, Excel, PPT, TXT, CSV, HTML");
         }
 
         DocumentVisibilityEnum vis;
         try {
             vis = DocumentVisibilityEnum.valueOf(visibility.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(
-                            Map.of(
-                                    "errorCode",
-                                    "BAD_REQUEST",
-                                    FIELD_ERROR_MESSAGE,
-                                    "Invalid visibility: " + visibility));
+            return badRequest("BAD_REQUEST", "Invalid visibility: " + visibility);
         }
 
         DocumentVO document =
@@ -147,8 +152,7 @@ public class DocumentUploadController {
             return ResponseEntity.ok(Map.of("uploadId", uploadId, "uploadedChunks", Set.of()));
         } catch (Exception e) {
             log.error("初始化分片上传失败", e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("errorCode", "INIT_FAILED", FIELD_ERROR_MESSAGE, e.getMessage()));
+            return serverError("INIT_FAILED", e.getMessage());
         }
     }
 
@@ -168,17 +172,10 @@ public class DocumentUploadController {
                             "chunkIndex", chunkIndex,
                             "complete", complete));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(
-                            Map.of(
-                                    "errorCode",
-                                    "INVALID_SESSION",
-                                    FIELD_ERROR_MESSAGE,
-                                    e.getMessage()));
+            return badRequest("INVALID_SESSION", e.getMessage());
         } catch (Exception e) {
             log.error("上传分片失败 [uploadId={}, chunk={}]", uploadId, chunkIndex, e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("errorCode", "CHUNK_FAILED", FIELD_ERROR_MESSAGE, e.getMessage()));
+            return serverError("CHUNK_FAILED", e.getMessage());
         }
     }
 
@@ -191,13 +188,7 @@ public class DocumentUploadController {
             // 先获取文件信息（assembleChunks 会清理会话）
             UploadSessionManager.UploadSession session = uploadSessionManager.getSession(uploadId);
             if (session == null) {
-                return ResponseEntity.badRequest()
-                        .body(
-                                Map.of(
-                                        "errorCode",
-                                        "INVALID_SESSION",
-                                        FIELD_ERROR_MESSAGE,
-                                        "上传会话不存在或已过期"));
+                return badRequest("INVALID_SESSION", "上传会话不存在或已过期");
             }
             String fileName = session.getFileName();
 
@@ -212,13 +203,7 @@ public class DocumentUploadController {
             try {
                 vis = DocumentVisibilityEnum.valueOf(visibility.toUpperCase());
             } catch (IllegalArgumentException e) {
-                return ResponseEntity.badRequest()
-                        .body(
-                                Map.of(
-                                        "errorCode",
-                                        "BAD_REQUEST",
-                                        FIELD_ERROR_MESSAGE,
-                                        "Invalid visibility: " + visibility));
+                return badRequest("BAD_REQUEST", "Invalid visibility: " + visibility);
             }
 
             // 从已组装文件创建文档
@@ -241,13 +226,7 @@ public class DocumentUploadController {
                             "message", "Document uploaded. Please preview and confirm indexing."));
         } catch (Exception e) {
             log.error("完成分片上传失败 [uploadId={}]", uploadId, e);
-            return ResponseEntity.internalServerError()
-                    .body(
-                            Map.of(
-                                    "errorCode",
-                                    "COMPLETE_FAILED",
-                                    FIELD_ERROR_MESSAGE,
-                                    e.getMessage()));
+            return serverError("COMPLETE_FAILED", e.getMessage());
         }
     }
 

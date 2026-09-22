@@ -189,26 +189,19 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                     break;
                 }
                 XWPFPictureData data = pic.data();
-                byte[] bytes = data.getData();
-                BufferedImage awt = readImage(bytes);
-                if (!accept(awt)) {
-                    continue;
-                }
-                String mt =
-                        resolveMime(
-                                bytes,
+                ExtractedImage img =
+                        tryBuildImage(
+                                data.getData(),
                                 data.getPackagePart() != null
                                         ? data.getPackagePart().getContentType()
                                         : null,
-                                data.suggestFileExtension());
-                result.add(
-                        new ExtractedImage(
-                                bytes,
-                                mt,
-                                awt != null ? awt.getWidth() : null,
-                                awt != null ? awt.getHeight() : null,
+                                data.suggestFileExtension(),
                                 pic.page(),
-                                seq++));
+                                seq);
+                if (img != null) {
+                    result.add(img);
+                    seq++;
+                }
             }
         }
         return result;
@@ -264,30 +257,23 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                     break;
                 }
                 XSSFPictureData data = pictures.get(i);
-                byte[] bytes = data.getData();
-                BufferedImage awt = readImage(bytes);
-                if (!accept(awt)) {
-                    continue;
-                }
                 // xlsx 图片与工作表映射不精确，按数量分摊估算页序
                 int approxSheet =
                         (int) Math.floor((double) i / Math.max(1, pictures.size()) * sheetPages)
                                 + 1;
-                String mt =
-                        resolveMime(
-                                bytes,
+                ExtractedImage img =
+                        tryBuildImage(
+                                data.getData(),
                                 data.getPackagePart() != null
                                         ? data.getPackagePart().getContentType()
                                         : null,
-                                data.suggestFileExtension());
-                result.add(
-                        new ExtractedImage(
-                                bytes,
-                                mt,
-                                awt != null ? awt.getWidth() : null,
-                                awt != null ? awt.getHeight() : null,
+                                data.suggestFileExtension(),
                                 approxSheet,
-                                seq++));
+                                seq);
+                if (img != null) {
+                    result.add(img);
+                    seq++;
+                }
             }
         }
         return result;
@@ -314,25 +300,19 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                             continue;
                         }
                         byte[] bytes = data.getData();
-                        BufferedImage awt = readImage(bytes);
-                        if (!accept(awt)) {
-                            continue;
-                        }
-                        String mt =
-                                resolveMime(
+                        ExtractedImage img =
+                                tryBuildImage(
                                         bytes,
                                         data.getPackagePart() != null
                                                 ? data.getPackagePart().getContentType()
                                                 : null,
-                                        null);
-                        result.add(
-                                new ExtractedImage(
-                                        bytes,
-                                        mt,
-                                        awt != null ? awt.getWidth() : null,
-                                        awt != null ? awt.getHeight() : null,
+                                        null,
                                         slideNo,
-                                        seq++));
+                                        seq);
+                        if (img != null) {
+                            result.add(img);
+                            seq++;
+                        }
                     }
                 }
             }
@@ -341,6 +321,34 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     }
 
     // ==================== 工具 ====================
+
+    /**
+     * docx / xlsx / pptx 共享的「原始图片字节 → {@link ExtractedImage}」骨架。
+     *
+     * <p>解码后按 {@link #accept} 过滤装饰性小图：不通过则返回 {@code null}，调用方据此跳过且不推进 {@code seq}；通过则以 {@link
+     * #resolveMime} 定 MIME 并封装尺寸 / 页序 / 序号。accept 已保证 BufferedImage 非空，可直接取宽高。
+     *
+     * @param bytes 图片原始字节
+     * @param contentType 包内声明的内容类型（可为 null）
+     * @param fileExt 建议文件扩展名（pptx 无扩展名，传 null）
+     * @param pageNo 页序 / 幻灯片序号 / 工作表估算页
+     * @param seq 该页内图片序号
+     * @return 过滤通过的 {@link ExtractedImage}；被判定为装饰小图或解码失败时返回 {@code null}
+     */
+    private ExtractedImage tryBuildImage(
+            byte[] bytes, String contentType, String fileExt, int pageNo, int seq) {
+        BufferedImage awt = readImage(bytes);
+        if (!accept(awt)) {
+            return null;
+        }
+        return new ExtractedImage(
+                bytes,
+                resolveMime(bytes, contentType, fileExt),
+                awt.getWidth(),
+                awt.getHeight(),
+                pageNo,
+                seq);
+    }
 
     private record DocxPic(XWPFPictureData data, int page) {}
 

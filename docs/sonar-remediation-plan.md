@@ -168,6 +168,13 @@ function randToken(n = 8) {
 
 **扫描后剩余 Java intra-file dup 主源**（8-行窗口近似）：`ExamController` 280 · `DocumentUploadController` 104 · `ExamGenerationSupport` 88 · `DocumentAdminController` 88 · `DocumentImageExtractorService` 80 · 合计 ~640 行。前三者主要是「try { return ResponseEntity.ok(service.xxx(...)); } catch (Exception e) { log.error(...); return ResponseEntity.badRequest().body(Map.of(\"errorCode\",\"BAD_REQUEST\",...)); }}」的 Controller 样板，`ExamGenerationSupport` 与 `DocumentImageExtractorService` 属于同类"方法体分步骨架"重复。**已归为架构级改动，独立提交待确认**（详见 §四 后续动作）。
 
+**执行结果（PR-6 · 2026-09-22 · 三项架构级去重，用户「一起做」授权）**：
+
+- **`ExamGenerationSupport.emit(cb, event)`**：新增空安全 SSE 进度推送 helper，把流水线 / 各 Agent 方法里 18 处 `if (cb != null) cb.onProgress(BlackboardProgressEvent.xxx(...))` 判空骨架收敛为单行调用（脚本化 brace/paren 配平改写，仅命中「纯 onProgress」块，0 跳过），语义与内联判空完全等价。application 105 测试全绿。
+- **`DocumentImageExtractorService.tryBuildImage(bytes, contentType, fileExt, pageNo, seq)`**：docx / xlsx / pptx 三处「字节→解码→accept 过滤→resolveMime→new ExtractedImage」骨架合并；顺带删掉 `accept()` 保证非空后仍写的 `awt != null ?` 死防御三元。infra 3 测试全绿。
+- **Controller 错误/分派去重（严格保前端契约）**：`DocumentUploadController` 抽 `badRequest/serverError/errorBody`，8 处内联 `Map.of("errorCode",..,errorMessage,..)` 收敛，输出 ResponseEntity（状态码 + 字段）逐字节不变；`ExamController` 抽 `resolvePermission`（×4）、`generateSyncPaper`（消除 `generateExam`/`exportExamWord` 两处近 19 行 `executeWithPlan/executeByCounts` 重复）、`hasTypes`、`badRequestError`。**关键取舍**：考试前端这些端点读的是 `data.error`，与全局 `GlobalExceptionHandler` 的 `errorMessage` 字段名不同，故刻意**不**外移到 advice，只用本地同形 helper，避免破坏契约；`Map.of("error",..)` 唯一消息的输入校验块非真重复，未强改。
+
+净变化：4 文件 258 增 / 289 删（−31 行），全 reactor `mvn test`（domain 28 + infra 3 + application 105 + web 16）BUILD SUCCESS，`spotless` 通过。**`DocumentAdminController` 88 行**经查为单点 `catch (IllegalArgumentException) → badRequest().build()`（空体，唯一非重复）+ SSE/流式端点，去重收益低且改动面广，**本批未动**；`ExamController` 429 限流、`response.sendError` 等特形响应亦刻意保留。Duplication 是否跌破 3% 待 PR 合入 main、Sonar new-code 周期重算后确认。
 
 ## 三、分批 PR 建议
 

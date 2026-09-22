@@ -138,6 +138,21 @@ public class ExamGenerationSupport {
         }
     }
 
+    /**
+     * 空安全的 SSE 进度推送：收敛流水线 / 各 Agent 方法中重复的 {@code if (cb != null) cb.onProgress(...)}
+     * 骨架（java:DuplicatedBlocks）。
+     *
+     * <p>进度回调在前端不订阅 SSE 时为 {@code null}，此时静默跳过、语义与内联判空完全等价。
+     *
+     * @param cb 进度回调，可为 {@code null}
+     * @param event 待推送的进度事件（由 {@link BlackboardProgressEvent} 工厂构造）
+     */
+    private static void emit(BlackboardProgressCallback cb, BlackboardProgressEvent event) {
+        if (cb != null) {
+            cb.onProgress(event);
+        }
+    }
+
     /** 异步启动试卷生成（7 步 Agent 流水线，含并行），立即返回。 */
     public void generateExamAsync(
             String topic,
@@ -160,10 +175,9 @@ public class ExamGenerationSupport {
                 plan != null,
                 skipScoringValidation);
 
-        if (progressCallback != null) {
-            progressCallback.onProgress(
-                    BlackboardProgressEvent.phaseChanged(BlackboardPhase.INIT, "正在初始化..."));
-        }
+        emit(
+                progressCallback,
+                BlackboardProgressEvent.phaseChanged(BlackboardPhase.INIT, "正在初始化..."));
 
         try {
             CompletableFuture.runAsync(
@@ -184,10 +198,8 @@ public class ExamGenerationSupport {
             // 线程池已达并发上限：不在请求线程上同步跑流水线（AbortPolicy），
             // 先经 SSE 推送友好错误让前端优雅收尾，再向上冒泡由控制器转 429。
             log.warn("出卷任务被拒绝（并发已达上限）[session={}]", sessionId);
-            if (progressCallback != null) {
-                progressCallback.onProgress(
-                        BlackboardProgressEvent.error("系统繁忙，出卷任务已达并发上限，请稍后重试。"));
-            }
+            emit(progressCallback, BlackboardProgressEvent.error("系统繁忙，出卷任务已达并发上限，请稍后重试。"));
+
             throw rex;
         }
     }
@@ -219,11 +231,9 @@ public class ExamGenerationSupport {
 
         try {
             // 1. 知识库检索
-            if (callback != null) {
-                callback.onProgress(
-                        BlackboardProgressEvent.phaseChanged(
-                                BlackboardPhase.RESEARCH, "正在检索知识库..."));
-            }
+            emit(
+                    callback,
+                    BlackboardProgressEvent.phaseChanged(BlackboardPhase.RESEARCH, "正在检索知识库..."));
 
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
@@ -237,11 +247,11 @@ public class ExamGenerationSupport {
 
             // 知识库无召回结果时，回退到大模型补充
             if (results.isEmpty()) {
-                if (callback != null) {
-                    callback.onProgress(
-                            BlackboardProgressEvent.phaseChanged(
-                                    BlackboardPhase.RESEARCH, "知识库无相关结果，正在使用大模型补充..."));
-                }
+                emit(
+                        callback,
+                        BlackboardProgressEvent.phaseChanged(
+                                BlackboardPhase.RESEARCH, "知识库无相关结果，正在使用大模型补充..."));
+
                 String llmSupplement = callLlmForSupplement(topic);
                 if (llmSupplement != null && !llmSupplement.isBlank()) {
                     SearchResult supplementResult =
@@ -252,11 +262,11 @@ public class ExamGenerationSupport {
             }
 
             // 2. 出卷研究员 Agent ∥ 分值校验与评估 Agent（无数据依赖，并行执行）
-            if (callback != null) {
-                callback.onProgress(
-                        BlackboardProgressEvent.phaseChanged(
-                                BlackboardPhase.RESEARCH, "正在检索知识库并校验分值方案..."));
-            }
+            emit(
+                    callback,
+                    BlackboardProgressEvent.phaseChanged(
+                            BlackboardPhase.RESEARCH, "正在检索知识库并校验分值方案..."));
+
             CompletableFuture<Void> researchFuture =
                     CompletableFuture.runAsync(
                             () -> examResearcherAgent.execute(blackboard, callback), agentExecutor);
@@ -331,16 +341,13 @@ public class ExamGenerationSupport {
                             SCORE_CONVERGENCE_DELTA,
                             sessionId,
                             attempt + 1);
-                    if (callback != null) {
-                        callback.onProgress(
-                                BlackboardProgressEvent.phaseChanged(
-                                        BlackboardPhase.WRITING,
-                                        String.format(
-                                                "手动方案：评分已收敛（%d → %d，差值 ≤ %d），停止改进。",
-                                                firstAttemptScore,
-                                                score,
-                                                SCORE_CONVERGENCE_DELTA)));
-                    }
+                    emit(
+                            callback,
+                            BlackboardProgressEvent.phaseChanged(
+                                    BlackboardPhase.WRITING,
+                                    String.format(
+                                            "手动方案：评分已收敛（%d → %d，差值 ≤ %d），停止改进。",
+                                            firstAttemptScore, score, SCORE_CONVERGENCE_DELTA)));
                 }
 
                 if (score >= QUALITY_SCORE_THRESHOLD
@@ -363,17 +370,16 @@ public class ExamGenerationSupport {
                         QUALITY_SCORE_THRESHOLD,
                         attempt + 1,
                         sessionId);
-                if (callback != null) {
-                    callback.onProgress(
-                            BlackboardProgressEvent.phaseChanged(
-                                    BlackboardPhase.WRITING,
-                                    String.format(
-                                            "质量评分 %d 分，低于 %d 分，正在根据审核意见改进（第 %d/%d 轮）...",
-                                            score,
-                                            QUALITY_SCORE_THRESHOLD,
-                                            attempt + 1,
-                                            MAX_REVIEW_RETRIES)));
-                }
+                emit(
+                        callback,
+                        BlackboardProgressEvent.phaseChanged(
+                                BlackboardPhase.WRITING,
+                                String.format(
+                                        "质量评分 %d 分，低于 %d 分，正在根据审核意见改进（第 %d/%d 轮）...",
+                                        score,
+                                        QUALITY_SCORE_THRESHOLD,
+                                        attempt + 1,
+                                        MAX_REVIEW_RETRIES)));
             }
 
             log.info(
@@ -383,21 +389,17 @@ public class ExamGenerationSupport {
                     blackboard.getQualityScore());
 
             // 推送完成事件
-            if (callback != null) {
-                callback.onProgress(
-                        BlackboardProgressEvent.examCompleted(blackboard, results.size()));
-            }
+            emit(callback, BlackboardProgressEvent.examCompleted(blackboard, results.size()));
 
             // 出卷即切分（V2）+ 发布门禁：先一次性切分并做确定性契约校验，据此决定试卷状态，
             // 再把状态写入出卷历史。契约不通过 → VALIDATION_FAILED（强制人工校对，绝不自动发布）；
             // 契约通过且关闭校对要求（review-required=false）且质量分达阈 → 自动 PUBLISHED；
             // 其余通过情形 → REVIEWABLE（等待管理员 / 出题人在校对关口批准发布）。
             String paperStatus = resolvePaperStatus(sessionId, blackboard);
-            if (callback != null) {
-                callback.onProgress(
-                        BlackboardProgressEvent.phaseChanged(
-                                BlackboardPhase.WRITING, describePaperStatus(paperStatus)));
-            }
+            emit(
+                    callback,
+                    BlackboardProgressEvent.phaseChanged(
+                            BlackboardPhase.WRITING, describePaperStatus(paperStatus)));
 
             // 保存历史记录（携带试卷生命周期状态）
             saveHistory(
@@ -430,9 +432,7 @@ public class ExamGenerationSupport {
                     friendly,
                     ExamHistory.STATUS_FAILED);
 
-            if (callback != null) {
-                callback.onProgress(BlackboardProgressEvent.error(friendly));
-            }
+            emit(callback, BlackboardProgressEvent.error(friendly));
         }
     }
 
@@ -583,11 +583,11 @@ public class ExamGenerationSupport {
         CompletableFuture.runAsync(
                 () -> {
                     try {
-                        if (progressCallback != null) {
-                            progressCallback.onProgress(
-                                    BlackboardProgressEvent.phaseChanged(
-                                            BlackboardPhase.INIT, "正在准备题型分布方案生成..."));
-                        }
+                        emit(
+                                progressCallback,
+                                BlackboardProgressEvent.phaseChanged(
+                                        BlackboardPhase.INIT, "正在准备题型分布方案生成..."));
+
                         String knowledgeHint = null;
                         try {
                             String filterExpr =
@@ -618,10 +618,10 @@ public class ExamGenerationSupport {
                                         knowledgeHint,
                                         progressCallback);
                         String planJson = objectMapper.writeValueAsString(plan);
-                        if (progressCallback != null) {
-                            progressCallback.onProgress(
-                                    BlackboardProgressEvent.distributionCompleted(planJson));
-                        }
+                        emit(
+                                progressCallback,
+                                BlackboardProgressEvent.distributionCompleted(planJson));
+
                         log.info(
                                 "[Distribution] 方案生成完成 [session={}, types={}, questions={}, fullMark={}]",
                                 sessionId,
@@ -630,11 +630,10 @@ public class ExamGenerationSupport {
                                 plan.getTotalFullMark());
                     } catch (Exception e) {
                         log.error("[Distribution] 方案生成失败 [session={}]", sessionId, e);
-                        if (progressCallback != null) {
-                            progressCallback.onProgress(
-                                    BlackboardProgressEvent.error(
-                                            e.getMessage() != null ? e.getMessage() : "方案生成失败"));
-                        }
+                        emit(
+                                progressCallback,
+                                BlackboardProgressEvent.error(
+                                        e.getMessage() != null ? e.getMessage() : "方案生成失败"));
                     }
                 },
                 agentExecutor);
@@ -656,28 +655,27 @@ public class ExamGenerationSupport {
         CompletableFuture.runAsync(
                 () -> {
                     try {
-                        if (progressCallback != null) {
-                            progressCallback.onProgress(
-                                    BlackboardProgressEvent.agentStartedWithMaterials(
-                                            SPAN_NAME_PLAN_VALIDATOR,
-                                            "正在校验题型分布方案的总分与分值分布...",
-                                            "方案含 "
-                                                    + (plan != null && plan.getTypes() != null
-                                                            ? plan.getTypes().size()
-                                                            : 0)
-                                                    + " 种题型，满分 "
-                                                    + (plan != null ? plan.getTotalFullMark() : 0)
-                                                    + " 分"));
-                        }
+                        emit(
+                                progressCallback,
+                                BlackboardProgressEvent.agentStartedWithMaterials(
+                                        SPAN_NAME_PLAN_VALIDATOR,
+                                        "正在校验题型分布方案的总分与分值分布...",
+                                        "方案含 "
+                                                + (plan != null && plan.getTypes() != null
+                                                        ? plan.getTypes().size()
+                                                        : 0)
+                                                + " 种题型，满分 "
+                                                + (plan != null ? plan.getTotalFullMark() : 0)
+                                                + " 分"));
+
                         if (plan == null || plan.getTypes() == null || plan.getTypes().isEmpty()) {
                             String report = "### 结论\n\n❌ 方案为空，无法校验";
-                            if (progressCallback != null) {
-                                progressCallback.onProgress(
-                                        BlackboardProgressEvent.agentFailed(
-                                                SPAN_NAME_PLAN_VALIDATOR, report));
-                                progressCallback.onProgress(
-                                        BlackboardProgressEvent.error("方案为空，请先生成方案"));
-                            }
+                            emit(
+                                    progressCallback,
+                                    BlackboardProgressEvent.agentFailed(
+                                            SPAN_NAME_PLAN_VALIDATOR, report));
+                            emit(progressCallback, BlackboardProgressEvent.error("方案为空，请先生成方案"));
+
                             return;
                         }
                         com.mouhin.knowledge.repository.domain.service.ScorePlanValidator.Result
@@ -700,24 +698,25 @@ public class ExamGenerationSupport {
                         }
 
                         if (result.pass()) {
-                            if (progressCallback != null) {
-                                progressCallback.onProgress(
-                                        BlackboardProgressEvent.agentCompleted(
-                                                SPAN_NAME_PLAN_VALIDATOR, report));
-                            }
+                            emit(
+                                    progressCallback,
+                                    BlackboardProgressEvent.agentCompleted(
+                                            SPAN_NAME_PLAN_VALIDATOR, report));
+
                             log.info(
                                     "[PlanValidate] 校验通过 [session={}, fullMark={}]",
                                     sessionId,
                                     plan.getTotalFullMark());
                         } else {
-                            if (progressCallback != null) {
-                                progressCallback.onProgress(
-                                        BlackboardProgressEvent.agentFailed(
-                                                SPAN_NAME_PLAN_VALIDATOR, report));
-                                progressCallback.onProgress(
-                                        BlackboardProgressEvent.error(
-                                                "分值校验未通过，共 " + result.issues().size() + " 项硬性错误"));
-                            }
+                            emit(
+                                    progressCallback,
+                                    BlackboardProgressEvent.agentFailed(
+                                            SPAN_NAME_PLAN_VALIDATOR, report));
+                            emit(
+                                    progressCallback,
+                                    BlackboardProgressEvent.error(
+                                            "分值校验未通过，共 " + result.issues().size() + " 项硬性错误"));
+
                             log.warn(
                                     "[PlanValidate] 校验未通过 [session={}, issues={}]",
                                     sessionId,
@@ -725,11 +724,10 @@ public class ExamGenerationSupport {
                         }
                     } catch (Exception e) {
                         log.error("[PlanValidate] 校验失败 [session={}]", sessionId, e);
-                        if (progressCallback != null) {
-                            progressCallback.onProgress(
-                                    BlackboardProgressEvent.error(
-                                            e.getMessage() != null ? e.getMessage() : "校验过程异常"));
-                        }
+                        emit(
+                                progressCallback,
+                                BlackboardProgressEvent.error(
+                                        e.getMessage() != null ? e.getMessage() : "校验过程异常"));
                     }
                 },
                 agentExecutor);
