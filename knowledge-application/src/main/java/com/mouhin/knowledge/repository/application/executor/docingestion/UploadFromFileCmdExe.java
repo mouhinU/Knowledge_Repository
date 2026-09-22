@@ -9,7 +9,6 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,10 +18,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
- * 从已组装文件创建文档用例执行器（app 层，分片上传完成后调用，不入库）。
+ * 从已组装文件创建文档用例执行器（app 层，分片上传完成后调用，不做文本提取）。
  *
- * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadFromFile}。出入参为 {@link Path} + 元数据，无
- * HTTP 传输类型，但当前由适配层分片上传完成流程直接调用。
+ * <p>上传流程只做文件保存：计算文件 MD5 去重 → 建文档(UPLOADED) → 抽取图片元数据 → 发布创建事件。文本提取延迟到用户点击「解析预览」时由 {@link
+ * PreviewFromDocumentQryExe} 触发。
+ *
+ * <p>出入参为 {@link Path} + 元数据，无 HTTP 传输类型，但当前由适配层分片上传完成流程直接调用。
  *
  * @author mouhinU
  * @date 2026-09-17
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Component;
 public class UploadFromFileCmdExe {
 
     private final DocumentIngestionSupport support;
-    private final ExtractionCacheHolder extractionCache;
     private final DocumentGateway documentGateway;
     private final DocumentExtractionGateway documentExtractionService;
     private final ApplicationEventPublisher eventPublisher;
@@ -40,13 +40,11 @@ public class UploadFromFileCmdExe {
 
     public UploadFromFileCmdExe(
             DocumentIngestionSupport support,
-            ExtractionCacheHolder extractionCache,
             DocumentGateway documentGateway,
             DocumentExtractionGateway documentExtractionService,
             ApplicationEventPublisher eventPublisher,
             DocumentImageSupport documentImageSupport) {
         this.support = support;
-        this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
         this.documentExtractionService = documentExtractionService;
         this.eventPublisher = eventPublisher;
@@ -62,16 +60,22 @@ public class UploadFromFileCmdExe {
             String allowedRoles,
             String tags,
             String category) {
-        ExtractionResult result;
+        long fileSize;
         try {
-            long fileSize = Files.size(assembledFile);
-            result = documentExtractionService.extractText(assembledFile, fileSize, fileName);
+            fileSize = Files.size(assembledFile);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to extract text from assembled file", e);
+            throw new IllegalStateException("Failed to get file size", e);
+        }
+
+        String checksum;
+        try {
+            checksum = documentExtractionService.calculateChecksum(assembledFile);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to calculate file checksum", e);
         }
 
         documentGateway
-                .findByFileChecksum(result.checksum())
+                .findByFileChecksum(checksum)
                 .ifPresent(
                         existing -> {
                             throw new IllegalArgumentException(
@@ -84,7 +88,7 @@ public class UploadFromFileCmdExe {
         document.setDocumentKey(documentKey);
         document.setFileName(fileName);
         document.setFileType(support.detectFileType(assembledFile));
-        document.setFileSize(result.pageTexts().stream().mapToLong(String::length).sum());
+        document.setFileSize(fileSize);
         document.setStoragePath(assembledFile.toString());
         document.setStatus(DocumentStatusEnum.UPLOADED);
         document.setVisibility(visibility != null ? visibility : DocumentVisibilityEnum.INTERNAL);
@@ -94,8 +98,7 @@ public class UploadFromFileCmdExe {
         document.setTags(tags);
         document.setCategory(category);
         document.setChunkingConfig(ChunkingConfig.defaultConfig());
-        document.setTotalPages(result.totalPages());
-        document.setFileChecksum(result.checksum());
+        document.setFileChecksum(checksum);
         document.validateForCreate();
 
         documentGateway.save(document);
@@ -110,10 +113,8 @@ public class UploadFromFileCmdExe {
                 new DocumentCreatedEvent(
                         documentKey, fileName, ownerId, departmentId, LocalDateTime.now()));
 
-        extractionCache.put(documentKey, result);
-
         log.info(
-                "Document uploaded from assembled file (pending index): {} -> {}",
+                "Document uploaded from assembled file (pending preview & index): {} -> {}",
                 documentKey,
                 fileName);
         return DocumentConverter.toVO(document);

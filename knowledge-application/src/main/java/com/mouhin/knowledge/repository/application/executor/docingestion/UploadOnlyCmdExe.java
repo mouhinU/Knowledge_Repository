@@ -8,7 +8,6 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -19,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 仅上传并提取文本用例执行器（app 层，不入库）。
+ * 仅上传文件用例执行器（app 层，不入库，不做文本提取）。
  *
- * <p>逻辑原样迁移自 {@code DocumentIngestionApplicationService.uploadOnly}：空文件校验 → 临时落盘 → 提取 → 去重 → 持久存储 →
- * 建文档(UPLOADED) → 记录页数 → 发布创建事件 → 缓存提取结果。 由适配层直接调用（出入参含 {@link MultipartFile}，传输耦合，不入对外契约）。
+ * <p>上传流程只做文件保存：空文件校验 → 临时落盘 → 计算文件 MD5 去重 → 持久存储 → 建文档(UPLOADED) → 抽取图片元数据 →
+ * 发布创建事件。文本提取延迟到用户点击「解析预览」时由 {@link PreviewFromDocumentQryExe} 触发。
+ *
+ * <p>由适配层直接调用（出入参含 {@link MultipartFile}，传输耦合，不入对外契约）。
  *
  * @author mouhinU
  * @date 2026-09-17
@@ -32,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class UploadOnlyCmdExe {
 
     private final DocumentIngestionSupport support;
-    private final ExtractionCacheHolder extractionCache;
     private final DocumentGateway documentGateway;
     private final DocumentExtractionGateway documentExtractionService;
     private final ApplicationEventPublisher eventPublisher;
@@ -40,13 +40,11 @@ public class UploadOnlyCmdExe {
 
     public UploadOnlyCmdExe(
             DocumentIngestionSupport support,
-            ExtractionCacheHolder extractionCache,
             DocumentGateway documentGateway,
             DocumentExtractionGateway documentExtractionService,
             ApplicationEventPublisher eventPublisher,
             DocumentImageSupport documentImageSupport) {
         this.support = support;
-        this.extractionCache = extractionCache;
         this.documentGateway = documentGateway;
         this.documentExtractionService = documentExtractionService;
         this.eventPublisher = eventPublisher;
@@ -74,17 +72,15 @@ public class UploadOnlyCmdExe {
         }
 
         try {
-            ExtractionResult result;
+            String checksum;
             try {
-                result =
-                        documentExtractionService.extractText(
-                                tempFile, file.getSize(), file.getOriginalFilename());
+                checksum = documentExtractionService.calculateChecksum(tempFile);
             } catch (IOException e) {
-                throw new IllegalStateException("Failed to extract text", e);
+                throw new IllegalStateException("Failed to calculate file checksum", e);
             }
 
             documentGateway
-                    .findByFileChecksum(result.checksum())
+                    .findByFileChecksum(checksum)
                     .ifPresent(
                             existing -> {
                                 throw new IllegalArgumentException(
@@ -112,11 +108,9 @@ public class UploadOnlyCmdExe {
                             tags,
                             category,
                             ChunkingConfig.defaultConfig());
+            document.setFileChecksum(checksum);
             document.validateForCreate();
             documentGateway.save(document);
-
-            document.setTotalPages(result.totalPages());
-            documentGateway.update(document);
 
             try {
                 documentImageSupport.extractAndPersist(document, permanentFile);
@@ -132,10 +126,8 @@ public class UploadOnlyCmdExe {
                             departmentId,
                             LocalDateTime.now()));
 
-            extractionCache.put(documentKey, result);
-
             log.info(
-                    "Document uploaded (pending index): {} -> {}",
+                    "Document uploaded (pending preview & index): {} -> {}",
                     documentKey,
                     document.getFileName());
             return DocumentConverter.toVO(document);

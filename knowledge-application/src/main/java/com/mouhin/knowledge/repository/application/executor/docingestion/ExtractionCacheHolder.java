@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * 文本提取结果缓存（app 层，跨用例共享状态）
  *
- * <p>收敛原 {@code DocumentIngestionApplicationService} 中的 {@code extractionCache} 实例字段： 上传后放入、预览 /
- * 入库读取、入库完成后移除。以单例 Bean 承载，保证各执行器操作同一份缓存， 语义与原单体服务一致。缓存未命中时从存储文件重新提取。
+ * <p>收敛原 {@code DocumentIngestionApplicationService} 中的 {@code extractionCache} 实例字段： 首次解析预览时由
+ * {@link PreviewFromDocumentQryExe} 通过 {@link #getOrReextract} 触发提取并放入缓存， 后续预览直接读缓存；reindex 前通过
+ * {@link #remove} 强制失效。以单例 Bean 承载，保证各执行器操作同一份缓存。 缓存未命中时从存储文件重新提取。
  *
  * @author mouhinU
  * @date 2026-09-17
