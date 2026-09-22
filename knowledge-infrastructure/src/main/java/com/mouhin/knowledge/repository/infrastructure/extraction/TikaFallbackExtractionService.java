@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>当 MIME 类型不匹配任何专用策略时，使用 Apache Tika AutoDetectParser 兜底。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

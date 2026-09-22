@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>使用 Apache POI 按幻灯片提取，每张幻灯片一个 section。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

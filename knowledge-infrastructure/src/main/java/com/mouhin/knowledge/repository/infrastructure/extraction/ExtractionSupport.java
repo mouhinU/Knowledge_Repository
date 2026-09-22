@@ -11,7 +11,7 @@ import java.security.NoSuchAlgorithmException;
  *
  * <p>供 6 个 MIME 族提取服务共用，避免重复代码。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 public final class ExtractionSupport {

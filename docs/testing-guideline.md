@@ -3,7 +3,7 @@
 > 本分册**从仓库现有测试归纳而成**（原 `AGENTS.md` 未设测试章节），旨在固化项目已成型的测试风格与门禁。
 > 现状参考：27 个 `*Test.java`，JUnit 5 + Mockito + AssertJ（经 `spring-boot-starter-test` 引入）。
 > 被测对象的分层职责见 [architecture-decisions.md](architecture-decisions.md)，迁移脚本约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
-> 维护：`@author beginningness` · 拆分日期 2026-09-20
+> 维护：`@author mouhinU` · 拆分日期 2026-09-20
 
 ---
 
@@ -16,7 +16,7 @@
 ## 2. 命名与结构
 
 - 测试类以 `Test` 结尾（见 [coding-guideline.md](coding-guideline.md) §1.2），与被测类同包镜像放置于 `src/test/java`。
-- **测试类同样须带 Javadoc**：`@author` 取 `git config user.name`（如 `beginningness`）、`@date` 用编写当下系统时间 `yyyy-MM-dd HH:mm:ss`（24 小时制）。
+- **测试类同样须带 Javadoc**：`@author` 取 `git config user.name`（如 `mouhinU`）、`@date` 用编写当下系统时间 `yyyy-MM-dd HH:mm:ss`（24 小时制）。
 - 每个 `@Test` 配中文 `@DisplayName` 描述业务意图（现有 181 处 `@DisplayName`，为项目既定风格）。
 - 同一被测对象的多组场景用 `@Nested` 内部类分组（如 `ExamGradingCharacterizationTest` 的 `SingleChoice/MultiChoice/TrueFalse/...`）。
 - 用例遵循 **Given–When–Then** 三段式，命名与断言消息体现"为什么"。

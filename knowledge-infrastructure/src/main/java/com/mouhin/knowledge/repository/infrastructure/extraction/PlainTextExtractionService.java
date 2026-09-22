@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>按段落分割纯文本文件。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

@@ -2,7 +2,7 @@
 
 > 本分册由根目录 `AGENTS.md` 第十章拆分而来。DO ↔ Entity 转化规则见
 > [architecture-decisions.md](architecture-decisions.md) §6，迁移脚本的冒烟测试见 [testing-guideline.md](testing-guideline.md)。
-> 维护：`@author beginningness` · 拆分日期 2026-09-20
+> 维护：`@author mouhinU` · 拆分日期 2026-09-20
 
 ---
 

@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>负责 MIME 检测 + 路由分派；具体提取逻辑委托到 6 个 MIME 族提取服务。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

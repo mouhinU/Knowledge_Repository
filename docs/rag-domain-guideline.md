@@ -2,7 +2,7 @@
 
 > 本分册由根目录 `AGENTS.md` 第十二章拆分而来（§12.3 权限隔离并入 [security-guideline.md](security-guideline.md)）。
 > 相关解析依赖版本见 [tech-stack.md](tech-stack.md)，分块 / 检索涉及的领域对象归属见 [architecture-decisions.md](architecture-decisions.md)。
-> 维护：`@author beginningness` · 拆分日期 2026-09-20
+> 维护：`@author mouhinU` · 拆分日期 2026-09-20
 
 ---
 

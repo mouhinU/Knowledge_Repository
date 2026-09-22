@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>使用 {@link EnhancedPdfTextExtractor} 按页提取，过滤页眉页脚。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

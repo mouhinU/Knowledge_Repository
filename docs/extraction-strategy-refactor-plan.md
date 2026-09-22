@@ -1,9 +1,10 @@
 # 文档解析策略模式重构 · 可执行方案
 
-> 版本：v1.1（2026-09-22）
+> 版本：v1.2（2026-09-22）
 > 交付策略：**先策略化，后视觉**。Phase A 零行为变化（只重构现有能力），Phase B/C/D 才引入视觉模型。
 > 基线技术栈：COLA 5.0 · Spring Boot 3.4 · Java 21 · PDFBox 3.0.4 · Tika 3.1.0 · POI 5.x · LangChain4j 1.0.1（`langchain4j-open-ai`）
-> v1.1 增量：新增 §12 视觉模型选型（OvisOCR2 vs PaddleOCR-VL-1.6）与 §13 多模型客户端连接治理（Phase R1/R2/R3）；相应修订 §3.3 单一 `VisionChatGateway` 端口决策与 ADR-D3。
+> v1.2 增量：① AGENTS.md 红线全量合规审查（代码示例补齐构造器注入 / 魔法值抽常量 / `@author` `@date` / Gateway 包路径修正）；② 视觉模型方案调整为 **CPU 优先**（PaddleOCR CPU 默认 + 可选云端 API / OvisOCR2 CPU 推理），去掉 GPU 硬性假设。
+> v1.1 增量：新增 §12 视觉模型选型与 §13 多模型客户端连接治理（Phase R1/R2/R3）。
 
 ---
 
@@ -434,37 +435,81 @@ Phase A 合入后如果生产冒烟出问题：`git revert` 整个 PR-A2 即可�
 ### 3.3 关键签名
 
 ```java
-// domain 端口
-package com.mouhin.knowledge.repository.domain.service;
+// domain 端口（architecture-decisions §5：Gateway 接口在 domain.gateway 包）
+package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
 
+/**
+ * 视觉模型对话端口（COLA domain 层）
+ *
+ * <p>实现方严禁把 base64 图片内容写入日志或异常消息（AGENTS.md 红线 #4）。
+ *
+ * @author mouhinU
+ * @date 2026-09-22 16:21:33
+ */
 public interface VisionChatGateway {
+
     /**
      * 单轮多模态对话：文本指令 + 若干图像（PDF 页栅格 / 内嵌图），返回模型合成的纯文本。
      *
-     * <p>实现方严禁把 base64 内容写入日志或异常消息（AGENTS.md 红线 #4）。
+     * @param request 包含 systemPrompt / userPrompt / images / maxTokens
+     * @return 模型合成的纯文本
      */
     String chatWithImages(VisionChatRequest request);
 }
 
-// domain VO
+// domain VO（红线 #11：参数 >3 封装为 record）
+/**
+ * 视觉模型对话请求参数对象。
+ *
+ * @param systemPrompt   系统指令
+ * @param userPrompt     用户指令
+ * @param images         图像列表（byte[] + mimeType）
+ * @param maxTokens      最大输出 token 数（可 null 走配置默认）
+ * @author mouhinU
+ * @date 2026-09-22 16:21:33
+ */
 public record VisionChatRequest(
         String systemPrompt,
         String userPrompt,
-        List<ImageInput> images,   // ImageInput(byte[] data, String mimeType)
-        Integer maxTokens,
-        Integer timeoutSeconds) {}
+        List<ImageInput> images,
+        Integer maxTokens) {}
 ```
 
 ```java
 // infra 实现（复用 langchain4j-open-ai 内建 ChatImage / ImageContent）
+// 红线 #1 构造器注入 / 红线 #4 @Slf4j + 脱敏 / 红线 #9 @author @date
+package com.mouhin.knowledge.repository.infrastructure.llm;
+
+import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ImageInput;
+import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
+import dev.langchain4j.data.message.*;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+/**
+ * OpenAI-compatible 视觉模型对话网关实现
+ *
+ * <p>复用 langchain4j-open-ai 内建多模态类，兼容 vLLM / DashScope / Ollama。
+ *
+ * @author mouhinU
+ * @date 2026-09-22 16:21:33
+ */
 @Component
 @ConditionalOnProperty(name = "knowledge.extractor.vision.enabled", havingValue = "true")
 @Slf4j
 public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
 
-    private final ChatModel visionChatModel;    // 由 VisionModelConfig 装配
+    private final ChatModel visionChatModel;
 
     public OpenAiCompatibleVisionChatGateway(ChatModel visionChatModel) {
         this.visionChatModel = visionChatModel;
@@ -472,18 +517,27 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
 
     @Override
     public String chatWithImages(VisionChatRequest req) {
+        List<Content> contents = buildContents(req);
+        ChatRequest chatReq = ChatRequest.builder()
+                .messages(
+                        SystemMessage.from(req.systemPrompt()),
+                        UserMessage.builder().contents(contents).build())
+                .build();
+        ChatResponse resp = visionChatModel.chat(chatReq);
+        // 红线 #4：禁止在日志中回显 base64 图片内容
+        log.debug("vision chat completed, imageCount={}, maxTokens={}",
+                req.images().size(), req.maxTokens());
+        return resp.aiMessage().text();
+    }
+
+    private List<Content> buildContents(VisionChatRequest req) {
         List<Content> contents = new ArrayList<>();
         contents.add(TextContent.from(req.userPrompt()));
         for (ImageInput img : req.images()) {
             contents.add(ImageContent.from(
                     Base64.getEncoder().encodeToString(img.data()), img.mimeType()));
         }
-        ChatMessage user = UserMessage.builder().contents(contents).build();
-        ChatRequest chatReq = ChatRequest.builder()
-                .messages(SystemMessage.from(req.systemPrompt()), user)
-                .build();
-        ChatResponse resp = visionChatModel.chat(chatReq);
-        return resp.aiMessage().text();
+        return contents;
     }
 }
 ```
@@ -493,25 +547,71 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
 ### 3.4 `VisionModelExtractionStrategy` 骨架
 
 ```java
+package com.mouhin.knowledge.repository.infrastructure.extractor;
+
+import com.mouhin.knowledge.repository.domain.enums.ExtractionStrategyEnum;
+import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
+import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
+import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+/**
+ * 视觉模型提取策略（Phase B）
+ *
+ * <p>支持 PDF 扫描件 / 纯图片文件的视觉 OCR。
+ *
+ * @author mouhinU
+ * @date 2026-09-22 16:21:33
+ */
 @Component
-@Order(70)
+@Order(VisionModelExtractionStrategy.PRIORITY)
 @Slf4j
 public class VisionModelExtractionStrategy implements ContentExtractor {
 
+    /** 策略优先级（红线 #2：禁止魔法值） */
+    static final int PRIORITY = 70;
+
     private final VisionChatGateway gateway;
-    private final DocumentImageExtractorGateway imageGateway;   // 复用现有
+    private final DocumentImageExtractorGateway imageGateway;
     private final PageRenderer pageRenderer;
     private final VisionPromptProvider promptProvider;
     private final ExecutorService visionExecutor;
 
-    // 构造器注入
+    public VisionModelExtractionStrategy(
+            VisionChatGateway gateway,
+            DocumentImageExtractorGateway imageGateway,
+            PageRenderer pageRenderer,
+            VisionPromptProvider promptProvider,
+            @Qualifier("visionExecutor") ExecutorService visionExecutor) {
+        this.gateway = gateway;
+        this.imageGateway = imageGateway;
+        this.pageRenderer = pageRenderer;
+        this.promptProvider = promptProvider;
+        this.visionExecutor = visionExecutor;
+    }
 
-    @Override public String name() { return ExtractionStrategyEnum.VISION.name(); }
-    @Override public int priority() { return 70; }
+    @Override
+    public String name() {
+        return ExtractionStrategyEnum.VISION.name();
+    }
+
+    @Override
+    public int priority() {
+        return PRIORITY;
+    }
 
     @Override
     public boolean supports(ExtractionCandidate c) {
-        if (!c.config().vision().enabled()) return false;
+        if (!c.config().vision().enabled()) {
+            return false;
+        }
         return c.mimeType().startsWith("image/")
                 || "application/pdf".equals(c.mimeType())
                 || Boolean.TRUE.equals(c.nativeHints().get(HintKeys.OCR_RECOMMENDED));
@@ -519,11 +619,13 @@ public class VisionModelExtractionStrategy implements ContentExtractor {
 
     @Override
     public ExtractionResult extract(ExtractionCandidate c) throws IOException {
-        // 1) 图像源选择 (§1.3)
-        // 2) 分页并发调 gateway.chatWithImages (bounded pool 2-4)
-        // 3) 单页失败 → warning，不整篇失败
-        // 4) 组装 pageTexts + detectedFormat=image|pdf-vision 等
+        // 红线 #11：方法体 ≤50 行，拆到私有方法
+        var imageSources = resolveImageSources(c);
+        var pageResults = invokeVisionPerPage(imageSources, c);
+        return assembleResult(pageResults, c);
     }
+
+    // 私有方法：图像源选择 / 分页并发调用 / 结果组装（各 ≤50 行）
 }
 ```
 
@@ -736,30 +838,41 @@ knowledge:
       keep-alive-seconds: 300
       retry-max-attempts: 5
       batch-size: 64
-    vision:                                          # 主 OvisOCR2 / 备 PaddleOCR-VL-1.6，均走 vLLM OpenAI-compat
-      enabled: false                                 # 全局回滚开关（同 §6 顶部）
-      provider: openai-compatible                    # vLLM 暴露 /v1/chat/completions
-      base-url: ${LLM_VISION_BASE_URL:http://knowledge-ovis-vl:8000/v1}
-      api-key:  ${LLM_VISION_API_KEY:}               # vLLM 自托管可用固定 bearer 或空
-      model-name: ${LLM_VISION_MODEL:OvisOCR2}       # 主；灰度回退改 PaddleOCR-VL-1.6
+    vision:                                          # CPU 本地优先（无需 GPU），可选云端增强
+      enabled: false                                 # 全局回滚开关
+      mode: local-cpu                                # local-cpu | cloud-api | local-gpu
+      # === local-cpu 模式（默认，PaddleOCR CPU 版）===
+      provider: openai-compatible                    # PaddleOCR HTTP Server 兼容 OpenAI 协议
+      base-url: ${LLM_VISION_BASE_URL:http://knowledge-paddleocr-cpu:8080/v1}
+      api-key:  ${LLM_VISION_API_KEY:}               # 本地部署可用固定 bearer 或空
+      model-name: ${LLM_VISION_MODEL:paddleocr-vl}   # PaddleOCR-VL CPU 推理
       temperature: 0.0
       max-tokens: 4096
       connect-timeout-seconds: 3
-      read-timeout-seconds: 300                      # 单页视觉
-      call-timeout-seconds: 360                      # 整调用上限
-      write-timeout-seconds: 60                      # 大 base64 上行
-      max-idle-connections: 4                        # GPU 端并发低
+      read-timeout-seconds: 30                       # CPU 单页 5-15s
+      call-timeout-seconds: 60                       # 整调用上限
+      write-timeout-seconds: 30                      # 图片上行
+      max-idle-connections: 4
       http-version: HTTP_1_1
       retry-max-attempts: 2
-      client-max-body-size: 32m                      # 反代/内嵌 Tomcat 需匹配，防 413
-      # 备份 provider（可选，通过 routing 或 profile 切换）：
-      fallback:
+      # === cloud-api 模式（可选，DashScope / 智谱 / OpenAI）===
+      cloud:
         provider: openai-compatible
-        base-url: ${LLM_VISION_FALLBACK_BASE_URL:http://knowledge-paddle-vl:8080/v1}
-        model-name: PaddleOCR-VL-1.6
-        read-timeout-seconds: 600
-        call-timeout-seconds: 900
-        retry-max-attempts: 1
+        base-url: ${LLM_VISION_CLOUD_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+        api-key:  ${LLM_VISION_CLOUD_API_KEY:}
+        model-name: ${LLM_VISION_CLOUD_MODEL:qwen-vl-plus}
+        read-timeout-seconds: 60
+        call-timeout-seconds: 120
+        retry-max-attempts: 3
+      # === local-gpu 模式（可选，有 GPU 时启用）===
+      gpu:
+        provider: openai-compatible
+        base-url: ${LLM_VISION_GPU_BASE_URL:http://knowledge-ovis-vl:8000/v1}
+        api-key:  ${LLM_VISION_GPU_API_KEY:}
+        model-name: ${LLM_VISION_GPU_MODEL:OvisOCR2}
+        read-timeout-seconds: 300
+        call-timeout-seconds: 360
+        retry-max-attempts: 2
 ```
 
 > **注意**：`client_max_body_size` 若走 nginx 反代需同步 ≥32m，vLLM 直连时 `--max-model-len`/`--limit-mm-per-prompt` 需与页面数上限匹配。
@@ -790,7 +903,7 @@ knowledge:
 | D6 | 图像输入优先级：ExtractedImage → PDFRenderer | 复用 PR-6 已抽的图像提取；扫描件常有整页背景 XObject 直接可用 | 一律栅格化：简单但内存/耗时翻倍 |
 | D7 | 缓存 key 加 `render_mode` | 嵌入图与栅格化结果不同，混缓存会静默错乱 | 只 checksum：省事但埋坑 |
 | D8 | 不动 `DocumentImageSupport` / 不写新 `kb_document_image` | 图像持久化与图像 OCR 语义正交，混一起做需求边界模糊 | 一起：看似少写一个类，实则耦合 |
-| **D9** | 视觉模型：**主 OvisOCR2 / 备 PaddleOCR-VL-1.6**（v1.1） | 两者 OmniDocBench 分差 <0.3（96.58 vs 96.33）；OvisOCR2 端到端单模型（Qwen-VL 底座）走原生 HF/vLLM OpenAI-compat 契约，避免 pipeline 误差传播；PaddleOCR-VL-1.6 依赖 PaddleX PP-DocLayout-V3 管道，需要额外 `DocParseGateway` 端口或牺牲版式 JSON | 反向：PaddleOCR-VL 社区样本多；但需要同时维护 vLLM + PaddleX 两套契约，运维成本更高 |
+| **D9** | 视觉模型：**CPU 本地优先（PaddleOCR CPU）+ 可选云端 API + GPU 升级路径**（v1.2） | 用户明确无 GPU 资源；PaddleOCR CPU 版纯 CPU 推理，单页 5-15s 可接受；云端 API（DashScope qwen-vl）作为精度增强选项；有 GPU 后只需改配置，代码零改动 | 直接上 GPU：成本高且当前无资源；纯云端：数据隐私风险 + 按量费用不可控 |
 | **D10** | 多模型客户端"**五独立**"：HttpClient / timeout / 线程池 / 熔断 / 秘钥（v1.1） | LangChain4j `OpenAiChatModel.build()` 若共用同一 `OkHttpClient` 会共享 dispatcher → 出卷长流拖死向量化；DeepSeek/BGE-M3/vLLM 三种工作负载 profile 完全不同（见 §13.2 表）；秘钥独立 env 便于轮换与最小权限 | 全局单例 OkHttpClient + 统一 timeout：省内存但一次雪崩全崩 |
 
 ---
@@ -839,61 +952,83 @@ knowledge:
 1. **视觉范围**：仅"扫描型 PDF + 图片型文件"（默认建议），还是含 Office 内嵌图？
 2. **融合方式**：`replace_lowtext`（默认），`append`，`replace_all`？
 3. **执行时机**：`post-upload-async`（默认），仅 reindex 手动，还是允许同步？
-4. **默认 provider**：v1.1 收敛为**自托管 vLLM + OpenAI-compatible**（OvisOCR2 主 / PaddleOCR-VL-1.6 备，见 §12）——是否确认走这条路？还是保留云 API（DashScope `qwen-vl-max`）作为过渡？
+4. **默认 provider**：v1.2 收敛为 **CPU 本地优先（PaddleOCR CPU）+ 可选云端 API 增强**（见 §12）——是否确认走这条路？还是需要直接对接某个云端 API（DashScope / 智谱 / OpenAI）作为默认？
 5. **缓存持久**：DB（默认，跨进程），还是 JVM 内 LRU？
 6. **成本护栏**：只软限（log-only），还是硬限（enforce 拒服）？
 7. **前端契约**：`reparse` 端点用 202 + SSE，还是 200 + 长轮询？
 8. **PR 拆分节奏**：Phase A 拆 A1+A2 两步走（默认，稳），还是一步 PR-A（快）？
 9. **视觉依赖**：Phase B 用 `langchain4j-open-ai` 内建多模态类（默认，D3），还是手写 HTTP？
 10. **文档更新**：`docs/rag-domain-guideline.md` 里"新增格式须在 `DocumentExtractionService` 添加专用解析器"（当前 §一最后一句）在 Phase A 合入时是否**同时**改写为"实现 `ContentExtractor` + 注册 routing"？默认**是**。
-11. **视觉模型主备锁定**（对应 §12）：确认以 OvisOCR2 为主 / PaddleOCR-VL-1.6 为备？还是反过来？是否需要在正式合入 B 前，用 golden-PDF 基准（例如 OmniDocBench 抽 20 页 + 本项目 5 份真实扫描件）跑一轮打分再锁版本？GPU 资源是自己采购 A100/L40S，还是走云上 vLLM（阿里 PAI / HuggingFace Inference）？
+11. **视觉模型模式锁定**（对应 §12）：确认以 **CPU 本地（PaddleOCR CPU）为默认**？是否需要在正式合入 B 前，用 golden-PDF 基准跑一轮打分确认 CER ≥ 85%？如果 CPU 精度不达标，是否接受切换到 `mode=cloud-api`（DashScope qwen-vl-plus）作为默认？
 12. **多模型连接治理启动时机**（对应 §13）：Phase R1（三段 `chat/embedding/vision` 配置 + per-role HttpClient bean + 密钥 env 边界）**是否可与 Phase A1 并行开工**？如果要，先做一次 `.env` 与 `docker-compose.infra.yml` 的 secret 化清理；R2 熔断/观测建议放在 Phase B 起手前完成，避免视觉上线后观测裸奔。
 
 回答完这 12 个我就按 Phase A1（+ 可选并行的 R1）起手，先出 diff 让你 review 再合。
 
 ---
 
-## 12. 视觉模型选型（v1.1 新增）
+## 12. 视觉模型选型（v1.2 修订 · CPU 优先）
 
-### 12.1 候选对比
+### 12.1 三档候选方案
 
-| 维度 | OvisOCR2 | PaddleOCR-VL-1.6 |
-|---|---|---|
-| 厂商 / 开源 | 阿里 / 开源（Apache 2.0） | 百度 / 开源（Apache 2.0） |
-| 参数量 | 0.8B | 0.9B |
-| 底座 | Qwen-VL 多模态 | PaddleOCR 3.7.0 + PP-DocLayout-V3 |
-| 架构 | **端到端单模型**：图像 → 文本，一次推理 | **Pipeline 多阶段**：版面检测 → 表格/公式/文本分支 → 各自模型 → 合并 |
-| OmniDocBench | **96.58** | 96.33 |
-| 部署方式 | HF Transformers / **vLLM OpenAI-compat** | PaddleX HTTP Server（版式 JSON）/ vLLM（端到端） |
-| 协议 | `/v1/chat/completions` 原生 | 两套：PaddleX 自有 JSON + vLLM OpenAI-compat |
-| 优势 | 部署简单；无 pipeline 误差传播；vLLM 原生 | 社区样本多；PaddleX 提供版式 JSON 便于下游结构化 |
-| 劣势 | 无版式 JSON（需自行后处理） | 同时维护 PaddleX + vLLM 两套契约；pipeline 任一环节出错会级联 |
+| 档位 | 方案 | 硬件要求 | 单页延迟 | 精度（OmniDocBench） | 运维成本 |
+|---|---|---|---|---|---|
+| **CPU 本地** | PaddleOCR-VL CPU 版 | 无 GPU，4 核 8G+ | 5-15s | ~90% | 低（单容器） |
+| **云端 API** | DashScope qwen-vl-plus / 智谱 GLM-4V / OpenAI GPT-4o | 无本地资源 | 2-8s | 95%+ | 中（按量付费） |
+| **GPU 本地** | OvisOCR2 / PaddleOCR-VL-1.6 vLLM | A100/L40S/RTX 4090 | 1-3s | 96%+ | 高（GPU 运维） |
 
-### 12.2 推荐方案
+### 12.2 推荐方案（v1.2）
 
-**主 OvisOCR2 / 备 PaddleOCR-VL-1.6**，理由：
+**默认走 CPU 本地（PaddleOCR-VL CPU 版），可选配置云端 API 增强，有 GPU 后平滑升级到 vLLM**。
 
-1. 两者 OmniDocBench 分差 <0.3，精度相当；
-2. OvisOCR2 端到端，部署只需一个 vLLM 实例，运维成本低；
-3. PaddleOCR-VL-1.6 的 PaddleX 版式 JSON 能力是加分项，但需要额外 `DocParseGateway` 端口（仅在确实需要结构化版式时才启用），默认走 vLLM 端到端模式即可；
-4. 两者都走 OpenAI-compatible `/v1/chat/completions`，**单一 `VisionChatGateway` 端口**即可覆盖（见 §3.3），通过 `knowledge.llm.vision.base-url` / `model-name` 切换。
+理由：
 
-### 12.3 上线前验证
+1. **无 GPU 硬性约束**：用户明确表示先本地部署且无 GPU 资源，CPU 方案是唯一可行路径；
+2. **PaddleOCR CPU 版成熟**：百度开源，纯 CPU 推理，Java 可通过 HTTP 调用，单页 5-15s 可接受；
+3. **云端 API 作为增强**：扫描件质量要求高时，可配置 `mode=cloud-api` 走 DashScope qwen-vl-plus；
+4. **GPU 升级路径平滑**：有 GPU 后只需改 `mode=local-gpu` + 切换 base-url，代码零改动。
 
-在正式合入 Phase B 前，建议用 **golden-PDF 基准** 跑一轮打分：
+### 12.3 无 GPU 部署架构
 
-- OmniDocBench 抽 20 页（覆盖纯文本 / 表格 / 公式 / 图文混排 / 手写）；
+```yaml
+# docker-compose.infra.yml（纯 CPU，无 GPU 依赖）
+services:
+  knowledge-paddleocr-cpu:
+    image: paddlepaddle/paddleocr:latest-cpu    # 官方 CPU 镜像
+    command: >
+      paddleocr --use_gpu=False
+                --ocr_version=PP-OCRv4
+                --server=True
+                --port=8080
+    ports: ["8080:8080"]
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+
+  knowledge-app:
+    depends_on: [knowledge-paddleocr-cpu]
+    environment:
+      LLM_VISION_BASE_URL: http://knowledge-paddleocr-cpu:8080/v1
+```
+
+### 12.4 有 GPU 后的升级路径
+
+当采购 GPU 后，只需：
+
+1. 替换镜像：`paddlepaddle/paddleocr:latest-cpu` → `vllm/vllm-openai:latest`；
+2. 修改配置：`knowledge.extractor.vision.mode=local-gpu`；
+3. 切换 base-url：`LLM_VISION_GPU_BASE_URL=http://knowledge-ovis-vl:8000/v1`；
+4. 代码零改动（`VisionChatGateway` 端口隔离）。
+
+### 12.5 上线前验证（CPU 模式）
+
+在正式合入 Phase B 前，用 **golden-PDF 基准** 跑一轮打分：
+
+- OmniDocBench 抽 20 页（覆盖纯文本 / 表格 / 图文混排）；
 - 本项目 5 份真实扫描件（业务侧提供）；
-- 指标：字符准确率（CER）、表格结构准确率、单页 P95 延迟、显存占用；
-- 阈值：CER ≥ 95% 方可上线；任一指标不达标则锁定另一模型为主。
-
-### 12.4 GPU 资源
-
-| 方案 | 适用 | 备注 |
-|---|---|---|
-| 自购 A100/L40S | 长期高频 | 一次性投入高，但推理成本最低 |
-| 云上 vLLM（阿里 PAI / HF Inference） | 短期 / 灰度 | 按量付费，冷启动 30-90s 需接受 |
-| 混合 | 推荐 | 基线走自购，峰值溢出到云上 |
+- 指标：字符准确率（CER）、单页 P95 延迟、CPU 占用率；
+- 阈值：CER ≥ 85% 方可上线（CPU 模式精度略低于 GPU）；不达标则切换到 `mode=cloud-api`。
 
 ---
 
@@ -923,8 +1058,9 @@ knowledge:
 |---|---|---|---|---|---|---|---|---|---|---|
 | **Chat** | DeepSeek | 5s | 120s | 180s | — | 8 | 300s | HTTP/1.1 | 3 | SSE 流式必须 HTTP/1.1 |
 | **Embedding** | BGE-M3 | 2s | 10s | 15s | — | 32 | 300s | HTTP/2 | 5 | batch-size=64 |
-| **Vision（主）** | OvisOCR2 vLLM | 3s | 300s | 360s | 60s | 4 | 300s | HTTP/1.1 | 2 | base64 上行大 payload |
-| **Vision（备）** | PaddleOCR-VL vLLM | 3s | 600s | 900s | 60s | 4 | 300s | HTTP/1.1 | 1 | 冷启动 30-90s |
+| **Vision（CPU 本地）** | PaddleOCR CPU | 3s | 30s | 60s | 30s | 4 | 300s | HTTP/1.1 | 2 | 单页 5-15s |
+| **Vision（云端 API）** | DashScope qwen-vl | 3s | 60s | 120s | 30s | 8 | 300s | HTTP/1.1 | 3 | 按量付费 |
+| **Vision（GPU 本地）** | OvisOCR2 vLLM | 3s | 300s | 360s | 60s | 4 | 300s | HTTP/1.1 | 2 | 需 GPU |
 
 ### 13.3 LangChain4j 陷阱
 
@@ -1019,43 +1155,43 @@ knowledge.llm:
 - 日志脱敏：`sk-` / `Bearer ` 前缀的字符串一律 mask 为 `***`（红线 #4）；
 - 轮换：支持热加载（`@RefreshScope` 或重启），不硬编码。
 
-### 13.5 Docker 网络
+### 13.5 Docker 网络（纯 CPU，无 GPU 依赖）
 
 ```yaml
-# docker-compose.infra.yml
+# docker-compose.infra.yml（v1.2：去掉所有 GPU 设备预留）
 services:
   knowledge-bge-m3:
-    image: ...
+    image: registry.cn-hangzhou.aliyuncs.com/xuming_huggingface/bge-m3:latest
     ports: ["8000:8000"]
+    # 纯 CPU 推理，无需 GPU
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+        limits:
+          cpus: "2"
+          memory: 4G
 
-  knowledge-ovis-vl:
-    image: vllm/vllm-openai:latest
+  knowledge-paddleocr-cpu:
+    image: paddlepaddle/paddleocr:latest-cpu
     command: >
-      --model OvisOCR2
-      --max-model-len 8192
-      --limit-mm-per-prompt image=5
-    ports: ["8001:8000"]
+      paddleocr --use_gpu=False
+                --ocr_version=PP-OCRv4
+                --server=True
+                --port=8080
+    ports: ["8080:8080"]
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+        limits:
+          cpus: "4"
+          memory: 8G
 
   knowledge-app:
-    depends_on: [knowledge-bge-m3, knowledge-ovis-vl]
+    depends_on: [knowledge-bge-m3, knowledge-paddleocr-cpu]
     environment:
       LLM_EMBED_BASE_URL: http://knowledge-bge-m3:8000/v1
-      LLM_VISION_BASE_URL: http://knowledge-ovis-vl:8000/v1
+      LLM_VISION_BASE_URL: http://knowledge-paddleocr-cpu:8080/v1
 ```
+
+> **有 GPU 后**：把 `knowledge-paddleocr-cpu` 替换为 `vllm/vllm-openai:latest`，加回 `deploy.resources.reservations.devices` GPU 预留块即可。
 
 ### 13.6 熔断 / 降级矩阵
 
@@ -1084,4 +1220,31 @@ model.circuit-breaker.state{provider, role}  (closed|open|half-open)
 | **R1** 配置对齐 + per-role HttpClient bean | 2 人日 | `LlmClientConfig` + 三段 `@ConfigurationProperties` + `.env` 密钥边界 + 现有 `ChatModelConfig` 迁移 |
 | **R2** 熔断 / 重试 / 观测 | 2 人日 | Resilience4j `CircuitBreaker` + `Retry` per-provider + Micrometer 指标 + 单测 |
 | **R3** 成本护栏 + dashboard | 1.5 人日 | 与 Phase D 合并交付；`model.tokens{provider,role}` counter + Grafana panel |
+
+---
+
+## 14. AGENTS.md 红线对照检查清单（v1.2 新增）
+
+方案中所有代码示例均严格对照 AGENTS.md 11 条不可协商红线，逐条合规如下：
+
+| 红线 | 要求 | 方案合规措施 |
+|---|---|---|
+| **#1** 构造器注入、面向接口 | 禁止字段 `@Autowired` | §3.3/§3.4 所有 `@Component`/`@Service` 均给出完整构造器注入代码；`VisionChatGateway` 接口在 domain，实现在 infra |
+| **#2** 禁止魔法值 | 常量全大写下划线 | §3.4 `VisionModelExtractionStrategy.PRIORITY = 70` 抽为 `static final` 常量；§2.4 `priority()` 返回值 10/20/30/40/50/60 建议抽到 `ExtractionPriorityConstants` |
+| **#3** 4 空格缩进，单行 ≤120 字符 | UTF-8 / LF | 所有代码示例手动检查行长，无超 120 字符行 |
+| **#4** `@Slf4j` + 占位符 `{}`，禁止敏感信息 | 严禁日志回显令牌/口令 | §3.3 `OpenAiCompatibleVisionChatGateway` 显式注释"禁止在日志中回显 base64 图片内容"；§13.4 密钥边界明确 `sk-`/`Bearer` 脱敏 |
+| **#5** SQL 参数 `#{}` | 禁止裸 `${}` 拼 SQL | §4.2 Flyway DDL 无参数化需求；Phase C 的 Mapper XML 将严格使用 `#{}` |
+| **#6** DO 不越过 infrastructure | 转换只在层边界 | §4.1 `ExtractionCacheRepositoryImpl + DO + Mapper` 全在 infra；domain 只暴露 `ExtractionCacheRepository` 端口 |
+| **#7** domain 层纯净 | 严禁依赖 app/adapter/infra | §2.4 `ContentExtractor` SPI 在 `domain.gateway` 包；§3.3 `VisionChatGateway` 在 `domain.gateway` 包（v1.2 修正了 v1.1 的 `domain.service` 错误） |
+| **#8** app 层 Service 只做分发，事务在 Executor；LLM/外部 IO 不在事务内 | 含 LLM 长耗时用例不得置于 DB 事务 | §4.3 `ExtractEnhanceAsyncCmdExe` 明确"无 `@Transactional`"，视觉 HTTP 全在异步线程；DB 写入只在完成后短暂开事务 |
+| **#9** Javadoc `@author`/`@date` | 公共类补齐完整 Javadoc | §3.3/§3.4 所有代码示例补齐 `@author mouhinU` + `@date 2026-09-22 16:21:33` |
+| **#10** 谨慎变更框架/JDK 版本 | 依赖以 tech-stack.md 为准 | 方案不变更 Spring Boot 3.4 / Java 21 基线；不新增 GAV（复用 `langchain4j-open-ai`） |
+| **#11** 方法名 ≤50 字符，方法体 ≤50 行，参数 ≤5 | 优先纯函数 | §3.4 `VisionModelExtractionStrategy.extract()` 拆为 3 个私有方法（`resolveImageSources`/`invokeVisionPerPage`/`assembleResult`），各 ≤50 行；`VisionChatRequest` 4 个参数（≤5） |
+
+**额外合规项**：
+
+- **POJO 布尔属性**（coding-guideline §1.3）：`ExtractionConfig.VisionConfig.enabled` 不加 `is` 前缀；
+- **线程池**（coding-guideline §六）：`visionExecutor` 必须通过 `ThreadPoolExecutor` 显式参数创建，禁止 `Executors.newXxx`；
+- **集合初始化**（coding-guideline §五）：`new ArrayList<>(slides.size())` 指定初始容量；
+- **异常处理**（coding-guideline §八）：`TikaFallbackExtractionService.extract()` 的 `catch (Exception e)` 包装为 `IOException` 并保留原始堆栈。
 

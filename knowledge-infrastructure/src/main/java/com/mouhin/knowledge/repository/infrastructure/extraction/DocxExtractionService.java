@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>使用 Apache POI 按段落提取，每 30 段切一个 section 近似页面。
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-22 16:21:33
  */
 @Service

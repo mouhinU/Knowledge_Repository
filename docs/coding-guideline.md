@@ -3,7 +3,7 @@
 > 本分册由根目录 `AGENTS.md` 第一~九章 + 第十三章拆分而来，基于《Java 开发手册》v1.5.0（华山版）
 > 结合本项目技术栈（见 [tech-stack.md](tech-stack.md)）定制裁剪。
 > 分层归属 / 对象转化 / 依赖方向等**架构**规则见 [architecture-decisions.md](architecture-decisions.md)。
-> 维护：`@author beginningness` · 拆分日期 2026-09-20
+> 维护：`@author mouhinU` · 拆分日期 2026-09-20
 
 目录：一 命名 · 二 常量 · 三 格式 · 四 OOP · 五 集合 · 六 并发 · 七 注释 · 八 异常 · 九 日志 · 十 方法规范 · 十一 常见反模式
 
@@ -133,7 +133,7 @@
 - 类、类属性、类方法注释使用 `/** Javadoc */` 格式。
 - **新建或重点修改的 Java 类应补齐 `@author` + `@date` 的 Javadoc**；已有类不强制一次性大改，但新增/关键改动需保持一致。
 - 推荐用中文注释，专有名词保持英文。
-- **`@author` 取值**：填写当前开发者标识，取自本仓库 `git config user.name` 的返回值（本仓库为 `beginningness`），不使用固定占位名。
+- **`@author` 取值**：填写当前开发者标识，取自本仓库 `git config user.name` 的返回值（本仓库为 `mouhinU`），不使用固定占位名。
 - **`@date` 取值**：填写**编写该注释时的当前系统时间**，格式 `yyyy-MM-dd HH:mm:ss`（24 小时制，如 `2026-09-21 08:23:43`）；由 AI 生成代码时须以运行环境的实时时间填充，不得沿用示例值或臆造时间。
 - 作者与时间信息统一采用上述口径（原第十三章并入此处）。
 
@@ -143,7 +143,7 @@
 /**
  * 文档应用服务实现（app 层，仅分发到 Executor）
  *
- * @author beginningness
+ * @author mouhinU
  * @date 2026-09-21 08:23:43
  */
 @Service
