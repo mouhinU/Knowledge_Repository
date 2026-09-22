@@ -166,8 +166,12 @@
         <div id="pv-modal-warn"></div>
         <div class="preview-info-bar" id="pv-modal-summary"></div>
         <div class="tabs" data-manual>
-            <div class="tab active" data-panel="pv-pages" onclick="switchModalTab('pv-pages')">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
-            <div class="tab" data-panel="pv-chunks" onclick="switchModalTab('pv-chunks')">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
+            <div class="tab active" data-panel="pv-pages" role="tab" tabindex="0" aria-selected="true"
+                 onclick="switchModalTab('pv-pages')"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-pages')}">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
+            <div class="tab" data-panel="pv-chunks" role="tab" tabindex="0" aria-selected="false"
+                 onclick="switchModalTab('pv-chunks')"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-chunks')}">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
         </div>
         <div class="tab-panel active" id="panel-pv-pages">
             <div class="pv-toolbar">

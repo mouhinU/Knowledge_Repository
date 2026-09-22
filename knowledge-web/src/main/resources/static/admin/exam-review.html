@@ -143,7 +143,9 @@
 </style>
 
 <!-- 复核详情弹窗 -->
-<div class="review-modal-overlay" id="review-modal-overlay" onclick="if(event.target===this)closeReviewModal()">
+<div class="review-modal-overlay" id="review-modal-overlay" role="presentation" tabindex="-1"
+     onclick="if(event.target===this)closeReviewModal()"
+     onkeydown="if(event.key==='Escape')closeReviewModal()">
     <div class="review-modal">
         <div class="review-modal-header">
             <div>

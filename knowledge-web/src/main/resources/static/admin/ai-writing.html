@@ -77,7 +77,9 @@
                 </div>
 
                 <div class="agent-panel" id="panel-researcher">
-                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                    <div class="agent-panel-header" role="button" tabindex="0"
+                         onclick="this.parentElement.classList.toggle('open')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
                         <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
                         <span class="agent-status pending" id="status-researcher">等待中</span>
                     </div>
@@ -93,7 +95,9 @@
                     </div>
                 </div>
                 <div class="agent-panel" id="panel-writer">
-                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                    <div class="agent-panel-header" role="button" tabindex="0"
+                         onclick="this.parentElement.classList.toggle('open')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
                         <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
                         <span class="agent-status pending" id="status-writer">等待中</span>
                     </div>
@@ -109,7 +113,9 @@
                     </div>
                 </div>
                 <div class="agent-panel" id="panel-reviewer">
-                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')">
+                    <div class="agent-panel-header" role="button" tabindex="0"
+                         onclick="this.parentElement.classList.toggle('open')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
                         <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
                         <span class="agent-status pending" id="status-reviewer">等待中</span>
                     </div>
@@ -172,7 +178,9 @@
 </div>
 
 <!-- 节点详情弹窗 -->
-<div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()">
+<div class="node-modal-overlay" id="node-modal-overlay" role="presentation" tabindex="-1"
+     onclick="if(event.target===this)closeNodeModal()"
+     onkeydown="if(event.key==='Escape')closeNodeModal()">
     <div class="node-modal">
         <div class="node-modal-header">
             <div class="node-modal-title">
@@ -213,7 +221,9 @@
 </div>
 
 <!-- 历史详情弹窗 -->
-<div class="history-modal-overlay" id="history-modal-overlay" onclick="if(event.target===this)closeHistoryModal()">
+<div class="history-modal-overlay" id="history-modal-overlay" role="presentation" tabindex="-1"
+     onclick="if(event.target===this)closeHistoryModal()"
+     onkeydown="if(event.key==='Escape')closeHistoryModal()">
     <div class="history-modal">
         <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
         <div id="history-detail-content"></div>

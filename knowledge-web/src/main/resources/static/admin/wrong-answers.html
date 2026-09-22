@@ -53,7 +53,9 @@
 </div>
 
 <!-- AI 错题分析总结弹窗 -->
-<div class="wb-modal-overlay" id="wb-summary-modal" onclick="if(event.target===this)closeWbSummaryModal()">
+<div class="wb-modal-overlay" id="wb-summary-modal" role="presentation" tabindex="-1"
+     onclick="if(event.target===this)closeWbSummaryModal()"
+     onkeydown="if(event.key==='Escape')closeWbSummaryModal()">
     <div class="wb-modal">
         <div class="wb-modal-header">
             <div>
