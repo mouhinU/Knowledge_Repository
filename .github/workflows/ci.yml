@@ -18,7 +18,10 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # ubuntu-latest 于 2026-10-19 起会静默迁移到 Ubuntu 26
+    # (https://github.com/actions/runner-images/issues/14748)。
+    # 钉住 ubuntu-24.04 保证 JDK/Maven/glibc 基线可预测；等 26.04 稳定后单独 PR 迁移。
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v5

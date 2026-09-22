@@ -52,7 +52,11 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    # ubuntu-latest 于 2026-10-19 起会静默迁移到 Ubuntu 26
+    # (https://github.com/actions/runner-images/issues/14748)。
+    # 钉住 ubuntu-24.04 保证 docker daemon / buildx / glibc 基线可预测；
+    # 等 26.04 GA 一段时间后再单独 PR 迁移。
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v5
