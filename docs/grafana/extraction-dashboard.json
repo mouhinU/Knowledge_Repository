@@ -1,6 +1,6 @@
 {
   "annotations": {"list": []},
-  "description": "文档解析可观测面板（Phase D）。数据源假定为 Prometheus 抓取 Spring Boot actuator；启用需在 knowledge-web 引入 micrometer-registry-prometheus 并暴露 /actuator/prometheus（该依赖变更受 AGENTS.md 红线 #10，需走变更提案，默认未纳入本阶段）。指标前缀 knowledge.extraction.*，标签仅 strategy/mime/outcome/reason/model，不含高基数字段。",
+  "description": "文档解析可观测面板（Phase D）。数据源为 Prometheus 抓取 Spring Boot actuator；knowledge-web 已引入 micrometer-registry-prometheus 并暴露 /actuator/prometheus，可直接抓取。指标前缀 knowledge.extraction.*，标签仅 strategy/mime/outcome/reason/model，不含高基数字段。",
   "editable": true,
   "graphTooltip": 1,
   "schemaVersion": 39,

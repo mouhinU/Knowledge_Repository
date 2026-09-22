@@ -38,11 +38,11 @@ Tika MIME 检测 → 构造 `ExtractionCandidate` → `resolveStack(mime)`（配
 
 ### 0.3 剩余待实施项（按优先级排序）
 
-所有设计阶段（Phase A2 / B / C / D，及 Phase R1+R2+R3）均已**代码完成并按阶段本地提交**（未 push）。剩余工作集中在收尾：
+所有设计阶段（Phase A2 / B / C / D，及 Phase R1+R2+R3）均已**代码完成并按阶段本地提交**（未 push）。收尾状态：
 
-1. **统一验证**：全反应堆 `./mvnw test` 期望 BUILD SUCCESS；确认 V19 迁移在 H2 与 MySQL 双库干净应用。
-2. **部署冒烟**：`.env` `APP_VERSION` 置新版本 → 预构建打包 → `docker build -f docker/Dockerfile.prebuilt` → `docker compose up -d --no-deps --force-recreate knowledge-app` → 等 JVM 预热后 `curl :8091/actuator/health` 期望 UP。
-3. **观测落地前置（可选）**：`docs/grafana/extraction-dashboard.json` 依赖 `micrometer-registry-prometheus` 暴露 `/actuator/prometheus`；该依赖属 AGENTS.md 红线 #10（框架/依赖变更需提案审批），当前仅 `ExtractionMetrics` 已把指标写入 `MeterRegistry`，dashboard 待该 registry 引入后方可被抓取。
+1. **统一验证 ✅**：全反应堆 `./mvnw test` BUILD SUCCESS（Domain/Infra/App 109/Web 18）；V19 迁移经 `FlywayMigrationSmokeTest`（H2）+ 部署启动（MySQL 8.0）双库验证干净应用。
+2. **部署冒烟 ✅**：预构建镜像 → `--force-recreate knowledge-app` → 容器 healthy、`/actuator/health` 返回 UP，启动无异常。
+3. **观测落地 ✅**：已引入 `micrometer-registry-prometheus`（版本由 Spring Boot BOM 管理，落 `knowledge-web`）并在 `management.endpoints.web.exposure.include` 暴露 `/actuator/prometheus`；`ExtractionMetrics` 写入 `MeterRegistry` 的指标即可被 Prometheus 抓取，`docs/grafana/extraction-dashboard.json` 可直接导入。
 4. **视觉链路端到端联调（可选）**：`knowledge.extractor.vision.enabled=true` + 配置视觉模型 base-url/key 后，验证扫描件 hybrid 增强与 `kb_extraction_cache` 命中；默认关闭不影响主流程。
 
 ---

@@ -31,6 +31,7 @@
 | 生产数据库          | MySQL         | 8.0                         |
 | 数据库迁移          | Flyway        | 由 Spring Boot BOM 统一管理 |
 | 样板代码            | Lombok        | 1.18.36                     |
+| 指标可观测          | Micrometer + Prometheus registry | 由 Spring Boot BOM 统一管理（`micrometer-core` in infra；`micrometer-registry-prometheus` in web，暴露 `/actuator/prometheus`） |
 
 ## 3. Maven 多模块（现状）
 

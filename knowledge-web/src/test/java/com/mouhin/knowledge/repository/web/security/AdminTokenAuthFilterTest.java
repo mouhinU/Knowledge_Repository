@@ -110,14 +110,30 @@ class AdminTokenAuthFilterTest {
     }
 
     @Test
-    @DisplayName("考生侧 / 登录 / 健康探针路径放行，不做管理端校验")
+    @DisplayName("考生侧 / 登录 / 健康 / Prometheus 探针路径放行，不做管理端校验")
     void publicPaths_skipped() throws Exception {
         assertSkipped("/api/student/auth/login");
         assertSkipped("/api/exam/submit");
         assertSkipped("/api/admin/auth/login");
         assertSkipped("/api/admin/auth/logout");
         assertSkipped("/actuator/health");
+        assertSkipped("/actuator/prometheus");
         assertSkipped("/admin/index.html");
+    }
+
+    @Test
+    @DisplayName("非白名单 actuator 端点（如 /actuator/metrics）仍需管理端令牌")
+    void nonWhitelistedActuator_requiresAuth() throws Exception {
+        MockHttpServletRequest req = new MockHttpServletRequest();
+        req.setRequestURI("/actuator/metrics");
+        req.setMethod("GET");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(req, resp, chain);
+
+        assertEquals(401, resp.getStatus());
+        verify(chain, never()).doFilter(req, resp);
     }
 
     private void assertSkipped(String uri) throws Exception {

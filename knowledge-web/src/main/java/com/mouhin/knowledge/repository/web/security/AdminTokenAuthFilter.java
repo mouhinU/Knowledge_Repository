@@ -42,7 +42,16 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     /** SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。 */
     private static final String ACCESS_TOKEN_PARAM = "access_token";
 
-    private static final String PATH_ACTUATOR_HEALTH = "/actuator/health";
+    /**
+     * 运维探针类 actuator 端点，允许匿名可达（与业务令牌体系解耦）。
+     *
+     * <p>包含健康/就绪探针与 {@code /actuator/prometheus} 指标抓取端点——后者供 Prometheus 定期拉取， 无法携带会过期的管理端
+     * JWT。仅暴露低基数运维指标（见 {@code ExtractionMetrics}：标签限于 strategy/mime/outcome/reason/model，不含
+     * documentKey/fileName 等高基数字段）。<b>生产应收敛</b>： 建议改用独立 {@code management.server.port} 或在网关 /
+     * 网络策略层按内网来源限制访问。
+     */
+    private static final List<String> PUBLIC_ACTUATOR_PATHS =
+            List.of("/actuator/health", "/actuator/prometheus");
 
     /** 考生 / 学生侧与管理端登录登出等自带鉴权或须先可达的路径，本过滤器放行。 */
     private static final List<String> PUBLIC_PREFIXES =
@@ -88,8 +97,10 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         if (!protectedArea) {
             return false;
         }
-        if (path.startsWith(PATH_ACTUATOR_HEALTH)) {
-            return false;
+        for (String publicPath : PUBLIC_ACTUATOR_PATHS) {
+            if (path.startsWith(publicPath)) {
+                return false;
+            }
         }
         for (String prefix : PUBLIC_PREFIXES) {
             if (path.startsWith(prefix)) {

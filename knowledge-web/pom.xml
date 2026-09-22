@@ -57,6 +57,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Micrometer Prometheus 注册表：暴露 /actuator/prometheus，供 Grafana 抓取解析观测指标（版本由 Spring Boot BOM 管理） -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- MyBatis-Plus (needed for DataSource auto-config) -->
         <dependency>
             <groupId>com.baomidou</groupId>
