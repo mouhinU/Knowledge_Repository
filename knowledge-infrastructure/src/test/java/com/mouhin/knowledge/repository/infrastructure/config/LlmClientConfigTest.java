@@ -2,13 +2,17 @@ package com.mouhin.knowledge.repository.infrastructure.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mouhin.knowledge.repository.infrastructure.llm.LlmResilience;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -27,9 +31,23 @@ import org.springframework.context.annotation.Import;
 class LlmClientConfigTest {
 
     @Configuration
-    @EnableConfigurationProperties({LlmChatProperties.class, LlmEmbeddingProperties.class})
-    @Import({LlmClientConfig.class, ChatModelConfig.class, EmbeddingModelConfig.class})
-    static class TestConfig {}
+    @EnableConfigurationProperties({
+        LlmChatProperties.class,
+        LlmEmbeddingProperties.class,
+        LlmResilienceProperties.class
+    })
+    @Import({
+        LlmClientConfig.class,
+        ChatModelConfig.class,
+        EmbeddingModelConfig.class,
+        LlmResilience.class
+    })
+    static class TestConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
+    }
 
     private final ApplicationContextRunner runner =
             new ApplicationContextRunner()

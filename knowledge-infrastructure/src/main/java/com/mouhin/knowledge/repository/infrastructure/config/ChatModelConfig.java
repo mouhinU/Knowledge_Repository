@@ -1,7 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
+import com.mouhin.knowledge.repository.infrastructure.llm.LlmResilience;
 import com.mouhin.knowledge.repository.infrastructure.llm.OpenAiCompatibleStreamingChatGateway;
+import com.mouhin.knowledge.repository.infrastructure.llm.ResilientChatModel;
+import com.mouhin.knowledge.repository.infrastructure.llm.ResilientStreamingChatGateway;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -25,25 +28,28 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class ChatModelConfig {
 
-    /** Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端。 */
+    /** Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端，并套 {@code chat} 角色熔断/重试。 */
     @Bean
     public ChatModel chatModel(
             LlmChatProperties chat,
+            LlmResilience resilience,
             @Qualifier("chatHttpClientBuilder") HttpClientBuilder httpClientBuilder) {
         log.info(
                 "Initializing chat model: {} at {} (provider={})",
                 chat.getModelName(),
                 chat.getBaseUrl(),
                 chat.getProvider());
-        return OpenAiChatModel.builder()
-                .baseUrl(chat.getBaseUrl())
-                .apiKey(chat.getApiKey())
-                .modelName(chat.getModelName())
-                .temperature(chat.getTemperature())
-                .maxTokens(chat.getMaxTokens())
-                .httpClientBuilder(httpClientBuilder)
-                .timeout(Duration.ofSeconds(Math.max(chat.getCallTimeoutSeconds(), 30)))
-                .build();
+        ChatModel raw =
+                OpenAiChatModel.builder()
+                        .baseUrl(chat.getBaseUrl())
+                        .apiKey(chat.getApiKey())
+                        .modelName(chat.getModelName())
+                        .temperature(chat.getTemperature())
+                        .maxTokens(chat.getMaxTokens())
+                        .httpClientBuilder(httpClientBuilder)
+                        .timeout(Duration.ofSeconds(Math.max(chat.getCallTimeoutSeconds(), 30)))
+                        .build();
+        return new ResilientChatModel(raw, resilience);
     }
 
     /**
@@ -53,7 +59,8 @@ public class ChatModelConfig {
      * LlmChatProperties.Streaming} 取，明显大于非流式，避免推理型模型把预算耗在思考链上导致正文为空。
      */
     @Bean
-    public StreamingChatGateway streamingChatGateway(LlmChatProperties chat) {
+    public StreamingChatGateway streamingChatGateway(
+            LlmChatProperties chat, LlmResilience resilience) {
         LlmChatProperties.Streaming streaming = chat.getStreaming();
         Duration timeout = Duration.ofSeconds(Math.max(streaming.getTimeoutSeconds(), 60));
         log.info(
@@ -61,12 +68,14 @@ public class ChatModelConfig {
                 chat.getModelName(),
                 chat.getBaseUrl(),
                 streaming.getMaxTokens());
-        return new OpenAiCompatibleStreamingChatGateway(
-                chat.getBaseUrl(),
-                chat.getApiKey(),
-                chat.getModelName(),
-                chat.getTemperature(),
-                streaming.getMaxTokens(),
-                timeout);
+        StreamingChatGateway rawGateway =
+                new OpenAiCompatibleStreamingChatGateway(
+                        chat.getBaseUrl(),
+                        chat.getApiKey(),
+                        chat.getModelName(),
+                        chat.getTemperature(),
+                        streaming.getMaxTokens(),
+                        timeout);
+        return new ResilientStreamingChatGateway(rawGateway, resilience);
     }
 }

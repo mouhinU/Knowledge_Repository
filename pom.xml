@@ -47,6 +47,8 @@
         <h2.version>2.2.224</h2.version>
         <!-- Utilities -->
         <lombok.version>1.18.36</lombok.version>
+        <!-- Resilience4j（Phase R2：LLM 调用熔断 / 重试 / 指标） -->
+        <resilience4j.version>2.2.0</resilience4j.version>
     </properties>
 
     <dependencyManagement>
@@ -78,6 +80,15 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-bom</artifactId>
                 <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Resilience4j BOM（Phase R2） -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bom</artifactId>
+                <version>${resilience4j.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

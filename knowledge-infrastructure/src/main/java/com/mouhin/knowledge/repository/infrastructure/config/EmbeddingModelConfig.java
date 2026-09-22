@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
+import com.mouhin.knowledge.repository.infrastructure.llm.LlmResilience;
+import com.mouhin.knowledge.repository.infrastructure.llm.ResilientEmbeddingModel;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
@@ -23,22 +25,25 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class EmbeddingModelConfig {
 
-    /** Embedding 模型，注入 embedding 角色独立 HTTP 客户端。 */
+    /** Embedding 模型，注入 embedding 角色独立 HTTP 客户端，并套 {@code embedding} 角色熔断/重试。 */
     @Bean
     public EmbeddingModel embeddingModel(
             LlmEmbeddingProperties embedding,
+            LlmResilience resilience,
             @Qualifier("embeddingHttpClientBuilder") HttpClientBuilder httpClientBuilder) {
         log.info(
                 "Initializing embedding model: {} at {} (provider={})",
                 embedding.getModelName(),
                 embedding.getBaseUrl(),
                 embedding.getProvider());
-        return OpenAiEmbeddingModel.builder()
-                .baseUrl(embedding.getBaseUrl())
-                .apiKey(embedding.getApiKey())
-                .modelName(embedding.getModelName())
-                .httpClientBuilder(httpClientBuilder)
-                .timeout(Duration.ofSeconds(Math.max(embedding.getCallTimeoutSeconds(), 5)))
-                .build();
+        EmbeddingModel raw =
+                OpenAiEmbeddingModel.builder()
+                        .baseUrl(embedding.getBaseUrl())
+                        .apiKey(embedding.getApiKey())
+                        .modelName(embedding.getModelName())
+                        .httpClientBuilder(httpClientBuilder)
+                        .timeout(Duration.ofSeconds(Math.max(embedding.getCallTimeoutSeconds(), 5)))
+                        .build();
+        return new ResilientEmbeddingModel(raw, resilience);
     }
 }

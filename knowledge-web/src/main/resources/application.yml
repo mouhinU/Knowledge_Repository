@@ -134,6 +134,33 @@ knowledge:
       connect-timeout-seconds: ${LLM_EMBED_CONNECT_TIMEOUT_SECONDS:2}
       read-timeout-seconds: ${LLM_EMBED_READ_TIMEOUT_SECONDS:10}
       call-timeout-seconds: ${LLM_EMBED_CALL_TIMEOUT_SECONDS:15}
+    # ----- 韧性护栏（Phase R2）：按角色独立熔断/重试，一端点抖动不殃及他角色 -----
+    resilience:
+      chat:
+        circuit-breaker:
+          sliding-window-size: 20
+          failure-rate-threshold: 50
+          slow-call-duration-seconds: 60
+          slow-call-rate-threshold: 100
+          wait-duration-seconds: 30
+          permitted-number-of-calls-in-half-open: 5
+        retry:
+          max-attempts: 3
+          wait-duration-ms: 500
+          backoff-multiplier: 2.0
+      # 流式角色不重试（max-attempts=1）：重试会向已吐字的 UI 重复推送增量，仅保留熔断快速失败
+      chat-stream:
+        retry:
+          max-attempts: 1
+      embedding:
+        retry:
+          max-attempts: 2
+          wait-duration-ms: 200
+      # vision 角色于 Phase B 起消费，参数先行占位
+      vision:
+        retry:
+          max-attempts: 2
+          wait-duration-ms: 300
 
   # ---------- 黑板模式 Agent 配置 ----------
   blackboard:

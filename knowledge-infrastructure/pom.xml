@@ -103,6 +103,20 @@
             <artifactId>micrometer-core</artifactId>
         </dependency>
 
+        <!-- Resilience4j（Phase R2：LLM 调用 per-role 熔断 / 重试 + 指标桥接，版本由 BOM 管理） -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-micrometer</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

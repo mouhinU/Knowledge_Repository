@@ -22,7 +22,7 @@
 | **Phase B** 视觉模型接入 | ⬜ 待实施 | — | `VisionChatGateway` + `VisionModelExtractionStrategy` + `PageRenderer`；含 `knowledge.llm.vision.*` 配置 + vision per-role HttpClient |
 | **Phase C** PDF Hybrid + 持久缓存 | ⬜ 待实施 | — | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 |
 | **Phase D** Admin reparse + 观测 | ⬜ 待实施 | — | reparse 端点 + Micrometer 指标 + 成本护栏 |
-| **Phase R** 多模型连接治理 | 🔶 R1 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；vision 配置并入 B；R2 熔断/重试/指标、R3 成本护栏/Grafana 待实施 |
+| **Phase R** 多模型连接治理 | 🔶 R1+R2 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；R2（`LlmResilience` per-role 熔断/重试 + `ResilientChatModel`/`ResilientEmbeddingModel`/`ResilientStreamingChatGateway` 装饰器 + resilience4j-micrometer 指标 + `knowledge.llm.resilience.*` 配置 + 5 用例契约测试）✅；vision 配置并入 B；R3 成本护栏/Grafana 待实施 |
 
 ### 0.2 当前实现概要（已完成部分）
 
@@ -32,8 +32,8 @@
 **解析预览流程**（`PreviewFromDocumentQryExe`）：
 用户点击「解析预览」→ `ExtractionCacheHolder.getOrReextract(document)` → 缓存命中直接返回 / 缓存未命中调 `DocumentExtractionGateway.extractText()` 首次提取 → 分块 → 返回 `PreviewResult`。
 
-**文本提取**（`DocumentExtractionService`）：
-Tika MIME 检测 → switch 路由到 6 个独立 Service（`PdfBoxExtractionService` / `DocxExtractionService` / `XlsxExtractionService` / `PptxExtractionService` / `PlainTextExtractionService` / `TikaFallbackExtractionService`）。
+**文本提取**（`CompositeExtractionService`，`@Primary`，Phase A2）：
+Tika MIME 检测 → 构造 `ExtractionCandidate` → `resolveStack(mime)`（配置 routing 优先，否则内置 MIME→策略映射，再否则 default-stack）→ 依序取用 `ContentExtractor` 策略（`PdfBox`/`Docx`/`Xlsx`/`Pptx`/`PlainText`/`TikaFallback`，各按 `supports()` 命中）→ 单个策略抛 `IOException` 则回退栈内下一个，全部失败才向上抛出。
 
 ### 0.3 剩余待实施项（按优先级排序）
 
