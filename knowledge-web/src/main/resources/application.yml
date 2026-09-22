@@ -176,6 +176,27 @@ knowledge:
           max-attempts: 2
           wait-duration-ms: 300
 
+  # ---------- 文档解析策略路由与视觉增强（Phase A2/C）----------
+  extractor:
+    # 启用的策略白名单；为空表示全部启用。默认不列 PDF_HYBRID / VISION，保证二者默认不参与路由（零副作用）。
+    enabled-strategies: [PDF_BOX, DOCX, XLSX, PPTX, PLAIN_TEXT, TIKA_FALLBACK]
+    # MIME → 有序策略栈。留空则用 CompositeExtractionService 内置映射（application/pdf → [PDF_BOX]）。
+    # 启用 PDF 混合视觉增强时改为： application/pdf: [PDF_HYBRID, PDF_BOX]，并将下方 vision.enabled 置 true。
+    routing: {}
+    default-stack: [TIKA_FALLBACK]
+    # PDF 混合视觉增强行为（Phase C，默认关闭：须 vision.enabled=true 且 PDF_HYBRID 进入上面 routing 方生效）
+    vision:
+      enabled: ${EXTRACTOR_VISION_ENABLED:false}
+      trigger: scanned_only              # scanned_only | image_heavy | always
+      prefer-embedded-images: true
+      render-fallback-dpi: 150
+      min-text-len-per-page: 200
+      max-pages-per-doc: 20
+      max-bytes-per-image: 4194304       # 4 MB
+      merge: replace_lowtext             # replace_lowtext | append | replace_all
+      timeout-seconds: 60
+      max-total-seconds-per-doc: 300
+
   # ---------- 黑板模式 Agent 配置 ----------
   blackboard:
     search:
