@@ -31,7 +31,8 @@
 
 | 脚本                | 说明        | 示例                          |
 |-------------------|-----------|-----------------------------|
-| `deploy.sh`       | 一键部署      | `./scripts/deploy.sh`       |
+| `deploy.sh`       | 本地构建部署    | `./scripts/deploy.sh`       |
+| `gh-deploy.sh`    | GHCR 拉取部署   | `./scripts/gh-deploy.sh`    |
 | `env-check.sh`    | 环境检查      | `./scripts/env-check.sh`    |
 | `health-check.sh` | 健康检查      | `./scripts/health-check.sh` |
 | `docker-build.sh` | 构建镜像      | `./scripts/docker-build.sh` |
@@ -114,6 +115,29 @@
 # 3. 验证部署
 ./scripts/health-check.sh
 ```
+
+### 场景1b: 从 GHCR 拉取部署（免本地编译）
+
+由 GitHub Actions 预构建镜像推到 GHCR，本地只做 `pull + up`，比 `deploy.sh` 更快、可复现。
+
+```bash
+# 本地：部署 main 最新提交快照 sha-<7>（API 取不到时回退本地 origin/main；快照缺失再回退 latest）
+./scripts/gh-deploy.sh
+
+# 本地：部署滚动标签 latest
+./scripts/gh-deploy.sh --latest
+
+# 本地：部署指定 7 位提交号
+./scripts/gh-deploy.sh --sha 1a2b3c4
+
+# 生产（预留通道）：部署发布标签 v<semver>（由打 v*.*.* tag 触发 CI 产出）
+./scripts/gh-deploy.sh --prod v1.2.3
+
+# 只预览将要执行的命令，不实际部署
+./scripts/gh-deploy.sh --dry-run
+```
+
+> 前置：GHCR 包默认私有，首次需 `docker login ghcr.io`（PAT 需 `read:packages`）；脚本会尝试用 git 凭据助手里的 token 自动登录。若目标镜像与共享 MySQL 的 Flyway 迁移历史不一致（如某迁移被原地改过），容器会因校验失败而起不来——此为迁移纪律问题，非脚本缺陷。
 
 ### 场景2: 日常运维
 

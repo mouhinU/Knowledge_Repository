@@ -245,6 +245,8 @@ alias kr='kdeploy sha-'           # 用法: kr eab52ab  → 回滚到指定 sha
 
 `kd` 一行完成 pull + up；`kr <短sha>` 一行回滚。
 
+> 提示：`scripts/gh-deploy.sh` 已把上述逻辑落成带干跑/健康门禁/`sha→latest` 回退/生产预留通道的正式脚本，推荐优先使用；`kd`/`kr` 作为轻量兜底。
+
 ### 3.5 触发一次重新构建（不 push 新 commit）
 
 Actions → **Build & Push Docker Image** → 右上 **Run workflow** → 选 `main` → Run workflow。
@@ -371,19 +373,17 @@ IMAGE_NAME=knowledge-repository APP_VERSION=offline \
 
 ## 七、与现有脚本的整合
 
-- `scripts/deploy.sh` 目前是本地编译 → 起容器。方案 A 落地后建议新增 `scripts/pull-and-run.sh`：
+- `scripts/deploy.sh`：本地编译 → 起容器（开发改代码时用）。
+- **`scripts/gh-deploy.sh`（已落地）**：从 GHCR 拉取 Actions 预构建镜像 → 本地 `pull + up --no-build`。三种版本模式：
 
-  ```bash
-  #!/usr/bin/env bash
-  # 从 GHCR 拉最新镜像并重启 knowledge-app
-  set -euo pipefail
-  cd "$(dirname "$0")/.."
-  export IMAGE_NAME="${IMAGE_NAME:-ghcr.io/mouhinu/knowledge_repository}"
-  export APP_VERSION="${APP_VERSION:-latest}"
-  docker compose pull knowledge-app
-  docker compose up -d --no-build knowledge-app
-  docker compose logs -f --tail=50 knowledge-app
-  ```
+  | 模式 | 目标 tag | 用途 |
+  |------|----------|------|
+  | 默认 | `sha-<7>`（main 最新提交短号，API 失败回退本地 `origin/main`；快照缺失再回退 `latest`） | 本地日常，快照可复现 |
+  | `--latest` | `latest` | 本地快速滚动 |
+  | `--sha 1a2b3c4` | `sha-1a2b3c4` | 回滚到指定快照 |
+  | `--prod v1.2.3` | `v1.2.3` | **生产预留通道**：由打 `v*` 标签触发 CI 产出；本脚本仅负责 pull + up，未接审批/回滚 |
+
+  其它能力：`--infra` 连带拉起基础设施；`--dry-run` 只打印不执行；健康门禁 `curl /actuator/health` 直到 `status:UP`；`IMAGE_NAME` / `REGISTRY` / `GHCR_USER` / `GHCR_TOKEN` 可用同名环境变量覆盖；未登录 GHCR 时脚本尝试用 git 凭据助手里的 PAT 自动 `docker login`。
 
 - 保留 `scripts/docker-build.sh` 作为「无网 / GHCR 拉取失败」时的兜底通道（走 `docker/Dockerfile.prebuilt`）。
 - 保留 `docker/Dockerfile.prebuilt` 单阶段镜像（主机 `mvn package` + 直接 COPY jar）：CI 挂或网络差时用；绕开容器内 `mvn dependency:go-offline` 挂 16min+ 的坑。
