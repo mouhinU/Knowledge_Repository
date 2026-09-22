@@ -46,7 +46,7 @@ APP_SERVICE="knowledge-app"
 COMPOSE_APP="docker-compose.yml"
 COMPOSE_INFRA="docker-compose.infra.yml"
 HEALTH_URL="${HEALTH_URL:-http://localhost:8091/actuator/health}"
-HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-150}"   # 冷启动实测约 124s，留足余量
+HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-240}"   # 冷启动实测 128~160s；tag 切换会 recreate 完整 JVM，取 240 兜底
 
 # ------------------------------------------------------------
 # 参数解析
