@@ -1,8 +1,9 @@
 # 文档解析策略模式重构 · 可执行方案
 
-> 版本：v1.4（2026-09-22）
+> 版本：v1.5（2026-09-23）
 > 交付策略：**先策略化，后视觉**。上传与解析已解耦（上传只存文件，解析手动触发），后续按需引入视觉模型。
 > 基线技术栈：COLA 5.0 · Spring Boot 3.4 · Java 21 · PDFBox 3.0.4 · Tika 3.1.0 · POI 5.x · LangChain4j 1.0.1（`langchain4j-open-ai`）
+> v1.5 增量：Phase C（PDF Hybrid + 持久缓存 + 异步增强）、Phase D（reparse 端点 + 成本护栏 + Micrometer 观测 + Grafana）、Phase R3 均代码完成并按阶段本地提交（未 push）；剩余仅统一验证与部署冒烟。
 > v1.4 增量：重组文档结构，增加落地进度总览，清理历史修正标记使其反映当前实现现状。
 > v1.3 增量：修正解析时机——上传只保存文件，解析由用户点击「解析预览」手动触发。
 > v1.2 增量：AGENTS.md 红线全量合规审查；视觉模型调整为 CPU 优先。
@@ -20,9 +21,9 @@
 | **v1.3** 解析时机修正 | ✅ 已完成 | V2026092223 | 上传移除 `extractText`，只做 `calculateChecksum` 去重；解析由「解析预览」触发 |
 | **Phase A2** 抽 SPI + Composite 顶替 | ✅ 代码完成（待统一部署） | — | `ContentExtractor` SPI + `ExtractionCandidate`/`ExtractionConfig`/`ExtractionStrategyEnum` + 6 个 `*ExtractionStrategy`(infra/extractor) + `CompositeExtractionService`(@Primary) + `ExtractorRoutingProperties`；删 `DocumentExtractionService`；7 测试类 24 用例绿 |
 | **Phase B** 视觉模型接入 | ✅ 代码完成（待统一部署） | — | `VisionChatGateway`(domain 端口)+`VisionChatRequest` VO+`OpenAiCompatibleVisionChatGateway`(infra/llm，复用 JDK HttpClient 不新增 GAV)+`VisionModelExtractionStrategy`(@Component，priority 70)+`PageRenderer`(PDFBox3 栅格化)+`LlmVisionProperties`(`knowledge.llm.vision.*` 默认 enabled=false)+`VisionModelConfig`(vision 专属 HttpClient+Gateway)+`InfraExecutorConfig.visionExecutor`(有界池)；9 用例绿（supports 矩阵/嵌入图优先/渲染回退/降级/字节上限 + 网关多模态 HTTP） |
-| **Phase C** PDF Hybrid + 持久缓存 | ⬜ 待实施 | — | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 |
-| **Phase D** Admin reparse + 观测 | ⬜ 待实施 | — | reparse 端点 + Micrometer 指标 + 成本护栏 |
-| **Phase R** 多模型连接治理 | 🔶 R1+R2 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；R2（`LlmResilience` per-role 熔断/重试 + `ResilientChatModel`/`ResilientEmbeddingModel`/`ResilientStreamingChatGateway` 装饰器 + resilience4j-micrometer 指标 + `knowledge.llm.resilience.*` 配置 + 5 用例契约测试）✅；vision 配置并入 B；R3 成本护栏/Grafana 待实施 |
+| **Phase C** PDF Hybrid + 持久缓存 | ✅ 代码完成（待统一部署） | — | `PdfHybridExtractionStrategy`(@Component priority 5，双门控默认关闭)+`ExtractionCacheKey`(5 列 record)+`ExtractionCacheRepository`(domain 端口)+`ExtractionCacheRepositoryImpl`(infra upsert)+`ExtractionCacheDO`/`Mapper`/`ExtractionResultCodec`(全 9 字段编解码)+迁移 `V19__create_extraction_cache.sql`(H2/MySQL 兼容)+`HybridExtractionProperties`(`knowledge.extractor.vision.*`)+`ExtractEnhanceAsyncCmdExe`(`visionExecutor` 异步)+持久缓存查在 PDFBox 主解析前(同文件二次 100% 命中)；16 用例绿 |
+| **Phase D** Admin reparse + 观测 | ✅ 代码完成（待统一部署） | — | `POST /api/admin/document/{key}/reparse`(202/ENQUEUED)+强制策略栈 `ExtractionStrategyStackParser`(域服务，白名单/去重/auto 回退)+`DocumentUploadRequest`/`ChunkUploadRequest.parsingStrategy`+`DocumentExtractionGateway` 非破坏性 default 重载+`Composite` @Override+成本护栏 `VisionBudgetGuard`(按日页数，log-only/enforce)+`HybridExtractionProperties.Budget`+观测 `ExtractionMetrics`(invocations/latency/cache·hit/miss/vision·invocations/failures)+Grafana `docs/grafana/extraction-dashboard.json`；parser 3 + ForcedStack 2 + hybrid metrics/budget + reparse controller 2 绿 |
+| **Phase R** 多模型连接治理 | ✅ R1+R2+R3 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；R2（`LlmResilience` per-role 熔断/重试 + `ResilientChatModel`/`ResilientEmbeddingModel`/`ResilientStreamingChatGateway` 装饰器 + resilience4j-micrometer 指标 + `knowledge.llm.resilience.*` 配置 + 5 用例契约测试）✅；vision 配置并入 B；R3 成本护栏（`VisionBudgetGuard` + `HybridExtractionProperties.Budget`）/Grafana（`extraction-dashboard.json`）随 Phase D 落地 ✅ |
 
 ### 0.2 当前实现概要（已完成部分）
 
@@ -37,12 +38,12 @@ Tika MIME 检测 → 构造 `ExtractionCandidate` → `resolveStack(mime)`（配
 
 ### 0.3 剩余待实施项（按优先级排序）
 
-1. **Phase A2**：抽 `ContentExtractor` SPI，把 6 个 Service 改为实现 SPI 的 Strategy，用 `CompositeExtractionService` 顶替当前 `DocumentExtractionService` 的 switch 分派
-2. **Phase R1**（可与 A2 并行）：三段式 LLM 配置 + per-role HttpClient bean + 密钥 env 边界
-3. **Phase B**：视觉 Gateway + Strategy + PageRenderer（默认 `enabled=false`）
-4. **Phase R2**（B 之前）：Resilience4j 熔断 + Micrometer 观测
-5. **Phase C**：PDF Hybrid + `kb_extraction_cache` DB 持久缓存 + 异步增强
-6. **Phase D + R3**：Admin reparse 端点 + 成本护栏 + dashboard
+所有设计阶段（Phase A2 / B / C / D，及 Phase R1+R2+R3）均已**代码完成并按阶段本地提交**（未 push）。剩余工作集中在收尾：
+
+1. **统一验证**：全反应堆 `./mvnw test` 期望 BUILD SUCCESS；确认 V19 迁移在 H2 与 MySQL 双库干净应用。
+2. **部署冒烟**：`.env` `APP_VERSION` 置新版本 → 预构建打包 → `docker build -f docker/Dockerfile.prebuilt` → `docker compose up -d --no-deps --force-recreate knowledge-app` → 等 JVM 预热后 `curl :8091/actuator/health` 期望 UP。
+3. **观测落地前置（可选）**：`docs/grafana/extraction-dashboard.json` 依赖 `micrometer-registry-prometheus` 暴露 `/actuator/prometheus`；该依赖属 AGENTS.md 红线 #10（框架/依赖变更需提案审批），当前仅 `ExtractionMetrics` 已把指标写入 `MeterRegistry`，dashboard 待该 registry 引入后方可被抓取。
+4. **视觉链路端到端联调（可选）**：`knowledge.extractor.vision.enabled=true` + 配置视觉模型 base-url/key 后，验证扫描件 hybrid 增强与 `kb_extraction_cache` 命中；默认关闭不影响主流程。
 
 ---
 
@@ -58,13 +59,13 @@ flowchart LR
         A2 --> A3[PdfBox / Docx / Xlsx / Pptx / PlainText / TikaFallback]
     end
 
-    subgraph PhaseA2["Phase A2 待做：SPI 化"]
+    subgraph PhaseA2["Phase A2 代码完成：SPI 化"]
         B1[Preview / Reindex] --> B2[CompositeExtractionService<br/>implements DocumentExtractionGateway]
         B2 --> B3[按 MIME + priority 路由<br/>List of ContentExtractor]
         B3 --> B4[6 个 Strategy<br/>implements ContentExtractor]
     end
 
-    subgraph PhaseBC["Phase B/C 待做：+视觉与融合"]
+    subgraph PhaseBC["Phase B/C 代码完成：+视觉与融合"]
         C1[Preview / Reindex] --> C2{routing 配置}
         C2 -->|PDF 且 vision.on| C3[PdfHybridExtractionStrategy]
         C3 --> C4[PdfBoxExtractionStrategy 主]
@@ -203,14 +204,14 @@ gantt
     section 已完成
     Phase A1 拆类到 6 个 Service          :done, a1, 2026-09-22, 1d
     v1.3 解析时机修正                      :done, v13, 2026-09-22, 1d
-    section 待实施
-    Phase A2 抽 ContentExtractor SPI      :a2, 2026-09-23, 2d
-    Phase R1 配置三段式 + per-role HC     :r1, 2026-09-23, 2d
-    Phase B  视觉 Gateway + Strategy      :b,  after a2, 4d
-    Phase R2 熔断 / 重试 / 观测           :r2, after a2, 2d
-    Phase C  Hybrid + 缓存 + 异步增强     :c,  after b, 4d
-    Phase D  Admin reparse + 观测          :d,  after c, 2d
-    Phase R3 成本护栏 + dashboard         :r3, after d, 1d
+    section 代码完成（待统一部署）
+    Phase A2 抽 ContentExtractor SPI      :done, a2, 2026-09-23, 2d
+    Phase R1 配置三段式 + per-role HC     :done, r1, 2026-09-23, 2d
+    Phase B  视觉 Gateway + Strategy      :done, b,  after a2, 4d
+    Phase R2 熔断 / 重试 / 观测           :done, r2, after a2, 2d
+    Phase C  Hybrid + 缓存 + 异步增强     :done, c,  after b, 4d
+    Phase D  Admin reparse + 观测         :done, d,  after c, 2d
+    Phase R3 成本护栏 + dashboard         :done, r3, after d, 1d
     section 验收
     全 reactor mvn test BUILD SUCCESS     :milestone, after a2, 0d
     灰度扫描件验证融合质量                 :milestone, after c, 0d
@@ -218,7 +219,7 @@ gantt
 
 ---
 
-## 2. Phase A2：SPI 化重构（⬜ 待实施）
+## 2. Phase A2：SPI 化重构（✅ 代码完成）
 
 ### 2.1 目标
 
@@ -386,7 +387,7 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
 ---
 
-## 3. Phase B：视觉模型接入（⬜ 待实施，默认关闭）
+## 3. Phase B：视觉模型接入（✅ 代码完成，默认关闭）
 
 ### 3.1 目标
 
@@ -506,7 +507,7 @@ flowchart LR
 
 ---
 
-## 4. Phase C：PDF Hybrid + 持久缓存（⬜ 待实施）
+## 4. Phase C：PDF Hybrid + 持久缓存（✅ 代码完成）
 
 ### 4.1 目标
 
@@ -568,7 +569,7 @@ knowledge.extractor.vision.enhance-mode:
 
 ---
 
-## 5. Phase D：Admin 重解析 + 观测（⬜ 待实施）
+## 5. Phase D：Admin 重解析 + 观测（✅ 代码完成）
 
 ### 5.1 Admin 端点
 
@@ -714,7 +715,7 @@ knowledge:
 
 | # | 决策 | 理由 | 备选 |
 |---|---|---|---|
-| D1 | 分两 PR（A1 拆类 ✅ / A2 抽 SPI ⬜） | 每 PR 独立可回滚，风险最小 | 一步到位：diff 巨大难 review |
+| D1 | 分两 PR（A1 拆类 ✅ / A2 抽 SPI ✅） | 每 PR 独立可回滚，风险最小 | 一步到位：diff 巨大难 review |
 | D2 | `ExtractionResult` record 不动 | 下游 chunkDocument + 所有测试都吃它 | 加 pageProvenance 破坏测试 |
 | D3 | 视觉走 `langchain4j-open-ai` 内建多模态 | 无新 GAV；OpenAI 兼容协议 | 手写 HTTP：代码重复 |
 | D4 | 视觉默认 `enabled=false` | 灰度只需配置 | 默认开：需更多护栏 |
@@ -733,12 +734,12 @@ knowledge:
 |---|---|---|---|
 | M1 · Phase A1 | 6 个 `*ExtractionService` + 委托 | 2d | ✅ 完成 |
 | M1' · 解析时机修正 | 上传不解析 + 预览触发解析 | 0.5d | ✅ 完成 |
-| M2 · Phase A2 | `ContentExtractor` SPI + `CompositeExtractionService` | 2d | ⬜ |
-| M2' · Phase R1 | 三段配置 + per-role HttpClient + 密钥边界 | 2d | ⬜ |
-| M3 · Phase B | `VisionChatGateway` + Strategy + PageRenderer | 4-5d | ⬜ |
-| M3' · Phase R2 | Resilience4j 熔断 + Micrometer 观测 | 2d | ⬜ |
-| M4 · Phase C | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 | 4-5d | ⬜ |
-| M5 · Phase D+R3 | Admin reparse + 成本护栏 + dashboard | 2-3d | ⬜ |
+| M2 · Phase A2 | `ContentExtractor` SPI + `CompositeExtractionService` | 2d | ✅ 代码完成 |
+| M2' · Phase R1 | 三段配置 + per-role HttpClient + 密钥边界 | 2d | ✅ 代码完成 |
+| M3 · Phase B | `VisionChatGateway` + Strategy + PageRenderer | 4-5d | ✅ 代码完成 |
+| M3' · Phase R2 | Resilience4j 熔断 + Micrometer 观测 | 2d | ✅ 代码完成 |
+| M4 · Phase C | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 | 4-5d | ✅ 代码完成 |
+| M5 · Phase D+R3 | Admin reparse + 成本护栏 + dashboard | 2-3d | ✅ 代码完成 |
 
 **验收标准（Phase A 全完成后）**：
 1. `DocumentExtractionService` 被 `CompositeExtractionService` 顶替或删除；
