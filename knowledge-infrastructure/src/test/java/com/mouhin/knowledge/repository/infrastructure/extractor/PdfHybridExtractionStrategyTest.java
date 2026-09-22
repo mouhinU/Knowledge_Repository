@@ -17,6 +17,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionConfig
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.infrastructure.config.HybridExtractionProperties;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
+import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +44,9 @@ class PdfHybridExtractionStrategyTest {
     private ExtractionCacheRepository cacheRepository;
     private LlmVisionProperties visionProps;
     private HybridExtractionProperties props;
+    private ExtractionMetrics metrics;
+    private SimpleMeterRegistry meterRegistry;
+    private VisionBudgetGuard budgetGuard;
     private PdfHybridExtractionStrategy strategy;
     private Path realFile;
 
@@ -53,9 +58,19 @@ class PdfHybridExtractionStrategyTest {
         cacheRepository = Mockito.mock(ExtractionCacheRepository.class);
         visionProps = new LlmVisionProperties();
         props = new HybridExtractionProperties();
+        meterRegistry = new SimpleMeterRegistry();
+        metrics = new ExtractionMetrics(meterRegistry);
+        budgetGuard = new VisionBudgetGuard();
         strategy =
                 new PdfHybridExtractionStrategy(
-                        pdfBox, gateway, pageRenderer, cacheRepository, visionProps, props);
+                        pdfBox,
+                        gateway,
+                        pageRenderer,
+                        cacheRepository,
+                        visionProps,
+                        props,
+                        metrics,
+                        budgetGuard);
         realFile = Files.createTempFile("hybrid", ".pdf");
         Files.write(realFile, new byte[] {1, 2, 3, 4});
     }
@@ -213,6 +228,61 @@ class PdfHybridExtractionStrategyTest {
             when(gateway.chatWithImages(any())).thenReturn("补全");
             ExtractionResult result = strategy.extract(candidate(List.of(img(1))));
             assertThat(result.pageTexts().get(0)).startsWith(LONG).contains("补全");
+        }
+
+        @Test
+        @DisplayName("缓存未命中 → cache.miss + vision.invocations 计数")
+        void recordsMissAndVisionMetrics() throws IOException {
+            props.setEnabled(true);
+            when(cacheRepository.find(any(ExtractionCacheKey.class))).thenReturn(Optional.empty());
+            when(pdfBox.extract(any())).thenReturn(base(List.of(SHORT), true));
+            when(gateway.chatWithImages(any())).thenReturn("视觉");
+            strategy.extract(candidate(List.of(img(1))));
+            assertThat(
+                            meterRegistry
+                                    .get("knowledge.extraction.cache.miss")
+                                    .tag("strategy", "PDF_HYBRID")
+                                    .counter()
+                                    .count())
+                    .isEqualTo(1.0);
+            assertThat(
+                            meterRegistry
+                                    .get("knowledge.extraction.vision.invocations")
+                                    .tag("model", visionProps.getModelName())
+                                    .counter()
+                                    .count())
+                    .isEqualTo(1.0);
+        }
+
+        @Test
+        @DisplayName("缓存命中 → cache.hit 计数且不调视觉")
+        void recordsCacheHitMetric() throws IOException {
+            props.setEnabled(true);
+            when(cacheRepository.find(any(ExtractionCacheKey.class)))
+                    .thenReturn(Optional.of(base(List.of("命中"), true)));
+            strategy.extract(candidate(List.of()));
+            assertThat(
+                            meterRegistry
+                                    .get("knowledge.extraction.cache.hit")
+                                    .tag("strategy", "PDF_HYBRID")
+                                    .counter()
+                                    .count())
+                    .isEqualTo(1.0);
+            verify(gateway, never()).chatWithImages(any());
+        }
+
+        @Test
+        @DisplayName("成本护栏 enforce + 额度=0 → 跳过视觉并追加护栏 warning")
+        void budgetEnforceSkipsWhenExceeded() throws IOException {
+            props.setEnabled(true);
+            props.getBudget().setEnforcement("enforce");
+            props.getBudget().setDailyPagesGlobal(0);
+            when(cacheRepository.find(any(ExtractionCacheKey.class))).thenReturn(Optional.empty());
+            when(pdfBox.extract(any())).thenReturn(base(List.of(SHORT), true));
+            ExtractionResult result = strategy.extract(candidate(List.of(img(1))));
+            assertThat(result.pageTexts()).containsExactly(SHORT);
+            assertThat(result.warnings()).anySatisfy(w -> assertThat(w).contains("成本护栏"));
+            verify(gateway, never()).chatWithImages(any());
         }
     }
 }

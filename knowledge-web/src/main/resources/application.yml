@@ -196,6 +196,10 @@ knowledge:
       merge: replace_lowtext             # replace_lowtext | append | replace_all
       timeout-seconds: 60
       max-total-seconds-per-doc: 300
+      # 成本护栏（Phase D）：默认极大额度 + log-only，实质不限流；置 enforce 才拦截超限页跳过视觉
+      budget:
+        daily-pages-global: ${EXTRACTOR_VISION_BUDGET_DAILY_PAGES:2147483647}
+        enforcement: ${EXTRACTOR_VISION_BUDGET_ENFORCEMENT:log-only}  # log-only | enforce
 
   # ---------- 黑板模式 Agent 配置 ----------
   blackboard:

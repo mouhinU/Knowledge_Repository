@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +52,18 @@ public class ExtractEnhanceAsyncCmdExe {
      * @return 异步任务句柄（仅便于测试/编排观察完成，调用方可忽略）
      */
     public CompletableFuture<Void> execute(String documentKey) {
-        return CompletableFuture.runAsync(() -> enhance(documentKey), visionExecutor);
+        return execute(documentKey, List.of());
+    }
+
+    /**
+     * 提交后台视觉增强（可强制解析策略栈），立即返回。
+     *
+     * @param documentKey 文档标识
+     * @param forcedStack 强制策略名栈（已白名单校验）；为空走配置默认路由
+     * @return 异步任务句柄
+     */
+    public CompletableFuture<Void> execute(String documentKey, List<String> forcedStack) {
+        return CompletableFuture.runAsync(() -> enhance(documentKey, forcedStack), visionExecutor);
     }
 
     /**
@@ -61,6 +73,17 @@ public class ExtractEnhanceAsyncCmdExe {
      * @return 增强后的提取结果；文档或存储文件不存在时返回 {@code null}
      */
     public ExtractionResult enhance(String documentKey) {
+        return enhance(documentKey, List.of());
+    }
+
+    /**
+     * 同步执行增强核心（可强制解析策略栈）。
+     *
+     * @param documentKey 文档标识
+     * @param forcedStack 强制策略名栈（已白名单校验）；为空走配置默认路由
+     * @return 增强后的提取结果；文档或存储文件不存在时返回 {@code null}
+     */
+    public ExtractionResult enhance(String documentKey, List<String> forcedStack) {
         Document document = documentGateway.findByDocumentKey(documentKey).orElse(null);
         if (document == null) {
             log.warn("vision enhance skipped: document not found {}", documentKey);
@@ -72,9 +95,13 @@ public class ExtractEnhanceAsyncCmdExe {
             return null;
         }
         try {
+            long size = Files.size(storagePath);
             ExtractionResult result =
-                    documentExtractionService.extractText(
-                            storagePath, Files.size(storagePath), document.getFileName());
+                    (forcedStack == null || forcedStack.isEmpty())
+                            ? documentExtractionService.extractText(
+                                    storagePath, size, document.getFileName())
+                            : documentExtractionService.extractText(
+                                    storagePath, size, document.getFileName(), forcedStack);
             extractionCache.put(documentKey, result);
             log.info(
                     "vision enhance done for {}: {} pages, format={}",

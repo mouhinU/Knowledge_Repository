@@ -12,6 +12,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatReques
 import com.mouhin.knowledge.repository.infrastructure.config.HybridExtractionProperties;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
+import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -59,6 +60,8 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
     private final ExtractionCacheRepository cacheRepository;
     private final LlmVisionProperties visionProps;
     private final HybridExtractionProperties props;
+    private final ExtractionMetrics metrics;
+    private final VisionBudgetGuard budgetGuard;
 
     public PdfHybridExtractionStrategy(
             PdfBoxExtractionStrategy pdfBox,
@@ -66,13 +69,17 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
             PageRenderer pageRenderer,
             ExtractionCacheRepository cacheRepository,
             LlmVisionProperties visionProps,
-            HybridExtractionProperties props) {
+            HybridExtractionProperties props,
+            ExtractionMetrics metrics,
+            VisionBudgetGuard budgetGuard) {
         this.pdfBox = pdfBox;
         this.visionChatGateway = visionChatGateway;
         this.pageRenderer = pageRenderer;
         this.cacheRepository = cacheRepository;
         this.visionProps = visionProps;
         this.props = props;
+        this.metrics = metrics;
+        this.budgetGuard = budgetGuard;
     }
 
     @Override
@@ -99,8 +106,10 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         Optional<ExtractionResult> hit = cacheRepository.find(key);
         if (hit.isPresent()) {
             log.debug("pdf-hybrid cache hit: {}", key.checksum());
+            metrics.recordCacheHit(name());
             return hit.get();
         }
+        metrics.recordCacheMiss(name());
         ExtractionResult base = pdfBox.extract(candidate);
         List<String> notes = new ArrayList<>();
         List<String> merged = enhance(candidate, base, notes);
@@ -122,9 +131,17 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
                         + Duration.ofSeconds(Math.max(props.getMaxTotalSecondsPerDoc(), 1))
                                 .toNanos();
         int degraded = 0;
+        boolean enforce =
+                HybridExtractionProperties.Budget.ENFORCEMENT_ENFORCE.equals(
+                        props.getBudget().getEnforcement());
+        int dailyLimit = props.getBudget().getDailyPagesGlobal();
         for (int page : targets) {
             if (System.nanoTime() > deadline) {
                 notes.add("视觉预算耗尽，剩余页保留文本层: 已处理 " + (targets.size() - degraded));
+                break;
+            }
+            if (!budgetGuard.tryConsume(1, dailyLimit, enforce)) {
+                notes.add("视觉成本护栏触发，剩余页保留文本层");
                 break;
             }
             String vision = recognizePage(candidate, page);
@@ -170,10 +187,12 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         if (image == null) {
             return null;
         }
+        metrics.recordVisionInvocation(visionProps.getModelName());
         try {
             return visionChatGateway.chatWithImages(
                     new VisionChatRequest(visionProps.getPrompt(), List.of(image)));
         } catch (RuntimeException e) {
+            metrics.recordVisionFailure("error");
             log.warn(
                     "pdf-hybrid vision page {} failed, keep text layer: {}",
                     pageIndex,

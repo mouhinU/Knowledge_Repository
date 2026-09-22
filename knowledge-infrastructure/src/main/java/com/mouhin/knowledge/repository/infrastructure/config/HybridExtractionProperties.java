@@ -52,6 +52,9 @@ public class HybridExtractionProperties {
     /** 单文档视觉增强总时长上限（秒）。 */
     private int maxTotalSecondsPerDoc = 300;
 
+    /** 视觉成本护栏（Phase D）。 */
+    private Budget budget = new Budget();
+
     /** 触发条件常量：仅疑似扫描页。 */
     public static final String TRIGGER_SCANNED_ONLY = "scanned_only";
 
@@ -60,4 +63,30 @@ public class HybridExtractionProperties {
 
     /** 触发条件常量：全页过视觉。 */
     public static final String TRIGGER_ALWAYS = "always";
+
+    /**
+     * 视觉成本护栏配置。
+     *
+     * <p>当前以「全局每日视觉处理页数」为闸（{@code dailyPagesGlobal}）：异步增强路径尚未携带调用主体（userId），故先做全局限流， 待主体透传后再细化为
+     * per-user。{@code enforcement=log-only} 仅告警不拦截（默认，零副作用）； {@code enforce} 时超限页跳过视觉、保留文本层。
+     *
+     * @author mouhinU
+     * @date 2026-09-23
+     */
+    @Getter
+    @Setter
+    public static class Budget {
+
+        /** 全局每日视觉处理页数上限（默认极大 = 实质不限流）。 */
+        private int dailyPagesGlobal = Integer.MAX_VALUE;
+
+        /** 执行模式：log-only（仅告警，默认）| enforce（超限拦截）。 */
+        private String enforcement = ENFORCEMENT_LOG_ONLY;
+
+        /** 仅告警不拦截。 */
+        public static final String ENFORCEMENT_LOG_ONLY = "log-only";
+
+        /** 超限拦截（跳过视觉、保留文本层）。 */
+        public static final String ENFORCEMENT_ENFORCE = "enforce";
+    }
 }

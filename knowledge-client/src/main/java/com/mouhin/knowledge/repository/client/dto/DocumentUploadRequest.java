@@ -26,6 +26,11 @@ public class DocumentUploadRequest {
     /** 文档分类（如：工作、学习、休闲） */
     private String category;
 
+    /**
+     * 可选：强制指定解析策略栈（{@code ExtractionStrategyEnum} 枚举名，逗号分隔）。留空或 {@code auto} 走配置默认路由；非法枚举名按白名单过滤丢弃。
+     */
+    private String parsingStrategy;
+
     public String getOwnerId() {
         return ownerId;
     }
@@ -72,5 +77,13 @@ public class DocumentUploadRequest {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getParsingStrategy() {
+        return parsingStrategy;
+    }
+
+    public void setParsingStrategy(String parsingStrategy) {
+        this.parsingStrategy = parsingStrategy;
     }
 }

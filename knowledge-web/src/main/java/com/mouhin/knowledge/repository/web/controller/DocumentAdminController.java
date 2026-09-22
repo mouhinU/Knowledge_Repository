@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.application.executor.docingestion.ExtractEnhanceAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.IndexAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.IndexCustomChunksAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.ReindexAsyncCmdExe;
@@ -12,6 +13,7 @@ import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
 import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
+import com.mouhin.knowledge.repository.domain.service.ExtractionStrategyStackParser;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class DocumentAdminController {
     private final IndexAsyncCmdExe indexAsyncCmdExe;
     private final IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe;
     private final ReindexAsyncCmdExe reindexAsyncCmdExe;
+    private final ExtractEnhanceAsyncCmdExe extractEnhanceAsyncCmdExe;
     private final IndexProgressStore indexProgressStore;
 
     public DocumentAdminController(
@@ -49,12 +52,14 @@ public class DocumentAdminController {
             IndexAsyncCmdExe indexAsyncCmdExe,
             IndexCustomChunksAsyncCmdExe indexCustomChunksAsyncCmdExe,
             ReindexAsyncCmdExe reindexAsyncCmdExe,
+            ExtractEnhanceAsyncCmdExe extractEnhanceAsyncCmdExe,
             IndexProgressStore indexProgressStore) {
         this.documentService = documentService;
         this.ingestionService = ingestionService;
         this.indexAsyncCmdExe = indexAsyncCmdExe;
         this.indexCustomChunksAsyncCmdExe = indexCustomChunksAsyncCmdExe;
         this.reindexAsyncCmdExe = reindexAsyncCmdExe;
+        this.extractEnhanceAsyncCmdExe = extractEnhanceAsyncCmdExe;
         this.indexProgressStore = indexProgressStore;
     }
 
@@ -178,6 +183,28 @@ public class DocumentAdminController {
                         STATUS_STARTED,
                         "message",
                         "Reindexing started. Connect to SSE for progress."));
+    }
+
+    /**
+     * 重新解析（异步，不阻塞）。
+     *
+     * <p>依当前配置（或 {@code strategy} 强制策略栈）在后台重跑文本提取：命中 PDF 混合策略时按页补全视觉结果并回填缓存。 立即返回 {@code 202
+     * ENQUEUED}；解析为长耗时外部 IO，不落库事务（红线 #8）。{@code strategy} 为 {@code ExtractionStrategyEnum} 枚举名
+     * CSV，非法值按白名单丢弃，留空/{@code auto} 走配置默认路由。
+     */
+    @PostMapping("/{documentKey}/reparse")
+    public ResponseEntity<Map<String, String>> reparse(
+            @PathVariable String documentKey,
+            @RequestParam(defaultValue = ExtractionStrategyStackParser.AUTO) String strategy) {
+        List<String> forcedStack = ExtractionStrategyStackParser.parse(strategy);
+        log.info(
+                "Reparse enqueued for document {}: strategy={}, forcedStack={}",
+                documentKey,
+                strategy,
+                forcedStack);
+        extractEnhanceAsyncCmdExe.execute(documentKey, forcedStack);
+        return ResponseEntity.accepted()
+                .body(Map.of(FIELD_DOCUMENT_KEY, documentKey, FIELD_STATUS, "ENQUEUED"));
     }
 
     /** 解析预览（基于已上传文档，不入库） */

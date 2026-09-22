@@ -111,6 +111,42 @@ class CompositeExtractionServiceTest {
     }
 
     @Nested
+    @DisplayName("强制策略栈（reparse）")
+    class ForcedStack {
+
+        @Test
+        @DisplayName("forcedStack 命中未内置注册的策略")
+        void forcedStackRunsCustom() throws IOException {
+            Path file = writeTextFile("content");
+            StubExtractor customB = new StubExtractor("CUSTOM_B", 1, c -> true, returns());
+            CompositeExtractionService composite =
+                    new CompositeExtractionService(
+                            List.of(customB), new ExtractorRoutingProperties());
+
+            ExtractionResult result =
+                    composite.extractText(file, Files.size(file), "doc.txt", List.of("CUSTOM_B"));
+
+            assertThat(result.detectedFormat()).isEqualTo("CUSTOM_B");
+            assertThat(result.pageTexts()).containsExactly("from:CUSTOM_B");
+        }
+
+        @Test
+        @DisplayName("空 forcedStack → 回退配置默认，未注册策略不被选中 → 空结果")
+        void emptyForcedStackFallsBackToConfig() throws IOException {
+            Path file = writeTextFile("content");
+            StubExtractor customB = new StubExtractor("CUSTOM_B", 1, c -> true, returns());
+            CompositeExtractionService composite =
+                    new CompositeExtractionService(
+                            List.of(customB), new ExtractorRoutingProperties());
+
+            ExtractionResult result =
+                    composite.extractText(file, Files.size(file), "doc.txt", List.of());
+
+            assertThat(result.detectedFormat()).isEqualTo("empty");
+        }
+    }
+
+    @Nested
     @DisplayName("配置覆盖与回退")
     class ConfigAndFallback {
 

@@ -23,6 +23,11 @@ public class ChunkUploadRequest {
     /** 文件总大小（字节） */
     private Long fileSize;
 
+    /**
+     * 可选：强制指定解析策略栈（{@code ExtractionStrategyEnum} 枚举名，逗号分隔）。留空或 {@code auto} 走配置默认路由；非法枚举名按白名单过滤丢弃。
+     */
+    private String parsingStrategy;
+
     public String getUploadId() {
         return uploadId;
     }
@@ -61,5 +66,13 @@ public class ChunkUploadRequest {
 
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public String getParsingStrategy() {
+        return parsingStrategy;
+    }
+
+    public void setParsingStrategy(String parsingStrategy) {
+        this.parsingStrategy = parsingStrategy;
     }
 }

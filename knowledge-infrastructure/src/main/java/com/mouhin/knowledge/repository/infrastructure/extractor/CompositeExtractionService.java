@@ -7,9 +7,11 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.config.ExtractorRoutingProperties;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
+import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -51,11 +54,21 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
     private final Map<String, ContentExtractor> extractorByName;
     private final ExtractorRoutingProperties routing;
+    private final ExtractionMetrics metrics;
     private final Tika tika = new Tika();
 
     public CompositeExtractionService(
             List<ContentExtractor> extractors, ExtractorRoutingProperties routing) {
+        this(extractors, routing, null);
+    }
+
+    @Autowired
+    public CompositeExtractionService(
+            List<ContentExtractor> extractors,
+            ExtractorRoutingProperties routing,
+            ExtractionMetrics metrics) {
         this.routing = routing;
+        this.metrics = metrics;
         this.extractorByName =
                 extractors.stream()
                         .collect(
@@ -88,6 +101,13 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
     @Override
     public ExtractionResult extractText(Path filePath, long fileSize, String fileName)
             throws IOException {
+        return extractText(filePath, fileSize, fileName, List.of());
+    }
+
+    @Override
+    public ExtractionResult extractText(
+            Path filePath, long fileSize, String fileName, List<String> forcedStrategyStack)
+            throws IOException {
         validateFile(filePath, fileSize, fileName);
         Path sanitized = filePath.toAbsolutePath().normalize();
         String mimeType = tika.detect(sanitized);
@@ -95,19 +115,33 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
         ExtractionCandidate candidate =
                 ExtractionCandidate.basic(sanitized, fileSize, fileName, mimeType);
-        List<ContentExtractor> stack = resolveStack(mimeType);
+        List<ContentExtractor> stack =
+                (forcedStrategyStack == null || forcedStrategyStack.isEmpty())
+                        ? resolveStack(mimeType)
+                        : resolveStack(forcedStrategyStack);
+        return runStack(stack, candidate, mimeType);
+    }
 
+    /** 顺序尝试栈内命中策略：成功记 ok+耗时并返回；IO 异常记 fallback 并继续；全失败冒泡最后异常。 */
+    private ExtractionResult runStack(
+            List<ContentExtractor> stack, ExtractionCandidate candidate, String mimeType)
+            throws IOException {
         IOException lastError = null;
         for (ContentExtractor extractor : stack) {
             if (!extractor.supports(candidate)) {
                 continue;
             }
+            long start = System.nanoTime();
             try {
                 ExtractionResult result = extractor.extract(candidate);
-                log.debug("extract ok [strategy={}, doc={}]", extractor.name(), fileName);
+                recordInvocation(extractor.name(), mimeType, "ok");
+                recordLatency(extractor.name(), Duration.ofNanos(System.nanoTime() - start));
+                log.debug(
+                        "extract ok [strategy={}, doc={}]", extractor.name(), candidate.fileName());
                 return result;
             } catch (IOException e) {
                 lastError = e;
+                recordInvocation(extractor.name(), mimeType, "fallback");
                 log.warn(
                         "extract failed, fallback [strategy={}, msg={}]",
                         extractor.name(),
@@ -115,9 +149,23 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
             }
         }
         if (lastError != null) {
+            recordInvocation("none", mimeType, "error");
             throw lastError;
         }
+        recordInvocation("none", mimeType, "empty");
         return ExtractionResult.empty();
+    }
+
+    private void recordInvocation(String strategy, String mime, String outcome) {
+        if (metrics != null) {
+            metrics.recordInvocation(strategy, mime, outcome);
+        }
+    }
+
+    private void recordLatency(String strategy, Duration duration) {
+        if (metrics != null) {
+            metrics.recordLatency(strategy, duration);
+        }
     }
 
     @Override
@@ -136,6 +184,15 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
     private List<ContentExtractor> resolveStack(String mimeType) {
         List<String> names = configuredStack(mimeType);
         List<ContentExtractor> resolved = filterEnabled(names);
+        if (resolved.isEmpty()) {
+            resolved = filterEnabled(routing.getDefaultStack());
+        }
+        return resolved;
+    }
+
+    /** 解析按请求强制指定的策略名栈（名称已在上游按白名单校验）；全部未启用/未注册时回退默认栈。 */
+    private List<ContentExtractor> resolveStack(List<String> forcedNames) {
+        List<ContentExtractor> resolved = filterEnabled(forcedNames);
         if (resolved.isEmpty()) {
             resolved = filterEnabled(routing.getDefaultStack());
         }

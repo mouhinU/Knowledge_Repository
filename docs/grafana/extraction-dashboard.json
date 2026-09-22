@@ -1,0 +1,89 @@
+{
+  "annotations": {"list": []},
+  "description": "文档解析可观测面板（Phase D）。数据源假定为 Prometheus 抓取 Spring Boot actuator；启用需在 knowledge-web 引入 micrometer-registry-prometheus 并暴露 /actuator/prometheus（该依赖变更受 AGENTS.md 红线 #10，需走变更提案，默认未纳入本阶段）。指标前缀 knowledge.extraction.*，标签仅 strategy/mime/outcome/reason/model，不含高基数字段。",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "title": "文档解析可观测（Extraction）",
+  "uid": "knowledge-extraction",
+  "tags": ["knowledge", "extraction"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "解析调用量（按策略/结果）",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (strategy, outcome) (rate(knowledge_extraction_invocations_total[$__rate_interval]))",
+          "legendFormat": "{{strategy}} · {{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "解析耗时 P50 / P95 / P99（按策略）",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, strategy) (rate(knowledge_extraction_latency_bucket[$__rate_interval])))",
+          "legendFormat": "P50 {{strategy}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, strategy) (rate(knowledge_extraction_latency_bucket[$__rate_interval])))",
+          "legendFormat": "P95 {{strategy}}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, strategy) (rate(knowledge_extraction_latency_bucket[$__rate_interval])))",
+          "legendFormat": "P99 {{strategy}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "持久缓存命中 / 未命中",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (strategy) (rate(knowledge_extraction_cache_hit_total[$__rate_interval]))",
+          "legendFormat": "hit {{strategy}}"
+        },
+        {
+          "expr": "sum by (strategy) (rate(knowledge_extraction_cache_miss_total[$__rate_interval]))",
+          "legendFormat": "miss {{strategy}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "视觉模型调用与失败（成本 / 稳定性）",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (model) (rate(knowledge_extraction_vision_invocations_total[$__rate_interval]))",
+          "legendFormat": "invocations {{model}}"
+        },
+        {
+          "expr": "sum by (reason) (rate(knowledge_extraction_vision_failures_total[$__rate_interval]))",
+          "legendFormat": "failures {{reason}}"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {}
+      }
+    ]
+  },
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"}
+}
