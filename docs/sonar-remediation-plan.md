@@ -1,0 +1,224 @@
+# SonarCloud Quality Gate 整改路线图
+
+> 快照时间：2026-09-22 · 分支：`main` · 泄漏周期起点：2026-09-03
+> 数据源：`/api/issues/search?sinceLeakPeriod=true&issueStatuses=OPEN,CONFIRMED`
+> 相关规范：[AGENTS.md §0/§1](../AGENTS.md)、[docs/code-review-checklist.md](code-review-checklist.md)
+
+## 一、现状
+
+**Quality Gate**：`Sonar way`（内置），共 6 条卡点，3 条不通过。
+
+| 条件 | 阈值 | 当前 | 结论 |
+|---|---|---|---|
+| `new_reliability_rating` | ≤ A (1) | **C (3)** | ❌ |
+| `new_security_rating` | ≤ A (1) | **C (3)** | ❌ |
+| `new_duplicated_lines_density` | ≤ 3% | **3.16%** (1464 / 46351) | ❌ |
+| `new_maintainability_rating` | ≤ A (1) | A (1) | ✅ |
+| `new_security_hotspots_reviewed` | = 100% | 100% | ✅ |
+| `new_coverage` | ≥ 80% | 未上报 | ⚪ 跳过 |
+
+**新代码 issue 总盘（490）**
+
+- 按软件质量拆分：RELIABILITY 影响 183 条（MEDIUM 100 / LOW 25 / INFO 58），SECURITY 影响 2 条（MEDIUM），MAINTAINABILITY 影响 399 条（当前评级已 A，**不需要处理**）。
+- 按类型拆分：CODE_SMELL 439 / BUG 49 / VULNERABILITY 2。
+- 按扩展名：`.java` 311 / `.html` 165 / `.css` 14。
+
+**要回绿只需清 127 条 QG 阻塞项**（RELIABILITY LOW+MED 125 + SECURITY MED 2），**外加压降重复度**。剩余 363 条 MAINTAINABILITY smell 不阻塞，另案排期。
+
+## 二、按规则汇总的修复清单
+
+### 2.1 Web:InputWithoutLabelCheck — 30 条 · MEDIUM
+
+**现象**：`<input>` 元素没有可访问的 label 关联。
+
+**分布**：`documents.html ×12` · `ai-exam.html ×5` · `ai-writing.html ×3` · `search.html ×3` · `wrong-answers.html ×3` · `exam-review.html ×2` · `exam.html ×2`。
+
+**修法**：给每个 `<input id="X">` 补一种关联：
+1. 首选：让可见 `<label>` 加 `for="X"`；
+2. 或：用 `<label>` 直接包裹 `<input>`（父 label 视为关联）；
+3. 兜底：给 `<input>` 加 `aria-label="…"`（当没有可见标签时用）。
+
+**工时**：~30 × 2min = 1 小时。风险：极低（不改行为，只补属性）。
+
+### 2.2 Web:S6853 — 25 条 · MEDIUM
+
+**现象**：`<button>` 未显式指定 `type`，在 `<form>` 中默认 `submit`。
+
+**分布**：`documents.html ×9` · `ai-exam.html ×5` · `wrong-answers.html ×3` · `ai-writing.html ×2` · `exam-review.html ×2` · `search.html ×2` · `exam.html ×2`。
+
+**修法**：给非表单提交的 `<button>` 一律补 `type="button"`；确有提交意图的用 `type="submit"`。
+
+**工时**：~25 × 1min = 30 分钟。风险：低，但注意 `search.html` 若原意是提交，误改 `type="button"` 会破坏搜索按钮 —— 需要逐个肉眼确认。
+
+### 2.3 Web:S6848 — 18 条 · MEDIUM
+
+**现象**：非原生交互元素（如可点击的 `<div class="agent-panel-header">`、modal overlay）缺少 `role` + 键盘支持。
+
+**分布**：`ai-exam.html ×9` · `ai-writing.html ×5` · `documents.html ×2` · `exam-review.html ×1` · `wrong-answers.html ×1`。
+
+**修法**（两种模式）：
+- **折叠面板**（`<div class="agent-panel-header" onclick="…toggle('open')">`）：加 `role="button"` `tabindex="0"` + `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"`。样板见 `ai-exam.html:521-523`（score-rule 弹窗已用同款）。
+- **遮罩关闭**（`<div class="modal-overlay" onclick="if(event.target===this)close…">`）：加 `role="presentation"` `tabindex="-1"` + `onkeydown="if(event.key==='Escape')close…()"`。
+
+**工时**：~18 × 3min = 1 小时。风险：中 —— 键盘 handler 逻辑要与鼠标 handler 等价，需浏览器手测。
+
+### 2.4 Web:MouseEventWithoutKeyboardEquivalentCheck — 18 条 · LOW
+
+**现象**：`<div onclick>` 等没有对应的 `onkeydown / onkeyup`。
+
+**分布**：与 §2.3 高度重叠（同一元素同时命中两条规则），改 S6848 时顺带满足本条。
+
+**修法**：与 §2.3 一并处理，无独立工作量。
+
+### 2.5 java:S8786 — 15 条 · MEDIUM
+
+**现象**：正则回溯导致的超线性复杂度（ReDoS 风险，故归 RELIABILITY）。
+
+**分布**：`AnswerKeyParser.java ×5` · `ExamPaperParser.java ×5` · `ExamContentRenderAgent.java ×3` · `DocumentIngestionDomainService.java ×1` · `EnhancedPdfTextExtractor.java ×1`。
+
+**修法**：
+- 拆分嵌套量词（`(a+)+` → `a+a*`）；
+- 用占有量词 `++` / `*+` 或原子组 `(?>…)`；
+- 极端情况改用 `String.contains` / `indexOf` 手工解析。
+
+**工时**：~15 × 8min = 2 小时。风险：**中高** —— 正则改写容易破坏既有语义。每条改动必须补一条命中回归测试（现有 `ExamPaperParserTest` 已存在，扩用例即可）。
+
+### 2.6 javascript:S7773 — 11 条 · MEDIUM
+
+**现象**：ES6 起 `Number.isNaN / Number.parseInt` 优于全局 `isNaN / parseInt`。
+
+**分布**：`exam.html ×4` · `documents.html ×4` · `exam-review.html ×1` · `search.html ×1` · `wrong-answers.html ×1`。
+
+**修法**：全局查找替换：`isNaN(` → `Number.isNaN(`；`parseInt(` → `Number.parseInt(`。**注意 `parseInt(x, 16)` 等带进制参数的调用也要一并改**。
+
+**工时**：~11 × 1min = 15 分钟。风险：低，但 `isNaN` 语义与 `Number.isNaN` 略有差异 —— 前者会尝试强转，后者只对真正 `NaN` 返回 true。若原意是"排除非数字字符串"，需要 `!Number.isFinite(Number(x))` 替代。逐点核对。
+
+### 2.7 javascript:S7781 — 5 条 · LOW
+
+**现象**：`String.replace(搜索串, ...)` 只替换首次出现，应改 `replaceAll`。
+
+**分布**：全在 `exam.html:3214` 附近。
+
+**修法**：`str.replace(/x/g, ...)` 或 `str.replaceAll(x, ...)`。
+
+**工时**：5 × 2min = 10 分钟。风险：低。
+
+### 2.8 javascript:S2245 — 2 条 · MEDIUM（安全）
+
+**现象**：`Math.random()` 生成伪随机数用于业务标识 —— 归 SECURITY。
+
+**分布**：`ai-writing.html:358`（sessionId）· `exam-review.html:294`（streamId）。
+
+**修法**：统一改用 `crypto.getRandomValues(new Uint8Array(8))` 生成短 token，或已有 `crypto.randomUUID()`（`exam-review.html:293` 已优先走这条，只是 fallback 里用了 Math.random）：
+
+```js
+function randToken(n = 8) {
+    const bytes = new Uint8Array(n);
+    crypto.getRandomValues(bytes);
+    let s = '';
+    for (const b of bytes) s += (b % 36).toString(36);
+    return s;
+}
+```
+
+**工时**：2 × 10min = 20 分钟。风险：低，语义完全等价。
+
+### 2.9 Web:S6844 — 2 条 · LOW
+
+**现象**：`<a>` 用作 button（无 href 却有 onclick）。
+
+**分布**：`documents.html:35-36`。
+
+**修法**：改成 `<button type="button" class="…">` 或 `<a href="#" role="button">` — 前者更彻底。
+
+**工时**：2 × 3min = 6 分钟。
+
+### 2.10 Web:S5256 — 1 条 · MEDIUM
+
+**现象**：`<table>` 缺 `<th scope="col">` 表头。
+
+**分布**：`system.html:34`。
+
+**修法**：给表头补 `<thead><tr><th scope="col">…`。
+
+**工时**：1 × 5min。
+
+### 2.11 重复度：3.16% → <3%（专项）
+
+**现象**：新代码 1464 duplicated / 46351 total。要跌破 3% 至少要清出 ~200 行（安全余量建议 300 行）。
+
+**分布未知**：公开 API 拿不到每文件 dup 明细，需要登录 Sonar 或用带 token 的 `/api/duplications/show` 拉。
+
+**候选来源**（凭工程直觉）：
+- 5 个 admin HTML 里的 `<style>` / agent-panel / modal 骨架重复 —— 抽成共享 CSS `admin/assets/css/patterns.css` 或 HTML 片段 include。
+- 5 个 admin HTML 里的 `common.js` 之外的重复函数（`esc()`、`fetchWithAuth()`、modal open/close） —— 迁移到 `common.js`。
+- Java 层：`AnswerKeyParser` 与 `ExamPaperParser` 里 5+5 条正则、结构相似的 `parseXxx()` 方法 —— 抽共同基类或 `ParserUtils`。
+
+**工时**：先花 1 小时定位 top dup blocks，再估 3-4 小时集中改造。**这是唯一有不确定性的专项**。
+
+## 三、分批 PR 建议
+
+以"每批独立可回滚 + 每批都能推进 QG 至少一条"为原则：
+
+| 批次 | 主题 | 涉及规则 | 文件面 | 预期效果 | 工时 |
+|---:|---|---|---|---|--:|
+| **PR-1** | 静态 HTML a11y 快赢 | InputWithoutLabelCheck · S6853 · S6844 · S5256 | 8 个 HTML | Reliability 30+25+2+1=**58 条 MEDIUM/LOW 消除** | ~2.5h |
+| **PR-2** | 键盘可交互化 | S6848 · MouseEventWithoutKeyboardEquivalentCheck | 5 个 HTML | Reliability 再消 **18 条 MEDIUM**（S6848） + 18 条 LOW（部分与 PR-1 重叠） | ~1h |
+| **PR-3** | JS 现代化 | S7773 · S7781 · S2245 | 5 个 HTML | Reliability 消 16 条 + **Security 消 2 条 → `new_security_rating` 回 A** | ~45min |
+| **PR-4** | Java 正则 ReDoS | java:S8786 | 5 个 Java | Reliability 消 15 条；**需要回归测试补强** | ~2h |
+| **PR-5** | 重复度专项 | Duplication | 跨栈 | 目标 `new_duplicated_lines` 从 1464 → <1390 | ~4-5h（含定位） |
+
+**关键路径**：PR-1..4 全清后 Reliability 从 C → **A 或 B**（剩余 25 条 LOW + 100+ 条 INFO 里可能有残留），Security 从 C → **A**。若 Reliability 只到 B 还差一口气，追加 PR-6（清理 java:S8688 58 条 `LocalDateTime.now()` — 引入 `Clock` 注入）作为兜底。
+
+**PR-5 需要独立探查**：先跑一次带 token 的 `/api/duplications/show?componentKey=…`，把 top 20 duplicate blocks 落成表格再决策。
+
+## 四、验收与回滚
+
+**每批 CI 门禁**（合入前必过）：
+
+1. `mvn -B verify` 通过；
+2. 前端资源无 404 / 无 JS 语法错误（可用 `npx html-validate` 或 `tidy -qe` 扫一遍）；
+3. 手测：admin 页面键盘可达性（Tab 到折叠面板 / 弹窗，Enter/Space 触发，Esc 关弹窗）；
+4. Sonar `wait` 完成后拉一次 `project_status` 快照，确认对应条件项 actual 值下降。
+
+**回滚**：
+
+- 每个 PR 保持"单一主题 + 独立可 revert"；
+- 若 PR 引入 UI 行为回归（比如键盘 handler 抢了原生 keydown），先 revert 该 PR、修 bug 后重推；
+- Java 正则改造必须保留原 `Pattern` 常量与 `PatternTest` 断言，回归测试红了直接 revert。
+
+**里程碑**：
+
+- M0：本 plan 文档合入 + PR-1..3 完成 → 预期 Security A、Reliability 逼近 A/B。
+- M1：PR-4 + PR-5 完成 → 预期 QG 三项全绿。
+- M2（可选）：把 363 条 MAINTAINABILITY smell 按 rule 拆到后续 sprint。
+
+## 五、附录 A：数据快照
+
+原始 API 响应保存在 `/Users/mac/.qoderworkcn/workspace/mtk55rgejj4nl99e/sonar/page1.json`（490 issues，500 KB 级）。要更新只需：
+
+```bash
+curl -sS "https://sonarcloud.io/api/issues/search?componentKeys=mouhinU_Knowledge_Repository&branch=main&issueStatuses=OPEN,CONFIRMED&sinceLeakPeriod=true&ps=500&p=1" -o page1.json
+```
+
+## 六、附录 B：文件影响面 Top 15
+
+| 文件 | 新代码 issue 数 |
+|---|---:|
+| `knowledge-web/src/main/resources/static/admin/documents.html` | 37 |
+| `knowledge-web/src/main/resources/static/exam.html` | 34 |
+| `knowledge-web/src/main/resources/static/admin/ai-exam.html` | 31 |
+| `knowledge-application/…/util/ExamPaperParser.java` | 28 |
+| `knowledge-domain/…/service/DocumentIngestionDomainService.java` | 19 |
+| `knowledge-web/src/main/resources/static/admin/ai-writing.html` | 19 |
+| `knowledge-web/src/main/resources/static/admin/exam-review.html` | 18 |
+| `knowledge-web/src/main/resources/static/admin/assets/css/common.css` | 14 |
+| `knowledge-infrastructure/…/pdf/EnhancedPdfTextExtractor.java` | 14 |
+| `knowledge-application/…/executor/examgeneration/ExamGenerationSupport.java` | 13 |
+| `knowledge-domain/…/service/ScoreRuleEngine.java` | 12 |
+| `knowledge-infrastructure/…/agent/ExamReviewerAgent.java` | 11 |
+| `knowledge-web/src/main/resources/static/admin/wrong-answers.html` | 11 |
+| `knowledge-infrastructure/…/agent/ExamDistributionAgent.java` | 9 |
+| `knowledge-infrastructure/…/persistence/gateway/ExamSessionGatewayImpl.java` | 9 |
+
+**HTML 类规则高度集中在 3 个 admin 页 + exam.html**：PR-1..3 主要工作都在这几份文件，改造时按文件一次改到位比按规则切分开销小。
