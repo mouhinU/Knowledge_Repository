@@ -161,8 +161,8 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 
 以 `application.yml` 为准，均可用环境变量覆盖：
 
-- `knowledge.embedding.provider`：`ollama`（默认，bge-m3）| `dashscope`（text-embedding-v3）
-- `knowledge.llm.provider`：`ollama`（默认）| `deepseek`（当前运行用 `deepseek-flash`）| `dashscope`；`temperature` 0.7、`max-tokens` 4096；**流式独立预算** `streaming.max-tokens` 16384 / `streaming.timeout-seconds` 300（避免推理模型思考链耗尽预算喂空正文）
+- `knowledge.llm.chat`：对话角色（出题/评分/黑板/文章），`base-url`+`api-key`+`model-name` 决定供应商（默认 DeepSeek `deepseek-flash`）；`temperature` 0.7、`max-tokens` 4096；per-role 超时 `connect/read/call-timeout-seconds` 5/120/180；**流式独立预算** `chat.streaming.max-tokens` 16384 / `timeout-seconds` 300（避免推理模型思考链耗尽预算喂空正文）。密钥 env：`LLM_CHAT_API_KEY`
+- `knowledge.llm.embedding`：向量角色，`base-url`+`api-key`+`model-name` 决定供应商（默认本地 Ollama `bge-m3`）；per-role 短超时 `connect/read/call-timeout-seconds` 2/10/15，与 chat 连接池隔离。密钥 env：`LLM_EMBED_API_KEY`
 - `knowledge.milvus`：host/port/collection=`knowledge_chunks`/dimension=1024/database=default
 - `knowledge.blackboard.search`：max-results 10 / min-score 0.5
 - `knowledge.storage.path`：`./data/documents`
@@ -228,7 +228,7 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 ## 启动前置条件
 
 1. **启动基础设施**：`docker compose -f docker-compose.infra.yml up -d`（etcd + MinIO + Milvus），等端口 3307 / 19530 就绪。
-2. **配置 LLM/Embedding**：本地 Ollama（bge-m3 + deepseek 兼容端点）**或** 云端 DeepSeek（`DEEPSEEK_API_KEY`）**或** DashScope（`DASHSCOPE_API_KEY`）。项目根 `.env` 至少填 `MYSQL_PASSWORD / DEEPSEEK_API_KEY / KNOWLEDGE_ADMIN_JWT_SECRET`。
+2. **配置 LLM/Embedding（三段式 per-role）**：对话角色 `knowledge.llm.chat` 默认云端 DeepSeek（密钥 `LLM_CHAT_API_KEY`）；向量角色 `knowledge.llm.embedding` 默认本地 Ollama（bge-m3）。项目根 `.env` 至少填 `MYSQL_PASSWORD / LLM_CHAT_API_KEY / KNOWLEDGE_ADMIN_JWT_SECRET`。
 3. **选择运行模式**：
    - 源码热跑（最快，改动即时）：`./mvnw -pl knowledge-web -am spring-boot:run -DskipTests`
    - 拉 CI 镜像（免编译，生产/演示推荐）：见上节"部署路径 2"，需一次性 `docker login ghcr.io -u <user> --password-stdin`（PAT 需 `read:packages` / Container registry Read 权限）

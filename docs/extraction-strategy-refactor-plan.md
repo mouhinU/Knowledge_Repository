@@ -18,11 +18,11 @@
 |---|---|---|---|
 | **Phase A1** 拆类到 6 个 Service | ✅ 已完成 | V2026092222 | 6 个 `*ExtractionService` 已落地 `infrastructure/extraction/`；`DocumentExtractionService` 改为委托 |
 | **v1.3** 解析时机修正 | ✅ 已完成 | V2026092223 | 上传移除 `extractText`，只做 `calculateChecksum` 去重；解析由「解析预览」触发 |
-| **Phase A2** 抽 SPI + Composite 顶替 | ⬜ 待实施 | — | `ContentExtractor` / `ExtractionCandidate` / `CompositeExtractionService` / routing 配置 |
-| **Phase B** 视觉模型接入 | ⬜ 待实施 | — | `VisionChatGateway` + `VisionModelExtractionStrategy` + `PageRenderer` |
+| **Phase A2** 抽 SPI + Composite 顶替 | ✅ 代码完成（待统一部署） | — | `ContentExtractor` SPI + `ExtractionCandidate`/`ExtractionConfig`/`ExtractionStrategyEnum` + 6 个 `*ExtractionStrategy`(infra/extractor) + `CompositeExtractionService`(@Primary) + `ExtractorRoutingProperties`；删 `DocumentExtractionService`；7 测试类 24 用例绿 |
+| **Phase B** 视觉模型接入 | ⬜ 待实施 | — | `VisionChatGateway` + `VisionModelExtractionStrategy` + `PageRenderer`；含 `knowledge.llm.vision.*` 配置 + vision per-role HttpClient |
 | **Phase C** PDF Hybrid + 持久缓存 | ⬜ 待实施 | — | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 |
 | **Phase D** Admin reparse + 观测 | ⬜ 待实施 | — | reparse 端点 + Micrometer 指标 + 成本护栏 |
-| **Phase R** 多模型连接治理 | ⬜ 待实施 | — | 三段式配置 + per-role HttpClient + 熔断 + 密钥边界 |
+| **Phase R** 多模型连接治理 | 🔶 R1 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；vision 配置并入 B；R2 熔断/重试/指标、R3 成本护栏/Grafana 待实施 |
 
 ### 0.2 当前实现概要（已完成部分）
 

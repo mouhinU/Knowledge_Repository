@@ -72,7 +72,7 @@ echo "<你的GHCR_PAT>" | docker login ghcr.io -u mouhinU --password-stdin
 
 ```bash
 MYSQL_PASSWORD=<你的MySQL口令>
-DEEPSEEK_API_KEY=<DeepSeek API Key>
+LLM_CHAT_API_KEY=<DeepSeek API Key>
 KNOWLEDGE_ADMIN_JWT_SECRET=<随机 32 字节 base64>
 ```
 

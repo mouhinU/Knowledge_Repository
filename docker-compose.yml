@@ -29,15 +29,19 @@ services:
       # Milvus（共用服务，宿主机端口 19530）
       MILVUS_HOST: host.docker.internal
       MILVUS_PORT: 19530
-      # Ollama（宿主机上运行）
-      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
-      OLLAMA_MODEL: bge-m3
-      # LLM 对话模型（DeepSeek 云端）
-      LLM_PROVIDER: deepseek
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-      DEEPSEEK_CHAT_MODEL: deepseek-flash
+      # ==================== 多模型 per-role 环境变量（Phase R1）====================
+      # 对话角色（DeepSeek 云端，OpenAI 兼容）：密钥由 LLM_CHAT_API_KEY 单独注入，独立轮换
+      LLM_CHAT_PROVIDER: deepseek
+      LLM_CHAT_BASE_URL: https://api.deepseek.com
+      LLM_CHAT_API_KEY: ${LLM_CHAT_API_KEY}
+      LLM_CHAT_MODEL: deepseek-flash
       LLM_TEMPERATURE: "0.7"
       LLM_MAX_TOKENS: "4096"
+      # 向量角色（宿主机 Ollama bge-m3，OpenAI 兼容）
+      LLM_EMBED_PROVIDER: ollama
+      LLM_EMBED_BASE_URL: http://host.docker.internal:11434/v1
+      LLM_EMBED_MODEL: bge-m3
+      LLM_EMBED_API_KEY: ollama
       # 管理端登录鉴权（无状态 JWT）：签名密钥须由 .env 提供，勿用默认值
       KNOWLEDGE_ADMIN_JWT_SECRET: ${KNOWLEDGE_ADMIN_JWT_SECRET}
       KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS: "${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:-8}"

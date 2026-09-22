@@ -106,49 +106,34 @@ knowledge:
     dimension: 1024
     database-name: default
 
-  # ---------- Embedding 模型配置 ----------
-  # provider: dashscope | ollama
-  embedding:
-    provider: ollama
-
-    # DashScope (阿里云通义)
-    dashscope:
-      api-key: ${DASHSCOPE_API_KEY:your-dashscope-api-key}
-      model-name: text-embedding-v3
-
-    # Ollama (本地模型，OpenAI 兼容接口)
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
-      model-name: ${OLLAMA_MODEL:bge-m3}
-      api-key: ollama
-
-  # ---------- LLM 对话模型配置 ----------
-  # provider: dashscope | deepseek | ollama
+  # ---------- 多模型连接治理（Phase R1 · 三段式 chat/embedding，vision 于 Phase B 引入）----------
+  # 每个角色独立 base-url / 密钥 / 超时预算；供应商由 base-url 决定（均走 OpenAI 兼容协议）。
+  # 密钥通过 per-role 环境变量注入，便于独立轮换与最小权限。
   llm:
-    provider: ${LLM_PROVIDER:ollama}
-    temperature: ${LLM_TEMPERATURE:0.7}
-    max-tokens: ${LLM_MAX_TOKENS:4096}
-    # 流式对话网关（黑板 Agent 逐 token 输出）独立配置：推理型模型会先把预算耗在思考链上，
-    # 故预算需明显大于上面的 max-tokens，超时也更长，避免正式内容被"喂空"。
-    streaming:
-      max-tokens: ${LLM_STREAMING_MAX_TOKENS:16384}
-      timeout-seconds: ${LLM_STREAMING_TIMEOUT_SECONDS:300}
-
-    # DashScope (阿里云通义)
-    dashscope:
-      api-key: ${DASHSCOPE_API_KEY:your-dashscope-api-key}
-      model-name: ${DASHSCOPE_CHAT_MODEL:qwen-plus}
-
-    # DeepSeek
-    deepseek:
-      api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
-      model-name: ${DEEPSEEK_CHAT_MODEL:deepseek-flash}
-
-    # Ollama (本地模型)
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
-      model-name: ${OLLAMA_CHAT_MODEL:llama3.2}
-      api-key: ollama
+    # ----- 对话角色：出题 / 评分 / 黑板 Agent / 文章生成 -----
+    chat:
+      provider: ${LLM_CHAT_PROVIDER:deepseek}
+      base-url: ${LLM_CHAT_BASE_URL:https://api.deepseek.com}
+      api-key: ${LLM_CHAT_API_KEY:}
+      model-name: ${LLM_CHAT_MODEL:deepseek-flash}
+      temperature: ${LLM_TEMPERATURE:0.7}
+      max-tokens: ${LLM_MAX_TOKENS:4096}
+      connect-timeout-seconds: ${LLM_CHAT_CONNECT_TIMEOUT_SECONDS:5}
+      read-timeout-seconds: ${LLM_CHAT_READ_TIMEOUT_SECONDS:120}
+      call-timeout-seconds: ${LLM_CHAT_CALL_TIMEOUT_SECONDS:180}
+      # 流式对话独立预算：推理型模型会先把 token 耗在思考链上，故上限与超时须明显大于非流式，避免正文被"喂空"。
+      streaming:
+        max-tokens: ${LLM_STREAMING_MAX_TOKENS:16384}
+        timeout-seconds: ${LLM_STREAMING_TIMEOUT_SECONDS:300}
+    # ----- 向量角色：短平快高并发，秒级超时快速失败，与 chat 连接池隔离 -----
+    embedding:
+      provider: ${LLM_EMBED_PROVIDER:ollama}
+      base-url: ${LLM_EMBED_BASE_URL:http://localhost:11434/v1}
+      api-key: ${LLM_EMBED_API_KEY:ollama}
+      model-name: ${LLM_EMBED_MODEL:bge-m3}
+      connect-timeout-seconds: ${LLM_EMBED_CONNECT_TIMEOUT_SECONDS:2}
+      read-timeout-seconds: ${LLM_EMBED_READ_TIMEOUT_SECONDS:10}
+      call-timeout-seconds: ${LLM_EMBED_CALL_TIMEOUT_SECONDS:15}
 
   # ---------- 黑板模式 Agent 配置 ----------
   blackboard:

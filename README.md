@@ -31,7 +31,7 @@ Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义�
 ### 前置
 
 - Docker + Docker Compose
-- 一个 LLM 后端：本机 Ollama（默认 bge-m3 + deepseek 兼容端点）**或** 云端 DeepSeek（`DEEPSEEK_API_KEY`）
+- LLM 后端（三段式 per-role）：对话角色默认云端 DeepSeek（`LLM_CHAT_API_KEY`），向量角色默认本机 Ollama（bge-m3）；供应商由各角色 `base-url` 决定
 - 端口空闲：`8091` 应用 / `3307` MySQL / `19530` Milvus / `11434` Ollama
 
 ### 三步跑起来
@@ -40,7 +40,7 @@ Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义�
 # 1. 克隆 + 配 env
 git clone https://github.com/mouhinU/Knowledge_Repository.git
 cd Knowledge_Repository
-cp .env.example .env && vi .env       # 至少填 MYSQL_PASSWORD / DEEPSEEK_API_KEY / KNOWLEDGE_ADMIN_JWT_SECRET
+cp .env.example .env && vi .env       # 至少填 MYSQL_PASSWORD / LLM_CHAT_API_KEY / KNOWLEDGE_ADMIN_JWT_SECRET
 
 # 2. 起基础设施（MySQL + Milvus + etcd + MinIO）
 docker compose -f docker-compose.infra.yml up -d
@@ -181,9 +181,10 @@ kb_document_image                                          配图资产 (V16)
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `KNOWLEDGE_EMBEDDING_PROVIDER` | `ollama` | bge-m3 (1024d) / dashscope text-embedding-v3 |
-| `KNOWLEDGE_LLM_PROVIDER` | `ollama` | ollama / deepseek / dashscope |
-| `KNOWLEDGE_LLM_STREAMING_MAX_TOKENS` | `16384` | 流式独立预算，避免推理链喂空正文 |
+| `LLM_EMBED_PROVIDER` | `ollama` | bge-m3 (1024d) / dashscope text-embedding-v3 |
+| `LLM_CHAT_PROVIDER` | `deepseek` | 供应商标识（实际端点由各角色 `*-BASE_URL` 决定）|
+| `LLM_CHAT_API_KEY` | — | 对话角色密钥，生产必填 |
+| `LLM_STREAMING_MAX_TOKENS` | `16384` | 流式独立预算，避免推理链喂空正文 |
 | `KNOWLEDGE_MILVUS_COLLECTION` | `knowledge_chunks` | 换 embedding 维度须 drop 重建 |
 | `KNOWLEDGE_STORAGE_PATH` | `./data/documents` | 文档原文件目录 |
 | `KNOWLEDGE_EXAM_ASSET_PATH` | `./data/exam-assets` | 看图题配图目录 |

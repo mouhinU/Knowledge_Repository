@@ -26,7 +26,7 @@ public class SystemStatusQryExe {
     private final VectorStoreGateway vectorStoreGateway;
     private final DocumentGateway documentGateway;
 
-    @Value("${knowledge.embedding.provider:unknown}")
+    @Value("${knowledge.llm.embedding.provider:unknown}")
     private String embeddingProvider;
 
     @Value("${knowledge.milvus.host:localhost}")

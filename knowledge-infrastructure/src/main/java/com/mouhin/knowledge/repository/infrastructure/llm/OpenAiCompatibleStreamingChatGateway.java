@@ -103,7 +103,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
             if ("length".equals(reason)) {
                 throw new RuntimeException(
                         "模型思考链耗尽 token 预算（finish_reason=length），未产出正式内容，"
-                                + "请调大 knowledge.llm.streaming.max-tokens 或改用非推理模型");
+                                + "请调大 knowledge.llm.chat.streaming.max-tokens 或改用非推理模型");
             }
             throw new RuntimeException(
                     "模型返回空内容（finish_reason=" + (reason == null ? "null" : reason) + "）");
