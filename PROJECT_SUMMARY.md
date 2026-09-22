@@ -1,10 +1,10 @@
 # Knowledge Repository 项目能力总结
 
-> 最近一次整理：2026-09-20。本文以当前代码（镜像 V2026092008）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、管理/学生端鉴权等全部已落地能力。
+> 最近一次整理：2026-09-22。本文以当前代码（HEAD `f83a2e7`，Flyway V18）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、试卷作废级联、管理/学生端鉴权等全部已落地能力。
 
 ## 项目概述
 
-Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识库系统，现已演进为面向教育场景的一体化平台：在文档摄入、向量化、语义检索与权限隔离的基础上，扩展出多 Agent 黑板协作的 **AI 出卷流水线**、**出卷即切分落库**、**试卷校对与确定性内容门禁**、**学生在线考试**、**自动/人工评分**、**错题本**、**看图题配图**、以及管理端与学生端的 **无状态 JWT 鉴权**，并通过 **SSE** 全程实时推送生成/入库/评分进度。
+Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识库系统，现已演进为面向教育场景的一体化平台：在文档摄入、向量化、语义检索与权限隔离的基础上，扩展出多 Agent 黑板协作的 **AI 出卷流水线**、**出卷即切分落库**、**试卷校对与确定性内容门禁**、**试卷作废级联**、**学生在线考试**、**自动/人工评分**、**错题本**、**看图题配图**、以及管理端与学生端的 **无状态 JWT 鉴权**，并通过 **SSE** 全程实时推送生成/入库/评分进度。
 
 **技术栈：** Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3.0.4 / Apache Tika 3.1.0 / Apache POI 5.3.0 / H2 + MySQL / Flyway。
 
@@ -24,16 +24,16 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 
 依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（infrastructure 反向实现 domain 的 Gateway 接口，依赖倒置）。domain 层不引用任何其它业务层，DO 不越过 infrastructure。
 
-**代码规模（主源码 Java 文件数）：**
+**代码规模（主源码 Java 文件数，2026-09-22 实测）：**
 
 | 模块 | 文件数 | 核心职责 |
 |------|-------|---------|
-| knowledge-client | 55 | 13 个 `*ServiceI` 契约接口 + Cmd/Qry/VO/DTO |
-| knowledge-domain | 62 | 1 聚合根 + 11 实体 + 17 值对象 + 13 领域服务 + 17 Gateway 接口 + 领域事件 |
-| knowledge-application | 131 | 14 个特性包的 Executor 用例编排 |
+| knowledge-client | 58 | 13 个 `*ServiceI` 契约接口 + Cmd/Qry/VO/DTO |
+| knowledge-domain | 63 | 1 聚合根 + 11 实体 + 17 值对象 + 13 领域服务 + 17 Gateway 接口 + 领域事件 |
+| knowledge-application | 133 | 14 个特性包的 Executor 用例编排（新增 docingestion/document/examgeneration/examgrading/examreview/examtaking/adminauth 等） |
 | knowledge-infrastructure | 71 | Gateway 实现、Mapper/DO/Converter、Milvus、解析器、12 个黑板 Agent、LLM/Embedding |
 | knowledge-web | 24 | 17 个 Controller、JWT 过滤器、SSE Store、安全配置 |
-| **合计** | **~343** | 另有测试类约 24 个 |
+| **合计** | **~349** | 另有测试类 27 个（web 4 / application 18 / domain 4 / infra 1） |
 
 ---
 
@@ -76,6 +76,9 @@ Embedding 经 `@ConditionalOnProperty` 在 DashScope（text-embedding-v3）/ Oll
 ### 5. 试卷校对与确定性内容门禁（Paper Review）
 管理端 `PaperReviewController`（`/api/admin/paper-review`）提供逐题查看（stem/optionsJson/correctAnswer/analysis/imagesJson）、改答案、配图、resplit、approve。与「答卷校对 / 成绩复核」的 `ExamReviewController`（`/api/admin/exam-review`）职责不同。**双层防线**禁止「出处/位置类」记忆题（符合用户偏好，尤其语文/英语）：`ExamReviewerAgent` 尾部 `applyDeterministicMetaRecallCheck` 命中即把质量分压到 `DETECTOR_SCORE_CAP=70`（触发打回重写并把命中题面写进 reviewFeedback）；`ExamContractValidator` 逐题 `isMetaRecall(stem)` 命中即产 issue → `VALIDATION_FAILED` 阻止自动发布并在校对页 ❌ 清单显示。检测器刻意排除「段/篇」以免误伤阅读理解题。
 
+### 5.5 试卷作废级联（Void Paper · V18）
+`VoidPaperCmdExe` 提供教师端「作废一份 AI 试卷」用例（`PaperReviewController` 挂 `POST /api/admin/paper-review/{sessionId}/void`）。事务内两步：① `kb_exam_history.status` 由任意非 VOIDED 状态置为 `STATUS_VOIDED`，作废人与时间复用 `reviewed_by / reviewed_time` 审计列；② 级联把该卷下所有 `kb_exam_session.voided=TRUE`（V18 新增列 + 复合索引 `idx_exam_session_student_history`）。作废后学生不可再开考此卷，`ListPublishedHistoryQryExe` 会自动过滤掉非 PUBLISHED 状态；已有场次仍可显示与查阅，答题记录与评分轨迹保留，前端考生命运题（`exam.html`）与管理端试卷列表（`ai-exam.js`）在作废场次上展示「已作废」徽标。幂等：目标卷已是 VOIDED 时短路返回，但仍级联保证一致性。守卫测试：`VoidPaperCmdExeTest` + `ExamStartFromHistoryGuardTest`。
+
 ### 6. 学生在线考试
 考生端 SPA `static/exam.html`，接口走放行清单内的 `/api/exam`（`ExamTakingController`，勿用受管理令牌保护的 `/api/agent`）。状态机 IN_PROGRESS → SUBMITTED → AUTO_GRADED → REVIEWED → PUBLISHED。倒计时 5min 橙 / 1min 红闪、归零锁定 + 30s 自动提交。填空题按 `data-slot` 归位、空数口径统一取自 `ExamBlankCounter`。看图题配图按印刷题号 ↔ questionNumber 注入 `q.images`，assetKey 须匹配 `^[a-f0-9]{32}$`。
 
@@ -105,11 +108,11 @@ AI 评分（`ExamGradingServiceI` / examgrading 包）借助 `ExamScoringAgent`�
 
 | 控制器 | 基路径 | 端点数 | 职责 |
 |--------|--------|:----:|------|
-| DocumentUploadController | `/api/document` | 7 | 上传/分片上传/仅提取文本（状态 UPLOADED） |
+| DocumentUploadController | `/api/document` | 6 | 上传/分片上传/仅提取文本（状态 UPLOADED） |
 | DocumentAdminController | `/api/admin/document` | 15 | 详情/多路列表/统计/分类统计/归档/删除/预览/入库/自定义分块/重新入库/入库进度 SSE |
 | KnowledgeQueryController | `/api/knowledge` | 2 | 语义检索（带权限过滤） |
 | ExamController | `/api/agent` | 12 | AI 出卷流水线、generate-stream、export-word、出卷历史、分发/校验 SSE |
-| PaperReviewController | `/api/admin/paper-review` | 6 | 试卷校对：逐题查看、改答案、配图、resplit、approve |
+| PaperReviewController | `/api/admin/paper-review` | 7 | 试卷校对：逐题查看、改答案、配图、resplit、approve、**作废（void）** |
 | ExamReviewController | `/api/admin/exam-review` | 10 | 答卷校对 / 成绩复核（学生提交） |
 | ExamTakingController | `/api/exam` | 7 | 学生开考、可用试卷、作答保存、交卷、结果 |
 | ExamAssetController | `/api/exam/assets` | 1 | 配图二进制流式下载（放行） |
@@ -125,7 +128,7 @@ AI 评分（`ExamGradingServiceI` / examgrading 包）借助 `ExamScoringAgent`�
 
 ---
 
-## 数据库设计（Flyway V1–V17）
+## 数据库设计（Flyway V1–V18）
 
 H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307，库 `knowledge_repository`）。必备字段 `id`/`create_time`/`update_time`，索引命名 `pk_/uk_/idx_`。迁移演进：
 
@@ -148,6 +151,7 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 | V15 | add_user_auth | sys_user.password_hash + status，管理端 JWT |
 | V16 | add_document_image | kb_document_image（配图资产） |
 | V17 | add_exam_question_images | kb_exam_question.images_json |
+| V18 | add_exam_session_voided | kb_exam_session.voided 布尔列 + 复合索引 `idx_exam_session_student_history`，支撑试卷作废级联与「一人一卷一次」开考守卫 |
 
 关系：`kb_exam_history(session_id) ↔ kb_exam_question(session_key)`；`kb_exam_session(exam_history_id) ↔ kb_exam_answer(session_id)`；错题本派生自 `kb_exam_answer.is_correct=false`。`knowledge_document` 外键 = `base_id`。运维脚本 `scripts/clean-exam-data.sh` 备份后 TRUNCATE 4 张考试表、保留 `kb_student`（`--dry-run` / `--yes` / `--with-students` / `--no-backup`）。
 
@@ -173,12 +177,45 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 
 ## 基础设施与部署
 
-- **Docker Compose（infra）：** etcd + MinIO + Milvus Standalone v2.5.4，端口 19530。
-- **应用端口：** 8091。
-- **部署命令：** `bash deploy.sh` —— 容器内 `mvn clean package`（含测试）重建镜像、重创建容器，自动递增版本标签 `V{yyyymmdd}{seq}` 并清理旧镜像。⚠️ `docker restart` 不刷新镜像，改动须走 `deploy.sh`。Docker TZ=Asia/Shanghai。
-- **健康检查：** `curl http://localhost:8091/actuator/health`，冷启动约 60s。
-- **韧性：** MilvusConfig `@Bean + @Lazy` + 退避重试，compose `start_period` 150s；HikariCP max-pool 10 / min-idle 2 / leak-detect 10s（全 env 可覆盖）；Agent 线程池 AbortPolicy → 满则 SSE error + 429；`TransactionTemplate` 只包快 DB 写，Milvus/Embedding 移事务外。⚠️ redeploy 偶发 Milvus DEADLINE_EXCEEDED 启动竞态，容器约 54–90s 自愈，勿回滚。
-- **前端形态：** 管理端多页 + `common.js`（`KR.initLayout`），无 CSP 严格限制；知识库嵌入 HTML 非 iframe。
+**镜像与仓库**
+
+- **CI 自动出镜像**：`.github/workflows/docker-image.yml` 每次 main 合并（且改到 Java / pom / Dockerfile / docker / .mvn / mvnw 时才触发）自动 build 并推送到 `ghcr.io/mouhinu/knowledge_repository`，标签 `latest` + `sha-<短 SHA>`；`v*` tag push 时额外挂版本号。PR 走 dry-run（build 不 push），Dockerfile 变更可在 PR 里先验证。
+- **本地 Dockerfile（多阶段）**：`Dockerfile` 用 `maven:3.9-eclipse-temurin-21` 编译 → `eclipse-temurin:21-jre` 运行。⚠️ 容器内 `mvn dependency:go-offline` 在建网慢 / 无 mirror 时会挂 16min+，兜底见下条。
+- **本地单阶段（免容器内编译）**：`docker/Dockerfile.prebuilt` 只 COPY 主机 `./mvnw package` 产出的 fat jar，秒级 build。配合 `scripts/docker-build.sh` 使用。
+
+**部署路径（选一即可）**
+
+1. **本地开发（源码热跑，最快）**：`./mvnw -pl knowledge-web -am spring-boot:run -DskipTests`。
+2. **GHCR pull（免编译，推荐生产/演示）**：
+   ```bash
+   echo "$GHCR_PAT" | docker login ghcr.io -u <user> --password-stdin    # 一次性
+   IMAGE_NAME=ghcr.io/mouhinu/knowledge_repository APP_VERSION=latest \
+     docker compose pull knowledge-app && \
+   IMAGE_NAME=ghcr.io/mouhinu/knowledge_repository APP_VERSION=latest \
+     docker compose up -d --no-build knowledge-app
+   ```
+3. **本地一键构建部署（无 CI / 内网）**：`bash deploy.sh` —— 容器内 `mvn clean package`（含测试）重建镜像、重创建容器、自动递增版本标签 `V{yyyymmdd}{seq}` 并清理旧镜像。⚠️ `docker restart` 不刷新镜像，代码改动须走 `deploy.sh` 或 `--build`。Docker TZ=Asia/Shanghai。
+
+**运行时基线**
+
+- **端口：** 应用 8091 / MySQL 宿主机 3307 / Milvus 19530 / etcd & MinIO 见 `docker-compose.infra.yml`。
+- **健康检查：** `curl http://localhost:8091/actuator/health`，**冷启动约 124s**（Flyway + Milvus 连接池预热）；compose `start_period` 已上调到 150s 避免误判 starting。
+- **资源约束：** 容器 `mem_limit: 1536m`，JVM `-Xms512m -Xmx1024m -XX:+UseG1GC`（留 Metaspace / 线程栈 / CodeCache / Milvus gRPC netty 堆外余量）。
+- **韧性：** MilvusConfig `@Bean + @Lazy` + 退避重试；HikariCP max-pool 10 / min-idle 2 / leak-detect 10s（全 env 可覆盖）；Agent 线程池 AbortPolicy → 满则 SSE error + 429；`TransactionTemplate` 只包快 DB 写，Milvus / Embedding / LLM 移事务外。⚠️ redeploy 偶发 Milvus `DEADLINE_EXCEEDED` 启动竞态，容器约 54–90s 自愈，勿回滚。
+
+**CI/CD 关键设计**
+
+- **Workflow-level `permissions: { contents: read, packages: write }`**：不再依赖仓库 Settings → Actions → General 的默认 workflow permissions；管理员即使把默认改成 Read-only，仍能推 GHCR。
+- **`concurrency` + `cancel-in-progress: true`**：同分支 / 同 PR 串行，新 push 自动作废进行中的旧 run，防止刷屏。
+- **`paths` 过滤**：docker-image 只在 Java / pom / Dockerfile / docker / .mvn / mvnw 变化时才 build；改 README / docs / workflow 自身不触发。tag push 与 paths 共存时 paths 被 GitHub 忽略，release 必然出镜像。
+- **Runner 钉版**：两条 workflow 都 `runs-on: ubuntu-24.04`；避开 2026-10-19 `ubuntu-latest` 静默迁移到 Ubuntu 26（actions/runner-images#14748）。
+- **Actions 版本对齐 Node 24**：`checkout@v5` / `cache@v5` / `setup-java@v5` 全套 v5，消除 GitHub runner 关于 Node 20 弃用的告警。
+- **GHCR 镜像名 lowercase 归一**：`${{ github.repository }}` 会保留大小写 `mouhinU/Knowledge_Repository`，Docker tag 拒绝 uppercase，`Compute image tag` 步骤用 `tr '[:upper:]' '[:lower:]'` 归一到 `mouhinu/knowledge_repository`。
+- **层缓存 `type=gha`**：Actions 内置缓存层，二次构建从 ~5min 缩到 <1min。
+
+**前端形态**：管理端多页 + `common.js`（`KR.initLayout`），无 CSP 严格限制；知识库嵌入 HTML 非 iframe。
+
+**详细部署与故障排查见** [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)。
 
 ---
 
@@ -190,7 +227,11 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 
 ## 启动前置条件
 
-1. 启动 infra：`docker compose up -d`（etcd + MinIO + Milvus）。
-2. 配置 Embedding / LLM（本地 Ollama bge-m3 + DeepSeek，或设 `DASHSCOPE_API_KEY`）。
-3. 运行：`bash deploy.sh`（生产）或 `./mvnw -pl knowledge-web spring-boot:run -DskipTests`（本地）。
-4. 多模块跑指定测试须加 `-Dsurefire.failIfNoSpecifiedTests=false`。
+1. **启动基础设施**：`docker compose -f docker-compose.infra.yml up -d`（etcd + MinIO + Milvus），等端口 3307 / 19530 就绪。
+2. **配置 LLM/Embedding**：本地 Ollama（bge-m3 + deepseek 兼容端点）**或** 云端 DeepSeek（`DEEPSEEK_API_KEY`）**或** DashScope（`DASHSCOPE_API_KEY`）。项目根 `.env` 至少填 `MYSQL_PASSWORD / DEEPSEEK_API_KEY / KNOWLEDGE_ADMIN_JWT_SECRET`。
+3. **选择运行模式**：
+   - 源码热跑（最快，改动即时）：`./mvnw -pl knowledge-web -am spring-boot:run -DskipTests`
+   - 拉 CI 镜像（免编译，生产/演示推荐）：见上节"部署路径 2"，需一次性 `docker login ghcr.io -u <user> --password-stdin`（PAT 需 `read:packages` / Container registry Read 权限）
+   - 本地一键构建部署（无 CI / 内网 / 想改 Dockerfile）：`bash deploy.sh`
+4. **多模块跑指定测试**须加 `-Dsurefire.failIfNoSpecifiedTests=false`，否则空测试模块会让构建失败。
+5. **提交前**：`./mvnw spotless:apply` 过格式化，走 [docs/code-review-checklist.md](docs/code-review-checklist.md) 31 条。
