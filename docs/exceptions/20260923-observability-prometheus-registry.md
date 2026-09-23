@@ -79,6 +79,12 @@ Grafana 面板 `docs/grafana/extraction-dashboard.json` 需要 Prometheus 抓取
 - 抓取实测：`curl localhost:8091/actuator/prometheus` → HTTP 200，240 个 `# HELP/# TYPE` 指标族。
 - 文档零漂移同步：`docs/tech-stack.md` 依赖表新增「指标可观测」行；`docs/extraction-strategy-refactor-plan.md` §0.3 观测项转 ✅；`docs/grafana/extraction-dashboard.json` 描述去掉「前置未加」措辞。
 
-## 复审链接
+## 复审跟踪（TODO）
 
-- 待创建收紧暴露面（独立 management 端口 / 网络策略）的 Issue，指派给架构负责人。
+> 无 `gh` CLI，暂以本文件作为跟踪载体；待具备 GitHub 访问时把下列项转成正式 Issue 并在此登记链接。
+
+- [ ] **收紧暴露面（安全）**：为 actuator 配置独立 `management.server.port`（仅绑内网网卡 / 不对公网），或在反向代理 / 网络策略层按来源 IP 限制 `/actuator/prometheus`；完成后把 `AdminTokenAuthFilter.PUBLIC_ACTUATOR_PATHS` 中的 `/actuator/prometheus` 收紧（改回受保护或仅内网）。负责人：架构负责人（mouhin）。目标里程碑：下一次生产部署前。
+- [ ] **Prometheus 抓取配置落地**：补 `scrape_config`（指向管理端点 `/actuator/prometheus`）+ Grafana 数据源，实跑观察 `knowledge_extraction_*` 指标在真实解析流量下的曲线。
+- [ ] **指标基线核对**：确认解析观测面板在扫描件 hybrid 启用后 cache hit/miss、latency P95/P99、vision failures 有数据（依赖视觉链路端到端联调，见方案文档 §0.3 第 4 项）。
+
+复审到期：2026-12-22。
