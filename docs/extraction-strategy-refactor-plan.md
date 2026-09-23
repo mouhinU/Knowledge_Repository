@@ -13,6 +13,8 @@
 
 ## 0. 落地进度总览
 
+> 提交账本、统一验证证据与视觉端到端联调结论见配套的 [extraction-refactor-completion-report.md](extraction-refactor-completion-report.md)；本 §0 只做阶段状态矩阵（唯一权威）。
+
 ### 0.1 各阶段实施状态
 
 | 阶段 | 状态 | 部署版本 | 说明 |
