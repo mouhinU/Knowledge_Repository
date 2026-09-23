@@ -19,9 +19,10 @@
 6. **DO 不越过 infrastructure**；转换只在层边界：adapter `VO⇄DTO`，app `DTO⇄Entity`，infra `Entity⇄DO`。
 7. **domain 层保持纯净**，不依赖 app / adapter / infrastructure；Gateway 接口在 domain、`GatewayImpl` 在 infrastructure。
 8. **app 层 Service 只做分发**，用例编排落单一 `CmdExe`/`QryExe`；写库事务在 Executor。含 LLM / 外部 IO 的长耗时用例不得置于数据库事务（transaction）内；建议将可能 >200ms 的外部调用异步化或在事务外处理，并在设计文档中说明处理方式。
-9. **新建或修改 Java 类时的 Javadoc 要求**：公共/库级别类应补齐完整 Javadoc；普通/内部类为推荐。`@author`/`@date` 可选，鼓励以 Git 提交元数据为主。
-10. **谨慎变更框架 / JDK 版本**；依赖以 [docs/tech-stack.md](docs/tech-stack.md) 为准。重大变更需提交变更提案（包含影响评估、回退计划、测试覆盖）并获得架构/负责人审批。
-11. **方法与函数目标值**：方法名 ≤50 字符；方法体目标 ≤50 行；参数 ≤5（若 >3 建议封装为 `Cmd`/`Query`/参数对象）；优先纯函数（相同输入→相同输出，副作用收敛到 infrastructure 边界）。允许例外，需在 PR 中说明并由 reviewer 批准。详见 [docs/coding-guideline.md](docs/coding-guideline.md) §十。
+9. **前端实时通信优先级**：凡属于“服务端主动推送/进度更新/长连接状态同步”场景，优先使用 **SSE**；只有明确需要双向低延迟、双向消息交互或双工流控时才选 **WebSocket**；**前端轮询**仅作为最后兜底方案，必须说明原因并限制频率。新增通信通道时，需在设计说明中写明选择理由、退化方案与超时/重连策略。
+10. **新建或修改 Java 类时的 Javadoc 要求**：公共/库级别类应补齐完整 Javadoc；普通/内部类为推荐。`@author`/`@date` 可选，鼓励以 Git 提交元数据为主。
+11. **谨慎变更框架 / JDK 版本**；依赖以 [docs/tech-stack.md](docs/tech-stack.md) 为准。重大变更需提交变更提案（包含影响评估、回退计划、测试覆盖）并获得架构/负责人审批。
+12. **方法与函数目标值**：方法名 ≤50 字符；方法体目标 ≤50 行；参数 ≤5（若 >3 建议封装为 `Cmd`/`Query`/参数对象）；优先纯函数（相同输入→相同输出，副作用收敛到 infrastructure 边界）。允许例外，需在 PR 中说明并由 reviewer 批准。详见 [docs/coding-guideline.md](docs/coding-guideline.md) §十。
 
 ---
 
