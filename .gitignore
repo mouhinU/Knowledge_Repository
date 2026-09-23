@@ -28,6 +28,9 @@ logs/
 # Data files (H2)
 data/
 
+# 项目内数据清理脚本与备份归档（不入库）
+.buckups/
+
 # Environment
 .env
 *.env.local
