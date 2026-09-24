@@ -133,7 +133,10 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
      * @throws IllegalArgumentException 任一校验失败（对外消息恒定）
      */
     @Override
-    @SuppressWarnings("java:S6549") // base-dir 白名单 + 统一消息双封堵，Sonar 污点传播不识别 startsWith sanitizer
+    @SuppressWarnings({
+        "java:S6549",
+        "javasecurity:S6549"
+    }) // Sonar 报告的实际规则键为 javasecurity:S6549；两写法并列确保匹配
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null) {
             reject("null path", null);
