@@ -32,6 +32,9 @@ public class ExamPlan {
     /** 合理性评估建议（第④阶段产出，仅提示不自动改写） */
     private List<String> evaluationNotes = new ArrayList<>();
 
+    /** 结构化评估总判定（PASS / FAIL），由第④阶段固定维度评估产出 */
+    private String overallVerdict;
+
     /** 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定） */
     private boolean manualAdjusted;
 
@@ -107,6 +110,14 @@ public class ExamPlan {
 
     public void setEvaluationNotes(List<String> evaluationNotes) {
         this.evaluationNotes = evaluationNotes != null ? evaluationNotes : new ArrayList<>();
+    }
+
+    public String getOverallVerdict() {
+        return overallVerdict;
+    }
+
+    public void setOverallVerdict(String overallVerdict) {
+        this.overallVerdict = overallVerdict;
     }
 
     public boolean isManualAdjusted() {

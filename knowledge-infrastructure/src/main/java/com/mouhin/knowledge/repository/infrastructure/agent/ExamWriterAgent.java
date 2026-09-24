@@ -35,9 +35,10 @@ public class ExamWriterAgent implements BlackboardAgent {
             2. 题目表述清晰准确，避免歧义
             3. 选择题的干扰项要合理，不能过于明显
             4. 题目难度要符合指定要求
-            5. 知识点覆盖要均匀，不重复考查同一知识点
+            5. 知识点覆盖要均匀，严禁重复考查同一知识点或高度相似的知识点。"重复考查"包括：① 两道题考查完全相同的知识条目（如两道题都考"勾股定理的 direct 应用"）；② 两道题虽表述不同，但解题所需的核心概念与思维路径相同；③ 同一知识点的不同侧面反复设问超过 2 次。遇到可能重复的情形时，应换一个知识角度或提升认知层次（从识记→理解→应用→综合）来设问
             6. 题目序号全局连续编排（1, 2, 3, ...），禁止分节重新从 1 起号，分值标注清晰
             7. 只考知识内容本身的理解与运用，严禁命制「出处/位置类」记忆题：不得考查某知识点「在第几单元 / 第几课 / 第几页 / 哪一章 / 哪个章节 / 出自哪篇课文的哪一段」等教材编排位置信息；语文、英语等偏记忆理解的科目尤其如此，应就字音字形、词义语法、课文内容理解、阅读与表达运用等实质设问，而非让学生背编排位置
+            8. 出题前先在脑中列出本卷要覆盖的考点清单，每写完一题就核对是否与前面的题考查了同一考点；若重复，立即调整考查角度或替换为新考点，确保全卷考点不重复
 
             输出格式要求：
             - 使用 Markdown 格式
@@ -119,9 +120,34 @@ public class ExamWriterAgent implements BlackboardAgent {
         }
 
         blackboard.setExamPaper(examPaper);
+        Double agentScore = calculateWriterScore(examPaper);
         emitProgress(
-                progressCallback, BlackboardProgressEvent.agentCompleted("exam-writer", examPaper));
-        log.info("[ExamWriter] 试卷编写完成，长度：{} 字符{}", examPaper.length(), isRetry ? "（改进轮次）" : "");
+                progressCallback,
+                BlackboardProgressEvent.agentCompleted("exam-writer", examPaper, agentScore));
+        log.info(
+                "[ExamWriter] 试卷编写完成，长度：{} 字符{}，得分：{}",
+                examPaper.length(),
+                isRetry ? "（改进轮次）" : "",
+                agentScore);
+    }
+
+    /**
+     * 计算试卷编写 Agent 的启发式得分（0-100，保留两位小数）
+     *
+     * <p>评分依据：试卷长度（越长越完整）+ 题目数量（覆盖度）+ 结构完整性（是否有标题/满分/时间等）
+     */
+    private Double calculateWriterScore(String examPaper) {
+        double score = 0.0;
+        // 长度贡献 40 分（每 200 字符 4 分，上限 40）
+        score += Math.min(40.0, examPaper.length() / 200.0 * 4.0);
+        // 题目数量贡献 40 分（每题 4 分，上限 40）
+        int questionCount = examPaper.split("\\*\\*\\d+\\.\\*\\*|\\n\\d+\\.\\s").length - 1;
+        score += Math.min(40.0, questionCount * 4.0);
+        // 结构完整性贡献 20 分（有标题/满分/时间各得一定分数）
+        if (examPaper.contains("# ")) score += 5.0;
+        if (examPaper.contains("满分")) score += 8.0;
+        if (examPaper.contains("考试时间") || examPaper.contains("考试时长")) score += 7.0;
+        return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
     }
 
     /** 组装发送给试卷编写 Agent 的用户提示词（首轮 / 改进轮两种模板）。 */

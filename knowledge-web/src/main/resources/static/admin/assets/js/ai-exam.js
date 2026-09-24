@@ -23,6 +23,7 @@
     let _planStreamState = {};  // 题型分布方案 / 校验：逐 token 流式状态（首块清空占位）
     const _examAgentNodeMap = {
         researcher: 'research', scoring: 'scoring', writer: 'writing',
+        'kp-dedup': 'kp-dedup',
         answer: 'answer', reviewer: 'review', calibrator: 'calibrate', deduplicator: 'dedup'
     };
     let currentExamPlan = null;
@@ -33,6 +34,7 @@
     const _nodeDetails = {};
     const _nodeLabels = {
         research: '知识检索', scoring: '分值校验与评估', writing: '试卷编写',
+        'kp-dedup': '考点去重',
         answer: '答案生成', calibrate: '难度校准', review: '内容审核', dedup: '查重去重'
     };
     function storeNodeDetail(nodeKey, field, value) {
@@ -49,6 +51,17 @@
         document.getElementById('node-modal-start').textContent = KR.formatTime(d.startTime);
         document.getElementById('node-modal-end').textContent = d.endTime ? KR.formatTime(d.endTime) : '-';
         document.getElementById('node-modal-elapsed').textContent = d.startTime ? KR.formatElapsed((d.endTime || Date.now()) - d.startTime) : '-';
+        // 渲染分数到 modal
+        const modalScoreEl = document.getElementById('node-modal-score');
+        if (modalScoreEl) {
+            if (d.score != null) {
+                modalScoreEl.textContent = d.score.toFixed(2);
+                modalScoreEl.style.color = d.score >= 80 ? '#166534' : d.score >= 60 ? '#92400e' : '#991b1b';
+            } else {
+                modalScoreEl.textContent = '-';
+                modalScoreEl.style.color = '';
+            }
+        }
         document.getElementById('node-modal-input').textContent = d.materials || '暂无数据';
         document.getElementById('node-modal-thinking').textContent = d.message || '暂无数据';
         document.getElementById('node-modal-output').textContent = d.output || '暂无数据';
@@ -64,19 +77,63 @@
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNodeModal(); });
 
+    /* ---------- ARIA 无障碍：流程节点 ---------- */
+    (function bindFlowAria() {
+        const flowContainer = document.getElementById('exam-flow');
+        if (flowContainer) {
+            flowContainer.setAttribute('role', 'list');
+            flowContainer.setAttribute('aria-label', '智能体执行流程');
+        }
+        Object.entries(_nodeLabels).forEach(([key, label]) => {
+            const el = document.getElementById('exam-flow-' + key);
+            if (el) {
+                el.setAttribute('role', 'listitem');
+                el.setAttribute('aria-label', label);
+            }
+        });
+    })();
+
+    /* ---------- 按钮 loading 旋转器辅助 ---------- */
+    function setBtnLoading(btn, isLoading, loadingText) {
+        if (!btn) return;
+        if (isLoading) {
+            btn._origText = btn.textContent;
+            btn.textContent = loadingText || '处理中…';
+            btn.classList.add('loading');
+            btn.disabled = true;
+        } else {
+            btn.textContent = btn._origText || btn.textContent;
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
+
+    /* ---------- 流程容器滚动端点检测（移除渐隐遮罩） ---------- */
+    (function bindFlowScrollEnd() {
+        const fc = document.getElementById('exam-flow');
+        if (!fc) return;
+        fc.addEventListener('scroll', () => {
+            const atEnd = fc.scrollLeft + fc.clientWidth >= fc.scrollWidth - 2;
+            fc.classList.toggle('scrolled-end', atEnd);
+        }, { passive: true });
+    })();
+
     /* ---------- 题型分布方案 ---------- */
     function planEsc(s) {
         return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => (
             { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 
-    const _planStageMeta = {
-        'dist-classify': { title: '阶段①　题型分类' },
-        'dist-count': { title: '阶段②　题型数量' },
-        'dist-score': { title: '阶段③　每题分数设计' },
-        'dist-evaluate': { title: '阶段④　合理性评估' },
-        'exam-plan-validator': { title: '方案校验　AI 解读' }
-    };
+    /** 解析 agent 名称 → 卡片标题 + 轮次号。轮次前缀 r{N}-xxx 返回 round=N，否则 round=0。 */
+    function _resolvePlanStageMeta(agent) {
+        const phaseTitles = { classify: '阶段①　题型分类', count: '阶段②　题型数量', score: '阶段③　每题分数设计', evaluate: '阶段④　合理性评估' };
+        const m = /^r(\d+)-(classify|count|score|evaluate)$/.exec(agent);
+        if (m) return { title: phaseTitles[m[2]] || agent, round: parseInt(m[1], 10) };
+        const legacy = { 'dist-classify': '阶段①　题型分类', 'dist-count': '阶段②　题型数量', 'dist-score': '阶段③　每题分数设计', 'dist-evaluate': '阶段④　合理性评估', 'dist-adjust': '方案修正', 'exam-plan-validator': '方案校验　AI 解读' };
+        return { title: legacy[agent] || agent, round: 0 };
+    }
+    /** 当前最大轮次号（用于自动滚动到最新轮次容器） */
+    let _planCurrentRound = 0;
 
     async function generateExamPlan() {
         const topic = document.getElementById('exam-topic').value.trim();
@@ -86,9 +143,7 @@
         const gBtn = document.getElementById('exam-generate-btn');
         if (gBtn) { gBtn.disabled = true; gBtn.textContent = '生成试卷'; gBtn.title = '请先生成并确认题型分布方案'; }
         const btn = document.getElementById('exam-plan-generate-btn');
-        btn.disabled = true;
-        const orig = btn.textContent;
-        btn.textContent = '生成中...';
+        setBtnLoading(btn, true, '生成中…');
 
         resetPlanTrace();
         document.getElementById('exam-plan-trace-box').style.display = 'block';
@@ -107,7 +162,7 @@
         };
 
         const es = new EventSource(API + '/api/agent/exam/progress/' + sessionId);
-        const finish = () => { try { es.close(); } catch (_) {} btn.disabled = false; btn.textContent = orig; };
+        const finish = () => { try { es.close(); } catch (_) {} setBtnLoading(btn, false); };
 
         es.addEventListener('AGENT_OUTPUT', (e) => {
             let d; try { d = JSON.parse(e.data); } catch (_) { return; }
@@ -253,13 +308,14 @@
             if (st && st.rafId) cancelAnimationFrame(st.rafId);
             delete _planStreamState[k];
         });
+        _planCurrentRound = 0;
         const vToggle = document.getElementById('exam-val-trace-box');
         if (vToggle) vToggle.style.display = 'none';
     }
     function upsertPlanTraceStage(agent, patch, boxId) {
         const box = document.getElementById(boxId || 'exam-plan-trace');
         if (!box) return;
-        const meta = _planStageMeta[agent] || { title: agent };
+        const meta = _resolvePlanStageMeta(agent);
         let card = document.getElementById('plan-stage-' + agent);
         if (!card) {
             card = document.createElement('div');
@@ -278,7 +334,21 @@
                 const open = card.classList.toggle('open');
                 if (open) _pstFlushBody(card, agent);
             });
-            box.appendChild(card);
+            // 轮次容器：r{N}-xxx 放入对应 round container，非轮次 agent 直接挂 box
+            if (meta.round > 0) {
+                if (meta.round > _planCurrentRound) _planCurrentRound = meta.round;
+                let rc = document.getElementById('plan-round-' + meta.round);
+                if (!rc) {
+                    rc = document.createElement('div');
+                    rc.id = 'plan-round-' + meta.round;
+                    rc.className = 'plan-round';
+                    rc.innerHTML = '<div class="plan-round-header">第 ' + meta.round + ' 轮</div>';
+                    box.appendChild(rc);
+                }
+                rc.appendChild(card);
+            } else {
+                box.appendChild(card);
+            }
         }
         const st = _pstEnsureState(agent, boxId);
         if (patch.input != null && patch.input !== '') {
@@ -585,8 +655,7 @@
 
         const btn = document.getElementById('exam-validate-btn');
         const resultEl = document.getElementById('exam-validate-result');
-        btn.disabled = true;
-        btn.textContent = '校验中...';
+        setBtnLoading(btn, true, '校验中…');
         resultEl.style.display = 'block';
         resultEl.style.background = '#fef3c7';
         resultEl.style.color = '#92400e';
@@ -613,8 +682,7 @@
                 setStepState(2, 'done', '校验已通过');
                 refreshStepGate();
                 eventSource.close();
-                btn.disabled = false;
-                btn.textContent = '校验方案';
+                setBtnLoading(btn, false);
             } else if (data.agentStatus === 'failed') {
                 _validationPassed = false;
                 resultEl.style.background = '#fee2e2';
@@ -626,8 +694,7 @@
                 if (balanceBtn) balanceBtn.disabled = false;
                 refreshStepGate();
                 eventSource.close();
-                btn.disabled = false;
-                btn.textContent = '校验方案';
+                setBtnLoading(btn, false);
             } else if (data.agentStatus === 'running') {
                 if (data.message) {
                     resultEl.innerHTML = '<span style="opacity:.7">' + esc(data.message) + '</span>';
@@ -644,8 +711,7 @@
 
         eventSource.addEventListener('ERROR', (e) => {
             eventSource.close();
-            btn.disabled = false;
-            btn.textContent = '校验方案';
+            setBtnLoading(btn, false);
             _validationPassed = false;
             const data = JSON.parse(e.data);
             resultEl.style.background = '#fee2e2';
@@ -673,8 +739,7 @@
             }
         } catch (e) {
             eventSource.close();
-            btn.disabled = false;
-            btn.textContent = '校验方案';
+            setBtnLoading(btn, false);
             toast('校验失败: ' + e.message, 'error');
             resultEl.style.display = 'none';
             refreshStepGate();
@@ -690,8 +755,7 @@
         collectPlan();
 
         const btn = document.getElementById('exam-balance-btn');
-        btn.disabled = true;
-        btn.textContent = '平衡中...';
+        setBtnLoading(btn, true, '平衡中…');
         toast('正在按满分自动平衡分值…', 'info');
 
         try {
@@ -713,13 +777,11 @@
             if (traceBox) { traceBox.style.display = 'block'; }
             appendBalanceTrace(data.trace, 'exam-val-trace', 'exam-val-trace-box');
             toast('分值已按满分平衡，正在重新校验…', 'success');
-            btn.disabled = false;
-            btn.textContent = '自动平衡';
+            setBtnLoading(btn, false);
             // 重新校验
             await validatePlan();
         } catch (e) {
-            btn.disabled = false;
-            btn.textContent = '自动平衡';
+            setBtnLoading(btn, false);
             toast('平衡失败: ' + e.message, 'error');
         }
     }
@@ -912,7 +974,7 @@
         document.getElementById('exam-result').style.display = 'none';
         document.getElementById('exam-answer-section').style.display = 'none';
         document.getElementById('exam-flow-start').classList.add('done');
-        ['research', 'scoring', 'writing', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
+        ['research', 'scoring', 'writing', 'kp-dedup', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
             const el = document.getElementById('exam-flow-' + n);
             if (el) el.classList.remove('active', 'done', 'failed');
         });
@@ -921,11 +983,11 @@
         if (_examTimerInterval) { clearInterval(_examTimerInterval); _examTimerInterval = null; }
         _examAgentTimes = {};
         Object.keys(_nodeDetails).forEach(k => delete _nodeDetails[k]);
-        ['research', 'scoring', 'writing', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
+        ['research', 'scoring', 'writing', 'kp-dedup', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
             const t = document.getElementById('exam-flow-time-' + n);
             if (t) t.textContent = '';
         });
-        ['researcher', 'scoring', 'writer', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(a => {
+        ['researcher', 'scoring', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(a => {
             setExamAgentStatus(a, 'pending');
             const outputEl = document.getElementById('exam-output-' + a);
             if (outputEl) outputEl.textContent = '等待执行...';
@@ -940,6 +1002,7 @@
         document.getElementById('exam-materials-researcher').textContent = '等待检索...';
         document.getElementById('exam-materials-scoring').textContent = '等待检索...';
         document.getElementById('exam-materials-writer').textContent = '等待研究员完成...';
+        document.getElementById('exam-materials-kp-dedup').textContent = '等待编写完成...';
         document.getElementById('exam-materials-answer').textContent = '等待出题人完成...';
         document.getElementById('exam-materials-reviewer').textContent = '等待答案生成完成...';
         document.getElementById('exam-materials-calibrator').textContent = '等待出题人完成...';
@@ -995,8 +1058,7 @@
         setStepState(2, 'done');
         setStepState(3, 'active', '流水线执行中…');
         const btn = document.getElementById('exam-generate-btn');
-        btn.disabled = true;
-        btn.textContent = '连接中...';
+        setBtnLoading(btn, true, '连接中…');
         resetExamUI();
 
         _lastExamRequest = {
@@ -1037,6 +1099,7 @@
             if (!agent) return;
             const agentUiMap = {
                 'exam-researcher': 'researcher', 'exam-scoring': 'scoring', 'exam-writer': 'writer',
+                'exam-kp-dedup': 'kp-dedup',
                 'answer-generator': 'answer', 'exam-reviewer': 'reviewer', 'exam-calibrator': 'calibrator',
                 'exam-deduplicator': 'deduplicator'
             };
@@ -1048,7 +1111,19 @@
                 const eNode = _examAgentNodeMap[uiAgent];
                 if (eNode) {
                     const flowEl = document.getElementById('exam-flow-' + eNode);
-                    if (flowEl) { flowEl.classList.remove('done'); flowEl.classList.add('active'); }
+                    if (flowEl) {
+                        flowEl.classList.remove('done', 'failed');
+                        flowEl.classList.add('active');
+                        // 清除上一轮的分数徽章（支持自动重跑/手动重跑场景）
+                        const scoreEl = document.getElementById('exam-flow-score-' + eNode);
+                        if (scoreEl) { scoreEl.textContent = ''; scoreEl.className = 'flow-score'; }
+                    }
+                    // 清除面板头的分数
+                    const panelScoreEl = document.getElementById('exam-panel-score-' + uiAgent);
+                    if (panelScoreEl) { panelScoreEl.textContent = ''; panelScoreEl.className = 'panel-score'; }
+                    // 清除 modal 的分数
+                    const modalScoreEl = document.getElementById('node-modal-score');
+                    if (modalScoreEl) modalScoreEl.textContent = '-';
                     storeNodeDetail(eNode, 'startTime', Date.now());
                     if (data.materials) storeNodeDetail(eNode, 'materials', data.materials);
                     if (data.message) storeNodeDetail(eNode, 'message', data.message);
@@ -1079,8 +1154,27 @@
                         const tEl = document.getElementById('exam-flow-time-' + eNode);
                         if (tEl) tEl.textContent = KR.formatElapsed(Date.now() - _examAgentTimes[uiAgent]);
                     }
+                    // 渲染分数到节点条
+                    if (data.agentScore != null) {
+                        const scoreEl = document.getElementById('exam-flow-score-' + eNode);
+                        if (scoreEl) {
+                            const scoreClass = data.agentScore >= 80 ? 'score-high' : data.agentScore >= 60 ? 'score-mid' : 'score-low';
+                            scoreEl.textContent = data.agentScore.toFixed(1);
+                            scoreEl.className = 'flow-score ' + scoreClass;
+                        }
+                    }
                     storeNodeDetail(eNode, 'endTime', Date.now());
                     if (data.output) storeNodeDetail(eNode, 'output', data.output);
+                    if (data.agentScore != null) storeNodeDetail(eNode, 'score', data.agentScore);
+                }
+                // 渲染分数到面板头
+                if (data.agentScore != null) {
+                    const panelScoreEl = document.getElementById('exam-panel-score-' + uiAgent);
+                    if (panelScoreEl) {
+                        const scoreClass = data.agentScore >= 80 ? 'score-high' : data.agentScore >= 60 ? 'score-mid' : 'score-low';
+                        panelScoreEl.textContent = data.agentScore.toFixed(1);
+                        panelScoreEl.className = 'panel-score ' + scoreClass;
+                    }
                 }
             } else if (data.agentStatus === 'failed') {
                 // 校验闸门未通过：本节点标红，下游节点保持 pending（不再推进）
@@ -1114,6 +1208,7 @@
             if (!delta) return;
             const tokenUiMap = {
                 'exam-researcher': 'researcher', 'exam-scoring': 'scoring', 'exam-writer': 'writer',
+                'exam-kp-dedup': 'kp-dedup',
                 'answer-generator': 'answer', 'exam-reviewer': 'reviewer', 'exam-calibrator': 'calibrator',
                 'exam-deduplicator': 'deduplicator'
             };
@@ -1153,7 +1248,7 @@
             if (data.qualityScore) {
                 const score = data.qualityScore;
                 const cls = score >= 80 ? 'quality-high' : score >= 60 ? 'quality-mid' : 'quality-low';
-                metaParts.push('<span>质量评分：<strong class="quality-badge ' + cls + '">' + score + '</strong></span>');
+                metaParts.push('<span>质量评分：<strong class="quality-badge ' + cls + '">' + score.toFixed(2) + '</strong></span>');
             }
             if (data.retrievedChunks) metaParts.push('<span>知识片段：' + data.retrievedChunks + '</span>');
             document.getElementById('exam-meta').innerHTML = metaParts.join('');
@@ -1162,8 +1257,7 @@
                 document.getElementById('exam-answer-content').innerHTML = renderMarkdown(data.answerKey);
                 document.getElementById('exam-answer-section').style.display = 'block';
             }
-            btn.disabled = false;
-            btn.textContent = '生成试卷';
+            setBtnLoading(btn, false);
             setStepState(3, 'done', '试卷已生成');
             toast('试卷生成完成', 'success');
             loadExamHistory(0);
@@ -1175,8 +1269,7 @@
             hideExamRoundBadge();
             document.getElementById('exam-error').textContent = '生成失败: ' + (data.errorMessage || '未知错误');
             document.getElementById('exam-error').classList.add('active');
-            btn.disabled = false;
-            btn.textContent = '生成试卷';
+            setBtnLoading(btn, false);
             refreshStepGate();
         });
 
@@ -1197,15 +1290,14 @@
             eventSource.close();
             document.getElementById('exam-error').textContent = '启动失败: ' + e.message;
             document.getElementById('exam-error').classList.add('active');
-            btn.disabled = false;
-            btn.textContent = '生成试卷';
+            setBtnLoading(btn, false);
             refreshStepGate();
         }
     }
 
     function toggleExamPanels() {
         _examThinkingVisible = !_examThinkingVisible;
-        ['researcher', 'writer', 'answer', 'reviewer', 'calibrator', 'deduplicator', 'scoring'].forEach(a => {
+        ['researcher', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator', 'scoring'].forEach(a => {
             const panel = document.getElementById('exam-panel-' + a);
             if (panel) panel.classList.toggle('open', _examThinkingVisible);
         });
@@ -1465,7 +1557,7 @@
 
     /* ---------- 初始化 ---------- */
     (function bindExamAgentPanelSync() {
-        ['researcher', 'scoring', 'writer', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(ui => {
+        ['researcher', 'scoring', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(ui => {
             const panel = document.getElementById('exam-panel-' + ui);
             if (!panel) return;
             const header = panel.querySelector('.agent-panel-header');
@@ -1480,12 +1572,24 @@
         const topicEl = document.getElementById('exam-topic');
         if (topicEl) {
             topicEl.addEventListener('change', () => {
-                if (!currentExamPlan) return;
+                if (!currentExamPlan && !_validationPassed) return;
+                // 清除方案
                 currentExamPlan = null;
                 const wrap = document.getElementById('exam-plan-wrap');
                 if (wrap) wrap.innerHTML = '';
                 const traceBox = document.getElementById('exam-plan-trace-box');
                 if (traceBox) traceBox.style.display = 'none';
+                // 清除校验残留
+                _validationPassed = false;
+                _validationSessionId = null;
+                const valResult = document.getElementById('exam-validate-result');
+                if (valResult) valResult.innerHTML = '';
+                const valTraceBox = document.getElementById('exam-val-trace-box');
+                if (valTraceBox) valTraceBox.style.display = 'none';
+                setStepState(2, 'pending', '需先完成方案');
+                setStepState(3, 'pending', '需先完成校验');
+                const gBtn = document.getElementById('exam-generate-btn');
+                if (gBtn) { gBtn.disabled = true; gBtn.textContent = '生成试卷'; gBtn.title = '请先生成并确认题型分布方案'; }
                 refreshStepGate();
             });
         }

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
@@ -69,6 +70,7 @@ public class ExamGenerationSupport {
     private final BlackboardAgent examReviewerAgent;
     private final BlackboardAgent examCalibratorAgent;
     private final BlackboardAgent examDeduplicatorAgent;
+    private final BlackboardAgent examKnowledgeDedupAgent;
     private final ExamDistributionGateway examDistributionAgent;
     private final AuthorizedSearchSupport authorizedSearch;
     private final PermissionDomainService permissionDomainService;
@@ -77,6 +79,7 @@ public class ExamGenerationSupport {
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final ExamAlertGateway examAlertGateway;
+    private final SystemConfigService systemConfigService;
 
     private final ExecutorService agentExecutor =
             AgentExecutorFactory.newBoundedAgentPool("exam-gen");
@@ -99,6 +102,7 @@ public class ExamGenerationSupport {
             @Qualifier("examReviewerAgent") BlackboardAgent examReviewerAgent,
             @Qualifier("examCalibratorAgent") BlackboardAgent examCalibratorAgent,
             @Qualifier("examDeduplicatorAgent") BlackboardAgent examDeduplicatorAgent,
+            @Qualifier("examKnowledgeDedupAgent") BlackboardAgent examKnowledgeDedupAgent,
             ExamDistributionGateway examDistributionAgent,
             AuthorizedSearchSupport authorizedSearch,
             PermissionDomainService permissionDomainService,
@@ -106,7 +110,8 @@ public class ExamGenerationSupport {
             StreamingChatGateway streamingChatGateway,
             ExamHistoryGateway examHistoryGateway,
             ExamQuestionSplitSupport examQuestionSplitSupport,
-            ExamAlertGateway examAlertGateway) {
+            ExamAlertGateway examAlertGateway,
+            SystemConfigService systemConfigService) {
         this.examResearcherAgent = examResearcherAgent;
         this.examScoringAgent = examScoringAgent;
         this.examWriterAgent = examWriterAgent;
@@ -114,6 +119,7 @@ public class ExamGenerationSupport {
         this.examReviewerAgent = examReviewerAgent;
         this.examCalibratorAgent = examCalibratorAgent;
         this.examDeduplicatorAgent = examDeduplicatorAgent;
+        this.examKnowledgeDedupAgent = examKnowledgeDedupAgent;
         this.examDistributionAgent = examDistributionAgent;
         this.authorizedSearch = authorizedSearch;
         this.permissionDomainService = permissionDomainService;
@@ -122,6 +128,7 @@ public class ExamGenerationSupport {
         this.examHistoryGateway = examHistoryGateway;
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.examAlertGateway = examAlertGateway;
+        this.systemConfigService = systemConfigService;
     }
 
     /** 容器优雅停机时关闭出卷异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。 */
@@ -297,6 +304,11 @@ public class ExamGenerationSupport {
                 // 3. 试卷编写 Agent（重试时会读取审核反馈进行改进）
                 examWriterAgent.execute(blackboard, callback);
 
+                // 3.5 考点去重（特性开关控制）：编写完成后、答案生成前，去除重复考点的试题并替补
+                if (systemConfigService.getBoolean("exam.knowledge-dedup.enabled")) {
+                    examKnowledgeDedupAgent.execute(blackboard, callback);
+                }
+
                 // 4. 答案生成 Agent ∥ 难度校准 Agent（均只依赖 examPaper，并行执行）
                 CompletableFuture<Void> answerFuture =
                         CompletableFuture.runAsync(
@@ -319,7 +331,7 @@ public class ExamGenerationSupport {
                                 agentExecutor);
                 CompletableFuture.allOf(reviewFuture, dedupFuture).join();
 
-                int score = blackboard.getQualityScore();
+                int score = (int) blackboard.getQualityScore();
                 if (firstAttemptScore < 0) {
                     firstAttemptScore = score;
                 }
@@ -565,7 +577,7 @@ public class ExamGenerationSupport {
         return examDistributionAgent.generate(topic, difficulty, schoolLevel, knowledgeHint);
     }
 
-    /** 异步生成题型分布方案（流式）。 */
+    /** 异步生成题型分布方案（流式），含基于评估的循环重生成。 */
     public void generateDistributionAsync(
             String sessionId,
             String topic,
@@ -610,13 +622,17 @@ public class ExamGenerationSupport {
                         } catch (Exception e) {
                             log.warn("[Distribution] 检索知识点失败（忽略）: {}", e.getMessage());
                         }
+
+                        // ---- 循环重生成：每轮完整跑四阶段，评估不合理则回退重来 ----
                         ExamPlan plan =
-                                examDistributionAgent.generate(
+                                generateDistributionWithLoop(
+                                        sessionId,
                                         topic,
                                         difficulty,
                                         schoolLevel,
                                         knowledgeHint,
                                         progressCallback);
+
                         String planJson = objectMapper.writeValueAsString(plan);
                         emit(
                                 progressCallback,
@@ -637,6 +653,146 @@ public class ExamGenerationSupport {
                     }
                 },
                 agentExecutor);
+    }
+
+    /**
+     * 循环重生成题型分布方案。
+     *
+     * <p>每轮调用 {@link ExamDistributionGateway#generateForRound} 完整跑四阶段（分类→数量→分数→评估）， 轮次间使用独立 SSE
+     * agent 名称前缀（{@code r{N}-classify} 等），前端为每轮创建独立进度卡片。 评估后结合 {@link ScorePlanValidator} 硬校验 + 结构化
+     * LLM 评估判定（overallVerdict）判断是否需要下一轮。
+     *
+     * <p>收敛策略：① overallVerdict=PASS 且硬校验通过 → 接受；② 连续两轮 FAIL 维度相同 → 已收敛到当前最优，继续只会振荡，接受； ③ 达到最大轮次 →
+     * 接受当前方案。
+     */
+    private ExamPlan generateDistributionWithLoop(
+            String sessionId,
+            String topic,
+            String difficulty,
+            String schoolLevel,
+            String knowledgeHint,
+            BlackboardProgressCallback callback) {
+
+        boolean autoBalanceEnabled =
+                systemConfigService.getBoolean("exam.plan.auto-balance.enabled");
+        int maxRounds =
+                autoBalanceEnabled
+                        ? systemConfigService.getInt("exam.plan.auto-balance.max-rounds")
+                        : 1;
+        if (maxRounds <= 0) {
+            maxRounds = 1;
+        }
+        maxRounds = Math.min(maxRounds, 5);
+
+        ExamPlan plan = null;
+        ExamPlan prevPlan = null;
+        List<String> prevFeedback = null;
+        List<String> prevFailingDimensions = null;
+
+        for (int round = 1; round <= maxRounds; round++) {
+            log.info(
+                    "[Distribution] 第 {}/{} 轮生成 [session={}, topic='{}', hasPrevFeedback={}]",
+                    round,
+                    maxRounds,
+                    sessionId,
+                    topic,
+                    prevFeedback != null && !prevFeedback.isEmpty());
+
+            plan =
+                    examDistributionAgent.generateForRound(
+                            topic,
+                            difficulty,
+                            schoolLevel,
+                            knowledgeHint,
+                            round,
+                            prevFeedback,
+                            prevPlan,
+                            callback);
+
+            // 硬校验
+            ScorePlanValidator.Result validatorResult = ScorePlanValidator.validate(plan);
+            boolean evalPass = "PASS".equalsIgnoreCase(plan.getOverallVerdict());
+
+            if (validatorResult.pass() && evalPass) {
+                log.info(
+                        "[Distribution] 第 {} 轮方案通过校验 [session={}, verdict=PASS]", round, sessionId);
+                break;
+            }
+
+            // 检测收敛：连续两轮 FAIL 的维度相同 → 已收敛到当前最优，继续只会振荡
+            List<String> currentFailing = extractFailingDimensions(plan);
+            if (prevFailingDimensions != null
+                    && !prevFailingDimensions.isEmpty()
+                    && prevFailingDimensions.equals(currentFailing)) {
+                log.info(
+                        "[Distribution] 连续两轮 FAIL 维度相同 {}，已收敛，停止循环 [session={}]",
+                        currentFailing,
+                        sessionId);
+                break;
+            }
+
+            // 汇总本轮反馈，传递给下一轮作为题型/题量调整依据
+            prevFeedback = new java.util.ArrayList<>(validatorResult.issues());
+            prevFeedback.addAll(validatorResult.suggestions());
+            if (!evalPass) {
+                prevFeedback.addAll(plan.getEvaluationNotes());
+            }
+            prevPlan = plan;
+            prevFailingDimensions = currentFailing;
+
+            log.info(
+                    "[Distribution] 第 {} 轮方案需改进 [session={}, verdict={}, feedbackCount={}]",
+                    round,
+                    sessionId,
+                    plan.getOverallVerdict(),
+                    prevFeedback.size());
+
+            if (round >= maxRounds) {
+                log.info("[Distribution] 已达最大轮次 {}，使用当前方案 [session={}]", maxRounds, sessionId);
+            }
+        }
+        return plan;
+    }
+
+    /**
+     * 从方案的结构化评估备注中提取 FAIL 维度名称列表，用于收敛检测。
+     *
+     * <p>维度备注格式为"维度名：具体描述"，提取冒号前的维度名；无冒号的备注跳过。
+     */
+    private static List<String> extractFailingDimensions(ExamPlan plan) {
+        List<String> failing = new java.util.ArrayList<>();
+        List<String> notes = plan.getEvaluationNotes();
+        if (notes == null) {
+            return failing;
+        }
+        for (String note : notes) {
+            int idx = note.indexOf('：');
+            if (idx > 0) {
+                failing.add(note.substring(0, idx).trim());
+            }
+        }
+        java.util.Collections.sort(failing);
+        return failing;
+    }
+
+    /**
+     * 判断方案是否有 LLM 评估建议需要改进。
+     *
+     * <p>优先使用结构化判定 {@code overallVerdict}：PASS 表示无需改进。 回退兼容：无 verdict 时按旧逻辑检查备注内容。
+     */
+    private static boolean hasEvaluationSuggestions(ExamPlan plan) {
+        String verdict = plan.getOverallVerdict();
+        if (verdict != null) {
+            return !"PASS".equalsIgnoreCase(verdict);
+        }
+        List<String> notes = plan.getEvaluationNotes();
+        if (notes == null || notes.isEmpty()) {
+            return false;
+        }
+        if (notes.size() == 1 && notes.get(0).contains("合理")) {
+            return false;
+        }
+        return true;
     }
 
     /** 依据当前方案自动平衡分值，返回平衡后的方案 + 过程说明。 */
@@ -1113,7 +1269,7 @@ public class ExamGenerationSupport {
             return ExamHistory.STATUS_VALIDATION_FAILED;
         }
 
-        int quality = blackboard.getQualityScore();
+        int quality = (int) blackboard.getQualityScore();
         if (quality < QUALITY_SCORE_THRESHOLD) {
             examAlertGateway.lowQualityScore(sessionId, quality, QUALITY_SCORE_THRESHOLD);
         }
