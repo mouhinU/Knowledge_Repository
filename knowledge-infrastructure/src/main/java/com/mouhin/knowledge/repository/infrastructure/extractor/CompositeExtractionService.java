@@ -120,12 +120,20 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
      * <p>四类失败对外抛出同一 {@link IllegalArgumentException}（{@value #GENERIC_INVALID_REFERENCE}），仅在 {@code
      * log.debug} 保留真实原因供运维诊断——彻底消除 java:S6549 所指的 filesystem oracle（响应消息可区分 → 攻击者可枚举路径 / 大小 / 类型）。
      *
+     * <p>{@code @SuppressWarnings("java:S6549")} 说明：Sonar 的污点传播引擎把 {@code filePath} 参数视为用户可控，
+     * 无法识别运行时的 {@code startsWith(allowedRoots)} 白名单作为 sanitizer，因此在 {@link Files#isRegularFile}
+     * 处仍会命中该规则。业务上此路径来源已限定为 app 层传入的 {@code Document.storagePath}（写库前经 {@code
+     * DocumentIngestionSupport.saveToTemp} 归一到 {@code knowledge.storage.path} 之下）， 再叠加本方法内的
+     * base-dir 白名单与统一异常消息，oracle 面已被完全封堵——属于<b>有据可依的抑制</b> 而非未修复项，与 {@code
+     * docs/sonar-remediation-plan.md} 中 java:S6549 整改方案对齐。
+     *
      * @param filePath 待校验路径；null 亦走统一异常
      * @param fileSize 客户端上送的字节数（仅做上下界，不做 stat 二次确认）
      * @param fileName 原始文件名，用于扩展名白名单；null 时跳过扩展名校验
      * @throws IllegalArgumentException 任一校验失败（对外消息恒定）
      */
     @Override
+    @SuppressWarnings("java:S6549") // base-dir 白名单 + 统一消息双封堵，Sonar 污点传播不识别 startsWith sanitizer
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null) {
             reject("null path", null);
