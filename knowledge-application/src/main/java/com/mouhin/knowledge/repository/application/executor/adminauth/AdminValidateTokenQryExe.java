@@ -42,6 +42,9 @@ public class AdminValidateTokenQryExe {
             return null;
         }
         return new AdminPrincipalDTO(
-                user.getUserKey(), user.getUsername(), Boolean.TRUE.equals(user.getAdmin()));
+                user.getUserKey(),
+                user.getUsername(),
+                Boolean.TRUE.equals(user.getAdmin()),
+                user.getDepartmentId());
     }
 }

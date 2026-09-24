@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.controller;
 import com.mouhin.knowledge.repository.client.api.KnowledgeQueryServiceI;
 import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
+import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -29,15 +30,18 @@ public class KnowledgeQueryController {
     }
 
     /**
-     * 语义检索知识库
+     * 语义检索知识库。
      *
-     * @param body 请求体：query, userId, departmentId, roles, admin, maxResults, minScore, category
+     * <p>调用方身份（userId / departmentId / admin）由 {@link AdminPrincipalSupport} 从已验证的管理端主体
+     * 回读，请求体中同名字段一律忽略，防止越权伪造。当前 body 只需携带：{@code query}, {@code maxResults}, {@code minScore},
+     * {@code category}。
      */
     @PostMapping("/search")
     public ResponseEntity<Object> search(
             @RequestBody Map<String, Object> body, HttpServletRequest request) {
         String query = (String) body.get("query");
-        String userId = AdminPrincipalSupport.toPermission(request).getUserId();
+        Permission permission = AdminPrincipalSupport.toPermission(request);
+        String userId = permission.getUserId();
         Integer maxResults =
                 body.get("maxResults") != null
                         ? ((Number) body.get("maxResults")).intValue()
@@ -57,7 +61,9 @@ public class KnowledgeQueryController {
         SearchCmd cmd = new SearchCmd();
         cmd.setQuery(query);
         cmd.setUserId(userId);
-        cmd.setAdmin(true);
+        cmd.setDepartmentId(permission.getDepartmentId());
+        cmd.setRoles(permission.getRoles());
+        cmd.setAdmin(permission.isAdmin());
         cmd.setMaxResults(maxResults);
         cmd.setMinScore(minScore);
         cmd.setCategory(category);

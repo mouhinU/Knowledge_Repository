@@ -19,11 +19,19 @@ public class AdminPrincipalDTO {
     private String username;
     private Boolean admin;
 
+    /** 所属部门，由令牌校验回库读取，供下游按部门作用域检索使用；不再信任请求体传入。 */
+    private String departmentId;
+
     public AdminPrincipalDTO() {}
 
     public AdminPrincipalDTO(String userKey, String username, Boolean admin) {
         this.userKey = userKey;
         this.username = username;
         this.admin = admin;
+    }
+
+    public AdminPrincipalDTO(String userKey, String username, Boolean admin, String departmentId) {
+        this(userKey, username, admin);
+        this.departmentId = departmentId;
     }
 }
