@@ -78,8 +78,13 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
     @Override
     public void validateFile(Path filePath, long fileSize, String fileName) {
-        if (filePath == null || !Files.exists(filePath)) {
-            throw new IllegalArgumentException("File does not exist");
+        if (filePath == null) {
+            throw new IllegalArgumentException("File reference is required");
+        }
+        // 归一化后再判存在与是否为普通文件，两种失败合并成同一异常消息，削弱文件系统 oracle（java:S6549）
+        Path normalized = filePath.toAbsolutePath().normalize();
+        if (!Files.isRegularFile(normalized)) {
+            throw new IllegalArgumentException("Invalid file reference");
         }
         if (fileSize <= 0) {
             throw new IllegalArgumentException("File must not be empty");

@@ -186,6 +186,7 @@ class CompositeExtractionServiceTest {
         @DisplayName("栈内全部失败则冒泡最后一个 IOException")
         void rethrowsLastErrorWhenAllFail() throws IOException {
             Path file = writeTextFile("content");
+            long fileSize = Files.size(file);
             ExtractorRoutingProperties props = new ExtractorRoutingProperties();
             props.setRouting(Map.of("text/plain", List.of("FAIL_A", "FAIL_B")));
             props.setDefaultStack(List.of("NOT_IN_STACK"));
@@ -194,7 +195,7 @@ class CompositeExtractionServiceTest {
             CompositeExtractionService composite =
                     new CompositeExtractionService(List.of(a, b), props);
 
-            assertThatThrownBy(() -> composite.extractText(file, Files.size(file), "doc.txt"))
+            assertThatThrownBy(() -> composite.extractText(file, fileSize, "doc.txt"))
                     .isInstanceOf(IOException.class)
                     .hasMessageContaining("B");
         }
@@ -240,7 +241,7 @@ class CompositeExtractionServiceTest {
     class ValidationAndChecksum {
 
         @Test
-        @DisplayName("路径不存在抛 IllegalArgumentException")
+        @DisplayName("路径不存在抛 IllegalArgumentException（filesystem oracle 收敛：统一消息）")
         void missingFileRejected() {
             CompositeExtractionService composite =
                     new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
@@ -249,7 +250,7 @@ class CompositeExtractionServiceTest {
                                     composite.validateFile(
                                             tempDir.resolve("nope.txt"), 10, "nope.txt"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("does not exist");
+                    .hasMessageContaining("Invalid file reference");
         }
 
         @Test
@@ -276,8 +277,8 @@ class CompositeExtractionServiceTest {
         }
 
         @Test
-        @DisplayName("calculateChecksum 返回文件内容的 MD5（32 位小写十六进制）")
-        void checksumMatchesMd5() throws Exception {
+        @DisplayName("calculateChecksum 返回文件内容的 SHA-256（64 位小写十六进制）")
+        void checksumMatchesSha256() throws Exception {
             byte[] content = "hello checksum".getBytes(StandardCharsets.UTF_8);
             Path file = tempDir.resolve("ck.txt");
             Files.write(file, content);
@@ -286,12 +287,12 @@ class CompositeExtractionServiceTest {
 
             String actual = composite.calculateChecksum(file);
 
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             StringBuilder sb = new StringBuilder();
             for (byte b : md.digest(content)) {
                 sb.append(String.format("%02x", b));
             }
-            assertThat(actual).isEqualTo(sb.toString()).hasSize(32);
+            assertThat(actual).isEqualTo(sb.toString()).hasSize(64);
         }
     }
 }

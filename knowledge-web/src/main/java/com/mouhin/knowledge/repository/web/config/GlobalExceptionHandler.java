@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.config;
 import com.mouhin.knowledge.repository.web.security.AdminAuthRequiredException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -53,7 +54,7 @@ public class GlobalExceptionHandler {
                                 FIELD_ERROR_MESSAGE,
                                 "管理员身份未认证或已失效",
                                 FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
+                                LocalDateTime.now(ZoneId.systemDefault()).toString()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

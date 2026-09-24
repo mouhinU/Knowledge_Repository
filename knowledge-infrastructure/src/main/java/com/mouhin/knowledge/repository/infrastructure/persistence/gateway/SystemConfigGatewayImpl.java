@@ -53,7 +53,15 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
 
     @Override
     public void saveOrUpdate(SystemConfig config) {
+        if (config == null || config.getConfigKey() == null || config.getConfigKey().isBlank()) {
+            throw new IllegalArgumentException(
+                    "SystemConfig with a non-blank configKey is required");
+        }
         SystemConfigDO doObj = SystemConfigConverter.toDO(config);
+        if (doObj == null) {
+            throw new IllegalStateException(
+                    "SystemConfigConverter returned null for " + config.getConfigKey());
+        }
         LambdaQueryWrapper<SystemConfigDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SystemConfigDO::getConfigKey, config.getConfigKey());
         SystemConfigDO existing = systemConfigMapper.selectOne(wrapper);

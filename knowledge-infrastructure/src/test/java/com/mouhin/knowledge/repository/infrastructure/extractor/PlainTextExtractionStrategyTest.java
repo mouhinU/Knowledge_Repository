@@ -58,6 +58,6 @@ class PlainTextExtractionStrategyTest {
         assertThat(result.detectedFormat()).isEqualTo("text");
         assertThat(result.totalPages()).isEqualTo(2);
         assertThat(result.pageTexts()).containsExactly("para one", "para two");
-        assertThat(result.checksum()).hasSize(32);
+        assertThat(result.checksum()).hasSize(64);
     }
 }

@@ -709,6 +709,14 @@ public class ExamGenerationSupport {
                             prevPlan,
                             callback);
 
+            if (plan == null) {
+                log.warn("[Distribution] 第 {} 轮 generateForRound 返回 null，视为 FAIL 继续下一轮", round);
+                prevFeedback = List.of("上一轮 LLM 未产出方案，请重新生成");
+                prevPlan = null;
+                prevFailingDimensions = null;
+                continue;
+            }
+
             // 硬校验
             ScorePlanValidator.Result validatorResult = ScorePlanValidator.validate(plan);
             boolean evalPass = "PASS".equalsIgnoreCase(plan.getOverallVerdict());
