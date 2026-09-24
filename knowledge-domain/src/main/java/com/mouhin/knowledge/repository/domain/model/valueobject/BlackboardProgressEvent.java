@@ -48,8 +48,11 @@ public class BlackboardProgressEvent {
     /** 审核反馈（仅 COMPLETED 事件） */
     private final String reviewFeedback;
 
-    /** 质量评分（仅 COMPLETED 事件） */
-    private final int qualityScore;
+    /** 质量评分（仅 COMPLETED 事件，保留两位小数） */
+    private final double qualityScore;
+
+    /** 节点分数（仅 AGENT_OUTPUT done 事件，0-100，保留两位小数，可空） */
+    private final Double agentScore;
 
     /** 检索到的知识片段数 */
     private final int retrievedChunks;
@@ -101,6 +104,7 @@ public class BlackboardProgressEvent {
         this.draftArticle = builder.draftArticle;
         this.reviewFeedback = builder.reviewFeedback;
         this.qualityScore = builder.qualityScore;
+        this.agentScore = builder.agentScore;
         this.retrievedChunks = builder.retrievedChunks;
         this.errorMessage = builder.errorMessage;
         this.materials = builder.materials;
@@ -164,11 +168,18 @@ public class BlackboardProgressEvent {
 
     /** 创建 Agent 完成事件（含输出） */
     public static BlackboardProgressEvent agentCompleted(String agentName, String output) {
+        return agentCompleted(agentName, output, null);
+    }
+
+    /** 创建 Agent 完成事件（含输出与节点分数） */
+    public static BlackboardProgressEvent agentCompleted(
+            String agentName, String output, Double agentScore) {
         return new Builder()
                 .type("AGENT_OUTPUT")
                 .agentName(agentName)
                 .agentStatus("done")
                 .output(output)
+                .agentScore(agentScore)
                 .build();
     }
 
@@ -305,8 +316,12 @@ public class BlackboardProgressEvent {
         return reviewFeedback;
     }
 
-    public int getQualityScore() {
+    public double getQualityScore() {
         return qualityScore;
+    }
+
+    public Double getAgentScore() {
+        return agentScore;
     }
 
     public int getRetrievedChunks() {
@@ -371,7 +386,8 @@ public class BlackboardProgressEvent {
         private String keyFindings;
         private String draftArticle;
         private String reviewFeedback;
-        private int qualityScore;
+        private double qualityScore;
+        private Double agentScore;
         private int retrievedChunks;
         private String errorMessage;
         private String materials;
@@ -444,8 +460,13 @@ public class BlackboardProgressEvent {
             return this;
         }
 
-        public Builder qualityScore(int qualityScore) {
+        public Builder qualityScore(double qualityScore) {
             this.qualityScore = qualityScore;
+            return this;
+        }
+
+        public Builder agentScore(Double agentScore) {
+            this.agentScore = agentScore;
             return this;
         }
 

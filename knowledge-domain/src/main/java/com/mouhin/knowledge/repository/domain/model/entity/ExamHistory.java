@@ -55,8 +55,8 @@ public class ExamHistory {
     /** 参考答案 */
     private String answerKey;
 
-    /** 质量评分 */
-    private Integer qualityScore;
+    /** 质量评分（保留两位小数） */
+    private Double qualityScore;
 
     /** 质量评分六维度明细（JSON：accuracy/wording/coverage/typeReasonable/difficulty/format/total） */
     private String scoreDetail;
@@ -175,11 +175,11 @@ public class ExamHistory {
         this.answerKey = answerKey;
     }
 
-    public Integer getQualityScore() {
+    public Double getQualityScore() {
         return qualityScore;
     }
 
-    public void setQualityScore(Integer qualityScore) {
+    public void setQualityScore(Double qualityScore) {
         this.qualityScore = qualityScore;
     }
 

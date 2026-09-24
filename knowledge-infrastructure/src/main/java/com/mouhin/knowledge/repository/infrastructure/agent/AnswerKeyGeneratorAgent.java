@@ -104,15 +104,33 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
         }
 
         blackboard.setAnswerKey(answerKey);
+        Double agentScore = calculateAnswerScore(examPaper, answerKey);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("answer-generator", answerKey));
-        log.info("[AnswerKeyGenerator] 答案生成完成，长度：{} 字符", answerKey.length());
+                BlackboardProgressEvent.agentCompleted("answer-generator", answerKey, agentScore));
+        log.info("[AnswerKeyGenerator] 答案生成完成，长度：{} 字符，得分：{}", answerKey.length(), agentScore);
     }
 
     @Override
     public String getName() {
         return "AnswerKeyGenerator";
+    }
+
+    /**
+     * 计算答案生成 Agent 的启发式得分（0-100，保留两位小数）
+     *
+     * <p>评分依据：答案长度与试卷长度的比值（覆盖率）+ 答案结构完整性
+     */
+    private Double calculateAnswerScore(String examPaper, String answerKey) {
+        double score = 0.0;
+        // 覆盖率贡献 70 分（答案长度/试卷长度 * 70，上限 70）
+        double ratio = (double) answerKey.length() / examPaper.length();
+        score += Math.min(70.0, ratio * 70.0);
+        // 结构完整性贡献 30 分（有题型分节/评分标准等）
+        if (answerKey.contains("##") || answerKey.contains("一、")) score += 10.0;
+        if (answerKey.contains("评分标准") || answerKey.contains("评分要点")) score += 10.0;
+        if (answerKey.contains("答案") || answerKey.contains("答：")) score += 10.0;
+        return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

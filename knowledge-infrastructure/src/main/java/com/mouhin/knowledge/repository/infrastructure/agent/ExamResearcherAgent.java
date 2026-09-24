@@ -105,10 +105,28 @@ public class ExamResearcherAgent implements BlackboardAgent {
         }
 
         blackboard.setKeyFindings(findings);
+        Double agentScore = calculateResearcherScore(chunks, findings);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-researcher", findings));
-        log.info("[ExamResearcher] 知识点分析完成，长度：{} 字符", findings.length());
+                BlackboardProgressEvent.agentCompleted("exam-researcher", findings, agentScore));
+        log.info("[ExamResearcher] 知识点分析完成，长度：{} 字符，得分：{}", findings.length(), agentScore);
+    }
+
+    /**
+     * 计算研究员 Agent 的启发式得分（0-100，保留两位小数）
+     *
+     * <p>评分依据：知识片段数量（越多覆盖越好）+ 分析结果长度（越丰富越好）
+     */
+    private Double calculateResearcherScore(List<SearchResult> chunks, String findings) {
+        if (chunks.isEmpty()) {
+            return 0.0;
+        }
+        // 片段数贡献 40 分（每片段 4 分，上限 40）
+        double chunkScore = Math.min(40.0, chunks.size() * 4.0);
+        // 分析长度贡献 60 分（每 100 字符 6 分，上限 60）
+        double lengthScore = Math.min(60.0, findings.length() / 100.0 * 6.0);
+        double total = chunkScore + lengthScore;
+        return Math.round(total * 100.0) / 100.0;
     }
 
     private String buildMaterialsSummary(List<SearchResult> chunks) {

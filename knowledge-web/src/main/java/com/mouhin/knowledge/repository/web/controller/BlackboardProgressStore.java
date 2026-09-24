@@ -165,6 +165,7 @@ public class BlackboardProgressStore {
         if (event.getQualityScore() > 0) {
             map.put("qualityScore", event.getQualityScore());
         }
+        putIfNotNull(map, "agentScore", event.getAgentScore());
         if (event.getRetrievedChunks() > 0) {
             map.put("retrievedChunks", event.getRetrievedChunks());
         }

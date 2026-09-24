@@ -47,7 +47,7 @@ public class ExamHistoryDO {
     private String answerKey;
 
     @TableField("quality_score")
-    private Integer qualityScore;
+    private Double qualityScore;
 
     @TableField("score_detail")
     private String scoreDetail;

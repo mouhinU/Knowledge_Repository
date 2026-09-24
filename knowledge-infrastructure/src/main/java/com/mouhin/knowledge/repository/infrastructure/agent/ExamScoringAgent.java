@@ -83,7 +83,7 @@ public class ExamScoringAgent implements BlackboardAgent {
             String output = "### 分值方案（Node 2 已校验，直接写入）\n\n" + schemeText;
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("exam-scoring", output));
+                    BlackboardProgressEvent.agentCompleted("exam-scoring", output, 100.0));
             log.info(
                     "[ExamScoring] 跳过校验（Node 2 已通过），直接写入 scheme [topic='{}', fullMark={}]",
                     topic,
@@ -114,9 +114,10 @@ public class ExamScoringAgent implements BlackboardAgent {
         blackboard.setScoringScheme(schemeText);
 
         String finalOutput = report + "\n---\n\n### 分值方案（供 Writer 严格遵循）\n\n" + schemeText;
+        Double agentScore = result.suggestions().isEmpty() ? 100.0 : 90.0;
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-scoring", finalOutput));
+                BlackboardProgressEvent.agentCompleted("exam-scoring", finalOutput, agentScore));
         if (!result.suggestions().isEmpty()) {
             log.info(
                     "[ExamScoring] 校验通过但含 {} 条优化建议 [topic='{}']",

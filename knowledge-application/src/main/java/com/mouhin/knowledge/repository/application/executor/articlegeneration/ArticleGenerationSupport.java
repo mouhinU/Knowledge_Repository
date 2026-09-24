@@ -244,7 +244,7 @@ public class ArticleGenerationSupport {
             history.setQuestion(question);
             history.setFinalArticle(blackboard.getFinalArticle());
             history.setDraftArticle(blackboard.getDraftArticle());
-            history.setQualityScore(blackboard.getQualityScore());
+            history.setQualityScore((int) blackboard.getQualityScore());
             history.setRetrievedChunks(retrievedChunks);
             history.setKeyFindings(blackboard.getKeyFindings());
             history.setReviewFeedback(blackboard.getReviewFeedback());

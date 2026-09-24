@@ -108,15 +108,33 @@ public class ExamCalibratorAgent implements BlackboardAgent {
         }
 
         blackboard.setDifficultyAssessment(assessment);
+        Double agentScore = calculateCalibratorScore(assessment);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-calibrator", assessment));
-        log.info("[ExamCalibrator] 难度校准完成，长度：{} 字符", assessment.length());
+                BlackboardProgressEvent.agentCompleted("exam-calibrator", assessment, agentScore));
+        log.info("[ExamCalibrator] 难度校准完成，长度：{} 字符，得分：{}", assessment.length(), agentScore);
     }
 
     @Override
     public String getName() {
         return "ExamCalibrator";
+    }
+
+    /**
+     * 计算难度校准 Agent 的启发式得分（0-100，保留两位小数）
+     *
+     * <p>评分依据：评估报告长度 + 结构完整性（是否有分析/分布/结论/建议四部分）
+     */
+    private Double calculateCalibratorScore(String assessment) {
+        double score = 0.0;
+        // 长度贡献 40 分（每 100 字符 4 分，上限 40）
+        score += Math.min(40.0, assessment.length() / 100.0 * 4.0);
+        // 结构完整性贡献 60 分（四部分各 15 分）
+        if (assessment.contains("难度分析")) score += 15.0;
+        if (assessment.contains("难度分布")) score += 15.0;
+        if (assessment.contains("校准结论")) score += 15.0;
+        if (assessment.contains("调整建议")) score += 15.0;
+        return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

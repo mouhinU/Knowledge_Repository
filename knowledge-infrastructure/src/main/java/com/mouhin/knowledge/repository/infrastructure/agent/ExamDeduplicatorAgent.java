@@ -101,15 +101,40 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
         }
 
         blackboard.setDeduplicationReport(report);
+        Double agentScore = calculateDeduplicatorScore(report);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-deduplicator", report));
-        log.info("[ExamDeduplicator] 查重完成，长度：{} 字符", report.length());
+                BlackboardProgressEvent.agentCompleted("exam-deduplicator", report, agentScore));
+        log.info("[ExamDeduplicator] 查重完成，长度：{} 字符，得分：{}", report.length(), agentScore);
     }
 
     @Override
     public String getName() {
         return "ExamDeduplicator";
+    }
+
+    /**
+     * 计算查重 Agent 的启发式得分（0-100，保留两位小数）
+     *
+     * <p>评分依据：查重报告结构完整性 + 重复率（越低越好）
+     */
+    private Double calculateDeduplicatorScore(String report) {
+        double score = 0.0;
+        // 结构完整性贡献 40 分（三部分各约 13 分）
+        if (report.contains("查重结果")) score += 13.0;
+        if (report.contains("重复率评估") || report.contains("重复率")) score += 14.0;
+        if (report.contains("建议")) score += 13.0;
+        // 重复率贡献 60 分（重复率越低分越高）
+        // 尝试从报告中提取重复率百分比
+        java.util.regex.Matcher matcher =
+                java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*%").matcher(report);
+        double dedupRate = 0.0;
+        if (matcher.find()) {
+            dedupRate = Double.parseDouble(matcher.group(1));
+        }
+        // 重复率 0% → 60 分，重复率 50%+ → 0 分
+        score += Math.max(0.0, 60.0 - dedupRate * 1.2);
+        return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

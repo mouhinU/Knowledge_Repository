@@ -55,8 +55,8 @@ public class BlackboardState {
     private String reviewFeedback;
 
     /* ==================== 最终输出 ==================== */
-    /** 质量评分（0~100） */
-    private int qualityScore;
+    /** 质量评分（0~100，保留两位小数） */
+    private double qualityScore;
 
     /* ==================== 出卷流水线字段 ==================== */
     /** 最终文章 */
@@ -216,11 +216,11 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public int getQualityScore() {
+    public double getQualityScore() {
         return qualityScore;
     }
 
-    public void setQualityScore(int qualityScore) {
+    public void setQualityScore(double qualityScore) {
         this.qualityScore = qualityScore;
         this.updatedAt = Instant.now();
     }

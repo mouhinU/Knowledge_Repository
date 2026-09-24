@@ -129,7 +129,9 @@ public class ExamReviewerAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(
-                        "exam-reviewer", blackboard.getExamReviewFeedback()));
+                        "exam-reviewer",
+                        blackboard.getExamReviewFeedback(),
+                        blackboard.getQualityScore()));
         log.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
     }
 
@@ -160,7 +162,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
         }
         blackboard.setExamReviewFeedback(feedback + block);
 
-        int current = blackboard.getQualityScore();
+        double current = blackboard.getQualityScore();
         if (current > DETECTOR_SCORE_CAP) {
             blackboard.setQualityScore(DETECTOR_SCORE_CAP);
         }
@@ -193,12 +195,12 @@ public class ExamReviewerAgent implements BlackboardAgent {
         "知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"
     };
 
-    private int extractScore(String reviewOutput) {
+    private double extractScore(String reviewOutput) {
         // javabugs:S2259：LLM 返回 null / 空白时，后续 indexOf / substring 会 NPE；
         //   回退 0 分并告警，交由上层按质量分不足处理（比崩溃更易恢复）。
         if (reviewOutput == null) {
             log.warn("[ExamReviewer] reviewOutput 为空，回退质量分 0");
-            return 0;
+            return 0.0;
         }
         try {
             int[] dims = parseDimensionScores(reviewOutput);
@@ -207,7 +209,8 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 for (int i = 0; i < dims.length; i++) {
                     weighted += dims[i] * WEIGHTS[i];
                 }
-                int result = (int) Math.min(100, Math.max(0, Math.round(weighted)));
+                double result = Math.min(100.0, Math.max(0.0, weighted));
+                result = Math.round(result * 100.0) / 100.0; // 保留两位小数
                 log.info(
                         "[ExamReviewer] 维度评分：准确性={}, 表述={}, 覆盖={}, 题型={}, 难度={}, 格式={}, 加权总分={}",
                         dims[0],
@@ -226,20 +229,21 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 String after = reviewOutput.substring(idx + "## 质量评分".length()).trim();
                 StringBuilder num = new StringBuilder();
                 for (char c : after.toCharArray()) {
-                    if (Character.isDigit(c)) {
+                    if (Character.isDigit(c) || c == '.') {
                         num.append(c);
                     } else if (num.length() > 0) {
                         break;
                     }
                 }
                 if (num.length() > 0) {
-                    return Math.min(100, Math.max(0, Integer.parseInt(num.toString())));
+                    double parsed = Double.parseDouble(num.toString());
+                    return Math.min(100.0, Math.max(0.0, parsed));
                 }
             }
         } catch (Exception e) {
             log.warn("[ExamReviewer] 评分解析异常: {}", e.getMessage());
         }
-        return 70;
+        return 70.0;
     }
 
     /**
@@ -275,13 +279,13 @@ public class ExamReviewerAgent implements BlackboardAgent {
      *
      * @return JSON 字符串；无法解析全部维度时返回 {@code null}
      */
-    private String buildScoreDetailJson(String reviewOutput, int total) {
+    private String buildScoreDetailJson(String reviewOutput, double total) {
         int[] dims = parseDimensionScores(reviewOutput);
         if (dims == null) {
             return null;
         }
         return String.format(
-                "{\"accuracy\":%d,\"wording\":%d,\"coverage\":%d,\"typeReasonable\":%d,\"difficulty\":%d,\"format\":%d,\"total\":%d}",
+                "{\"accuracy\":%d,\"wording\":%d,\"coverage\":%d,\"typeReasonable\":%d,\"difficulty\":%d,\"format\":%d,\"total\":%.2f}",
                 dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], total);
     }
 

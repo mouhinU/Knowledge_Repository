@@ -26,7 +26,7 @@ public class ExamHistoryDTO {
     private String examPlan;
     private String examPaper;
     private String answerKey;
-    private Integer qualityScore;
+    private Double qualityScore;
     private String scoreDetail;
     private Integer retrievedChunks;
     private String keyFindings;
