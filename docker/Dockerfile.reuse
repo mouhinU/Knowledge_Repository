@@ -1,0 +1,12 @@
+# 复用已有镜像层，仅替换 fat jar（Docker Hub 不可达时使用）
+#
+# 注意：COPY 与 chown 必须合并为一层，否则 RUN chown 会触发 Overlay2 copy-up，
+# 把 122MB 的 jar 再存一遍到新层，导致镜像虚增 ~122MB × N 层。
+FROM knowledge-repository:V2026092307-flat
+
+COPY --chown=appuser:appuser knowledge-web/target/knowledge-web-1.0.0-SNAPSHOT.jar /app/app.jar
+
+USER appuser
+
+ARG APP_VERSION=unknown
+ENV APP_VERSION=${APP_VERSION}

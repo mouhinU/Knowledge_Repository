@@ -112,7 +112,45 @@ fi
 # 构建镜像
 # ============================================================
 echo ">>> 构建镜像: ${IMAGE_NAME}:${APP_VERSION}"
-docker compose -f "$COMPOSE_APP" build
+if ! docker compose -f "$COMPOSE_APP" build; then
+    echo ">>> docker compose build 失败，尝试 Dockerfile.reuse 降级构建（复用本地基镜像，绕开 Docker Hub）"
+    BASE_IMAGE="${IMAGE_NAME}:V2026092307-flat"
+    if ! docker image inspect "${BASE_IMAGE}" >/dev/null 2>&1; then
+        echo "!!! 未找到降级所需基镜像 ${BASE_IMAGE}，请先手动构建或恢复"
+        exit 1
+    fi
+    echo ">>> 使用基镜像: ${BASE_IMAGE}"
+    docker build -f docker/Dockerfile.reuse \
+        --build-arg APP_VERSION="${APP_VERSION}" \
+        -t "${IMAGE_NAME}:${APP_VERSION}" .
+fi
+
+# ============================================================
+# 扁平化镜像（export → import 合并为单层，消除层叠体积膨胀）
+# ============================================================
+# Dockerfile.reuse 在基镜像上叠加新 jar 层，旧 jar 仍计入虚拟大小（每层 ~116MB × 2 ≈ 232MB 膨胀）。
+# 通过 export/import 将所有层合并为单一文件系统，恢复到 V2026092307-flat 同等体积。
+echo ">>> 扁平化镜像（合并为单层）..."
+PRE_FLATTEN_TAG="${IMAGE_NAME}:${APP_VERSION}-pre"
+FLAT_TAG="${IMAGE_NAME}:${APP_VERSION}-flat"
+docker tag "${IMAGE_NAME}:${APP_VERSION}" "${PRE_FLATTEN_TAG}"
+CID=$(docker create "${PRE_FLATTEN_TAG}" true)
+docker export "${CID}" | docker import \
+    --change 'ENV PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
+    --change 'ENV JAVA_HOME=/opt/java/openjdk' \
+    --change 'ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"' \
+    --change "ENV APP_VERSION=${APP_VERSION}" \
+    --change 'WORKDIR /app' \
+    --change 'USER appuser' \
+    --change 'EXPOSE 8091' \
+    --change 'ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]' \
+    - "${FLAT_TAG}"
+docker rm "${CID}" >/dev/null 2>&1
+docker rmi "${PRE_FLATTEN_TAG}" >/dev/null 2>&1 || true
+# 将 -flat 镜像重新 tag 为正式版本号，供 docker compose 使用
+docker tag "${FLAT_TAG}" "${IMAGE_NAME}:${APP_VERSION}"
+FLAT_SIZE=$(docker images --format "{{.Size}}" "${FLAT_TAG}" | head -1)
+echo ">>> 扁平化完成: ${FLAT_TAG} (${FLAT_SIZE})"
 
 # ============================================================
 # 重启应用（非 build-only 模式）
@@ -122,16 +160,24 @@ if [ "$BUILD_ONLY" = false ]; then
     docker compose -f "$COMPOSE_APP" up -d
     echo ">>> 应用部署完成"
 
-    # 清理旧镜像（保留最新，删除其余）
+    # 清理旧镜像（保留：当前 APP_VERSION 相关 tag + 基镜像 V2026092307-flat）
+    # 基镜像是 Dockerfile.reuse 降级构建的必需底本，删除后下次无法再降级
+    PROTECTED_BASE="${IMAGE_NAME}:V2026092307-flat"
     OLD_TAGS=$(docker images --format "{{.Tag}}" "${IMAGE_NAME}" \
-        | grep -v "${APP_VERSION}" | grep -v "<none>")
+        | grep -v "${APP_VERSION}" \
+        | grep -v "^V2026092307-flat$" \
+        | grep -v "<none>")
     if [ -n "$OLD_TAGS" ]; then
-        echo ">>> 清理旧镜像..."
+        echo ">>> 清理旧镜像（保留基镜像 V2026092307-flat）..."
         echo "$OLD_TAGS" | while read -r tag; do
             echo "    删除 ${IMAGE_NAME}:${tag}"
             docker rmi "${IMAGE_NAME}:${tag}" >/dev/null 2>&1 || true
         done
         echo ">>> 旧镜像已清理"
+    fi
+    # 保留 V2026092307-flat 存在性检查（若被误删，提示恢复方法）
+    if ! docker image inspect "${PROTECTED_BASE}" >/dev/null 2>&1; then
+        echo "!!! 警告：基镜像 ${PROTECTED_BASE} 不存在，下次 Docker Hub 不可达时将无法降级构建"
     fi
 else
     echo ">>> 仅构建模式，跳过重启"
