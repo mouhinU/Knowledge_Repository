@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +44,9 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
     /** 最大文件大小：200MB。 */
     private static final long MAX_FILE_SIZE = 200L * 1024 * 1024;
 
+    /** 校验失败对外统一回显消息，消除文件是否存在 / 大小是否越界 / 扩展名是否受支持等 oracle（java:S6549）。 */
+    private static final String GENERIC_INVALID_REFERENCE = "Invalid file reference";
+
     /** 支持的文件扩展名。 */
     private static final List<String> SUPPORTED_EXTENSIONS =
             List.of(
@@ -55,20 +59,47 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
     private final Map<String, ContentExtractor> extractorByName;
     private final ExtractorRoutingProperties routing;
     private final ExtractionMetrics metrics;
+
+    /**
+     * 允许读取的根目录白名单（已 normalize 的绝对路径）。空集合表示不启用校验，仅供测试构造器使用； 生产路径始终由 {@code knowledge.storage.path} +
+     * {@code java.io.tmpdir} 两项构成，二者皆系统可控常量。
+     */
+    private final List<Path> allowedRoots;
+
     private final Tika tika = new Tika();
 
+    /** 测试专用构造器：跳过 base-dir 白名单，只校验路由与策略。生产 Spring 装配请使用 4 参构造。 */
     public CompositeExtractionService(
             List<ContentExtractor> extractors, ExtractorRoutingProperties routing) {
-        this(extractors, routing, null);
+        this(extractors, routing, null, null);
     }
 
-    @Autowired
+    /** 测试专用构造器：跳过 base-dir 白名单。 */
     public CompositeExtractionService(
             List<ContentExtractor> extractors,
             ExtractorRoutingProperties routing,
             ExtractionMetrics metrics) {
+        this(extractors, routing, metrics, null);
+    }
+
+    /**
+     * 生产装配构造器：注入 {@code knowledge.storage.path} 与 JVM 临时目录构成 base-dir 白名单，配合统一异常消息 满足
+     * java:S6549「Filesystem Oracle」整改要求。
+     *
+     * @param extractors 所有已注册的抽取策略实现，Spring 自动收集
+     * @param routing 路由与启用白名单配置
+     * @param metrics 观测指标（可空）
+     * @param storageDir 文档永久存储根目录；空串或 {@code null} 时 base-dir 校验关闭（仅测试路径）
+     */
+    @Autowired
+    public CompositeExtractionService(
+            List<ContentExtractor> extractors,
+            ExtractorRoutingProperties routing,
+            ExtractionMetrics metrics,
+            @Value("${knowledge.storage.path:./data/documents}") String storageDir) {
         this.routing = routing;
         this.metrics = metrics;
+        this.allowedRoots = resolveAllowedRoots(storageDir);
         this.extractorByName =
                 extractors.stream()
                         .collect(
@@ -76,31 +107,69 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
                                         ContentExtractor::name, Function.identity()));
     }
 
+    /**
+     * 上传/索引前的最小防线：
+     *
+     * <ol>
+     *   <li>base-dir 白名单（{@link Path#startsWith} 匹配 {@code knowledge.storage.path} 与 {@code
+     *       java.io.tmpdir}），阻断对文件系统任意路径的探测；
+     *   <li>{@link Files#isRegularFile} 存在性判定；
+     *   <li>文件大小与扩展名。
+     * </ol>
+     *
+     * <p>四类失败对外抛出同一 {@link IllegalArgumentException}（{@value #GENERIC_INVALID_REFERENCE}），仅在 {@code
+     * log.debug} 保留真实原因供运维诊断——彻底消除 java:S6549 所指的 filesystem oracle（响应消息可区分 → 攻击者可枚举路径 / 大小 / 类型）。
+     *
+     * @param filePath 待校验路径；null 亦走统一异常
+     * @param fileSize 客户端上送的字节数（仅做上下界，不做 stat 二次确认）
+     * @param fileName 原始文件名，用于扩展名白名单；null 时跳过扩展名校验
+     * @throws IllegalArgumentException 任一校验失败（对外消息恒定）
+     */
     @Override
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null) {
-            throw new IllegalArgumentException("File reference is required");
+            reject("null path", null);
         }
-        // 归一化后再判存在与是否为普通文件，两种失败合并成同一异常消息，削弱文件系统 oracle（java:S6549）
         Path normalized = filePath.toAbsolutePath().normalize();
+        if (!allowedRoots.isEmpty() && allowedRoots.stream().noneMatch(normalized::startsWith)) {
+            reject("path outside allowed roots: " + normalized, null);
+        }
         if (!Files.isRegularFile(normalized)) {
-            throw new IllegalArgumentException("Invalid file reference");
+            reject("not a regular file: " + normalized, null);
         }
         if (fileSize <= 0) {
-            throw new IllegalArgumentException("File must not be empty");
+            reject("non-positive size: " + fileSize, null);
         }
         if (fileSize > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "File size %d exceeds maximum %d bytes", fileSize, MAX_FILE_SIZE));
+            reject("size " + fileSize + " exceeds max " + MAX_FILE_SIZE + " bytes", null);
         }
         if (fileName != null) {
             String ext = ExtractionSupport.getExtension(fileName);
             if (!SUPPORTED_EXTENSIONS.contains(ext.toLowerCase())) {
-                throw new IllegalArgumentException(
-                        "Unsupported file type: " + ext + ". Supported: " + SUPPORTED_EXTENSIONS);
+                reject("unsupported extension: " + ext, null);
             }
         }
+    }
+
+    /** 记录 debug 细节后抛出统一异常；私有工具，保证 validateFile 各分支的对外信号完全同构。 */
+    private void reject(String reason, Throwable cause) {
+        if (log.isDebugEnabled()) {
+            log.debug("validateFile rejected [{}]", reason, cause);
+        }
+        throw new IllegalArgumentException(GENERIC_INVALID_REFERENCE);
+    }
+
+    /**
+     * 由 {@code knowledge.storage.path} 与 {@code java.io.tmpdir} 归一化生成 base-dir 白名单；storageDir 空 →
+     * 关闭。
+     */
+    private static List<Path> resolveAllowedRoots(String storageDir) {
+        if (storageDir == null || storageDir.isBlank()) {
+            return List.of();
+        }
+        Path storageRoot = Path.of(storageDir).toAbsolutePath().normalize();
+        Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
+        return List.of(storageRoot, tmpRoot);
     }
 
     @Override

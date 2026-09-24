@@ -240,6 +240,12 @@ class CompositeExtractionServiceTest {
     @DisplayName("validateFile 与 checksum")
     class ValidationAndChecksum {
 
+        /** 通过 4 参 Spring 构造器装配 CompositeExtractionService，触发 base-dir 白名单。 */
+        private CompositeExtractionService withAllowedRoot(String storageDir) {
+            return new CompositeExtractionService(
+                    List.of(), new ExtractorRoutingProperties(), null, storageDir);
+        }
+
         @Test
         @DisplayName("路径不存在抛 IllegalArgumentException（filesystem oracle 收敛：统一消息）")
         void missingFileRejected() {
@@ -250,22 +256,44 @@ class CompositeExtractionServiceTest {
                                     composite.validateFile(
                                             tempDir.resolve("nope.txt"), 10, "nope.txt"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Invalid file reference");
+                    .hasMessage("Invalid file reference");
         }
 
         @Test
-        @DisplayName("空文件（size<=0）抛 IllegalArgumentException")
+        @DisplayName("null 路径抛统一消息（原 \"File reference is required\" 亦已归一，避免 oracle）")
+        void nullPathRejected() {
+            CompositeExtractionService composite =
+                    new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
+            assertThatThrownBy(() -> composite.validateFile(null, 10, "doc.txt"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid file reference");
+        }
+
+        @Test
+        @DisplayName("空文件（size<=0）对外消息与其他失败一致")
         void emptyFileRejected() throws IOException {
             Path file = writeTextFile("x");
             CompositeExtractionService composite =
                     new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
             assertThatThrownBy(() -> composite.validateFile(file, 0, "doc.txt"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("must not be empty");
+                    .hasMessage("Invalid file reference");
         }
 
         @Test
-        @DisplayName("不支持的扩展名抛 IllegalArgumentException")
+        @DisplayName("超过 MAX_FILE_SIZE 对外消息与其他失败一致")
+        void oversizeFileRejected() throws IOException {
+            Path file = writeTextFile("small");
+            CompositeExtractionService composite =
+                    new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
+            long oversized = 200L * 1024 * 1024 + 1L;
+            assertThatThrownBy(() -> composite.validateFile(file, oversized, "doc.txt"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid file reference");
+        }
+
+        @Test
+        @DisplayName("不支持的扩展名对外消息与其他失败一致")
         void unsupportedExtensionRejected() throws IOException {
             Path file = tempDir.resolve("archive.zip");
             Files.writeString(file, "PK");
@@ -273,7 +301,29 @@ class CompositeExtractionServiceTest {
                     new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
             assertThatThrownBy(() -> composite.validateFile(file, 2, "archive.zip"))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Unsupported file type");
+                    .hasMessage("Invalid file reference");
+        }
+
+        @Test
+        @DisplayName("base-dir 白名单：storageRoot 下的合法文件通过 validateFile")
+        void fileUnderAllowedStorageRootPasses() throws IOException {
+            Path file = writeTextFile("hello");
+            CompositeExtractionService composite = withAllowedRoot(tempDir.toString());
+            // 不抛异常即视为通过：validateFile 无返回值
+            composite.validateFile(file, Files.size(file), "doc.txt");
+        }
+
+        @Test
+        @DisplayName("base-dir 白名单：不在允许根下的路径抛统一消息")
+        void fileOutsideAllowedRootsRejected() {
+            // 该路径既不在 tempDir 也不在 java.io.tmpdir 下（POSIX/Windows 皆然），
+            // 触发 base-dir 检查失败；即便文件不存在，validateFile 也先命中白名单，
+            // 因此消息仍应与其他 oracle 分支一致。
+            Path outside = Path.of("/definitely-not-in-allowed-roots/kb-probe.txt");
+            CompositeExtractionService composite = withAllowedRoot(tempDir.toString());
+            assertThatThrownBy(() -> composite.validateFile(outside, 10, "probe.txt"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid file reference");
         }
 
         @Test
