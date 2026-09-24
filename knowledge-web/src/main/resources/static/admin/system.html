@@ -14,31 +14,52 @@
     <div class="content">
         <div class="page-header">
             <h2>系统配置</h2>
-            <p>Embedding 模型、向量数据库与知识库参数</p>
+            <p>特性开关、运行时参数与系统状态</p>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div class="card" style="margin-bottom:0">
-                <div class="card-title">Embedding 模型</div>
-                <div class="kv-list" id="sys-embedding"><span class="loading">加载中...</span></div>
+        <div class="tabs">
+            <div class="tab active" data-panel="config">① 配置管理</div>
+            <div class="tab" data-panel="status">② 运行状态</div>
+        </div>
+
+        <!-- Panel 1: 配置管理（sys_config 相关：特性开关 + 考试参数 + 系统参数） -->
+        <div class="tab-panel active" id="panel-config">
+            <div id="config-section">
+                <div class="card"><div class="card-title">配置管理</div><p class="loading" style="font-size:13px">加载中...</p></div>
             </div>
-            <div class="card" style="margin-bottom:0">
-                <div class="card-title">Milvus 向量库</div>
-                <div class="kv-list" id="sys-milvus"><span class="loading">加载中...</span></div>
+            <div class="card">
+                <div class="card-title">关于配置</div>
+                <p style="font-size:12.5px;color:var(--text-light);line-height:1.7;margin:0">
+                    所有配置采用三层获取策略：<strong>内存缓存</strong>（本次运行）→ <strong>数据库 sys_config 表</strong>（持久化）→ <strong>系统默认值</strong>（出厂兜底）。
+                    页面修改即时生效并写入数据库，无需重启应用。特性开关用于控制核心功能启用/禁用，考试参数用于调节出卷与评分行为。
+                </p>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-title">知识库统计</div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr><th scope="col">指标</th><th scope="col">数值</th></tr>
-                    </thead>
-                    <tbody id="sys-params">
-                    <tr><td class="loading" colspan="2">加载中...</td></tr>
-                    </tbody>
-                </table>
+        <!-- Panel 2: 运行状态（Embedding / Milvus / 知识库统计） -->
+        <div class="tab-panel" id="panel-status">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-title">Embedding 模型</div>
+                    <div class="kv-list" id="sys-embedding"><span class="loading">加载中...</span></div>
+                </div>
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-title">Milvus 向量库</div>
+                    <div class="kv-list" id="sys-milvus"><span class="loading">加载中...</span></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">知识库统计</div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th scope="col">指标</th><th scope="col">数值</th></tr>
+                        </thead>
+                        <tbody id="sys-params">
+                        <tr><td class="loading" colspan="2">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -48,11 +69,130 @@
 <script>
     KR.initLayout('system');
 
+    const CATEGORY_LABELS = {
+        'feature-toggle': '特性开关',
+        'exam': '考试参数',
+        'system': '系统参数',
+        'general': '通用配置'
+    };
+
     function kv(label, value) {
         return '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px">'
             + '<span style="color:var(--text-light)">' + label + '</span>'
             + '<span style="font-weight:600;color:var(--text)">' + value + '</span></div>';
     }
+
+    // ---- 配置管理 ----
+
+    async function loadConfigs() {
+        try {
+            const res = await fetch(API + '/api/admin/system/configs');
+            const configs = await res.json();
+            if (!configs.length) {
+                document.getElementById('config-section').innerHTML =
+                    '<div class="card"><div class="card-title">配置管理</div><p style="color:var(--text-light);font-size:13px">暂无配置项</p></div>';
+                return;
+            }
+            // 按 category 分组
+            const groups = {};
+            configs.forEach(c => {
+                const cat = c.category || 'general';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(c);
+            });
+
+            let html = '';
+            const catOrder = ['feature-toggle', 'exam', 'system', 'general'];
+            catOrder.forEach(cat => {
+                const items = groups[cat];
+                if (!items || !items.length) return;
+                html += '<div class="card">';
+                html += '<div class="card-title">' + esc(CATEGORY_LABELS[cat] || cat) + '</div>';
+                html += '<div class="table-wrap"><table><thead><tr>';
+                html += '<th scope="col" style="width:36%">配置项</th>';
+                html += '<th scope="col" style="width:14%">类型</th>';
+                html += '<th scope="col" style="width:24%">当前值</th>';
+                html += '<th scope="col" style="width:26%">说明</th>';
+                html += '</tr></thead><tbody>';
+                items.forEach(c => {
+                    const editable = c.editable !== false;
+                    const valCell = renderValueInput(c, editable);
+                    html += '<tr>';
+                    html += '<td style="font-weight:500;font-family:monospace;font-size:12px">' + esc(c.configKey) + '</td>';
+                    html += '<td><span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--primary-soft);color:var(--primary)">' + esc(c.valueType || 'STRING') + '</span></td>';
+                    html += '<td>' + valCell + '</td>';
+                    html += '<td style="font-size:12px;color:var(--text-light)">' + esc(c.description || '') + '</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div></div>';
+            });
+            document.getElementById('config-section').innerHTML = html;
+        } catch (e) {
+            console.error(e);
+            document.getElementById('config-section').innerHTML =
+                '<div class="card"><div class="card-title">配置管理</div><p style="color:var(--danger);font-size:13px">加载配置失败</p></div>';
+        }
+    }
+
+    function renderValueInput(config, editable) {
+        const key = esc(config.configKey);
+        const val = config.configValue || '';
+        if (!editable) {
+            return '<span style="font-weight:600">' + esc(val) + '</span>';
+        }
+        if (config.valueType === 'BOOLEAN') {
+            const checked = val === 'true' ? 'checked' : '';
+            return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+                + '<span class="toggle-switch ' + (checked ? 'active' : '') + '" data-key="' + key + '" onclick="toggleSwitch(this)">'
+                + '<span class="toggle-knob"></span></span>'
+                + '<span style="font-weight:600;font-size:13px" data-val-label>' + (checked ? '已启用' : '已禁用') + '</span></label>';
+        }
+        if (config.valueType === 'INTEGER') {
+            return '<div style="display:flex;gap:6px;align-items:center">'
+                + '<input type="number" class="form-input" style="width:80px;padding:4px 8px;font-size:13px" value="' + esc(val) + '" data-key="' + key + '">'
+                + '<button class="btn btn-sm btn-primary" style="padding:4px 10px;font-size:12px" onclick="saveConfig(\'' + key + '\', this)">保存</button>'
+                + '</div>';
+        }
+        // STRING / DECIMAL
+        return '<div style="display:flex;gap:6px;align-items:center">'
+            + '<input type="text" class="form-input" style="width:140px;padding:4px 8px;font-size:13px" value="' + esc(val) + '" data-key="' + key + '">'
+            + '<button class="btn btn-sm btn-primary" style="padding:4px 10px;font-size:12px" onclick="saveConfig(\'' + key + '\', this)">保存</button>'
+            + '</div>';
+    }
+
+    function toggleSwitch(el) {
+        const key = el.getAttribute('data-key');
+        const isActive = el.classList.toggle('active');
+        const newVal = isActive ? 'true' : 'false';
+        el.closest('label').querySelector('[data-val-label]').textContent = isActive ? '已启用' : '已禁用';
+        saveConfigDirect(key, newVal);
+    }
+
+    function saveConfig(key, btn) {
+        const input = btn.parentElement.querySelector('input');
+        if (!input) return;
+        const val = input.value.trim();
+        saveConfigDirect(key, val);
+    }
+
+    async function saveConfigDirect(key, val) {
+        try {
+            const res = await fetch(API + '/api/admin/system/configs', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ configKey: key, configValue: val })
+            });
+            if (res.ok) {
+                toast('配置已保存', 'success');
+            } else {
+                toast('保存失败', 'error');
+            }
+        } catch (e) {
+            toast('保存失败: ' + e.message, 'error');
+        }
+    }
+
+    // ---- 系统状态 ----
 
     async function loadSystemStatus() {
         try {
@@ -82,6 +222,7 @@
         }
     }
 
+    loadConfigs();
     loadSystemStatus();
 </script>
 </body>
