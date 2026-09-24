@@ -34,13 +34,15 @@
 
 | 方案 | 传输媒介 | 本地一步命令 | 依赖外部服务 | 离线可用 | 推荐度 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **A. GHCR 镜像** | OCI 镜像层 | `docker compose pull && up -d --no-build` | GitHub Container Registry（免费） | ❌ | **★★★★★** | **已落地** |
+| **A. GHCR 镜像** | OCI 镜像层 | `crane pull → docker load → compose up --no-build`（脚本封装，见下） | GitHub Container Registry（免费） | ❌ | **★★★★★** | **已落地** |
 | B. Actions artifact 传 jar → 本地 build | jar 文件（~80 MB） | `curl API 下载 artifact && docker build` | Actions Artifacts 存储（90 天） | ⚠️ 需本地有 Dockerfile | ★★★☆☆ | 未启用（按需追加 job） |
 | C. Actions 内 `docker save` → 拉 tar 包 | 镜像 tar（~150 MB gz） | `gunzip \| docker load && up` | Actions Artifacts 存储 | ✅ 完全离线可用 | ★★☆☆☆（内网专用） | 未启用（按需追加 job） |
 
+> 方案 A 不再走 `docker pull` / `docker compose pull`：macOS 的 Docker Desktop 会把 daemon 的 HTTP(S) 强制经 `http.docker.internal:3128` 代理，`ghcr.io` / `registry-1.docker.io` 常年 EOF；`scripts/gh-deploy.sh` 改用 `crane` 拉 tar 后 `docker load`，绕开 daemon 网络栈。Linux / Windows 若 daemon 直连 GHCR 通畅，也可退回 `docker compose pull`，但脚本默认走 crane 保证跨平台一致。
+
 **选型规则**
 
-- 日常开发 / 团队协作 → **方案 A**，一行 `docker compose pull` 完事。
+- 日常开发 / 团队协作 → **方案 A**，`./scripts/gh-deploy.sh` 一行搞定（crane 拉 → docker load → compose recreate）。
 - 网络屏蔽 GHCR / 只想拿 jar → **方案 B**。
 - 内网离线环境、需要 U 盘搬环境 → **方案 C**。
 
@@ -245,7 +247,7 @@ alias kr='kdeploy sha-'           # 用法: kr eab52ab  → 回滚到指定 sha
 
 `kd` 一行完成 pull + up；`kr <短sha>` 一行回滚。
 
-> 提示：`scripts/gh-deploy.sh` 已把上述逻辑落成带干跑/健康门禁/`sha→latest` 回退/生产预留通道的正式脚本，推荐优先使用；`kd`/`kr` 作为轻量兜底。
+> 提示：`scripts/gh-deploy.sh` 已把上述逻辑落成带干跑/健康门禁/`sha→latest` 回退/生产预留通道的正式脚本，**并统一改走 crane 拉 tar → docker load**（不再依赖 `docker compose pull`，避开 Docker Desktop 系统代理对 ghcr.io 的拦截），推荐优先使用；上面 `kd`/`kr` 这两个基于 `docker compose pull` 的别名仅在 daemon 能直连 GHCR 的环境下作轻量兜底。
 
 ### 3.5 触发一次重新构建（不 push 新 commit）
 
@@ -374,16 +376,16 @@ IMAGE_NAME=knowledge-repository APP_VERSION=offline \
 ## 七、与现有脚本的整合
 
 - `scripts/deploy.sh`：本地编译 → 起容器（开发改代码时用）。
-- **`scripts/gh-deploy.sh`（已落地）**：从 GHCR 拉取 Actions 预构建镜像 → 本地 `pull + up --no-build`。三种版本模式：
+- **`scripts/gh-deploy.sh`（已落地）**：从 GHCR 拉取 Actions 预构建镜像 → 走 **crane 拉 tar → docker load → compose up --force-recreate --no-build** 通道（不再依赖 `docker pull`）。三种版本模式：
 
   | 模式 | 目标 tag | 用途 |
   |------|----------|------|
   | 默认 | `sha-<7>`（main 最新提交短号，API 失败回退本地 `origin/main`；快照缺失再回退 `latest`） | 本地日常，快照可复现 |
   | `--latest` | `latest` | 本地快速滚动 |
   | `--sha 1a2b3c4` | `sha-1a2b3c4` | 回滚到指定快照 |
-  | `--prod v1.2.3` | `v1.2.3` | **生产预留通道**：由打 `v*` 标签触发 CI 产出；本脚本仅负责 pull + up，未接审批/回滚 |
+  | `--prod v1.2.3` | `v1.2.3` | **生产预留通道**：由打 `v*` 标签触发 CI 产出；本脚本仅负责拉取 + 起容器，未接审批/回滚 |
 
-  其它能力：`--infra` 连带拉起基础设施；`--dry-run` 只打印不执行；健康门禁 `curl /actuator/health` 直到 `status:UP`；`IMAGE_NAME` / `REGISTRY` / `GHCR_USER` / `GHCR_TOKEN` 可用同名环境变量覆盖；未登录 GHCR 时脚本尝试用 git 凭据助手里的 PAT 自动 `docker login`。
+  其它能力：`--infra` 连带拉起基础设施；`--dry-run` 只打印不执行；健康门禁 `curl /actuator/health` 直到 `status:UP`；`IMAGE_NAME` / `REGISTRY` / `GHCR_USER` / `GHCR_TOKEN` / `PLATFORM` / `CRANE_HOME` / `CRANE_BIN` / `CRANE_VERSION` 可用同名环境变量覆盖；未登录 GHCR 时脚本会自动 `git credential fill` 取 PAT 交给 `crane auth login`（并清理 `~/.docker/config.json` 里 ghcr.io 的空 auths 条目，避免 token 交换 DENIED）；本机若没有 `crane`，首次运行会自动从 GitHub Releases 下载 `v0.22.1`（`Darwin_x86_64` / `Darwin_arm64` / `Linux_x86_64` / `Linux_arm64`）到 `~/.local/bin/crane`；拉取全程 `unset HTTP(S)_PROXY; export NO_PROXY='*'`，避开 Docker Desktop 内置代理的 EOF 拦截。
 
 - 保留 `scripts/docker-build.sh` 作为「无网 / GHCR 拉取失败」时的兜底通道（走 `docker/Dockerfile.prebuilt`）。
 - 保留 `docker/Dockerfile.prebuilt` 单阶段镜像（主机 `mvn package` + 直接 COPY jar）：CI 挂或网络差时用；绕开容器内 `mvn dependency:go-offline` 挂 16min+ 的坑。

@@ -118,7 +118,9 @@
 
 ### 场景1b: 从 GHCR 拉取部署（免本地编译）
 
-由 GitHub Actions 预构建镜像推到 GHCR，本地只做 `pull + up`，比 `deploy.sh` 更快、可复现。
+由 GitHub Actions 预构建镜像推到 GHCR，本地只做「crane 拉取 + docker load + compose up」，比 `deploy.sh` 更快、可复现。
+
+**为什么用 crane 而不是 `docker pull`**：macOS 上 Docker Desktop 会强制走内置代理 `http.docker.internal:3128`，常年把 `ghcr.io` / `registry-1.docker.io` 直接 EOF 掉；`curl` 同一 URL 却 HTTP 200。`crane`（[google/go-containerregistry](https://github.com/google/go-containerregistry)）是纯用户态 CLI，读 shell 侧代理与凭据，脚本会显式 `unset HTTP(S)_PROXY; export NO_PROXY='*'`，把 manifest/blob 拉下来后再 `docker load` 交给 daemon。
 
 ```bash
 # 本地：部署 main 最新提交快照 sha-<7>（API 取不到时回退本地 origin/main；快照缺失再回退 latest）
@@ -137,7 +139,7 @@
 ./scripts/gh-deploy.sh --dry-run
 ```
 
-> 前置：GHCR 包默认私有，首次需 `docker login ghcr.io`（PAT 需 `read:packages`）；脚本会尝试用 git 凭据助手里的 token 自动登录。若目标镜像与共享 MySQL 的 Flyway 迁移历史不一致（如某迁移被原地改过），容器会因校验失败而起不来——此为迁移纪律问题，非脚本缺陷。
+> 前置：GHCR 包默认私有，脚本会自动用 `git credential fill` 拿 PAT 完成 `crane auth login ghcr.io`（PAT 需 `read:packages`）；也可显式 `export GHCR_TOKEN=ghp_xxx GHCR_USER=yourname` 覆盖。首次运行若无 `crane`，脚本会下载 `v0.22.1` 到 `~/.local/bin/crane`（可通过 `CRANE_HOME` / `CRANE_BIN` / `CRANE_VERSION` 覆盖）。若目标镜像与共享 MySQL 的 Flyway 迁移历史不一致（如某迁移被原地改过），容器会因校验失败而起不来——此为迁移纪律问题，非脚本缺陷。
 
 ### 场景2: 日常运维
 
