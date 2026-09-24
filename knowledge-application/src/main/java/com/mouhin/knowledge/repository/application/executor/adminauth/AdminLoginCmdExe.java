@@ -56,6 +56,9 @@ public class AdminLoginCmdExe {
         if (!user.isActive()) {
             throw new IllegalArgumentException("账号已被禁用");
         }
+        if (!Boolean.TRUE.equals(user.getAdmin())) {
+            throw new IllegalArgumentException("用户名或密码错误");
+        }
 
         String token =
                 adminJwtService.issue(

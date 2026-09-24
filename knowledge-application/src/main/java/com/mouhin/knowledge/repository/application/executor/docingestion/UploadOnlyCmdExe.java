@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -51,7 +50,6 @@ public class UploadOnlyCmdExe {
         this.documentImageSupport = documentImageSupport;
     }
 
-    @Transactional
     public DocumentVO execute(
             MultipartFile file,
             String ownerId,

@@ -134,8 +134,7 @@ public class PaperReviewController {
                     sessionId,
                     questionNumber,
                     e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "试题更新失败"));
         }
     }
 
@@ -159,8 +158,7 @@ public class PaperReviewController {
                     sessionId,
                     questionNumber,
                     e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "配图绑定失败"));
         }
     }
 
@@ -178,8 +176,7 @@ public class PaperReviewController {
             return ResponseEntity.ok(Map.of("message", "试卷已校对通过并发布", "published", true));
         } catch (Exception e) {
             log.warn("校对发布失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "试卷发布失败"));
         }
     }
 
@@ -192,8 +189,7 @@ public class PaperReviewController {
             return ResponseEntity.ok(Map.of("message", "试卷已作废", "cascadedSessions", cascaded));
         } catch (Exception e) {
             log.warn("试卷作废失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "试卷作废失败"));
         }
     }
 
@@ -207,8 +203,7 @@ public class PaperReviewController {
             return ResponseEntity.ok(body);
         } catch (Exception e) {
             log.warn("重新切分失败 [session={}]: {}", sessionId, e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of(ERR_FIELD, String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "试卷重新切分失败"));
         }
     }
 

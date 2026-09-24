@@ -189,19 +189,19 @@ knowledge:
     # PDF 混合视觉增强行为（Phase C，默认关闭：须 vision.enabled=true 且 PDF_HYBRID 进入上面 routing 方生效）
     vision:
       enabled: ${EXTRACTOR_VISION_ENABLED:false}
-      trigger: scanned_only              # scanned_only | image_heavy | always
+      trigger: scanned_only # scanned_only | image_heavy | always
       prefer-embedded-images: true
       render-fallback-dpi: 150
       min-text-len-per-page: 200
       max-pages-per-doc: 20
-      max-bytes-per-image: 4194304       # 4 MB
-      merge: replace_lowtext             # replace_lowtext | append | replace_all
+      max-bytes-per-image: 4194304 # 4 MB
+      merge: replace_lowtext # replace_lowtext | append | replace_all
       timeout-seconds: 60
       max-total-seconds-per-doc: 300
       # 成本护栏（Phase D）：默认极大额度 + log-only，实质不限流；置 enforce 才拦截超限页跳过视觉
       budget:
         daily-pages-global: ${EXTRACTOR_VISION_BUDGET_DAILY_PAGES:2147483647}
-        enforcement: ${EXTRACTOR_VISION_BUDGET_ENFORCEMENT:log-only}  # log-only | enforce
+        enforcement: ${EXTRACTOR_VISION_BUDGET_ENFORCEMENT:log-only} # log-only | enforce
 
   # ---------- 黑板模式 Agent 配置 ----------
   blackboard:
@@ -214,10 +214,10 @@ knowledge:
     path: ${STORAGE_PATH:./data/documents}
 
   # ---------- 管理端登录鉴权（无状态 JWT，HS256）----------
-  # 密钥须由 KNOWLEDGE_ADMIN_JWT_SECRET 注入生产环境；缺省值仅限本地开发，切勿用于线上。
+  # 密钥必须由 KNOWLEDGE_ADMIN_JWT_SECRET 注入，缺失时应用启动失败。
   admin:
     jwt:
-      secret: ${KNOWLEDGE_ADMIN_JWT_SECRET:knowledge-repo-dev-admin-jwt-secret-change-me}
+      secret: ${KNOWLEDGE_ADMIN_JWT_SECRET:}
       expiration-hours: ${KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS:8}
 
   # ---------- 在线考试评分配置 ----------

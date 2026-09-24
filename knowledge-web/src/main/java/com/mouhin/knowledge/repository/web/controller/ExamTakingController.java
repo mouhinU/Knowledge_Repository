@@ -99,7 +99,7 @@ public class ExamTakingController {
                             "startTime", session.getStartTime().toString(),
                             "serverNow", LocalDateTime.now().toString()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "开始考试失败"));
         }
     }
 
@@ -111,7 +111,7 @@ public class ExamTakingController {
             examTakingService.saveAnswers(sessionKey, request.getToken(), request.getAnswers());
             return ResponseEntity.ok(Map.of("message", "答案已保存"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "保存答案失败"));
         }
     }
 
@@ -129,7 +129,7 @@ public class ExamTakingController {
             examTakingService.submitExam(sessionKey, token);
             return ResponseEntity.ok(Map.of("message", "交卷成功"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "交卷失败"));
         }
     }
 
@@ -169,7 +169,7 @@ public class ExamTakingController {
             result.put("serverNow", LocalDateTime.now().toString());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "获取考试详情失败"));
         }
     }
 

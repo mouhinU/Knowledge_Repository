@@ -1,9 +1,11 @@
 package com.mouhin.knowledge.repository.web.config;
 
+import com.mouhin.knowledge.repository.web.security.AdminAuthRequiredException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,16 +36,36 @@ public class GlobalExceptionHandler {
     /** 未知路由对外返回的通用提示；请求路径只落到日志、不回显到响应体（防信息泄露 java:S2092 家族）。 */
     private static final String MSG_NOT_FOUND = "资源不存在";
 
+    /**
+     * 管理端身份缺失 / 非管理员主体：统一映射为 HTTP 401，附 {@code WWW-Authenticate} 提示前端跳登录。 与 {@link
+     * IllegalStateException} 分支区分——后者代表业务状态冲突（409），不应与鉴权失败混淆。
+     */
+    @ExceptionHandler(AdminAuthRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handleAdminAuthRequired(
+            AdminAuthRequiredException e) {
+        log.warn("Admin auth required: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.WWW_AUTHENTICATE, "X-Admin-Token realm=\"knowledge-admin\"")
+                .body(
+                        Map.of(
+                                FIELD_ERROR_CODE,
+                                "UNAUTHORIZED",
+                                FIELD_ERROR_MESSAGE,
+                                "管理员身份未认证或已失效",
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Bad request: {}", e.getMessage());
-        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", e.getMessage());
+        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "请求参数不合法");
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
         log.warn("Conflict: {}", e.getMessage());
-        return error(HttpStatus.CONFLICT, "CONFLICT", e.getMessage());
+        return error(HttpStatus.CONFLICT, "CONFLICT", "当前状态不允许执行此操作");
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

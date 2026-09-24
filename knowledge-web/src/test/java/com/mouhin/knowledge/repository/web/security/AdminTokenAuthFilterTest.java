@@ -92,6 +92,22 @@ class AdminTokenAuthFilterTest {
     }
 
     @Test
+    @DisplayName("有效但非管理员令牌：仍拒绝访问管理端")
+    void nonAdminToken_unauthorized() throws Exception {
+        MockHttpServletRequest req = protectedRequest();
+        req.addHeader(AdminTokenAuthFilter.TOKEN_HEADER, "user-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        when(adminAuthService.validateToken("user-token"))
+                .thenReturn(SingleResponse.of(new AdminPrincipalDTO("k1", "user", false)));
+
+        filter.doFilter(req, resp, chain);
+
+        assertEquals(401, resp.getStatus());
+        verify(chain, never()).doFilter(req, resp);
+    }
+
+    @Test
     @DisplayName("SSE 端点通过 access_token 查询参数携带令牌：应被识别")
     void sseQueryParam_token() throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest();

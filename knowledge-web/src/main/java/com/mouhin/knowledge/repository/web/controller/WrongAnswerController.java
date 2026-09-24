@@ -50,7 +50,7 @@ public class WrongAnswerController {
             return ResponseEntity.ok(Map.of("summary", summary));
         } catch (Exception e) {
             log.error("AI 错题总结失败", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "错题总结生成失败"));
         }
     }
 

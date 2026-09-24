@@ -5,6 +5,8 @@ import com.mouhin.knowledge.repository.client.api.ArticleGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ArticleGenerationRequest;
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
@@ -58,16 +60,14 @@ public class ArticleAgentController {
      */
     @PostMapping("/article/generate")
     public ResponseEntity<Map<String, String>> generateArticle(
-            @RequestBody ArticleGenerationRequest request) {
+            @RequestBody ArticleGenerationRequest request, HttpServletRequest httpRequest) {
 
         if (request.getQuestion() == null || request.getQuestion().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
 
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        Permission permission =
-                new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+        Permission permission = AdminPrincipalSupport.toPermission(httpRequest);
+        String userId = permission.getUserId();
 
         log.info("收到文章生成请求: question='{}', user='{}'", truncate(request.getQuestion(), 50), userId);
 

@@ -88,14 +88,20 @@ public class SystemConfigService {
 
     /** 更新配置值（管理页面保存） */
     public void updateValue(String configKey, String newValue) {
+        if (!SystemConfigDefaults.getAllDefaults().containsKey(configKey)) {
+            throw new IllegalArgumentException("Unknown system config key");
+        }
         Optional<SystemConfig> existing = systemConfigGateway.findByKey(configKey);
         if (existing.isPresent()) {
             SystemConfig config = existing.get();
+            if (!Boolean.TRUE.equals(config.getEditable())) {
+                throw new IllegalStateException("System config is read-only");
+            }
             config.setConfigValue(newValue);
             systemConfigGateway.saveOrUpdate(config);
             cache.put(configKey, config);
         } else {
-            // 数据库中不存在，用默认值元数据创建
+            // 数据库中不存在时，仅为已注册的默认配置创建记录。
             SystemConfig config = new SystemConfig();
             config.setConfigKey(configKey);
             config.setConfigValue(newValue);
@@ -106,7 +112,7 @@ public class SystemConfigService {
             systemConfigGateway.saveOrUpdate(config);
             cache.put(configKey, config);
         }
-        log.info("[SystemConfig] 配置已更新: {} = {}", configKey, newValue);
+        log.info("[SystemConfig] 配置已更新: {}", configKey);
     }
 
     /** 手动刷新缓存（预留管理接口） */

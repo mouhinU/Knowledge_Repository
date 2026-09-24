@@ -116,6 +116,25 @@ class AdminLoginCmdExeTest {
     }
 
     @Test
+    @DisplayName("激活的普通用户也不能登录管理端")
+    void nonAdminAccount() {
+        User u = activeAdmin();
+        u.setAdmin(false);
+        when(userGateway.findByUsername("admin")).thenReturn(Optional.of(u));
+        when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
+
+        AdminLoginCmd cmd = new AdminLoginCmd();
+        cmd.setUsername("admin");
+        cmd.setPassword("pass");
+
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> exe.execute(cmd));
+        assertEquals("用户名或密码错误", ex.getMessage());
+        org.mockito.Mockito.verify(adminJwtService, org.mockito.Mockito.never())
+                .issue(anyString(), anyString(), anyBoolean());
+    }
+
+    @Test
     @DisplayName("未设置密码的账号应按密码错误拒绝（不可枚举）")
     void accountWithoutPassword() {
         User u = activeAdmin();

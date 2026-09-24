@@ -70,7 +70,7 @@ public class ExamReviewController {
             gradingService.triggerGrading(sessionId);
             return ResponseEntity.ok(Map.of("message", "AI 评分完成"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "评分处理失败"));
         }
     }
 
@@ -99,7 +99,7 @@ public class ExamReviewController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "系统繁忙，评分并发已达上限，请稍后重试"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "评分任务启动失败"));
         }
     }
 
@@ -275,7 +275,7 @@ public class ExamReviewController {
                     request.getReviewer() != null ? request.getReviewer() : "admin");
             return ResponseEntity.ok(Map.of("message", "复核完成"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "复核处理失败"));
         }
     }
 
@@ -287,7 +287,7 @@ public class ExamReviewController {
             gradingService.publishScore(sessionId, reviewer);
             return ResponseEntity.ok(Map.of("message", "成绩已发布"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "成绩发布失败"));
         }
     }
 
@@ -300,7 +300,7 @@ public class ExamReviewController {
             examTakingService.updateDuration(sessionKey, minutes);
             return ResponseEntity.ok(Map.of("message", "考试时长已更新"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "考试时长更新失败"));
         }
     }
 }

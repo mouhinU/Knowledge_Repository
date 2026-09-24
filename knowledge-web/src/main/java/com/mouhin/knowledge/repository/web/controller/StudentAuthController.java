@@ -38,7 +38,7 @@ public class StudentAuthController {
                             "studentId", student.getStudentId(),
                             "username", student.getUsername()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "注册请求不合法"));
         }
     }
 
@@ -49,7 +49,7 @@ public class StudentAuthController {
             String token = studentService.login(cmd).getData();
             return ResponseEntity.ok(Map.of("message", "登录成功", "token", token));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", "用户名或密码错误"));
         }
     }
 

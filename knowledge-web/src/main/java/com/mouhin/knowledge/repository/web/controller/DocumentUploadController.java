@@ -152,7 +152,7 @@ public class DocumentUploadController {
             return ResponseEntity.ok(Map.of("uploadId", uploadId, "uploadedChunks", Set.of()));
         } catch (Exception e) {
             log.error("初始化分片上传失败", e);
-            return serverError("INIT_FAILED", e.getMessage());
+            return serverError("INIT_FAILED", "上传初始化失败");
         }
     }
 
@@ -172,10 +172,10 @@ public class DocumentUploadController {
                             "chunkIndex", chunkIndex,
                             "complete", complete));
         } catch (IllegalArgumentException e) {
-            return badRequest("INVALID_SESSION", e.getMessage());
+            return badRequest("INVALID_SESSION", "上传会话无效");
         } catch (Exception e) {
             log.error("上传分片失败 [uploadId={}, chunk={}]", uploadId, chunkIndex, e);
-            return serverError("CHUNK_FAILED", e.getMessage());
+            return serverError("CHUNK_FAILED", "分片上传失败");
         }
     }
 
@@ -226,7 +226,7 @@ public class DocumentUploadController {
                             "message", "Document uploaded. Please preview and confirm indexing."));
         } catch (Exception e) {
             log.error("完成分片上传失败 [uploadId={}]", uploadId, e);
-            return serverError("COMPLETE_FAILED", e.getMessage());
+            return serverError("COMPLETE_FAILED", "上传完成处理失败");
         }
     }
 

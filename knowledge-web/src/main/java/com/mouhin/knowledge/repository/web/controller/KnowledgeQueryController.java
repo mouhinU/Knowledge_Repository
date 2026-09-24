@@ -3,6 +3,8 @@ package com.mouhin.knowledge.repository.web.controller;
 import com.mouhin.knowledge.repository.client.api.KnowledgeQueryServiceI;
 import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
+import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -32,18 +34,10 @@ public class KnowledgeQueryController {
      * @param body 请求体：query, userId, departmentId, roles, admin, maxResults, minScore, category
      */
     @PostMapping("/search")
-    public ResponseEntity<Object> search(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Object> search(
+            @RequestBody Map<String, Object> body, HttpServletRequest request) {
         String query = (String) body.get("query");
-        String userId = (String) body.get("userId");
-        String departmentId = (String) body.get("departmentId");
-        Object rolesObj = body.get("roles");
-        String roles;
-        if (rolesObj instanceof List<?> list) {
-            roles = String.join(",", list.stream().map(Object::toString).toList());
-        } else {
-            roles = (String) rolesObj;
-        }
-        boolean admin = body.get("admin") != null && (Boolean) body.get("admin");
+        String userId = AdminPrincipalSupport.toPermission(request).getUserId();
         Integer maxResults =
                 body.get("maxResults") != null
                         ? ((Number) body.get("maxResults")).intValue()
@@ -63,9 +57,7 @@ public class KnowledgeQueryController {
         SearchCmd cmd = new SearchCmd();
         cmd.setQuery(query);
         cmd.setUserId(userId);
-        cmd.setDepartmentId(departmentId);
-        cmd.setRoles(roles);
-        cmd.setAdmin(admin);
+        cmd.setAdmin(true);
         cmd.setMaxResults(maxResults);
         cmd.setMinScore(minScore);
         cmd.setCategory(category);

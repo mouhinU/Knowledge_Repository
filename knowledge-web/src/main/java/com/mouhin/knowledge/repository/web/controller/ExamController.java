@@ -15,6 +15,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import com.mouhin.knowledge.repository.infrastructure.export.ExamWordExporter;
+import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -83,10 +85,8 @@ public class ExamController {
     }
 
     /** 从请求解析调用方权限（userId 缺省 {@code anonymous}）；收敛各端点重复的构造骨架（java:DuplicatedBlocks）。 */
-    private static Permission resolvePermission(ExamGenerationRequest request) {
-        String userId = request.getUserId() != null ? request.getUserId() : "anonymous";
-        boolean isAdmin = request.getAdmin() != null && request.getAdmin();
-        return new Permission(userId, request.getDepartmentId(), request.getRoles(), isAdmin);
+    private static Permission resolvePermission(HttpServletRequest request) {
+        return AdminPrincipalSupport.toPermission(request);
     }
 
     /** 题型分布方案是否含有效题型。 */
@@ -148,7 +148,7 @@ public class ExamController {
      */
     @PostMapping("/exam/generate-stream")
     public ResponseEntity<Map<String, String>> generateExamStream(
-            @RequestBody ExamGenerationRequest request) {
+            @RequestBody ExamGenerationRequest request, HttpServletRequest httpRequest) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
             return badRequestError("考试主题不能为空");
@@ -161,7 +161,7 @@ public class ExamController {
             return badRequestError("请先生成或选择题型分布方案");
         }
 
-        Permission permission = resolvePermission(request);
+        Permission permission = resolvePermission(httpRequest);
 
         log.info(
                 "收到试卷生成请求（异步）: topic='{}', difficulty='{}', hasPlan={}",
@@ -223,7 +223,7 @@ public class ExamController {
     /** 生成试卷（同步，用于 Word 导出） */
     @PostMapping("/exam/generate")
     public ResponseEntity<Map<String, String>> generateExam(
-            @RequestBody ExamGenerationRequest request) {
+            @RequestBody ExamGenerationRequest request, HttpServletRequest httpRequest) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
             return badRequestError("考试主题不能为空");
@@ -236,7 +236,7 @@ public class ExamController {
             return badRequestError("请先生成或选择题型分布方案");
         }
 
-        Permission permission = resolvePermission(request);
+        Permission permission = resolvePermission(httpRequest);
 
         log.info(
                 "收到试卷生成请求（同步）: topic='{}', difficulty='{}', hasPlan={}",
@@ -252,7 +252,9 @@ public class ExamController {
     /** 导出试卷为 Word 文档 */
     @PostMapping("/exam/export-word")
     public void exportExamWord(
-            @RequestBody ExamGenerationRequest request, HttpServletResponse response)
+            @RequestBody ExamGenerationRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response)
             throws Exception {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
@@ -260,7 +262,7 @@ public class ExamController {
             return;
         }
 
-        Permission permission = resolvePermission(request);
+        Permission permission = resolvePermission(httpRequest);
 
         log.info("导出试卷 Word: topic='{}'", request.getTopic());
 
@@ -286,13 +288,13 @@ public class ExamController {
      */
     @PostMapping("/exam/distribution-stream")
     public ResponseEntity<Map<String, String>> generateDistributionStream(
-            @RequestBody ExamGenerationRequest request) {
+            @RequestBody ExamGenerationRequest request, HttpServletRequest httpRequest) {
 
         if (request.getTopic() == null || request.getTopic().isBlank()) {
             return badRequestError("考试主题不能为空");
         }
 
-        Permission permission = resolvePermission(request);
+        Permission permission = resolvePermission(httpRequest);
 
         String requestedSessionId = request.getSessionId();
         final String sessionId =

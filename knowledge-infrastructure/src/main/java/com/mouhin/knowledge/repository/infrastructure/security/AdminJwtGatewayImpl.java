@@ -56,8 +56,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AdminJwtGatewayImpl(
-            @Value("${knowledge.admin.jwt.secret:knowledge-repo-dev-admin-jwt-secret-change-me}")
-                    String secret,
+            @Value("${knowledge.admin.jwt.secret}") String secret,
             @Value("${knowledge.admin.jwt.expiration-hours:8}") long expirationHours) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException("knowledge.admin.jwt.secret must not be blank");

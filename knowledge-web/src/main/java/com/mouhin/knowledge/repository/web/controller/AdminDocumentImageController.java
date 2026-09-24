@@ -83,8 +83,7 @@ public class AdminDocumentImageController {
             return ResponseEntity.ok(Map.of("documentId", documentId, "added", added));
         } catch (IllegalArgumentException e) {
             log.warn("文档图片回填参数错误 [documentId={}]: {}", documentId, e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", String.valueOf(e.getMessage())));
+            return ResponseEntity.badRequest().body(Map.of("error", "文档图片回填失败"));
         }
     }
 }

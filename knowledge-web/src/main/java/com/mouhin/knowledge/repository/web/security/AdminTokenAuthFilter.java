@@ -80,7 +80,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
         AdminPrincipalDTO principal =
                 token == null ? null : adminAuthService.validateToken(token).getData();
-        if (principal == null) {
+        if (principal == null || !Boolean.TRUE.equals(principal.getAdmin())) {
             writeUnauthorized(response);
             return;
         }

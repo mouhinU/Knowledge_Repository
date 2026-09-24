@@ -119,7 +119,7 @@ public class AdminAuthController {
             adminAuthService.changePassword(cmd);
             return ResponseEntity.ok(Map.of(MSG_FIELD, "密码修改成功"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "密码修改请求不合法"));
         }
     }
 
