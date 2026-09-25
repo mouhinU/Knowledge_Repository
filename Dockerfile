@@ -36,7 +36,14 @@ RUN if [ "$SKIP_TESTS" = "true" ]; then \
 # ============================================================
 # Stage 2: Runtime
 # ============================================================
-FROM eclipse-temurin:21-jre
+# 基础镜像选择：alpine 比 Ubuntu 版小 ~150MB（JRE 解压后约 75MB vs 225MB）。
+# 保留的 apk 包：
+#   - fontconfig + ttf-dejavu：PDFBox/POI/Tika 中文渲染必需
+#   - tzdata：时区解析（Spring Boot 默认取系统时区）
+#   - ca-certificates：TLS 信任链
+# 不保留：curl/wget/gnupg/locales/p11-kit —— 生产运行时不需要
+# ------------------------------------------------------------
+FROM eclipse-temurin:21-jre-alpine
 
 # 版本号（构建时注入，用于运行时识别镜像版本）
 ARG APP_VERSION=unknown
@@ -44,16 +51,21 @@ LABEL maintainer="Knowledge-Repository"
 LABEL description="Knowledge Repository - RAG 知识库管理系统"
 LABEL version="${APP_VERSION}"
 
-# 创建非 root 用户
-RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
+# 创建非 root 用户（alpine 用 addgroup/adduser，无需 groupadd/useradd）
+RUN addgroup -S appuser && adduser -S -G appuser -h /app appuser
+
+# 运行时依赖：fontconfig（PDF/Office 中文渲染）+ tzdata + ca-certificates + curl（健康检查）
+RUN apk add --no-cache fontconfig ttf-dejavu tzdata ca-certificates curl
 
 WORKDIR /app
 
 # 从构建阶段复制 fat JAR
-COPY --from=builder /build/knowledge-web/target/*.jar app.jar
+# ⚠ 关键：COPY 时直接 --chown，避免后续 chown -R 触发 Overlay2 copy-up
+#   把 122MB 的 jar 再存一遍到新层（这是之前 latest 比 flat 大 122MB 的元凶）。
+COPY --chown=appuser:appuser --from=builder /build/knowledge-web/target/*.jar app.jar
 
-# 创建数据目录
-RUN mkdir -p /app/data/documents && chown -R appuser:appuser /app
+# 创建数据目录（只建小目录，不 chown -R /app）
+RUN install -d -o appuser -g appuser /app/data/documents
 
 # 切换到非 root 用户
 USER appuser
