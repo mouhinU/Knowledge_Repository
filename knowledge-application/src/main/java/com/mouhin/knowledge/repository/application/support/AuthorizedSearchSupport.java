@@ -6,10 +6,13 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import dev.langchain4j.model.scoring.ScoringModel;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,17 +46,37 @@ public class AuthorizedSearchSupport {
     /** over-fetch 硬上限：保护 Milvus 侧 IO 与内存。 */
     private static final int MAX_OVERFETCH = 500;
 
+    /** reranker 重排后保留的 top-N 数量（可通过配置覆盖）。 */
+    private static final int DEFAULT_RERANK_TOP_N = 10;
+
     private final VectorStoreGateway vectorStoreGateway;
     private final DocumentGateway documentGateway;
     private final PermissionDomainService permissionDomainService;
 
+    /** 可选的 reranker 模型（cross-encoder），用于检索后重排。 */
+    private final ScoringModel scoringModel;
+
+    /** reranker 重排后保留的 top-N 数量。 */
+    private final int rerankTopN;
+
+    @Autowired
     public AuthorizedSearchSupport(
             VectorStoreGateway vectorStoreGateway,
             DocumentGateway documentGateway,
-            PermissionDomainService permissionDomainService) {
+            PermissionDomainService permissionDomainService,
+            @Autowired(required = false) ScoringModel scoringModel,
+            @Autowired(required = false)
+                    @org.springframework.beans.factory.annotation.Value(
+                            "${knowledge.llm.reranker.top-n:10}")
+                    int rerankTopN) {
         this.vectorStoreGateway = vectorStoreGateway;
         this.documentGateway = documentGateway;
         this.permissionDomainService = permissionDomainService;
+        this.scoringModel = scoringModel;
+        this.rerankTopN = rerankTopN > 0 ? rerankTopN : DEFAULT_RERANK_TOP_N;
+        if (scoringModel != null) {
+            log.info("Reranker enabled: top-N={}", this.rerankTopN);
+        }
     }
 
     /**
@@ -82,10 +105,68 @@ public class AuthorizedSearchSupport {
         List<SearchResult> raw =
                 vectorStoreGateway.search(query, fetch, minScore, filterExpr, category);
         List<SearchResult> kept = filterAccessible(raw, permission);
-        if (kept.size() > safeMax) {
-            kept = new ArrayList<>(kept.subList(0, safeMax));
+
+        // Reranker 重排：如果启用了 ScoringModel，对 ACL 过滤后的结果按 (query, text) 重排
+        if (scoringModel != null && !kept.isEmpty()) {
+            kept = rerank(query, kept);
+        }
+
+        // 截断至 maxResults（或 rerankTopN，取较小者）
+        int finalSize = Math.min(kept.size(), Math.min(safeMax, rerankTopN));
+        if (kept.size() > finalSize) {
+            kept = new ArrayList<>(kept.subList(0, finalSize));
         }
         return kept;
+    }
+
+    /**
+     * 使用 reranker 对检索结果重排
+     *
+     * <p>cross-encoder 对 (query, document) 对做精准相关性打分，区分度远高于 bi-encoder 余弦相似度。 重排后按 reranker 分数降序排列。
+     */
+    private List<SearchResult> rerank(String query, List<SearchResult> results) {
+        try {
+            List<dev.langchain4j.data.segment.TextSegment> segments =
+                    results.stream()
+                            .map(sr -> dev.langchain4j.data.segment.TextSegment.from(sr.getText()))
+                            .toList();
+            List<Double> scores = scoringModel.scoreAll(segments, query).content();
+
+            // 构建 (index, rerankScore) 对，按 rerankScore 降序排序
+            List<Integer> indices = new ArrayList<>(results.size());
+            for (int i = 0; i < results.size(); i++) {
+                indices.add(i);
+            }
+            indices.sort(Comparator.comparingDouble((Integer i) -> scores.get(i)).reversed());
+
+            // 按重排顺序构建新列表，并更新 SearchResult 的 score 为 reranker 分数
+            List<SearchResult> reranked = new ArrayList<>(results.size());
+            for (int idx : indices) {
+                SearchResult original = results.get(idx);
+                double rerankScore = scores.get(idx);
+                reranked.add(
+                        new SearchResult(
+                                original.getText(),
+                                original.getDocumentId(),
+                                original.getDocumentName(),
+                                original.getPageNumber(),
+                                original.getChunkIndex(),
+                                rerankScore,
+                                original.getCategory()));
+            }
+
+            log.debug(
+                    "Reranked {} results for query '{}', top score={}",
+                    reranked.size(),
+                    query,
+                    scores.get(indices.get(0)));
+            return reranked;
+
+        } catch (Exception e) {
+            log.warn("Reranker failed, falling back to original order: {}", e.getMessage());
+            // reranker 失败时降级：返回原始顺序，不阻断 pipeline
+            return results;
+        }
     }
 
     /** 对已有检索结果做后置权限过滤（当调用方需要更细粒度控制 fetch/trim 时可单独使用）。 */

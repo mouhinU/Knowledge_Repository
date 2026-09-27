@@ -150,6 +150,19 @@ knowledge:
       read-timeout-seconds: ${LLM_VISION_READ_TIMEOUT_SECONDS:30}
       call-timeout-seconds: ${LLM_VISION_CALL_TIMEOUT_SECONDS:60}
       prefer-embedded-images: true
+    # ----- 重排角色（Phase R3）：检索后 cross-encoder 重排，区分度远高于 bi-encoder 余弦相似度 -----
+    # 默认关闭；启用后需配置 base-url / model-name 指向可用的 reranker 服务（如 bge-reranker-v2-m3）。
+    # 支持 OpenAI 兼容的 /score 端点（Xenova/bge-reranker、Infinity、TEI 等）。
+    reranker:
+      enabled: ${LLM_RERANKER_ENABLED:false}
+      provider: ${LLM_RERANKER_PROVIDER:openai-compatible}
+      base-url: ${LLM_RERANKER_BASE_URL:http://localhost:11434/v1}
+      api-key: ${LLM_RERANKER_API_KEY:ollama}
+      model-name: ${LLM_RERANKER_MODEL:bge-reranker-v2-m3}
+      connect-timeout-seconds: ${LLM_RERANKER_CONNECT_TIMEOUT_SECONDS:2}
+      read-timeout-seconds: ${LLM_RERANKER_READ_TIMEOUT_SECONDS:10}
+      call-timeout-seconds: ${LLM_RERANKER_CALL_TIMEOUT_SECONDS:30}
+      top-n: ${LLM_RERANKER_TOP_N:10}
     # ----- 韧性护栏（Phase R2）：按角色独立熔断/重试，一端点抖动不殃及他角色 -----
     resilience:
       chat:
@@ -207,7 +220,9 @@ knowledge:
   blackboard:
     search:
       max-results: 10
-      min-score: 0.5
+      # 0.5 太低——余弦 0.5~0.65 区间大量"语义方向对但内容不相关"的噪声，
+      # 上调到 0.65 砍掉低质量匹配，减少 LLM 上下文中的无关 chunk。
+      min-score: 0.65
 
   # ---------- 文件存储 ----------
   storage:

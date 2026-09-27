@@ -78,7 +78,7 @@ class KnowledgeSearchQryExeTest {
         ArgumentCaptor<Permission> cap = ArgumentCaptor.forClass(Permission.class);
         verify(authorizedSearch)
                 .searchAuthorized(
-                        eq("向量检索"), eq(10), eq(0.5), eq("filter-expr"), eq(null), cap.capture());
+                        eq("向量检索"), eq(10), eq(0.65), eq("filter-expr"), eq(null), cap.capture());
         Permission permission = cap.getValue();
         assertThat(permission.getUserId()).isEqualTo("u-1");
         assertThat(permission.getDepartmentId()).isEqualTo("d-1");

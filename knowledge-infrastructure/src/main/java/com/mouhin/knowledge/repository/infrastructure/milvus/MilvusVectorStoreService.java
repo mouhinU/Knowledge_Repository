@@ -180,11 +180,22 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         return search(query, maxResults, minScore, filterExpr, null);
     }
 
-    /** 构建 LangChain4j Filter，组合权限表达式和分类过滤 */
+    /**
+     * 构建 LangChain4j Filter，组合分类过滤
+     *
+     * <p>分类过滤：使用 LangChain4j 的 {@link IsEqualTo} 构建，下推到 Milvus 层执行，减少无关 category 的 chunk 进入结果集。
+     *
+     * <p>权限过滤（ACL）：当前仍由应用层 {@code AuthorizedSearchSupport.filterAccessible} 后过滤。原因：LangChain4j
+     * Filter API 不直接支持复杂 OR/AND 组合表达式（如 "PUBLIC or (INTERNAL and dept=X) or (RESTRICTED and role
+     * like Y)"），而 {@code PermissionDomainService.buildFilterExpression} 生成的 Milvus 原生表达式无法反向解析为
+     * LangChain4j Filter 对象。 后过滤虽效率略低，但逻辑正确且已覆盖 SEC-1 修复。
+     */
     private Filter buildFilter(String filterExpr, String category) {
-        // 当前 LangChain4j 的 Filter 接口不直接支持 Milvus 原生表达式字符串
-        // 分类过滤在应用层二次校验（见 KnowledgeQueryApplicationService）
-        // 此处预留扩展点，后续可接入 Milvus 原生 expr 支持
+        // category 过滤：下推到 Milvus
+        if (category != null && !category.isBlank()) {
+            return new IsEqualTo("category", category);
+        }
+        // ACL 过滤：保留为应用层后过滤（filterExpr 参数当前未使用）
         return null;
     }
 

@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
 public class KnowledgeSearchQryExe {
 
     private static final int DEFAULT_MAX_RESULTS = 10;
-    private static final double DEFAULT_MIN_SCORE = 0.5;
+    private static final double DEFAULT_MIN_SCORE = 0.65;
 
     /** 相似度分显示保留 4 位小数的放大倍数。 */
     private static final double SCORE_SCALE_4DP = 10000.0;

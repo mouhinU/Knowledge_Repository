@@ -44,7 +44,7 @@ class AuthorizedSearchSupportTest {
 
     private final AuthorizedSearchSupport support =
             new AuthorizedSearchSupport(
-                    vectorStoreGateway, documentGateway, permissionDomainService);
+                    vectorStoreGateway, documentGateway, permissionDomainService, null, 10);
 
     private static SearchResult result(String documentKey) {
         return new SearchResult(
