@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knowledge Repository 架构蓝图</title>
+    <style>
+      :root {
+        --c-bg: #f8fafc;
+        --c-canvas: #ffffff;
+        --c-border: #cbd5e1;
+        --c-border-strong: #94a3b8;
+        --c-text-main: #0f172a;
+        --c-text-sub: #64748b;
+        --c-accent: #b91c1c; /* semantic: error / state */
+        --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+        --font-mono: "SF Mono", Monaco, Consolas, monospace;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        background: var(--c-bg);
+        font-family: var(--font-ui);
+        color: var(--c-text-main);
+        padding: 40px 24px;
+        line-height: 1.4;
+      }
+
+      .sheet {
+        max-width: 1180px;
+        margin: 0 auto 40px;
+      }
+
+      .diagram-canvas {
+        background: var(--c-canvas);
+        border: 2px solid var(--c-border-strong);
+        padding: 28px 32px 34px;
+      }
+
+      .diagram-header {
+        border-bottom: 1px solid var(--c-border);
+        padding-bottom: 14px;
+        margin-bottom: 26px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .diagram-title { font-size: 21px; font-weight: 600; }
+      .diagram-subtitle {
+        font-size: 11px; font-weight: 500; color: var(--c-text-sub);
+        text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px;
+      }
+      .fig-id {
+        font-family: var(--font-mono); font-size: 11px; color: var(--c-text-sub);
+        border: 1px solid var(--c-border); padding: 3px 8px; white-space: nowrap;
+      }
+
+      .node {
+        background: var(--c-canvas);
+        border: 1px solid var(--c-border-strong);
+        padding: 10px 12px;
+      }
+      .node .n-title { font-size: 13px; font-weight: 600; }
+      .node .n-sub {
+        font-family: var(--font-mono); font-size: 11px; color: var(--c-text-sub); margin-top: 3px;
+      }
+      .node--filled { background: var(--c-text-main); }
+      .node--filled .n-title, .node--filled .n-sub { color: #fff; }
+      .node--filled .n-sub { color: #cbd5e1; }
+
+      .badge {
+        display: inline-block; font-size: 9px; font-family: var(--font-mono);
+        padding: 1px 5px; border: 1px solid var(--c-text-main);
+        text-transform: uppercase; letter-spacing: 0.4px;
+      }
+      .badge--filled { background: var(--c-text-main); color: #fff; }
+      .badge--accent { border-color: var(--c-accent); color: var(--c-accent); }
+
+      .layer-label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 1px; color: var(--c-text-sub);
+      }
+      .mono { font-family: var(--font-mono); }
+      .sub { color: var(--c-text-sub); }
+      .arrow-down {
+        text-align: center; color: var(--c-border-strong); font-size: 18px; line-height: 1;
+        font-family: var(--font-mono);
+      }
+
+      /* ===== Global sheet meta ===== */
+      .meta-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--c-border); margin-top: 22px;
+      }
+      .meta-grid > div { padding: 12px 14px; border-right: 1px solid var(--c-border); }
+      .meta-grid > div:last-child { border-right: none; }
+      .meta-k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--c-text-sub); }
+      .meta-v { font-family: var(--font-mono); font-size: 13px; font-weight: 600; margin-top: 4px; }
+
+      /* ===== Layered architecture ===== */
+      .layers { display: flex; flex-direction: column; gap: 14px; }
+      .layer { border: 1px dashed var(--c-border-strong); padding: 12px 14px 14px; }
+      .layer-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+      .layer-mods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .layer-mods.two { grid-template-columns: repeat(2, 1fr); }
+
+      /* ===== Flow pipeline ===== */
+      .flow { display: flex; align-items: stretch; flex-wrap: wrap; }
+      .flow-step {
+        border: 1px solid var(--c-border-strong); padding: 10px 12px;
+        min-width: 132px; flex: 1;
+      }
+      .flow-step .fs-n { font-family: var(--font-mono); font-size: 10px; color: var(--c-text-sub); }
+      .flow-step .fs-t { font-size: 13px; font-weight: 600; margin: 2px 0; }
+      .flow-step .fs-d { font-size: 11px; color: var(--c-text-sub); }
+      .flow-arrow {
+        display: flex; align-items: center; padding: 0 6px; color: var(--c-border-strong);
+        font-family: var(--font-mono); font-size: 16px;
+      }
+      .flow .flow-step { margin-bottom: 0; }
+
+      /* ===== Agent pipeline (blackboard) ===== */
+      .stage { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+      .stage-box { flex: 1; }
+      .stage-tag {
+        width: 130px; flex-shrink: 0; font-family: var(--font-mono); font-size: 11px;
+        font-weight: 700; color: var(--c-text-main);
+      }
+      .stage-tag .p { color: var(--c-text-sub); font-weight: 400; font-size: 10px; }
+      .parallel {
+        border: 1px dashed var(--c-border-strong); padding: 8px 10px; display: flex; gap: 10px;
+        align-items: center;
+      }
+      .parallel .plabel {
+        font-family: var(--font-mono); font-size: 9px; color: var(--c-accent);
+        border: 1px solid var(--c-accent); padding: 1px 4px; align-self: flex-start;
+      }
+      .agent {
+        flex: 1; border: 1px solid var(--c-border-strong); padding: 8px 10px;
+      }
+      .agent .a-t { font-size: 12px; font-weight: 600; }
+      .agent .a-m { font-family: var(--font-mono); font-size: 10px; color: var(--c-text-sub); }
+      .connector-v { text-align: center; color: var(--c-border-strong); font-family: var(--font-mono); font-size: 14px; margin: 2px 0 6px; }
+
+      /* ===== State machine ===== */
+      .states { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .state {
+        border: 1px solid var(--c-text-main); padding: 9px 14px; font-family: var(--font-mono);
+        font-size: 12px; font-weight: 700; background: var(--c-canvas);
+      }
+      .state.start { border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--c-text-main); color: #fff; padding: 0; }
+      .state.fail { border-color: var(--c-accent); color: var(--c-accent); }
+      .trans { text-align: center; }
+      .trans .t-label { font-family: var(--font-mono); font-size: 9px; color: var(--c-text-sub); margin-bottom: 2px; }
+      .trans .t-arrow { color: var(--c-border-strong); font-size: 16px; }
+
+      /* ===== Infra topology ===== */
+      .topo { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+      .cluster { border: 1px dashed var(--c-border-strong); padding: 12px; }
+      .cluster .c-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--c-text-sub); margin-bottom: 10px; font-weight: 700; }
+      .svc { border: 1px solid var(--c-border-strong); padding: 8px 10px; margin-bottom: 8px; }
+      .svc:last-child { margin-bottom: 0; }
+      .svc .s-t { font-size: 12px; font-weight: 600; }
+      .svc .s-p { font-family: var(--font-mono); font-size: 10px; color: var(--c-text-sub); }
+
+      .legend { margin-top: 16px; display: flex; gap: 22px; font-size: 11px; color: var(--c-text-sub); flex-wrap: wrap; }
+      .legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .sw { width: 26px; height: 0; border-top: 1px solid var(--c-border-strong); display: inline-block; }
+      .sw.dashed { border-top-style: dashed; }
+      .sw.accent { border-top-color: var(--c-accent); }
+
+      h3.grp {
+        font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--c-text-sub);
+        border-left: 3px solid var(--c-text-main); padding-left: 8px; margin: 26px 0 14px;
+      }
+      h3.grp:first-of-type { margin-top: 0; }
+
+      .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+      .toc a {
+        font-family: var(--font-mono); font-size: 11px; color: var(--c-text-main);
+        text-decoration: none; border: 1px solid var(--c-border); padding: 4px 8px;
+      }
+      .toc a:hover { border-color: var(--c-text-main); }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="diagram-canvas">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">Knowledge Repository — 系统架构蓝图</h1>
+            <p class="diagram-subtitle">RAG KNOWLEDGE BASE + MULTI-AGENT EXAM GENERATION · COLA 5-LAYER · SPRING BOOT 3.4 / JAVA 21</p>
+          </div>
+          <span class="fig-id">SHEET 00 / OVERVIEW</span>
+        </div>
+
+        <div class="meta-grid">
+          <div><div class="meta-k">Framework</div><div class="meta-v">Spring Boot 3.4.4</div></div>
+          <div><div class="meta-k">Runtime</div><div class="meta-v">Java 21 (虚拟线程)</div></div>
+          <div><div class="meta-k">RAG Engine</div><div class="meta-v">LangChain4j 1.0.1</div></div>
+          <div><div class="meta-k">Vector Store</div><div class="meta-v">Milvus 2.5.4</div></div>
+          <div><div class="meta-k">Persistence</div><div class="meta-v">MyBatis-Plus + Flyway</div></div>
+          <div><div class="meta-k">Database</div><div class="meta-v">H2 (dev) / MySQL (prod)</div></div>
+          <div><div class="meta-k">Arch Style</div><div class="meta-v">DDD 4-Module</div></div>
+          <div><div class="meta-k">Server Port</div><div class="meta-v">:8091</div></div>
+        </div>
+
+        <div class="toc" style="margin-top:24px;">
+          <a href="#fig1">FIG 1 · 分层架构</a>
+          <a href="#fig2">FIG 2 · 文档摄入流水线</a>
+          <a href="#fig3">FIG 3 · 语义检索流程</a>
+          <a href="#fig4">FIG 4 · 多智能体出卷</a>
+          <a href="#fig5">FIG 5 · 文档状态机</a>
+          <a href="#fig6">FIG 6 · 部署拓扑</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 1 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig1">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 1 — COLA 五层架构与模块依赖</h1>
+            <p class="diagram-subtitle">DEPENDENCY: WEB → CLIENT ← APPLICATION → DOMAIN ← INFRASTRUCTURE</p>
+          </div>
+          <span class="fig-id">FIG 01 / LAYERS</span>
+        </div>
+
+        <div class="layers">
+          <div class="layer">
+            <div class="layer-head">
+              <span class="badge badge--filled">适配层 (adapter)</span>
+              <span class="mono sub">knowledge-web — Controller / 安全配置 / 全局异常 / 管理台 SPA / SSE Store</span>
+            </div>
+            <div class="layer-mods">
+              <div class="node"><div class="n-title">Document*Controller</div><div class="n-sub">upload / preview / admin</div></div>
+              <div class="node"><div class="n-title">Exam*Controller</div><div class="n-sub">generate / SSE / export</div></div>
+              <div class="node"><div class="n-title">KnowledgeQueryController</div><div class="n-sub">/api/knowledge/search</div></div>
+              <div class="node"><div class="n-title">*ProgressStore + AuthFilter</div><div class="n-sub">SseEmitter + JWT</div></div>
+            </div>
+          </div>
+
+          <div class="arrow-down">│  ▼  (调用 *ServiceI 接口)</div>
+
+          <div class="layer">
+            <div class="layer-head">
+              <span class="badge badge--filled">契约层 (client)</span>
+              <span class="mono sub">knowledge-client — 对外 Service 接口 (*ServiceI) + Cmd/Qry/DTO/VO，仅被依赖不反向依赖</span>
+            </div>
+            <div class="layer-mods">
+              <div class="node"><div class="n-title">13 × ServiceI 接口</div><div class="n-sub">DocumentIngestion / KnowledgeQuery / ExamGeneration / …</div></div>
+              <div class="node"><div class="n-title">Cmd / Query 对象</div><div class="n-sub">UserCreateCmd · SearchCmd · IndexDocumentCmd</div></div>
+              <div class="node"><div class="n-title">DTO / VO</div><div class="n-sub">46 文件 · 跨层数据传输</div></div>
+              <div class="node"><div class="n-title">Request / Response</div><div class="n-sub">ExamGenerationRequest · PreviewResult</div></div>
+            </div>
+          </div>
+
+          <div class="arrow-down">│  ▲  (实现 ServiceI 接口)</div>
+
+          <div class="layer">
+            <div class="layer-head">
+              <span class="badge badge--filled">应用层 (app)</span>
+              <span class="mono sub">knowledge-application — 用例编排 (Executor) / @Transactional / DTO↔领域转换，仅分发不含核心规则</span>
+            </div>
+            <div class="layer-mods">
+              <div class="node"><div class="n-title">15 × ServiceImpl (分发)</div><div class="n-sub">实现 client 的 ServiceI</div></div>
+              <div class="node"><div class="n-title">14 特性包 Executor</div><div class="n-sub">docingestion(18) · examgeneration(12) · examgrading(13)</div></div>
+              <div class="node"><div class="n-title">ExamGenerationSupport</div><div class="n-sub">7 步 Agent 流水线编排</div></div>
+              <div class="node"><div class="n-sub">examtaking(11) · document(9) · examreview(9) · …</div></div>
+            </div>
+          </div>
+
+          <div class="arrow-down">│  ▼  (依赖领域对象，控制事务边界)</div>
+
+          <div class="layer">
+            <div class="layer-head">
+              <span class="badge">领域层 (domain · 核心 · 不依赖 infra/app/web)</span>
+              <span class="mono sub">knowledge-domain — 聚合根 / 实体 / 值对象 / 领域服务 / Gateway 接口 / 领域事件</span>
+            </div>
+            <div class="layer-mods">
+              <div class="node"><div class="n-title">Document (聚合根)</div><div class="n-sub">状态机 + 校验</div></div>
+              <div class="node"><div class="n-title">12 实体 + 22 值对象</div><div class="n-sub">ExamPlan · Permission · BlackboardState</div></div>
+              <div class="node"><div class="n-title">14 领域服务</div><div class="n-sub">ScoreRuleEngine · BlackboardAgent · ExamContractValidator</div></div>
+              <div class="node"><div class="n-title">21 Gateway 接口 + 4 领域事件</div><div class="n-sub">仅领域对象签名</div></div>
+            </div>
+          </div>
+
+          <div class="arrow-down" style="transform: rotate(0deg);">
+            ▲ 实现领域接口 (依赖倒置)&nbsp;&nbsp;·&nbsp;&nbsp;Domain ◀── Infrastructure
+          </div>
+
+          <div class="layer">
+            <div class="layer-head">
+              <span class="badge">基础设施层 (infrastructure)</span>
+              <span class="mono sub">knowledge-infrastructure — GatewayImpl / DO / Mapper / Milvus / 解析策略 / LLM 韧性 / Agent 实现</span>
+            </div>
+            <div class="layer-mods">
+              <div class="node"><div class="n-title">21 GatewayImpl + 16 DO + 15 Mapper</div><div class="n-sub">MyBatis-Plus 持久化</div></div>
+              <div class="node"><div class="n-title">MilvusVectorStoreService</div><div class="n-sub">向量存取 + 过滤</div></div>
+              <div class="node"><div class="n-title">11 Extractor 策略 + CompositeExtractionService</div><div class="n-sub">Tika/PDFBox/POI/Vision</div></div>
+              <div class="node"><div class="n-title">13 Agent + Resilient* + ChatModel Config</div><div class="n-sub">LangChain4j + Resilience4j</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><span class="badge badge--filled" style="padding:2px 6px;">A</span> 上层依赖下层</span>
+          <span><span class="badge" style="padding:2px 6px;">B</span> 领域层保持纯净</span>
+          <span><span class="badge" style="padding:2px 6px;">C</span> client 仅被依赖不反向依赖</span>
+          <span>依赖倒置：Infrastructure 实现 Domain 定义的 Gateway 接口</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 2 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig2">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 2 — 文档摄入 (RAG Ingestion) 流水线</h1>
+            <p class="diagram-subtitle">UPLOAD → DETECT → EXTRACT → DEDUP → PREVIEW → INDEX (CHUNK · EMBED · STORE)</p>
+          </div>
+          <span class="fig-id">FIG 02 / INGESTION</span>
+        </div>
+
+        <h3 class="grp">阶段 A — 上传与提取（uploadOnly / uploadAndProcess）</h3>
+        <div class="flow">
+          <div class="flow-step"><div class="fs-n">01</div><div class="fs-t">上传文件</div><div class="fs-d">MultipartFile → 临时文件</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">02</div><div class="fs-t">格式检测</div><div class="fs-d">Apache Tika MIME</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">03</div><div class="fs-t">文本提取</div><div class="fs-d">PDFBox / POI / Tika</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">04</div><div class="fs-t">MD5 去重</div><div class="fs-d">checksum 命中即拒绝</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">05</div><div class="fs-t">创建文档记录</div><div class="fs-d">status = UPLOADED</div></div>
+        </div>
+
+        <div class="arrow-down" style="margin:14px 0;">│<br>▼&nbsp;&nbsp;预览确认（extractionCache 暂存解析结果）</div>
+
+        <h3 class="grp">阶段 B — 索引与向量化（indexDocumentAsync + SSE 进度）</h3>
+        <div class="flow">
+          <div class="flow-step"><div class="fs-n">06</div><div class="fs-t">文本分块</div><div class="fs-d">ChunkingConfig · 重叠</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">07</div><div class="fs-t">批量向量化</div><div class="fs-d">Embedding bge-m3/1024d</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">08</div><div class="fs-t">写 Milvus</div><div class="fs-d">向量 + 权限元数据</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">09</div><div class="fs-t">写 DB 分块表</div><div class="fs-d">kb_document_chunk</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step node--filled"><div class="fs-n" style="color:#cbd5e1;">10</div><div class="fs-t">标记 INDEXED</div><div class="fs-d" style="color:#cbd5e1;">清理临时文件</div></div>
+        </div>
+
+        <div style="margin-top:18px; border:1px solid var(--c-border); padding:12px 14px;">
+          <span class="layer-label">解析策略路由 · DocumentExtractionService</span>
+          <div class="mono sub" style="margin-top:8px; font-size:11px; line-height:1.9;">
+            PDF → PDFBox 按页 · 扫描型(低文本密度)告警&nbsp;&nbsp;|&nbsp;&nbsp;Word → POI 每 30 段一 section&nbsp;&nbsp;|&nbsp;&nbsp;Excel → POI 按 Sheet 保留行列&nbsp;&nbsp;|&nbsp;&nbsp;PPTX → POI 按幻灯片遍历形状&nbsp;&nbsp;|&nbsp;&nbsp;其他 → Tika AutoDetectParser<br>
+            文件大小上限 200MB&nbsp;·&nbsp;临时文件必在 finally 清理&nbsp;·&nbsp;进度经 IndexProgressCallback 推送 SSE
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 3 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig3">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 3 — 语义检索与 RAG 查询流程</h1>
+            <p class="diagram-subtitle">QUERY → EMBED → MILVUS SEARCH (PERMISSION FILTER) → RERANK → LLM</p>
+          </div>
+          <span class="fig-id">FIG 03 / QUERY</span>
+        </div>
+
+        <div class="flow">
+          <div class="flow-step"><div class="fs-n">01</div><div class="fs-t">用户提问</div><div class="fs-d">query + Permission</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">02</div><div class="fs-t">查询向量化</div><div class="fs-d">Embedding Model</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">03</div><div class="fs-t">构建过滤表达式</div><div class="fs-d">PermissionDomainService</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">04</div><div class="fs-t">Milvus Top-K 检索</div><div class="fs-d">maxResults · minScore · expr</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="fs-n">05</div><div class="fs-t">应用层二次过滤</div><div class="fs-d">category 兜底</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step node--filled"><div class="fs-n" style="color:#cbd5e1;">06</div><div class="fs-t">List&lt;SearchResult&gt;</div><div class="fs-d" style="color:#cbd5e1;">供 Agent / LLM 引用</div></div>
+        </div>
+
+        <h3 class="grp">权限模型 · RBAC + 文档级 ACL</h3>
+        <div class="topo" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="svc"><div class="s-t">PUBLIC</div><div class="s-p">所有用户可见</div></div>
+          <div class="svc"><div class="s-t">INTERNAL</div><div class="s-p">同部门可见</div></div>
+          <div class="svc"><div class="s-t">RESTRICTED</div><div class="s-p">指定角色可见</div></div>
+          <div class="svc"><div class="s-t">PRIVATE</div><div class="s-p">仅所有者可见</div></div>
+        </div>
+        <div class="mono sub" style="margin-top:12px; font-size:11px;">
+          元数据写入 Milvus：document_key · department_id · visibility · allowed_roles · owner_id · category →<br>
+          buildFilterExpression() 据此生成检索过滤；超级管理员绕过限制。
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 4 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig4">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 4 — 多智能体出卷流水线（Blackboard 黑板模式）</h1>
+            <p class="diagram-subtitle">EXAM GENERATION · 7-STEP AGENT PIPELINE · SHARED BLACKBOARD + PARALLEL STAGES + SSE</p>
+          </div>
+          <span class="fig-id">FIG 04 / AGENTS</span>
+        </div>
+
+        <div class="stage">
+          <div class="stage-tag">INIT <span class="p">阶段 0</span></div>
+          <div class="stage-box node"><div class="n-sub">初始化 Blackboard 共享上下文 · 载入 ExamPlan 题型分布方案</div></div>
+        </div>
+        <div class="connector-v">│<br>▼</div>
+
+        <div class="stage">
+          <div class="stage-tag">RESEARCH ‖ SCORING <span class="p">阶段 1 · 并行</span></div>
+          <div class="parallel">
+            <span class="plabel">allOf()</span>
+            <div class="agent"><div class="a-t">Researcher Agent</div><div class="a-m">检索知识库 · 无结果→LLM 补充</div></div>
+            <div class="agent"><div class="a-t">Scoring Agent</div><div class="a-m">分值方案校验/生成兜底</div></div>
+          </div>
+        </div>
+        <div class="connector-v">│<br>▼</div>
+
+        <div class="stage">
+          <div class="stage-tag">WRITING <span class="p">阶段 2</span></div>
+          <div class="stage-box agent"><div class="a-t">Writer Agent</div><div class="a-m">依据黑板研究结果生成试题正文 → 写入 Blackboard</div></div>
+        </div>
+        <div class="connector-v">│<br>▼</div>
+
+        <div class="stage">
+          <div class="stage-tag">ANSWER ‖ CALIBRATE <span class="p">阶段 3 · 并行</span></div>
+          <div class="parallel">
+            <span class="plabel">并行</span>
+            <div class="agent"><div class="a-t">AnswerKey Generator</div><div class="a-m">生成标准答案+解析</div></div>
+            <div class="agent"><div class="a-t">Calibrator Agent</div><div class="a-m">难度/分值校准</div></div>
+          </div>
+        </div>
+        <div class="connector-v">│<br>▼</div>
+
+        <div class="stage">
+          <div class="stage-tag">REVIEW ‖ DEDUP <span class="p">阶段 4 · 并行</span></div>
+          <div class="parallel">
+            <span class="plabel">allOf()</span>
+            <div class="agent"><div class="a-t">Reviewer Agent</div><div class="a-m">质量审核</div></div>
+            <div class="agent"><div class="a-t">Deduplicator Agent</div><div class="a-m">重复题去除</div></div>
+          </div>
+        </div>
+        <div class="connector-v">│<br>▼</div>
+
+        <div class="stage">
+          <div class="stage-tag">COMPLETED / FAILED <span class="p">阶段 5</span></div>
+          <div class="stage-box node node--filled"><div class="n-title" style="font-family:var(--font-mono);">试卷渲染 · ExamWordExporter (.docx)</div><div class="n-sub">失败→ markFailed + 错误事件</div></div>
+        </div>
+
+        <div style="margin-top:18px; border:1px dashed var(--c-border-strong); padding:12px 14px;">
+          <span class="layer-label">Blackboard 共享状态机制</span>
+          <div class="mono sub" style="margin-top:8px; font-size:11px; line-height:1.8;">
+            各 Agent 实现 domain.service.BlackboardAgent#execute(blackboard, callback)，读写同一 BlackboardState；<br>
+            CompletableFuture + agentExecutor 线程池驱动并行；每阶段经 BlackboardProgressCallback → <span class="badge">SSE</span> text/event-stream 实时推送前端<br>
+            前端先建 EventSource 再发 POST，sessionId 由前端生成。<br>
+            同模式复用：文章生成 (Researcher → Writer → Reviewer, 3 Agent 串行) · 题型分布方案 (4 阶段 Agent)。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 5 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig5">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 5 — Document 聚合根状态机</h1>
+            <p class="diagram-subtitle">DOCUMENT LIFECYCLE STATE TRANSITIONS (AGGREGATE ROOT · knowledge-domain)</p>
+          </div>
+          <span class="fig-id">FIG 05 / STATE</span>
+        </div>
+
+        <div class="states">
+          <div class="state start">●</div>
+          <div class="trans"><div class="t-label">create()</div><div class="t-arrow">→</div></div>
+          <div class="state">UPLOADED</div>
+          <div class="trans"><div class="t-label">markProcessing()</div><div class="t-arrow">→</div></div>
+          <div class="state">PROCESSING</div>
+          <div class="trans"><div class="t-label">markIndexed()</div><div class="t-arrow">→</div></div>
+          <div class="state">INDEXED</div>
+          <div class="trans"><div class="t-label">archive()</div><div class="t-arrow">→</div></div>
+          <div class="state">ARCHIVED</div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <div class="states">
+            <div class="mono sub" style="width:150px;">FAILED 分支：</div>
+            <div class="state">UPLOADED / PROCESSING</div>
+            <div class="trans"><div class="t-label">markFailed(msg)</div><div class="t-arrow">→</div></div>
+            <div class="state fail">FAILED</div>
+            <div class="trans"><div class="t-label">可重试 markProcessing()</div><div class="t-arrow">↺</div></div>
+            <div class="state">PROCESSING</div>
+          </div>
+        </div>
+
+        <div class="mono sub" style="margin-top:18px; font-size:11px; line-height:1.8;">
+          状态转换前置校验由聚合根守护：markProcessing 仅接受 UPLOADED/FAILED；markIndexed 仅接受 PROCESSING；archive 仅接受 INDEXED。非法转换抛出带业务含义的异常。
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= FIG 6 ================= -->
+    <div class="sheet">
+      <div class="diagram-canvas" id="fig6">
+        <div class="diagram-header">
+          <div>
+            <h1 class="diagram-title">FIG 6 — 运行时与部署拓扑</h1>
+            <p class="diagram-subtitle">APPLICATION · DATA LAYER · DOCKER INFRA · AI MODEL ENDPOINTS</p>
+          </div>
+          <span class="fig-id">FIG 06 / DEPLOY</span>
+        </div>
+
+        <div class="topo">
+          <div class="cluster">
+            <div class="c-label">应用进程</div>
+            <div class="svc node node--filled"><div class="s-t" style="color:#fff;">knowledge-web (Fat Jar)</div><div class="s-p">:8091 · Spring MVC + SSE + 管理台 SPA</div></div>
+            <div class="svc"><div class="s-t">WebSecurityConfig</div><div class="s-p">permitAll /admin/** · RBAC</div></div>
+            <div class="svc"><div class="s-t">GlobalExceptionHandler</div><div class="s-p">统一响应体</div></div>
+          </div>
+
+          <div class="cluster">
+            <div class="c-label">数据层</div>
+            <div class="svc"><div class="s-t">关系库</div><div class="s-p">H2(内嵌) ↔ MySQL:3307</div></div>
+            <div class="svc"><div class="s-t">Flyway</div><div class="s-p">V{YYYYMMDD}{序号} 迁移</div></div>
+            <div class="svc"><div class="s-t">Milvus Standalone</div><div class="s-p">:19530 · collection knowledge_chunks</div></div>
+            <div class="svc"><div class="s-t">MinIO + etcd</div><div class="s-p">Milvus 依赖 (docker compose)</div></div>
+          </div>
+
+          <div class="cluster">
+            <div class="c-label">AI 模型端点</div>
+            <div class="svc"><div class="s-t">Embedding</div><div class="s-p">Ollama bge-m3 (1024d) / DashScope</div></div>
+            <div class="svc"><div class="s-t">Chat LLM</div><div class="s-p">DeepSeek · OpenAI 兼容协议</div></div>
+            <div class="svc"><div class="s-t">LangChain4j</div><div class="s-p">@ConditionalOnProperty 切换</div></div>
+            <div class="svc"><div class="s-t">超时策略</div><div class="s-p">Ollama 300s · 其他 120s</div></div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; border-top:1px solid var(--c-border); padding-top:12px;" class="mono sub">
+          <span class="badge">deploy</span> bash deploy.sh (禁 docker compose 直接起) · 轮询 docker inspect health=healthy 后 curl 校验 · restart 不更新镜像须重跑 deploy.sh · Docker TZ=Asia/Shanghai
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

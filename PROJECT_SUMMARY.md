@@ -1,12 +1,12 @@
 # Knowledge Repository 项目能力总结
 
-> 最近一次整理：2026-09-22。本文以当前代码（HEAD `f83a2e7`，Flyway V18）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、试卷作废级联、管理/学生端鉴权等全部已落地能力。
+> 最近一次整理：2026-09-27。本文以当前代码（Flyway **V21**，5 模块 404 主 Java / 123 测试 / 16+ 数据表）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、PDF 视觉增强、LLM 韧性护栏、试卷作废级联、管理/学生端鉴权等全部已落地能力。架构流程图见 [docs/architecture-diagram.html](docs/architecture-diagram.html)。
 
 ## 项目概述
 
-Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识库系统，现已演进为面向教育场景的一体化平台：在文档摄入、向量化、语义检索与权限隔离的基础上，扩展出多 Agent 黑板协作的 **AI 出卷流水线**、**出卷即切分落库**、**试卷校对与确定性内容门禁**、**试卷作废级联**、**学生在线考试**、**自动/人工评分**、**错题本**、**看图题配图**、以及管理端与学生端的 **无状态 JWT 鉴权**，并通过 **SSE** 全程实时推送生成/入库/评分进度。
+Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识库系统，现已演进为面向教育场景的一体化平台：在文档摄入、向量化、语义检索与权限隔离的基础上，扩展出多 Agent 黑板协作的 **AI 出卷流水线**、**出卷即切分落库**、**试卷校对与确定性内容门禁**、**试卷作废级联**、**学生在线考试**、**自动/人工评分**、**错题本**、**看图题配图**、**PDF 混合视觉解析（Phase A2/B/C/D）**、**LLM 三段式角色（chat/embedding/vision）+ Resilience4j 熔断/重试护栏**、**运行时特性开关（sys_config）**、以及管理端与学生端的 **无状态 JWT 鉴权**，并通过 **SSE** 全程实时推送生成/入库/评分进度。
 
-**技术栈：** Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3.0.4 / Apache Tika 3.1.0 / Apache POI 5.3.0 / H2 + MySQL / Flyway。
+**技术栈：** Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3.0.4 / Apache Tika 3.1.0 / Apache POI 5.3.0 / Resilience4j 2.2.0 / H2 + MySQL 8 / Flyway / Lombok 1.18.36 / JDK HmacSHA256 (JWT)。
 
 ---
 
@@ -24,16 +24,16 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 
 依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（infrastructure 反向实现 domain 的 Gateway 接口，依赖倒置）。domain 层不引用任何其它业务层，DO 不越过 infrastructure。
 
-**代码规模（主源码 Java 文件数，2026-09-22 实测）：**
+**代码规模（主源码 Java 文件数，2026-09-27 实测）：**
 
-| 模块 | 文件数 | 核心职责 |
-|------|-------|---------|
-| knowledge-client | 58 | 13 个 `*ServiceI` 契约接口 + Cmd/Qry/VO/DTO |
-| knowledge-domain | 63 | 1 聚合根 + 11 实体 + 17 值对象 + 13 领域服务 + 17 Gateway 接口 + 领域事件 |
-| knowledge-application | 133 | 14 个特性包的 Executor 用例编排（新增 docingestion/document/examgeneration/examgrading/examreview/examtaking/adminauth 等） |
-| knowledge-infrastructure | 71 | Gateway 实现、Mapper/DO/Converter、Milvus、解析器、12 个黑板 Agent、LLM/Embedding |
-| knowledge-web | 24 | 17 个 Controller、JWT 过滤器、SSE Store、安全配置 |
-| **合计** | **~349** | 另有测试类 27 个（web 4 / application 18 / domain 4 / infra 1） |
+| 模块 | 主 Java | 测试 | 核心职责 |
+|------|:------:|:----:|---------|
+| knowledge-client | 59 | 0 | 13 个 `*ServiceI` 契约接口 + 46 个 Cmd/Qry/VO/DTO |
+| knowledge-domain | 74 | 8 | 1 聚合根 + 12 实体 + 22 值对象 + 14 领域服务 + 21 Gateway 接口 + 4 领域事件，保持纯净 |
+| knowledge-application | 139 | 81 | 14 特性包 Executor 用例编排（docingestion / document / examgeneration / examgrading / examreview / examtaking / articlegeneration / adminauth / student / user / department / knowledge / system / wronganswer）+ 15 `*ServiceImpl` 分发 |
+| knowledge-infrastructure | 106 | 28 | 21 Gateway 实现（persistence/gateway/*Impl）+ 16 DO + 15 Mapper + 13 黑板 Agent + 11 解析策略（含 PDF_HYBRID/VISION）+ 6 LLM 韧性封装 + Milvus/Embedding/JWT/observability |
+| knowledge-web | 26 | 6 | 20 Controller、AdminTokenAuthFilter、3 类 SseEmitter Store、WebSecurityConfig、全局异常、静态管理台 |
+| **合计** | **404** | **123** | 527 个 Java 文件；另有 Flyway 迁移 21 个（V1–V21） |
 
 ---
 
@@ -41,11 +41,11 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 
 **聚合根：** `Document` —— 文档生命周期状态机（UPLOADED → PROCESSING → INDEXED → ARCHIVED / FAILED）。
 
-**实体（11）：** `User`、`Department`、`Role`、`Student`、`DocumentChunk`、`DocumentImage`、`WritingHistory`、`ExamHistory`（AI 出卷主表）、`ExamQuestion`（拆分题目）、`ExamSession`（学生考试场次）、`ExamAnswer`（答题明细）。
+**实体（12）：** `User`、`Department`、`Role`、`Student`、`DocumentChunk`、`DocumentImage`、`WritingHistory`、`ExamHistory`（AI 出卷主表）、`ExamQuestion`（拆分题目）、`ExamSession`（学生考试场次）、`ExamAnswer`（答题明细）、`SystemConfig`（V21 新增，运行时特性开关 + 参数）。
 
-**值对象（17）：** `Permission`（权限上下文）、`ChunkingConfig`、`ChunkingStrategyEnum`、`SearchResult`、`DocumentStatusEnum`、`DocumentVisibilityEnum`、`AdminTokenPayload`（JWT 载荷）、`BlackboardState`/`BlackboardPhase`/`BlackboardProgressEvent`（黑板协作与进度）、`ExamPlan`/`TypePlan`（题型分布方案）、`ExamAlertType`（试卷告警类型）、`ExtractedImage`/`ExtractionResult`/`DocumentImageHit`（图片提取产物）。
+**值对象（22）：** `Permission`（权限上下文）、`ChunkingConfig`、`ChunkingStrategyEnum`、`SearchResult`、`DocumentStatusEnum`、`DocumentVisibilityEnum`、`AdminTokenPayload`（JWT 载荷）、`BlackboardState`/`BlackboardPhase`/`BlackboardProgressEvent`（黑板协作与进度）、`ExamPlan`/`TypePlan`（题型分布方案）、`ExamAlertType`（试卷告警类型）、`ExtractedImage`/`ExtractionResult`/`DocumentImageHit`（图片提取产物）、`ExtractionPhase`/`ExtractionContext`/`ExtractionPageDetail`（Phase A2 抽取上下文）、`SystemConfigValue`（配置值封装）等。
 
-**领域服务（13）：**
+**领域服务（14）：**
 - `DocumentIngestionDomainService` —— 文本分块（Token 上限、段落/页面边界、重叠）
 - `PermissionDomainService` —— 构建 Milvus 过滤表达式，实现 RBAC + 文档级 ACL 隔离
 - `ScoreRuleEngine` / `ScorePlanValidator` —— 分值规范归一、按题型权重分配、默认方案构建与校验
@@ -53,22 +53,27 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 - `ExamBlankCounter` —— 填空题空数统计（前后端唯一口径：连续下划线空 + 空括号累加）
 - `ExamContractValidator` —— 出卷契约校验（题号/答案/选项/分值/出处题门禁），不过即 `VALIDATION_FAILED`
 - `ExamMetaQuestionDetector` —— **确定性**识别「出处/位置类」记忆题（第几单元/哪一页等），供审核与发布双关卡复用
+- `ExtractionStrategyStackParser` —— 抽取策略栈解析（MIME → 有序策略序列，支持 PDF_HYBRID 兜底路由）
 - `BlackboardAgent` 接口 + `StreamingChatGateway`、`BlackboardProgressCallback`、`IndexProgressCallback`、`ExamGradingProgressCallback` —— 黑板 Agent 契约与流式/进度回调接口（由 web 层持有 SseEmitter 实现）
 
-**Gateway 接口（17）：** Document / DocumentChunk / DocumentImage / DocumentImageExtractor / DocumentExtraction / VectorStore / Department / User / Student / WritingHistory / AdminJwtService / ExamHistory / ExamQuestion / ExamSession / ExamAnswer / ExamDistribution / ExamAlert，均在 `domain.gateway`，出入参为纯领域对象。
+**Gateway 接口（21，`domain.gateway` 包，出入参纯领域对象）：** Document / DocumentChunk / DocumentImage / DocumentImageExtractor / DocumentExtraction / ExtractionCache（V19）/ VectorStore / Department / User / Student / WritingHistory / AdminJwtService / ExamHistory / ExamQuestion / ExamSession / ExamAnswer / ExamDistribution / ExamAlert / SystemConfig（V21）/ ChatModel / StreamingChatGateway。
 
 ---
 
 ## 核心功能域
 
-### 1. 文档摄入与多格式解析
-上传（`/api/document/upload`，Tika MIME 探测）→ 格式路由到专用解析器 → 文本提取 → MD5/SHA-256 去重 → 建记录（状态 UPLOADED）→ 预览 → 确认入库（分块 + 批量向量化 + 写 Milvus + DB）。支持 PDF、Word(.docx)、Excel(.xlsx)、PowerPoint(.pptx)、TXT、CSV、HTML、RTF，上限 200MB。PDF 按页提取并检测扫描型低文本页；Word 按段落（每约 30 段一 section）；Excel 按工作表保留行列；PPT 按幻灯片遍历文本形状。入库流程与「重新入库 / 自定义分块入库」均异步执行，进度经 SSE（`IndexProgressCallback`）推送。
+### 1. 文档摄入与多格式解析（Phase A2/C/D 策略化）
+上传（`/api/document/upload`，含分片上传 `upload/init` → `upload/chunk` → `upload/complete`，Tika MIME 探测）→ 交给 **`CompositeExtractionService`** 按 `ExtractorRoutingProperties` 配置的策略栈路由 → 文本提取 → MD5/SHA-256 去重 → 建记录（状态 UPLOADED）→ 预览 → 确认入库（分块 + 批量向量化 + 写 Milvus + DB）。支持 PDF、Word(.docx)、Excel(.xlsx)、PowerPoint(.pptx)、TXT、CSV、HTML、RTF，上限 200MB。入库流程与「重新入库 / 自定义分块入库 / 重新解析」均异步执行，进度经 SSE（`IndexProgressCallback`）推送。
+
+**解析策略栈（`infrastructure/extractor/`，11 个策略，按 MIME 有序回落）：** `PdfBoxExtractionStrategy`（PDF 按页 + 扫描型低文本告警）、`PdfHybridExtractionStrategy`（Phase C：低文本页送视觉模型 OCR，`replace_lowtext / append / replace_all` 三种合并模式，默认关闭）、`VisionModelExtractionStrategy`（Phase B：调用 `knowledge.llm.vision` 角色，默认 `paddleocr-vl` 本地端点，`local-cpu` 模式，`prefer-embedded-images` 优先复用内嵌位图）、`DocxExtractionStrategy`（每 30 段一 section）、`XlsxExtractionStrategy`（按 Sheet 保留行列）、`PptxExtractionStrategy`（按幻灯片遍历形状）、`PlainTextExtractionStrategy`、`TikaFallbackExtractionStrategy`（AutoDetectParser 兜底）、`PageRenderer`（PDF 页→图，150 DPI）、`VisionBudgetGuard`（Phase D：`daily-pages-global` + `enforcement=log-only|enforce` 成本护栏）、`ExtractionSupport`。默认路由仅 `[PDF_BOX, DOCX, XLSX, PPTX, PLAIN_TEXT, TIKA_FALLBACK]`，PDF_HYBRID/VISION 须显式开启且 `knowledge.llm.vision.enabled=true` 方参与，零副作用。
+
+**解析结果持久缓存（V19 · Phase C）：** `kb_extraction_cache` 按「文件内容摘要 + 策略 + 模型 + 提示词摘要 + 渲染模式」复合键去重，`result_json` 存序列化 `ExtractionResult`；跨进程避免同一扫描件在重解析/reindex 时重复触发昂贵的视觉识别，命中率经 `ExtractionMetrics` 上报。
 
 ### 2. 向量检索与权限隔离
 Embedding 经 `@ConditionalOnProperty` 在 DashScope（text-embedding-v3）/ Ollama（bge-m3，1024 维，当前默认）间切换。Milvus 集合 `knowledge_chunks`：`id`(VarChar36 PK) / `text` / `metadata`(JSON，含 document_key、visibility、department_id、allowed_roles、owner_id) / `vector`(1024 COSINE)。检索走 `AuthorizedSearchSupport` 的 over-fetch + `PermissionDomainService` 过滤，四档可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE），超级管理员旁路。切换 embedding 维度须 drop 重建集合。
 
 ### 3. AI 出卷多 Agent 黑板流水线
-`ExamGenerationSupport.executeExamPipeline` 编排：研究（researcher）∥ 评分规则（scoring）→ 写作（writer）→ 答案（answerKey）∥ 校准（calibrator）→ 审核（reviewer）∥ 查重（dedup）。逐 token 推 thinking + output，SSE 面板按 phase 呈现。质量分 `< QUALITY_SCORE_THRESHOLD(80)` 时最多 `MAX_REVIEW_RETRIES(2)` 轮打回重写，分值收敛 delta=3 提前停止。12 个 Agent 位于 infrastructure（文章生成 3 个 Researcher/Writer/Reviewer + 出卷 6 个 Exam* + 分发 ExamDistributionAgent + 流式支撑 BlackboardAgentStreamer）。产出 `ExamPlan{schoolLevel,totalFullMark,combined,subjects,types[TypePlan],manualAdjusted}`。
+`ExamGenerationSupport.executeExamPipeline` 编排：研究（researcher）∥ 评分规则（scoring）→ 写作（writer）→ 答案（answerKey）∥ 校准（calibrator）→ 审核（reviewer）∥ 查重（dedup）。逐 token 推 thinking + output，SSE 面板按 phase 呈现。质量分 `< QUALITY_SCORE_THRESHOLD(80)` 时最多 `MAX_REVIEW_RETRIES(2)` 轮打回重写，分值收敛 delta=3 提前停止；V20 起 `quality_score` 由 INT 改为 **DECIMAL(5,2)**，支持每节点独立打分与综合评分两位小数精细化。13 个 Agent 位于 `infrastructure/agent/`（文章生成 3 个 Researcher/Writer/Reviewer + 出卷 6 个 ExamResearcher/ExamScoring/ExamWriter/AnswerKeyGenerator/ExamCalibrator/ExamReviewer/ExamDeduplicator 与 ExamDistributionAgent + 应用层 2 个 ExamContentRenderAgent / ExamContentValidatorAgent + 流式支撑 BlackboardAgentStreamer）。产出 `ExamPlan{schoolLevel,totalFullMark,combined,subjects,types[TypePlan],manualAdjusted}`。
 
 ### 4. 出卷即切分落库
 试卷生成后立即由 `ExamQuestionSplitSupport` 拆成 `kb_exam_question` 逐题行（含 `options_json`、`correct_answer`、`analysis`、`scoring_criteria`、`blank_count`、`images_json`），并跑 `ExamContractValidator`。`ExamPaperParser` 负责分节识别与题型归类：`matchPlanType` 双方剥括注后按 baseName 比较 + 回落顺序匹配，`resolveKernel(name, matched, rawHeading)` 让「（单选题）」这类括注参与关键词回落，修复了历史「整卷塌成 SHORT_ANSWER、选择题选项丢失」的问题。重新切分（resplit）按题号保留已绑定的 `images_json`。
@@ -97,6 +102,15 @@ AI 评分（`ExamGradingServiceI` / examgrading 包）借助 `ExamScoringAgent`�
 ### 11. AI 文章生成（黑板）
 `ArticleAgentController`（`/api/agent`）以 Researcher∥Writer∶Reviewer 三 Agent 黑板协作从知识库检索并成文，同样 SSE 推进度、写 `writing_history`。与出卷共用 `BlackboardAgent` 契约与限流（`AgentExecutorFactory` 的 AbortPolicy → 满则 SSE error + 429）。
 
+### 12. LLM 三段式角色与 Resilience4j 韧性护栏（Phase R1 / R2）
+LLM 连接治理拆成 **chat / embedding / vision 三个独立角色**（`knowledge.llm.*`），各自 `base-url`+`api-key`+`model-name`+`temperature`+`max-tokens`+三段超时（`connect/read/call-timeout-seconds`），供应商由 base-url 决定并统一走 **OpenAI 兼容协议**，密钥通过 per-role env 注入便于独立轮换与最小权限。
+
+- **chat**（默认 `deepseek-flash`）：出题 / 评分 / 黑板 Agent / 文章生成，`temperature` 0.7、`max-tokens` 4096、`call-timeout` 180s。**流式独立预算** `chat.streaming.max-tokens=16384` / `timeout-seconds=300`——推理模型（返回 `reasoning_content`）会把 token 耗在思考链，须显著大于非流式，避免正文被"喂空"。
+- **embedding**（默认本地 Ollama `bge-m3`）：短平快高并发，`connect/read/call` 2/10/15s 与 chat 连接池隔离；Ollama 超时耗尽返**空串而非异常**，检索/生成分支须判空。
+- **vision**（默认关闭，`LLM_VISION_ENABLED=true` 方启用）：Phase B 引入的第三种角色，`local-cpu` 模式指向 `paddleocr-vl` 或云端视觉端点，`temperature=0.0`，供 PDF_HYBRID 与图片抽取调用，OpenAI 兼容协议由 `OpenAiCompatibleVisionChatGateway` 实现。
+
+**韧性护栏（`infrastructure/llm/` · Phase R2）：** `LlmResilience` 集中装配 Resilience4j `CircuitBreaker` + `Retry`；`ResilientChatModel` / `ResilientEmbeddingModel` / `ResilientStreamingChatGateway` 三个装饰器包裹 LangChain4j 原生模型；per-role 熔断窗口独立（一端点抖动不殃及他角色）—— chat `sliding-window=20 / failure-rate=50% / slow-call=60s / wait=30s / half-open-calls=5`；chat **重试 max-attempts=3 指数退避 500ms × 2**；chat-stream **max-attempts=1**（重试会向已吐字的 UI 重复推送增量，仅保留熔断快速失败）；embedding max-attempts=2 / 200ms；vision max-attempts=2 / 300ms。配置项 `knowledge.llm.resilience.{chat|chat-stream|embedding|vision}` 全部 env 可覆盖。
+
 ---
 
 ## SSE 实时进度模式
@@ -108,38 +122,40 @@ AI 评分（`ExamGradingServiceI` / examgrading 包）借助 `ExamScoringAgent`�
 
 | 控制器 | 基路径 | 端点数 | 职责 |
 |--------|--------|:----:|------|
-| DocumentUploadController | `/api/document` | 6 | 上传/分片上传/仅提取文本（状态 UPLOADED） |
-| DocumentAdminController | `/api/admin/document` | 15 | 详情/多路列表/统计/分类统计/归档/删除/预览/入库/自定义分块/重新入库/入库进度 SSE |
-| KnowledgeQueryController | `/api/knowledge` | 2 | 语义检索（带权限过滤） |
+| DocumentUploadController | `/api/document` | 6 | 上传 / 分片上传（init·chunk·complete·status·cancel）/ 仅提取文本（状态 UPLOADED） |
+| DocumentAdminController | `/api/admin/document` | 15 | 详情/多路列表/统计/分类统计/归档/删除/预览/入库/自定义分块/重新入库/重新解析/入库进度 SSE |
+| KnowledgeQueryController | `/api/knowledge` | 2 | 语义检索（带权限过滤）+ 分类枚举 |
 | ExamController | `/api/agent` | 12 | AI 出卷流水线、generate-stream、export-word、出卷历史、分发/校验 SSE |
 | PaperReviewController | `/api/admin/paper-review` | 7 | 试卷校对：逐题查看、改答案、配图、resplit、approve、**作废（void）** |
-| ExamReviewController | `/api/admin/exam-review` | 10 | 答卷校对 / 成绩复核（学生提交） |
-| ExamTakingController | `/api/exam` | 7 | 学生开考、可用试卷、作答保存、交卷、结果 |
+| ExamReviewController | `/api/admin/exam-review` | 10 | 答卷校对 / 成绩复核（学生提交）、批量触发评分 SSE |
+| ExamTakingController | `/api/exam` | 7 | 学生开考、可用试卷、作答保存、交卷、结果、答案回读 |
 | ExamAssetController | `/api/exam/assets` | 1 | 配图二进制流式下载（放行） |
 | AdminDocumentImageController | `/api/admin/exam-images` | 3 | 按文档列表配图、全局搜索、历史回填 |
-| WrongAnswerController | `/api/admin/wrong-answers` | 3 | 管理端错题本 |
+| WrongAnswerController | `/api/admin/wrong-answers` | 3 | 管理端错题本（列表/统计摘要/学生列表） |
 | StudentWrongAnswerController | `/api/student/wrong-answers` | 1 | 学生端错题本 |
 | AdminAuthController | `/api/admin/auth` | 4 | 登录/登出/当前身份/改密 |
 | StudentAuthController | `/api/student/auth` | 4 | 学生注册/登录/登出/身份 |
 | UserAdminController | `/api/admin/user` | 5 | 用户管理 CRUD |
 | DepartmentAdminController | `/api/admin/department` | 4 | 部门管理（含树形） |
-| SystemConfigController | `/api/admin/system` | 1 | 系统状态 |
+| SystemConfigController | `/api/admin/system` | 3 | **V21 新增**：`GET /status` 系统状态 + `GET /configs` 特性开关/参数列表 + `PUT /configs` 运行时热更新（三层：内存缓存→DB→系统默认） |
 | ArticleAgentController | `/api/agent` | 4 | 文章生成/进度 SSE/写作历史 |
+
+共 **17 个业务 Controller + 3 个 SSE 进度 Store + 全局异常处理 + 安全过滤器**。
 
 ---
 
-## 数据库设计（Flyway V1–V18）
+## 数据库设计（Flyway V1–V21 · 16+ 表）
 
-H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307，库 `knowledge_repository`）。必备字段 `id`/`create_time`/`update_time`，索引命名 `pk_/uk_/idx_`。迁移演进：
+H2（开发）+ MySQL 8（生产，容器 `knowledge-mysql`，宿主机端口 3307，库 `knowledge_repository`）。必备字段 `id`/`create_time`/`update_time`，索引命名 `pk_/uk_/idx_`。迁移演进：
 
 | 版本 | 迁移 | 引入 |
 |------|------|------|
 | V1 | init_schema | sys_department、sys_user、sys_role、sys_user_role、kb_document、kb_document_chunk |
 | V2 | add_chunking_strategy | 分块策略字段 |
 | V3 | add_writing_history | kb_writing_history（AI 文章） |
-| V4 | add_category | 文档分类 |
+| V4 | add_category | 文档分类（kb_category） |
 | V5 | add_exam_history | kb_exam_history（AI 出卷主表） |
-| V6 | add_online_exam | kb_exam_session、kb_exam_answer（在线考试） |
+| V6 | add_online_exam | kb_exam_session、kb_exam_answer、kb_student（在线考试） |
 | V7 | add_exam_duration | 考试时长 |
 | V8 | add_exam_plan | exam_plan（题型分布方案 JSON） |
 | V9 | add_exam_grading_trace | kb_exam_grading_trace（评分轨迹） |
@@ -152,6 +168,9 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 | V16 | add_document_image | kb_document_image（配图资产） |
 | V17 | add_exam_question_images | kb_exam_question.images_json |
 | V18 | add_exam_session_voided | kb_exam_session.voided 布尔列 + 复合索引 `idx_exam_session_student_history`，支撑试卷作废级联与「一人一卷一次」开考守卫 |
+| **V19** | **create_extraction_cache** | **kb_extraction_cache**：解析结果持久缓存（Phase C），按「文件摘要+策略+模型+提示词+渲染模式」复合键去重，`result_json` 存序列化 ExtractionResult，避免同一扫描件在重解析/reindex 时重复触发昂贵的视觉识别 |
+| **V20** | **exam_score_precision** | 出卷质量评分精度：`kb_exam_history.quality_score` 由 INT 改为 **DECIMAL(5,2)**，支持两位小数（如 80.58），为每节点独立打分与综合评分精细化 |
+| **V21** | **create_sys_config** | **sys_config**：运行时特性开关 + 可调参数表，三层获取（内存缓存 → DB → 系统默认），配套 SystemConfigController GET/PUT 支持热更新，无需重启 |
 
 关系：`kb_exam_history(session_id) ↔ kb_exam_question(session_key)`；`kb_exam_session(exam_history_id) ↔ kb_exam_answer(session_id)`；错题本派生自 `kb_exam_answer.is_correct=false`。`knowledge_document` 外键 = `base_id`。运维脚本 `.buckups/data/clean-exam-data.sh`（本地运维脚本，未纳入版本控制）备份后 TRUNCATE 4 张考试表、保留 `kb_student`（`--dry-run` / `--yes` / `--with-students` / `--no-backup`）。
 
@@ -163,6 +182,9 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 
 - `knowledge.llm.chat`：对话角色（出题/评分/黑板/文章），`base-url`+`api-key`+`model-name` 决定供应商（默认 DeepSeek `deepseek-flash`）；`temperature` 0.7、`max-tokens` 4096；per-role 超时 `connect/read/call-timeout-seconds` 5/120/180；**流式独立预算** `chat.streaming.max-tokens` 16384 / `timeout-seconds` 300（避免推理模型思考链耗尽预算喂空正文）。密钥 env：`LLM_CHAT_API_KEY`
 - `knowledge.llm.embedding`：向量角色，`base-url`+`api-key`+`model-name` 决定供应商（默认本地 Ollama `bge-m3`）；per-role 短超时 `connect/read/call-timeout-seconds` 2/10/15，与 chat 连接池隔离。密钥 env：`LLM_EMBED_API_KEY`
+- **`knowledge.llm.vision`（Phase B 新增）**：视觉角色，`enabled` 默认 **false**（`LLM_VISION_ENABLED` 打开），`mode` 默认 `local-cpu`，`base-url` 默认 `http://localhost:8080/v1`（PaddleOCR-VL），`model-name` `paddleocr-vl`，`temperature=0.0`，`prefer-embedded-images=true` 优先复用 PDF 内嵌位图；`connect/read/call-timeout-seconds` 3/30/60。密钥 env：`LLM_VISION_API_KEY`
+- **`knowledge.llm.resilience`（Phase R2 新增）**：per-role Resilience4j 熔断/重试参数（chat 熔断滑窗 20 / 失败率 50% / 慢调 60s / 半开 5 / 等 30s；chat retry 3 次 500ms×2；chat-stream retry 1 次；embedding retry 2 次 200ms；vision retry 2 次 300ms）
+- **`knowledge.extractor`（Phase A2/C 新增）**：`enabled-strategies` 白名单（默认 `[PDF_BOX, DOCX, XLSX, PPTX, PLAIN_TEXT, TIKA_FALLBACK]`，PDF_HYBRID/VISION 不入默认）；`routing` 允许按 MIME 覆写有序策略栈（如 `application/pdf: [PDF_HYBRID, PDF_BOX]`）；`default-stack` 兜底；`vision.enabled` 与 `knowledge.llm.vision.enabled` 二者同真才启用视觉增强；`vision.trigger=scanned_only|image_heavy|always`，`merge=replace_lowtext|append|replace_all`，`render-fallback-dpi=150`，`min-text-len-per-page=200`，`max-pages-per-doc=20`，`max-bytes-per-image=4MB`；**Phase D 成本护栏**：`vision.budget.daily-pages-global`（默认极大）+ `vision.budget.enforcement=log-only|enforce`
 - `knowledge.milvus`：host/port/collection=`knowledge_chunks`/dimension=1024/database=default
 - `knowledge.blackboard.search`：max-results 10 / min-score 0.5
 - `knowledge.storage.path`：`./data/documents`
@@ -170,6 +192,7 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 - `knowledge.exam.grading-delay-minutes`：30
 - `knowledge.exam.review-required`（`EXAM_REVIEW_REQUIRED`，**默认 true**）：true=所有试卷须人工校对通过后发布；false=校验通过 + 质量达阈可自动发布，但校验不过/低分仍强制人工校对（不可绕过）
 - `knowledge.exam.asset-path`：`./data/exam-assets`（看图题配图二进制目录）
+- **`sys_config`（V21 新增）**：运行时特性开关 + 参数表，三层获取（内存缓存 → DB → 系统默认），管理员通过 `PUT /api/admin/system/configs` 热更新，无需重启即可开启/关闭某项能力（如 `vision.enabled` 灰度）
 
 超时：Ollama 300s / 其它 120s。Ollama 超时耗尽返回空串（非异常），检索/生成分支均须判空。
 
@@ -221,7 +244,7 @@ H2（开发）+ MySQL（生产，容器 `knowledge-mysql`，宿主机端口 3307
 
 ## 管理界面（静态页面）
 
-`static/` 下 14 个 HTML：入口 `admin.html` + `admin/index.html`（仪表盘）、`admin/login.html`、`admin/documents.html`（文档管理）、`admin/search.html`（知识检索）、`admin/ai-writing.html`（AI 文章）、`admin/ai-exam.html`（AI 出卷 + SSE 进度）、`admin/paper-review.html`（试卷校对）、`admin/exam-review.html`（答卷校对/成绩复核）、`admin/wrong-answers.html`（错题本）、`admin/users.html`、`admin/departments.html`、`admin/system.html`；考生端独立 SPA `exam.html`。访问 `http://localhost:8091/admin.html`。
+`static/` 下共 14 个 HTML：**旧单页 `admin.html` 已改为重定向存根**（meta-refresh + location.replace 转发 query/hash 到 `/admin/index.html`），管理台实际由 `static/admin/` 下 **12 页多页面 SPA** 组成——`index.html`（仪表盘）、`login.html`、`documents.html`（文档管理）、`search.html`（知识检索）、`ai-writing.html`（AI 文章）、`ai-exam.html`（AI 出卷 + SSE 进度）、`paper-review.html`（试卷校对）、`exam-review.html`（答卷校对 / 成绩复核）、`wrong-answers.html`（错题本）、`users.html`、`departments.html`、`system.html`（V21 特性开关），配共享 `assets/css/common.css`（`:root` 色板真源，主色 #3b82f6 + slate 灰阶 + 圆角 6/10/14）与 `assets/js/common.js`（`KR.initLayout` 侧边栏/tab 编排）；`ai-exam` 主逻辑外置 `ai-exam.js`。考生端独立 SPA `static/exam.html`（样式全走 CSS 变量与管理端 token 对齐）。访问入口 `http://localhost:8091/admin.html`（自动跳转），Security 已 `permitAll("/admin/**")`。
 
 ---
 
