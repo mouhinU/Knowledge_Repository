@@ -1318,7 +1318,8 @@ public class ExamGenerationSupport {
         try {
             ExamHistory history = new ExamHistory();
             history.setSessionId(sessionId);
-            history.setTopic(topic);
+            // 清洗 topic：去除未配对代理项等可能导致 MySQL utf8mb4 写入失败的非法字符
+            history.setTopic(sanitizeForDb(topic));
             history.setDifficulty(difficulty);
             history.setQuestionConfig(questionConfig);
             ExamPlan plan = blackboard.getExamPlan();
@@ -1356,5 +1357,32 @@ public class ExamGenerationSupport {
         } catch (Exception e) {
             log.error("保存出卷历史记录失败 [session={}]", sessionId, e);
         }
+    }
+
+    /**
+     * 清洗字符串，去除未配对代理项和其他可能导致数据库写入失败的非法 Unicode 字符。
+     *
+     * <p>保留所有合法 Unicode 字符（含 emoji 等 4 字节补充字符），仅替换未配对的高/低代理项为 {@code ?}。
+     */
+    private static String sanitizeForDb(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (Character.isHighSurrogate(c)) {
+                if (i + 1 < input.length() && Character.isLowSurrogate(input.charAt(i + 1))) {
+                    sb.append(c).append(input.charAt(++i));
+                } else {
+                    sb.append('?');
+                }
+            } else if (Character.isLowSurrogate(c)) {
+                sb.append('?');
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }

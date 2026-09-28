@@ -22,7 +22,7 @@ spring:
 
   # ==================== 数据源配置 ====================
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/knowledge_repository?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/knowledge_repository?useUnicode=true&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD}
@@ -152,16 +152,16 @@ knowledge:
       prefer-embedded-images: true
     # ----- 重排角色（Phase R3）：检索后 cross-encoder 重排，区分度远高于 bi-encoder 余弦相似度 -----
     # 默认关闭；启用后需配置 base-url / model-name 指向可用的 reranker 服务（如 bge-reranker-v2-m3）。
-    # 支持 OpenAI 兼容的 /score 端点（Xenova/bge-reranker、Infinity、TEI 等）。
+    # 支持 Cohere 兼容的 /v1/rerank 端点（wkao/bge-reranker-v2-m3 等）。
     reranker:
       enabled: ${LLM_RERANKER_ENABLED:false}
-      provider: ${LLM_RERANKER_PROVIDER:openai-compatible}
-      base-url: ${LLM_RERANKER_BASE_URL:http://localhost:11434/v1}
-      api-key: ${LLM_RERANKER_API_KEY:ollama}
+      provider: ${LLM_RERANKER_PROVIDER:cohere-compatible}
+      base-url: ${LLM_RERANKER_BASE_URL:http://localhost:6006}
+      api-key: ${LLM_RERANKER_API_KEY:sk-reranker}
       model-name: ${LLM_RERANKER_MODEL:bge-reranker-v2-m3}
       connect-timeout-seconds: ${LLM_RERANKER_CONNECT_TIMEOUT_SECONDS:2}
       read-timeout-seconds: ${LLM_RERANKER_READ_TIMEOUT_SECONDS:10}
-      call-timeout-seconds: ${LLM_RERANKER_CALL_TIMEOUT_SECONDS:30}
+      call-timeout-seconds: ${LLM_RERANKER_CALL_TIMEOUT_SECONDS:120}
       top-n: ${LLM_RERANKER_TOP_N:10}
     # ----- 韧性护栏（Phase R2）：按角色独立熔断/重试，一端点抖动不殃及他角色 -----
     resilience:
