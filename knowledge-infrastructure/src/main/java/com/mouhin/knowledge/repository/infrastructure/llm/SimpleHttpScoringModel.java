@@ -12,16 +12,17 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 简单 HTTP ScoringModel 实现，调用 OpenAI 兼容的 reranker 端点。
+ * 简单 HTTP ScoringModel 实现，调用 Cohere 兼容的 reranker 端点。
  *
- * <p>请求格式（OpenAI 兼容）：
+ * <p>请求格式（Cohere 兼容）：
  *
  * <pre>{@code
- * POST /score
+ * POST /v1/rerank
  * {
  *   "model": "bge-reranker-v2-m3",
  *   "query": "...",
- *   "documents": ["...", "..."]
+ *   "documents": ["...", "..."],
+ *   "top_n": 10
  * }
  * }</pre>
  *
@@ -30,13 +31,13 @@ import lombok.extern.slf4j.Slf4j;
  * <pre>{@code
  * {
  *   "results": [
- *     {"index": 0, "relevance_score": 0.95},
- *     {"index": 1, "relevance_score": 0.72}
+ *     {"index": 0, "relevance_score": 0.95, "document": {"text": "..."}},
+ *     {"index": 1, "relevance_score": 0.72, "document": {"text": "..."}}
  *   ]
  * }
  * }</pre>
  *
- * <p>支持 Xenova/bge-reranker、Infinity、TEI 等 OpenAI 兼容的 reranker 服务。
+ * <p>支持 wkao/bge-reranker-v2-m3 等 Cohere 兼容的 reranker 服务。
  *
  * @author mouhinU
  * @date 2026-09-25
@@ -48,15 +49,18 @@ public class SimpleHttpScoringModel implements ScoringModel {
     private final String apiKey;
     private final String modelName;
     private final HttpClient httpClient;
+    private final Duration requestTimeout;
 
     public SimpleHttpScoringModel(
             String baseUrl, String apiKey, String modelName, Duration timeout) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.apiKey = apiKey;
         this.modelName = modelName;
+        this.requestTimeout = timeout;
         this.httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(timeout)
+                        .version(HttpClient.Version.HTTP_1_1)
                         .followRedirects(HttpClient.Redirect.NORMAL)
                         .build();
     }
@@ -77,9 +81,10 @@ public class SimpleHttpScoringModel implements ScoringModel {
 
         HttpRequest request =
                 HttpRequest.newBuilder()
-                        .uri(URI.create(baseUrl + "/score"))
+                        .uri(URI.create(baseUrl + "/v1/rerank"))
                         .header("Content-Type", "application/json")
                         .header("Authorization", "Bearer " + apiKey)
+                        .timeout(requestTimeout)
                         .POST(HttpRequest.BodyPublishers.ofString(json))
                         .build();
 
