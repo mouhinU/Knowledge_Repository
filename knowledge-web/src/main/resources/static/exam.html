@@ -625,19 +625,195 @@
             gap: 10px;
         }
 
-        .session-item {
+        /* ===== Session List (Optimized) ===== */
+        .session-summary {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .session-summary-card {
+            flex: 1;
+            min-width: 120px;
             background: #fff;
             border: 1px solid var(--gray-200);
             border-radius: var(--radius);
             padding: 14px 18px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 12px;
-            transition: box-shadow 0.2s;
         }
 
-        .session-item:hover { box-shadow: var(--shadow); }
+        .session-summary-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .session-summary-icon.total { background: var(--gray-100); color: var(--gray-600); }
+        .session-summary-icon.progress { background: var(--blue-bg); color: var(--blue); }
+        .session-summary-icon.completed { background: var(--green-bg); color: var(--green); }
+        .session-summary-icon.voided { background: var(--danger-bg); color: var(--danger); }
+
+        .session-summary-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-800);
+            line-height: 1.2;
+        }
+
+        .session-summary-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .session-item {
+            background: #fff;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .session-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: var(--gray-300);
+            transform: translateY(-1px);
+        }
+
+        .session-item:last-child { margin-bottom: 0; }
+
+        /* Status color strip on left */
+        .session-status-strip {
+            width: 4px;
+            flex-shrink: 0;
+        }
+
+        .session-status-strip.in-progress { background: var(--blue); }
+        .session-status-strip.submitted { background: var(--warning); }
+        .session-status-strip.ai-graded { background: var(--purple); }
+        .session-status-strip.reviewed { background: var(--green); }
+        .session-status-strip.published { background: var(--green); }
+        .session-status-strip.voided { background: var(--danger); }
+
+        .session-content {
+            flex: 1;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .session-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .session-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .session-info .session-topic,
+        .session-main .session-topic {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--gray-800);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--gray-500);
+            flex-wrap: wrap;
+        }
+
+        .session-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .session-meta-item svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.6;
+        }
+
+        .session-score-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .score-ring {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            flex-shrink: 0;
+        }
+
+        .score-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-bg {
+            fill: none;
+            stroke: var(--gray-200);
+            stroke-width: 4;
+        }
+
+        .score-ring-fill {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.6s ease;
+        }
+
+        .score-ring-fill.excellent { stroke: var(--green); }
+        .score-ring-fill.good { stroke: var(--blue); }
+        .score-ring-fill.fair { stroke: var(--warning); }
+        .score-ring-fill.poor { stroke: var(--danger); }
+
+        .score-ring-value {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .session-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
 
         .session-info {
             flex: 1;
@@ -664,6 +840,20 @@
             align-items: center;
             gap: 8px;
             flex-shrink: 0;
+        }
+
+        /* Responsive: stack on narrow screens */
+        @media (max-width: 768px) {
+            .session-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .session-score-section {
+                align-self: flex-end;
+            }
+            .session-summary {
+                flex-direction: column;
+            }
         }
 
         /* ===== Exam Taking Page ===== */
@@ -2025,31 +2215,103 @@
             list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><p>暂无考试记录</p></div>';
             return;
         }
-        var html = '';
+
+        // Compute summary stats
+        var total = mySessions.length;
+        var inProgress = 0, completed = 0, voidedCount = 0;
+        mySessions.forEach(function(s) {
+            if (s.voided) voidedCount++;
+            else if (s.status === 'IN_PROGRESS') inProgress++;
+            else if (s.status === 'PUBLISHED' || s.status === 'REVIEWED') completed++;
+        });
+
+        // Render summary header
+        var summaryHtml = '<div class="session-summary">'
+            + '<div class="session-summary-card"><div class="session-summary-icon total">&#128203;</div><div><div class="session-summary-value">' + total + '</div><div class="session-summary-label">全部记录</div></div></div>'
+            + '<div class="session-summary-card"><div class="session-summary-icon progress">&#9998;</div><div><div class="session-summary-value">' + inProgress + '</div><div class="session-summary-label">进行中</div></div></div>'
+            + '<div class="session-summary-card"><div class="session-summary-icon completed">&#10004;</div><div><div class="session-summary-value">' + completed + '</div><div class="session-summary-label">已完成</div></div></div>'
+            + (voidedCount > 0 ? '<div class="session-summary-card"><div class="session-summary-icon voided">&#10008;</div><div><div class="session-summary-value">' + voidedCount + '</div><div class="session-summary-label">已作废</div></div></div>' : '')
+            + '</div>';
+
+        // Render session cards
+        var cardsHtml = '';
         mySessions.forEach(function(session) {
             var status = session.status || 'IN_PROGRESS';
+            var isVoided = session.voided;
+            var stripClass = isVoided ? 'voided' : status.toLowerCase().replace('_', '-');
+
+            // Difficulty badge
+            var diffHtml = difficultyBadge(session.difficulty);
+
+            // Status badge
+            var statusHtml = statusBadge(status);
+
+            // Voided badge
+            var voidedHtml = isVoided ? '<span class="badge" style="background:var(--danger-bg);color:var(--danger);font-weight:600">已作废</span>' : '';
+
+            // Duration info
+            var durationText = '';
+            if (session.durationMinutes) {
+                durationText = session.durationMinutes + '分钟';
+            }
+
+            // Time info
+            var timeText = formatDateTime(session.startTime || session.createTime);
+
+            // Score ring (only if score available)
+            var scoreHtml = '';
+            if (session.finalScore != null || session.totalScore != null) {
+                var score = session.finalScore != null ? session.finalScore : session.totalScore;
+                var maxScore = session.totalMaxScore || session.totalScore || 100;
+                var pct = Math.min(100, Math.round((score / maxScore) * 100));
+                var ringClass = pct >= 85 ? 'excellent' : (pct >= 70 ? 'good' : (pct >= 50 ? 'fair' : 'poor'));
+                var circumference = 2 * Math.PI * 22; // radius=22
+                var offset = circumference - (pct / 100) * circumference;
+                scoreHtml = '<div class="session-score-section">'
+                    + '<div class="score-ring">'
+                    + '<svg width="52" height="52" viewBox="0 0 52 52">'
+                    + '<circle class="score-ring-bg" cx="26" cy="26" r="22"/>'
+                    + '<circle class="score-ring-fill ' + ringClass + '" cx="26" cy="26" r="22" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>'
+                    + '</svg>'
+                    + '<div class="score-ring-value">' + score + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }
+
+            // Action button
             var actionHtml = '';
-            if (status === 'IN_PROGRESS') {
+            if (isVoided) {
+                actionHtml = '<span style="font-size:13px;color:var(--gray-400)">—</span>';
+            } else if (status === 'IN_PROGRESS') {
                 actionHtml = '<button class="btn btn-primary btn-sm" onclick="resumeExam(\'' + session.sessionKey + '\')">继续答题</button>';
             } else if (status === 'SUBMITTED' || status === 'AI_GRADED') {
                 actionHtml = '<button class="btn btn-secondary btn-sm" disabled>等待评分</button>';
             } else if (status === 'REVIEWED' || status === 'PUBLISHED') {
                 actionHtml = '<button class="btn btn-success btn-sm" onclick="viewResults(\'' + session.sessionKey + '\')">查看成绩</button>';
             }
-            html += '<div class="session-item">'
-                + '<div class="session-info">'
-                + '<div class="session-topic">' + escapeHtml(session.topic || '未命名考试') + '</div>'
-                + '<div class="session-meta">' + formatDateTime(session.startTime || session.createTime) + '</div>'
+
+            cardsHtml += '<div class="session-item">'
+                + '<div class="session-status-strip ' + stripClass + '"></div>'
+                + '<div class="session-content">'
+                + '<div class="session-main">'
+                + '<div class="session-header">'
+                + '<span class="session-topic">' + escapeHtml(session.topic || '未命名考试') + '</span>'
+                + diffHtml
+                + statusHtml
+                + voidedHtml
                 + '</div>'
-                + '<div class="session-actions">'
-                + (session.voided ? '<span class="badge" style="background:#fee2e2;color:#b91c1c;margin-right:6px">试卷已作废</span>' : '')
-                + statusBadge(status)
-                + (session.totalScore != null ? ' <span class="badge badge-score">' + session.totalScore + '分</span>' : '')
-                + actionHtml
+                + '<div class="session-meta-row">'
+                + '<span class="session-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + timeText + '</span>'
+                + (durationText ? '<span class="session-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + durationText + '</span>' : '')
+                + '</div>'
+                + '</div>'
+                + scoreHtml
+                + '<div class="session-actions">' + actionHtml + '</div>'
                 + '</div>'
                 + '</div>';
         });
-        list.innerHTML = html;
+
+        list.innerHTML = summaryHtml + cardsHtml;
     }
 
     /* ===== Student Error Book ===== */
