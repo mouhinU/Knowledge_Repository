@@ -8,6 +8,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayloa
 import com.mouhin.knowledge.repository.infrastructure.security.AdminJwtGatewayImpl;
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -87,5 +88,42 @@ class AdminJwtGatewayImplTest {
         assertFalse(gw.verify("").isPresent());
         assertFalse(gw.verify("not-a-jwt").isPresent());
         assertFalse(gw.verify("a.b").isPresent());
+    }
+
+    @Test
+    @DisplayName("P0-T2: 4 参 issue 携带 roles claim，verify 后按顺序还原")
+    void issueThenVerify_roundTripsRoles() {
+        AdminJwtGatewayImpl gw = gateway(8);
+        List<String> roles = List.of("ADMIN", "AUDITOR", "OPS");
+
+        String token = gw.issue("key-123", "admin", true, roles);
+        Optional<AdminTokenPayload> verified = gw.verify(token);
+
+        assertTrue(verified.isPresent(), "合法令牌应校验通过");
+        assertEquals(roles, verified.get().roles(), "roles claim 应原样往返");
+    }
+
+    @Test
+    @DisplayName("P0-T2: roles=null / 空列表 → 载荷 roles 归一为空 List，不抛 NPE")
+    void issueThenVerify_normalizesEmptyRoles() {
+        AdminJwtGatewayImpl gw = gateway(8);
+
+        String nullToken = gw.issue("key-null", "admin", true, null);
+        String emptyToken = gw.issue("key-empty", "admin", true, List.of());
+
+        assertEquals(List.of(), gw.verify(nullToken).orElseThrow().roles());
+        assertEquals(List.of(), gw.verify(emptyToken).orElseThrow().roles());
+    }
+
+    @Test
+    @DisplayName("P0-T2: 旧 3 参 issue 等价 roles:[] 语义，verify 后仍为空列表")
+    void legacyThreeArgIssue_stillNormalizesRoles() {
+        AdminJwtGatewayImpl gw = gateway(8);
+        String token = gw.issue("legacy-key", "admin", true);
+
+        Optional<AdminTokenPayload> verified = gw.verify(token);
+        assertTrue(verified.isPresent());
+        assertEquals(List.of(), verified.get().roles(), "旧签名应产出 roles:[] 而非 null");
+        assertTrue(verified.get().admin(), "admin 标志仍需还原");
     }
 }

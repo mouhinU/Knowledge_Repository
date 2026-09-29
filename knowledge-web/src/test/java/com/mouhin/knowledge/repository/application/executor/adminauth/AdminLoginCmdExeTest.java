@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -17,6 +18,7 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,7 +65,8 @@ class AdminLoginCmdExeTest {
     void success() {
         when(userGateway.findByUsername("admin")).thenReturn(Optional.of(activeAdmin()));
         when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
-        when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true))).thenReturn("jwt-token");
+        when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true), anyList()))
+                .thenReturn("jwt-token");
         when(adminJwtService.verify("jwt-token"))
                 .thenReturn(
                         Optional.of(
@@ -81,6 +84,38 @@ class AdminLoginCmdExeTest {
         assertTrue(result.getAdmin());
         assertNotNull(result.getExpiresAt());
         assertTrue(result.getExpiresAt().isBlank() == false);
+    }
+
+    @Test
+    @DisplayName("P0-T2：用户持有角色时登录签发会携带 roles claim 至 4 参 issue")
+    void successPassesRolesToIssue() {
+        User u = activeAdmin();
+        u.setId(99L);
+        when(userGateway.findByUsername("admin")).thenReturn(Optional.of(u));
+        when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
+        when(userGateway.findRoleKeysByUserIdAndDocumentId(99L, null))
+                .thenReturn(List.of("ADMIN", "AUDITOR"));
+        when(adminJwtService.issue("key-1", "admin", true, List.of("ADMIN", "AUDITOR")))
+                .thenReturn("jwt-with-roles");
+        when(adminJwtService.verify("jwt-with-roles"))
+                .thenReturn(
+                        Optional.of(
+                                new AdminTokenPayload(
+                                        "key-1",
+                                        "admin",
+                                        true,
+                                        List.of("ADMIN", "AUDITOR"),
+                                        Instant.now().plusSeconds(3600))));
+
+        AdminLoginCmd cmd = new AdminLoginCmd();
+        cmd.setUsername("admin");
+        cmd.setPassword("pass");
+
+        AdminLoginResultDTO result = exe.execute(cmd);
+
+        assertEquals("jwt-with-roles", result.getToken());
+        org.mockito.Mockito.verify(adminJwtService)
+                .issue("key-1", "admin", true, List.of("ADMIN", "AUDITOR"));
     }
 
     @Test

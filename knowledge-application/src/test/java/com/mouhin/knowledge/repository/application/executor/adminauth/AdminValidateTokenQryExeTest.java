@@ -13,6 +13,7 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -112,5 +113,38 @@ class AdminValidateTokenQryExeTest {
         assertThat(dto).isNotNull();
         assertThat(dto.getAdmin()).isFalse();
         assertThat(dto.getDepartmentId()).isNull();
+    }
+
+    @Test
+    @DisplayName("P0-T2：payload.roles 非空 → principal.roles 原样透传，无需回库")
+    void principalCarriesRolesFromClaim() {
+        AdminTokenPayload withRoles =
+                new AdminTokenPayload(
+                        "key-3",
+                        "admin",
+                        true,
+                        List.of("ADMIN", "AUDITOR"),
+                        Instant.now().plusSeconds(3600));
+        when(adminJwtService.verify("ok")).thenReturn(Optional.of(withRoles));
+        when(userGateway.findByUserKey("key-3"))
+                .thenReturn(Optional.of(activeUser("key-3", true, "D-3")));
+
+        AdminPrincipalDTO dto = exe.execute("ok");
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getRoles()).containsExactly("ADMIN", "AUDITOR");
+    }
+
+    @Test
+    @DisplayName("P0-T2：旧 4 参 payload → principal.roles 归一为空列表（兼容旧令牌）")
+    void legacyPayloadNormalizesToEmptyRoles() {
+        when(adminJwtService.verify("ok")).thenReturn(Optional.of(payload("key-4")));
+        when(userGateway.findByUserKey("key-4"))
+                .thenReturn(Optional.of(activeUser("key-4", true, "D-4")));
+
+        AdminPrincipalDTO dto = exe.execute("ok");
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getRoles()).isEmpty();
     }
 }

@@ -1,13 +1,17 @@
 package com.mouhin.knowledge.repository.infrastructure.security;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -24,12 +28,16 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li>header：{@code {"alg":"HS256","typ":"JWT"}}
- *   <li>payload：{@code {"sub":userKey,"username":..,"admin":..,"iat":..,"exp":..}}
+ *   <li>payload：{@code
+ *       {"sub":userKey,"username":..,"admin":..,"roles":["ADMIN","AUDITOR"],..,"iat":..,"exp":..}}
  * </ul>
  *
  * <p>密钥经 {@code knowledge.admin.jwt.secret}（推荐由 {@code KNOWLEDGE_ADMIN_JWT_SECRET} 环境变量注入，
  * 缺省仅用于本地开发）配置；有效期 {@code knowledge.admin.jwt.expiration-hours}，默认 8 小时。 校验时以常量时间比较签名，并检查 {@code
  * exp}，任何篡改 / 过期 / 格式非法均返回 {@link Optional#empty()}。账号是否被禁用不在此判定（交由过滤器读库二次确认），保持职责分离。
+ *
+ * <p>P0-T2 起 {@code roles} claim 承载 {@code sys_role.role_key} 列表；签发端可选传入，未传时写入空数组，
+ * 反序列化端读取缺失或非法类型时同样归一为空列表，与 {@link AdminTokenPayload} 的紧凑构造器语义一致。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -46,6 +54,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
     private static final String CLAIM_SUB = "sub";
     private static final String CLAIM_USERNAME = "username";
     private static final String CLAIM_ADMIN = "admin";
+    private static final String CLAIM_ROLES = "roles";
     private static final String CLAIM_IAT = "iat";
     private static final String CLAIM_EXP = "exp";
     private static final int TOKEN_SEGMENT_COUNT = 3;
@@ -67,12 +76,25 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
 
     @Override
     public String issue(String userKey, String username, boolean admin) {
+        return issue(userKey, username, admin, List.of());
+    }
+
+    @Override
+    public String issue(String userKey, String username, boolean admin, List<String> roles) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationSeconds);
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put(CLAIM_SUB, userKey);
         payload.put(CLAIM_USERNAME, username);
         payload.put(CLAIM_ADMIN, admin);
+        ArrayNode rolesNode = payload.putArray(CLAIM_ROLES);
+        if (roles != null) {
+            for (String r : roles) {
+                if (r != null && !r.isBlank()) {
+                    rolesNode.add(r);
+                }
+            }
+        }
         payload.put(CLAIM_IAT, now.getEpochSecond());
         payload.put(CLAIM_EXP, exp.getEpochSecond());
 
@@ -118,12 +140,27 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             }
             String username = payload.path(CLAIM_USERNAME).asText(null);
             boolean admin = payload.path(CLAIM_ADMIN).asBoolean(false);
+            List<String> roles = readRoles(payload.path(CLAIM_ROLES));
             return Optional.of(
-                    new AdminTokenPayload(userKey, username, admin, Instant.ofEpochSecond(exp)));
+                    new AdminTokenPayload(
+                            userKey, username, admin, roles, Instant.ofEpochSecond(exp)));
         } catch (Exception e) {
             log.debug("Admin token verification failed: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private List<String> readRoles(JsonNode node) {
+        List<String> roles = new ArrayList<>();
+        if (node == null || !node.isArray()) {
+            return roles;
+        }
+        for (JsonNode item : node) {
+            if (item != null && item.isTextual() && !item.asText().isBlank()) {
+                roles.add(item.asText());
+            }
+        }
+        return roles;
     }
 
     private byte[] hmac(String signingInput) {
