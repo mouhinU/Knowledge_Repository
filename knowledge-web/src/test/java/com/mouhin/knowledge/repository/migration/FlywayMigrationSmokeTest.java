@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * Flyway V1-V22 迁移冒烟测试（体检 HIGH H4）。
+ * Flyway V1-V23 迁移冒烟测试（体检 HIGH H4）。
  *
  * <p>用 H2（MySQL 兼容模式）在内存中一次性回放全部迁移脚本，锁定"库重建 / 迁移链可成功执行"这一 生产启动前置：若任一版本脚本存在语法错误、跨版本对象依赖破坏（如 V11 新表被
  * V13 ALTER 引用）， {@code flyway.migrate()} 会直接抛错、本用例失败。生产虽运行在 MySQL，但项目要求 H2 亦可启动 （见 AGENTS.md 第十章
@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V22 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V23 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V22）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 22;
+    /** 迁移脚本总数（V1..V23）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 23;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 19")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 23")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,11 +54,10 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V22
+        // 二次调用应无待处理迁移（幂等），并停留在 V23
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals(
-                "22", current.getVersion().getVersion(), "最终版本应为 V22（考生会话表 kb_student_session）");
+        assertEquals("23", current.getVersion().getVersion(), "最终版本应为 V23（SaaS 租户元数据表 sys_tenant）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -192,6 +191,55 @@ class FlywayMigrationSmokeTest {
                     sessionCols.contains("expires_at"), "V22 列缺失 (kb_student_session.expires_at)");
             assertTrue(
                     sessionCols.contains("revoked_at"), "V22 列缺失 (kb_student_session.revoked_at)");
+
+            // 抽查 V23（P1-T1 SaaS 租户元数据）两张平台表存在
+            List<String> tenantTables = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(table_name) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) IN ('sys_tenant','sys_tenant_placement')")) {
+                while (rs.next()) {
+                    tenantTables.add(rs.getString(1));
+                }
+            }
+            assertTrue(tenantTables.contains("sys_tenant"), "V23 表缺失 (sys_tenant)");
+            assertTrue(
+                    tenantTables.contains("sys_tenant_placement"),
+                    "V23 表缺失 (sys_tenant_placement)");
+
+            // 抽查 V23 关键列存在
+            List<String> tenantCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant' "
+                                    + "AND LOWER(column_name) IN ('tenant_key','plan','status','data_region')")) {
+                while (rs.next()) {
+                    tenantCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(tenantCols.contains("tenant_key"), "V23 列缺失 (sys_tenant.tenant_key)");
+            assertTrue(tenantCols.contains("plan"), "V23 列缺失 (sys_tenant.plan)");
+            assertTrue(tenantCols.contains("status"), "V23 列缺失 (sys_tenant.status)");
+            assertTrue(tenantCols.contains("data_region"), "V23 列缺失 (sys_tenant.data_region)");
+
+            // 抽查 V23 种子：默认租户已就绪且状态 ACTIVE
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT tenant_id, status FROM sys_tenant WHERE tenant_key = 'default'")) {
+                assertTrue(rs.next(), "V23 种子默认租户行缺失 (tenant_key='default')");
+                long defaultTenantId = rs.getLong("tenant_id");
+                assertEquals("ACTIVE", rs.getString("status"), "默认租户 status 应为 ACTIVE");
+
+                // 默认租户须有对应 POOL 放置
+                try (ResultSet prs =
+                        st.executeQuery(
+                                "SELECT placement_type FROM sys_tenant_placement WHERE tenant_id = "
+                                        + defaultTenantId)) {
+                    assertTrue(prs.next(), "V23 默认租户放置记录缺失");
+                    assertEquals("POOL", prs.getString("placement_type"), "默认租户应为 POOL 放置");
+                }
+            }
         }
     }
 }
