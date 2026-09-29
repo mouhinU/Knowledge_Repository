@@ -25,4 +25,12 @@ public class SaasProperties {
 
     /** 多租户总开关，默认关闭（单租户语义）。 */
     private boolean enabled = false;
+
+    /**
+     * 子域名解析用的 DNS apex（如 {@code example.com}）。
+     *
+     * <p>{@code TenantResolverFilter}（P1-T3）据此从 {@code Host} 头反解 {@code {tenantKey}.apexDomain}
+     * 形态的租户键； 留空表示关闭子域名解析（仅走 header / JWT claim）。
+     */
+    private String apexDomain = "";
 }

@@ -1,6 +1,8 @@
 package com.mouhin.knowledge.repository.web.config;
 
+import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
+import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,9 +31,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WebSecurityConfig {
 
     private final AdminAuthServiceI adminAuthService;
+    private final SaasProperties saasProperties;
 
-    public WebSecurityConfig(AdminAuthServiceI adminAuthService) {
+    public WebSecurityConfig(AdminAuthServiceI adminAuthService, SaasProperties saasProperties) {
         this.adminAuthService = adminAuthService;
+        this.saasProperties = saasProperties;
     }
 
     @Bean
@@ -39,9 +43,18 @@ public class WebSecurityConfig {
         return new AdminTokenAuthFilter(adminAuthService);
     }
 
+    /** 租户解析过滤器（P1-T3）：紧随鉴权过滤器，以便读取其落到请求属性的 JWT 租户 claim。 */
+    @Bean
+    public TenantResolverFilter tenantResolverFilter() {
+        return new TenantResolverFilter(saasProperties);
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http, AdminTokenAuthFilter adminTokenAuthFilter) throws Exception {
+            HttpSecurity http,
+            AdminTokenAuthFilter adminTokenAuthFilter,
+            TenantResolverFilter tenantResolverFilter)
+            throws Exception {
         // CSRF 关闭合理性（java:S4502 例外）：本服务纯前后端分离 + 无状态令牌鉴权——
         //   1) SessionCreationPolicy.STATELESS，服务端不建任何 HttpSession，浏览器 Cookie 里没有 JSESSIONID；
         //   2) 管理端凭证走自定义头 X-Admin-Token / Authorization: Bearer，浏览器同源策略禁止跨站脚本读取或复用；
@@ -54,7 +67,10 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .addFilterBefore(adminTokenAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(adminTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                // 租户解析（P1-T3）：晚于鉴权过滤器，确保其可读 AdminTokenAuthFilter 落下的租户 claim；
+                // saas.enabled=false 时该过滤器 shouldNotFilter 直接放行，等价单租户。
+                .addFilterAfter(tenantResolverFilter, AdminTokenAuthFilter.class);
         return http.build();
     }
 }
