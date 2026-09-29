@@ -339,6 +339,14 @@
                         </div>
                     </div>
                     <div class="flow-connector"></div>
+                    <div class="flow-node" id="exam-flow-knowledge-gap">
+                        <span class="flow-dot">3.6</span><span class="flow-label">知识缺口</span>
+                        <div class="flow-meta">
+                            <span class="flow-score" id="exam-flow-score-knowledge-gap"></span>
+                            <span class="flow-time" id="exam-flow-time-knowledge-gap"></span>
+                        </div>
+                    </div>
+                    <div class="flow-connector"></div>
                     <div class="flow-parallel">
                         <span class="flow-parallel-badge">⚡ 并行</span>
                         <div class="flow-node" id="exam-flow-answer">
@@ -353,6 +361,13 @@
                             <div class="flow-meta">
                                 <span class="flow-score" id="exam-flow-score-calibrate"></span>
                                 <span class="flow-time" id="exam-flow-time-calibrate"></span>
+                            </div>
+                        </div>
+                        <div class="flow-node" id="exam-flow-bloom">
+                            <span class="flow-dot">5b</span><span class="flow-label">Bloom 分类</span>
+                            <div class="flow-meta">
+                                <span class="flow-score" id="exam-flow-score-bloom"></span>
+                                <span class="flow-time" id="exam-flow-time-bloom"></span>
                             </div>
                         </div>
                     </div>
@@ -454,6 +469,25 @@
                         <pre id="exam-output-kp-dedup">等待执行...</pre>
                     </div>
                 </div>
+                <div class="agent-panel" id="exam-panel-knowledge-gap">
+                    <div class="agent-panel-header" role="button" tabindex="0"
+                         onclick="this.parentElement.classList.toggle('open')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
+                        <span class="agent-name"><span class="agent-icon" style="background:#8b5cf6">G</span> 知识缺口分析 (Knowledge Gap)</span>
+                        <span class="agent-meta">
+                            <span class="agent-status pending" id="exam-status-knowledge-gap">等待中</span>
+                            <span class="panel-score" id="exam-panel-score-knowledge-gap"></span>
+                        </span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials"><summary>输入物料</summary>
+                            <pre class="agent-materials-content" id="exam-materials-knowledge-gap">等待考点去重完成...</pre></details>
+                        <details class="agent-thinking" id="exam-thinkingwrap-knowledge-gap"><summary>💭 思考过程</summary>
+                            <pre id="exam-thinking-knowledge-gap"></pre></details>
+                        <div class="agent-output-label">缺口分析报告</div>
+                        <pre id="exam-output-knowledge-gap">等待执行...</pre>
+                    </div>
+                </div>
                 <div class="agent-panel" id="exam-panel-answer">
                     <div class="agent-panel-header" role="button" tabindex="0"
                          onclick="this.parentElement.classList.toggle('open')"
@@ -490,6 +524,25 @@
                             <pre id="exam-thinking-calibrator"></pre></details>
                         <div class="agent-output-label">难度评估</div>
                         <pre id="exam-output-calibrator">等待执行...</pre>
+                    </div>
+                </div>
+                <div class="agent-panel" id="exam-panel-bloom">
+                    <div class="agent-panel-header" role="button" tabindex="0"
+                         onclick="this.parentElement.classList.toggle('open')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
+                        <span class="agent-name"><span class="agent-icon" style="background:#0ea5e9">B</span> Bloom 分类 (Bloom Calibrator)</span>
+                        <span class="agent-meta">
+                            <span class="agent-status pending" id="exam-status-bloom">等待中</span>
+                            <span class="panel-score" id="exam-panel-score-bloom"></span>
+                        </span>
+                    </div>
+                    <div class="agent-panel-body">
+                        <details class="agent-materials"><summary>输入物料</summary>
+                            <pre class="agent-materials-content" id="exam-materials-bloom">等待出题人完成...</pre></details>
+                        <details class="agent-thinking" id="exam-thinkingwrap-bloom"><summary>💭 思考过程</summary>
+                            <pre id="exam-thinking-bloom"></pre></details>
+                        <div class="agent-output-label">Bloom 分类结果</div>
+                        <pre id="exam-output-bloom">等待执行...</pre>
                     </div>
                 </div>
                 <div class="agent-panel" id="exam-panel-reviewer">

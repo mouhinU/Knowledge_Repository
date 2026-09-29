@@ -159,7 +159,7 @@ public class DocumentServiceImpl implements DocumentServiceI {
 - 可通过预检查规避的 `RuntimeException` 不用 `catch` 处理。
 - 捕获异常必须处理，不能空 `catch`。
 - 使用 `Optional` 防止 NPE。
-- 避免直接 `new RuntimeException()`，使用有业务含义的自定义异常；COLA 统一异常体系（`BizException` / `SysException`）见 [architecture-decisions.md](architecture-decisions.md) §8。
+- 避免直接 `new RuntimeException()`，使用有业务含义的自定义异常；COLA 统一异常体系（`BizException` / `SysException`）见 [architecture-decisions.md](architecture-decisions.md) §9。
 - 业务态冲突（如重复开考、未发布 / 已作废不可操作）经 `GlobalExceptionHandler` 映射为 `409 CONFLICT` 并携带 `errorMessage`，抛出 `IllegalStateException`；参数非法抛 `IllegalArgumentException`（映射为 `400`）。
 
 ---
@@ -195,7 +195,7 @@ public class XxxService {
 
 1. **方法名 ≤ 50 字符**。在见名知意的前提下尽量精炼；禁止无意义缩写（§1.1）。名称逼近上限通常意味着职责过重，应拆分为更小的方法。
 
-2. **方法体 ≤ 50 行**（不含空行与注释）。超过即按单一职责拆出私有方法；此条为硬性上限，取代原 §三"推荐 ≤ 80 行"。
+2. **方法体 ≤ 50 行**（不含空行与注释）。超过即按单一职责拆出私有方法；此条为硬性上限。
 
 3. **参数个数 ≤ 5，且 > 3 即封装**。
     - 参数超过 3 个时，统一封装为请求对象传入（client 层 `XxxCmd` / `XxxQuery`，或 app 内部参数 DTO）；

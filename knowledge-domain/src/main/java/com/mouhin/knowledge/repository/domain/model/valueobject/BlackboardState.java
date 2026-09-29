@@ -102,6 +102,15 @@ public class BlackboardState {
     /** 查重去重报告 */
     private String deduplicationReport;
 
+    /** 知识缺口分析报告（标记无知识库依据的题目） */
+    private String knowledgeGapReport;
+
+    /** Bloom 认知层级分类结果（每道题的认知层级标注 + 分布统计） */
+    private String bloomClassification;
+
+    /** 错题模式分析报告（学生薄弱点 + 个性化复习建议） */
+    private String wrongAnswerAnalysis;
+
     /** 错误信息 */
     private String errorMessage;
 
@@ -351,6 +360,33 @@ public class BlackboardState {
 
     public void setDeduplicationReport(String deduplicationReport) {
         this.deduplicationReport = deduplicationReport;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getKnowledgeGapReport() {
+        return knowledgeGapReport;
+    }
+
+    public void setKnowledgeGapReport(String knowledgeGapReport) {
+        this.knowledgeGapReport = knowledgeGapReport;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getBloomClassification() {
+        return bloomClassification;
+    }
+
+    public void setBloomClassification(String bloomClassification) {
+        this.bloomClassification = bloomClassification;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getWrongAnswerAnalysis() {
+        return wrongAnswerAnalysis;
+    }
+
+    public void setWrongAnswerAnalysis(String wrongAnswerAnalysis) {
+        this.wrongAnswerAnalysis = wrongAnswerAnalysis;
         this.updatedAt = Instant.now();
     }
 

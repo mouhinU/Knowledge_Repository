@@ -32,6 +32,15 @@ public enum BlackboardPhase {
     /** 查重去重阶段：与历史试卷对比 */
     DEDUPLICATING,
 
+    /** 知识缺口分析阶段：标记无知识库依据的题目 */
+    KNOWLEDGE_GAP_ANALYZING,
+
+    /** Bloom 认知层级校准阶段：按 Bloom 分类标注并调整每道题的认知层级 */
+    BLOOM_CALIBRATING,
+
+    /** 错题分析阶段：分析学生错题模式，生成薄弱点报告 */
+    WRONG_ANSWER_ANALYZING,
+
     /** 已完成 */
     COMPLETED,
 

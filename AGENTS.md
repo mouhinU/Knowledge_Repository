@@ -38,6 +38,8 @@
 | [docs/security-guideline.md](docs/security-guideline.md)                     | **安全注意事项**：注入防护、上传/解析、认证令牌、RBAC+ACL、日志脱敏、高风险改动确认           | 涉及鉴权 / 权限 / 上传 / SQL / 令牌 / 口令 / 对外响应时 | 原 §10.2+§12.1+§12.3 聚合 + 现状 |
 | [docs/testing-guideline.md](docs/testing-guideline.md)                       | **测试要求**：JUnit5/Mockito 风格、分层测试、门禁负向用例、Flyway 冒烟、运行验收              | 写/改测试，或提交前自验时                               | 新（从仓库现有测试归纳）         |
 | [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                     | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
+| [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md)    | **SaaS 化改造 · 变更提案**：混合多租户架构、隔离模型、影响评估、回退计划、审批门                | 涉及"租户/tenant_id/跨租户隔离/平台管理员/配额"决策或改动任何数据出口时 | 新（红线 #11 提案）              |
+| [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) | **SaaS 化改造 · 可执行计划**：Phase 0–6 任务清单、依赖图、每任务锚点与验收 | 提案批准开工后按此排产 PR；每 Phase 结束回读 X-T6 更新规范 | 新（配套提案）                   |
 
 ---
 

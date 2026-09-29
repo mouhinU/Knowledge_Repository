@@ -14,7 +14,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
@@ -25,6 +28,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import com.mouhin.knowledge.repository.domain.service.QualityGate;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -59,6 +63,11 @@ class ArticleGenerationSupportTest {
             mock(PermissionDomainService.class);
     private final WritingHistoryGateway writingHistoryGateway = mock(WritingHistoryGateway.class);
     private final ChatModel chatModel = mock(ChatModel.class);
+    private final BlackboardAuditLog auditLog = mock(BlackboardAuditLog.class);
+    private final BlackboardMetrics metrics = mock(BlackboardMetrics.class);
+    private final List<QualityGate> qualityGates = List.of();
+    private final AgentDecoratorRegistrar registrar =
+            new AgentDecoratorRegistrar(auditLog, metrics);
 
     private ArticleGenerationSupport support;
     private final Permission permission = new Permission("u-1", "d-1", null, false);
@@ -73,7 +82,11 @@ class ArticleGenerationSupportTest {
                         authorizedSearch,
                         permissionDomainService,
                         writingHistoryGateway,
-                        chatModel);
+                        chatModel,
+                        auditLog,
+                        metrics,
+                        qualityGates,
+                        registrar);
         when(permissionDomainService.buildFilterExpression(any())).thenReturn("owner_id == 'u-1'");
     }
 

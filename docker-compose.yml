@@ -42,6 +42,13 @@ services:
       LLM_EMBED_BASE_URL: http://host.docker.internal:11434/v1
       LLM_EMBED_MODEL: bge-m3
       LLM_EMBED_API_KEY: ollama
+      # 重排角色（宿主机 bge-reranker-v2-m3，Cohere 兼容 /v1/rerank）
+      LLM_RERANKER_ENABLED: "true"
+      LLM_RERANKER_PROVIDER: cohere-compatible
+      LLM_RERANKER_BASE_URL: http://host.docker.internal:6006
+      LLM_RERANKER_API_KEY: sk-reranker
+      LLM_RERANKER_MODEL: bge-reranker-v2-m3
+      LLM_RERANKER_TOP_N: "10"
       # 视觉角色（Phase B，默认关闭）：置 true 并指向本地 PaddleOCR-CPU / 云端视觉端点后启用增强
       # LLM_VISION_ENABLED: "true"
       # LLM_VISION_MODE: local-cpu

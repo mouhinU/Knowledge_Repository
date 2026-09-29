@@ -3,6 +3,12 @@ server:
   servlet:
     context-path: /
 
+# ==================== 应用版本（前端 cache-busting 使用）====================
+# 优先读环境变量 APP_VERSION（Dockerfile 已 ENV 注入），本地无值时回落 dev；
+# HtmlCacheBusterFilter 会据此给 /admin/**.html 与 /exam.html 里的 assets URL 追加 ?v=xxx。
+app:
+  version: ${APP_VERSION:dev}
+
 # ==================== 运维可观测性（2-F）====================
 management:
   endpoints:

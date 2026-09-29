@@ -1,0 +1,11 @@
+# 复用现有 GHCR 镜像，仅替换 fat jar
+FROM ghcr.io/mouhinu/knowledge_repository:sha-e38a7e2
+
+USER root
+COPY knowledge-web/target/knowledge-web-1.0.0-SNAPSHOT.jar /app/app.jar
+RUN chown appuser:appuser /app/app.jar
+USER appuser
+
+ARG APP_VERSION=V2026092901
+ENV APP_VERSION=${APP_VERSION}
+LABEL version="${APP_VERSION}"

@@ -1,23 +1,30 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
+import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import com.mouhin.knowledge.repository.domain.model.valueobject.QualityGateResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import com.mouhin.knowledge.repository.domain.service.QualityGate;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import jakarta.annotation.PreDestroy;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -56,6 +63,9 @@ public class ArticleGenerationSupport {
     private final PermissionDomainService permissionDomainService;
     private final WritingHistoryGateway writingHistoryGateway;
     private final ChatModel chatModel;
+    private final BlackboardAuditLog auditLog;
+    private final BlackboardMetrics metrics;
+    private final List<QualityGate> qualityGates;
 
     private final ExecutorService agentExecutor =
             AgentExecutorFactory.newBoundedAgentPool("article-gen");
@@ -73,14 +83,21 @@ public class ArticleGenerationSupport {
             AuthorizedSearchSupport authorizedSearch,
             PermissionDomainService permissionDomainService,
             WritingHistoryGateway writingHistoryGateway,
-            ChatModel chatModel) {
-        this.researcherAgent = researcherAgent;
-        this.writerAgent = writerAgent;
-        this.reviewerAgent = reviewerAgent;
+            ChatModel chatModel,
+            BlackboardAuditLog auditLog,
+            BlackboardMetrics metrics,
+            List<QualityGate> qualityGates,
+            AgentDecoratorRegistrar registrar) {
+        this.researcherAgent = registrar.wrap(researcherAgent);
+        this.writerAgent = registrar.wrap(writerAgent);
+        this.reviewerAgent = registrar.wrap(reviewerAgent);
         this.authorizedSearch = authorizedSearch;
         this.permissionDomainService = permissionDomainService;
         this.writingHistoryGateway = writingHistoryGateway;
         this.chatModel = chatModel;
+        this.auditLog = auditLog;
+        this.metrics = metrics;
+        this.qualityGates = qualityGates;
     }
 
     /** 容器优雅停机时关闭文章生成异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。 */
@@ -156,6 +173,9 @@ public class ArticleGenerationSupport {
         blackboard.setAdmin(permission.isAdmin());
 
         try {
+            Instant pipelineStart = Instant.now();
+            auditLog.logAgentStart(sessionId, "article-pipeline", BlackboardPhase.INIT, question);
+
             // 1. 知识库检索
             if (callback != null) {
                 callback.onProgress(
@@ -197,11 +217,39 @@ public class ArticleGenerationSupport {
             // 2. 研究员 Agent
             researcherAgent.execute(blackboard, callback);
 
+            // 2.5 研究阶段质量门禁
+            QualityGateResult researchGate = evaluateGates(BlackboardPhase.RESEARCH, blackboard);
+            auditLog.logQualityGate(
+                    sessionId,
+                    researchGate.getGateName(),
+                    BlackboardPhase.RESEARCH,
+                    researchGate.isPassed(),
+                    researchGate.getReason());
+            metrics.incrementQualityGateCount(
+                    researchGate.getGateName(), BlackboardPhase.RESEARCH, researchGate.isPassed());
+
             // 3. 写手 Agent
             writerAgent.execute(blackboard, callback);
 
             // 4. 审核员 Agent
             reviewerAgent.execute(blackboard, callback);
+
+            // 4.5 写作质量门禁
+            QualityGateResult writingGate = evaluateGates(BlackboardPhase.WRITING, blackboard);
+            auditLog.logQualityGate(
+                    sessionId,
+                    writingGate.getGateName(),
+                    BlackboardPhase.WRITING,
+                    writingGate.isPassed(),
+                    writingGate.getReason());
+            metrics.incrementQualityGateCount(
+                    writingGate.getGateName(), BlackboardPhase.WRITING, writingGate.isPassed());
+
+            Duration pipelineDuration = Duration.between(pipelineStart, Instant.now());
+            auditLog.logPipelineComplete(
+                    sessionId, pipelineDuration, null, blackboard.getQualityScore(), 3);
+            metrics.recordPipelineDuration(pipelineDuration);
+            metrics.recordFinalQualityScore(blackboard.getQualityScore());
 
             log.info(
                     "文章生成完成 [session={}, phase={}, score={}]",
@@ -220,6 +268,13 @@ public class ArticleGenerationSupport {
         } catch (Exception e) {
             log.error("文章生成失败 [session={}]", sessionId, e);
             blackboard.markFailed(e.getMessage());
+            auditLog.logAgentFailed(
+                    sessionId,
+                    "article-pipeline",
+                    BlackboardPhase.FAILED,
+                    Duration.ZERO,
+                    e.getMessage());
+            metrics.incrementAgentCount("article-pipeline", BlackboardPhase.FAILED, "ERROR");
 
             // 保存失败记录
             saveHistory(sessionId, question, permission, blackboard, 0, e.getMessage());
@@ -258,6 +313,19 @@ public class ArticleGenerationSupport {
         } catch (Exception ex) {
             log.error("保存写作历史失败 [session={}]", sessionId, ex);
         }
+    }
+
+    /** 依次执行所有注册的质量门禁，返回首个未通过结果；全部通过时返回最后一个通过结果。 */
+    private QualityGateResult evaluateGates(BlackboardPhase phase, BlackboardState blackboard) {
+        QualityGateResult lastPass = QualityGateResult.pass("none", "无门禁注册");
+        for (QualityGate gate : qualityGates) {
+            QualityGateResult result = gate.evaluate(phase, blackboard);
+            if (!result.isPassed()) {
+                return result;
+            }
+            lastPass = result;
+        }
+        return lastPass;
     }
 
     /**

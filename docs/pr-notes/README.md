@@ -11,3 +11,5 @@
 现有归档：
 
 - [agents_md_compliance.md](agents_md_compliance.md) — AGENTS.md 合规整改 + 开发线合并（分支 `agents_md_compliance`，2026-09-21 提交 PR）
+- [extraction-refactor-completion-report.md](extraction-refactor-completion-report.md) — 文档抽取策略模式重构交付验证报告（2026-09-23）
+- [sonar-remediation-plan.md](sonar-remediation-plan.md) — SonarCloud Quality Gate 修复冲刺计划与执行记录（2026-09-22）

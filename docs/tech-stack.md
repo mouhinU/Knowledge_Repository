@@ -31,6 +31,7 @@
 | 生产数据库          | MySQL         | 8.0                         |
 | 数据库迁移          | Flyway        | 由 Spring Boot BOM 统一管理 |
 | 样板代码            | Lombok        | 1.18.36                     |
+| LLM 韧性护栏        | Resilience4j  | 2.2.0（per-role 熔断/重试/滑窗统计） |
 | 指标可观测          | Micrometer + Prometheus registry | 由 Spring Boot BOM 统一管理（`micrometer-core` in infra；`micrometer-registry-prometheus` in web，暴露 `/actuator/prometheus`） |
 
 ## 3. Maven 多模块（现状）
@@ -50,9 +51,13 @@ knowledge-web             适配层：Controller / 拦截器 / 静态资源 / Fl
 
 ## 4. 运行时与配置切换
 
+- **LLM 三段式角色（Phase R1）**：chat / embedding / vision 三个独立角色（`knowledge.llm.*`），各自 `base-url` + `api-key` + `model-name` + per-role 超时预算（`connect/read/call-timeout-seconds`），供应商由 base-url 决定，统一走 OpenAI 兼容协议。默认：chat = DeepSeek `deepseek-flash`，embedding = 本地 Ollama `bge-m3`（1024 维），vision = `paddleocr-vl`（默认关闭，`LLM_VISION_ENABLED=true` 启用）。密钥通过 per-role env 注入（`LLM_CHAT_API_KEY` / `LLM_EMBED_API_KEY` / `LLM_VISION_API_KEY`），便于独立轮换与最小权限。
+- **Resilience4j 韧性护栏（Phase R2）**：per-role 独立熔断 + 重试（`knowledge.llm.resilience.*`）。chat 重试 3 次指数退避；chat-stream 强制 max-attempts=1（避免 SSE 重复推送）；embedding / vision 重试 2 次。装饰器 `ResilientChatModel` / `ResilientEmbeddingModel` / `ResilientStreamingChatGateway` 包裹 LangChain4j 原生模型。
+- **文档解析策略路由（Phase A2）**：`knowledge.extractor.enabled-strategies` 白名单 + `routing` 按 MIME 覆写有序策略栈；PDF_HYBRID / VISION 默认不参与路由（零副作用），须显式开启。`VisionBudgetGuard` 提供每日页数配额与 `log-only|enforce` 模式。
 - **Embedding 模型**通过配置切换（DashScope / Ollama），以 `@ConditionalOnProperty` 装配，详见 [rag-domain-guideline.md](rag-domain-guideline.md)。
-- **Milvus 集合名**由配置指定，默认 `knowledge_chunks`。
-- **双数据库方言**：生产 MySQL、测试 / 本地 H2（`MODE=MySQL`）。Flyway 迁移脚本须二者兼容，约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
+- **Milvus 集合名**由配置指定，默认 `knowledge_chunks`，维度 1024，COSINE 距离。切换 embedding 维度须 drop 重建集合。
+- **双数据库方言**：生产 MySQL 8、测试 / 本地 H2（`MODE=MySQL`）。Flyway 迁移脚本须二者兼容，约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
+- **运行时特性开关（V21）**：`sys_config` 表 + 三层获取（内存缓存 → DB → 系统默认），管理员通过 `PUT /api/admin/system/configs` 热更新，无需重启。
 
 ## 5. 本地运行与改动入口
 

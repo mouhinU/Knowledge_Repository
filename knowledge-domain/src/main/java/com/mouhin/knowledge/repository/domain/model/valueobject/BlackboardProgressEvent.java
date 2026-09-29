@@ -54,6 +54,9 @@ public class BlackboardProgressEvent {
     /** 节点分数（仅 AGENT_OUTPUT done 事件，0-100，保留两位小数，可空） */
     private final Double agentScore;
 
+    /** Agent 置信度（仅 AGENT_OUTPUT done 事件，可空） */
+    private final AgentConfidence confidence;
+
     /** 检索到的知识片段数 */
     private final int retrievedChunks;
 
@@ -105,6 +108,7 @@ public class BlackboardProgressEvent {
         this.reviewFeedback = builder.reviewFeedback;
         this.qualityScore = builder.qualityScore;
         this.agentScore = builder.agentScore;
+        this.confidence = builder.confidence;
         this.retrievedChunks = builder.retrievedChunks;
         this.errorMessage = builder.errorMessage;
         this.materials = builder.materials;
@@ -180,6 +184,19 @@ public class BlackboardProgressEvent {
                 .agentStatus("done")
                 .output(output)
                 .agentScore(agentScore)
+                .build();
+    }
+
+    /** 创建 Agent 完成事件（含输出、节点分数与置信度） */
+    public static BlackboardProgressEvent agentCompleted(
+            String agentName, String output, Double agentScore, AgentConfidence confidence) {
+        return new Builder()
+                .type("AGENT_OUTPUT")
+                .agentName(agentName)
+                .agentStatus("done")
+                .output(output)
+                .agentScore(agentScore)
+                .confidence(confidence)
                 .build();
     }
 
@@ -324,6 +341,10 @@ public class BlackboardProgressEvent {
         return agentScore;
     }
 
+    public AgentConfidence getConfidence() {
+        return confidence;
+    }
+
     public int getRetrievedChunks() {
         return retrievedChunks;
     }
@@ -388,6 +409,7 @@ public class BlackboardProgressEvent {
         private String reviewFeedback;
         private double qualityScore;
         private Double agentScore;
+        private AgentConfidence confidence;
         private int retrievedChunks;
         private String errorMessage;
         private String materials;
@@ -467,6 +489,11 @@ public class BlackboardProgressEvent {
 
         public Builder agentScore(Double agentScore) {
             this.agentScore = agentScore;
+            return this;
+        }
+
+        public Builder confidence(AgentConfidence confidence) {
+            this.confidence = confidence;
             return this;
         }
 

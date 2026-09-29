@@ -95,7 +95,7 @@ public class ExamContentRenderAgent {
                 q.put("options", options);
             }
             // 透传其它已有字段（如 answer 提示等），不覆盖已处理项
-            raw.forEach((k, v) -> q.putIfAbsent(k, v));
+            raw.forEach(q::putIfAbsent);
 
             rendered.add(q);
         }

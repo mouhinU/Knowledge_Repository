@@ -24,7 +24,10 @@
     const _examAgentNodeMap = {
         researcher: 'research', scoring: 'scoring', writer: 'writing',
         'kp-dedup': 'kp-dedup',
-        answer: 'answer', reviewer: 'review', calibrator: 'calibrate', deduplicator: 'dedup'
+        'knowledge-gap-analyzer': 'knowledge-gap',
+        answer: 'answer', reviewer: 'review', calibrator: 'calibrate',
+        'bloom-calibrator': 'bloom',
+        deduplicator: 'dedup'
     };
     let currentExamPlan = null;
     let _validationPassed = false;  // Node 2 校验是否已通过
@@ -35,7 +38,8 @@
     const _nodeLabels = {
         research: '知识检索', scoring: '分值校验与评估', writing: '试卷编写',
         'kp-dedup': '考点去重',
-        answer: '答案生成', calibrate: '难度校准', review: '内容审核', dedup: '查重去重'
+        'knowledge-gap': '知识缺口分析',
+        answer: '答案生成', calibrate: '难度校准', bloom: 'Bloom 分类', review: '内容审核', dedup: '查重去重'
     };
     function storeNodeDetail(nodeKey, field, value) {
         if (!_nodeDetails[nodeKey]) _nodeDetails[nodeKey] = {};
@@ -974,7 +978,7 @@
         document.getElementById('exam-result').style.display = 'none';
         document.getElementById('exam-answer-section').style.display = 'none';
         document.getElementById('exam-flow-start').classList.add('done');
-        ['research', 'scoring', 'writing', 'kp-dedup', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
+        ['research', 'scoring', 'writing', 'kp-dedup', 'knowledge-gap', 'answer', 'calibrate', 'bloom', 'review', 'dedup'].forEach(n => {
             const el = document.getElementById('exam-flow-' + n);
             if (el) el.classList.remove('active', 'done', 'failed');
         });
@@ -983,11 +987,11 @@
         if (_examTimerInterval) { clearInterval(_examTimerInterval); _examTimerInterval = null; }
         _examAgentTimes = {};
         Object.keys(_nodeDetails).forEach(k => delete _nodeDetails[k]);
-        ['research', 'scoring', 'writing', 'kp-dedup', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
+        ['research', 'scoring', 'writing', 'kp-dedup', 'knowledge-gap', 'answer', 'calibrate', 'bloom', 'review', 'dedup'].forEach(n => {
             const t = document.getElementById('exam-flow-time-' + n);
             if (t) t.textContent = '';
         });
-        ['researcher', 'scoring', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(a => {
+        ['researcher', 'scoring', 'writer', 'kp-dedup', 'knowledge-gap', 'answer', 'reviewer', 'calibrator', 'bloom', 'deduplicator'].forEach(a => {
             setExamAgentStatus(a, 'pending');
             const outputEl = document.getElementById('exam-output-' + a);
             if (outputEl) outputEl.textContent = '等待执行...';
@@ -1003,13 +1007,15 @@
         document.getElementById('exam-materials-scoring').textContent = '等待检索...';
         document.getElementById('exam-materials-writer').textContent = '等待研究员完成...';
         document.getElementById('exam-materials-kp-dedup').textContent = '等待编写完成...';
+        document.getElementById('exam-materials-knowledge-gap').textContent = '等待考点去重完成...';
         document.getElementById('exam-materials-answer').textContent = '等待出题人完成...';
         document.getElementById('exam-materials-reviewer').textContent = '等待答案生成完成...';
         document.getElementById('exam-materials-calibrator').textContent = '等待出题人完成...';
+        document.getElementById('exam-materials-bloom').textContent = '等待出题人完成...';
         document.getElementById('exam-materials-deduplicator').textContent = '等待答案生成完成...';
     }
     function setExamPhase(phase) {
-        const stages = [['research', 'scoring'], ['writing'], ['answer', 'calibrate'], ['review', 'dedup']];
+        const stages = [['research', 'scoring'], ['writing'], ['kp-dedup'], ['knowledge-gap'], ['answer', 'calibrate', 'bloom'], ['review', 'dedup']];
         let stageIdx = -1;
         for (let i = 0; i < stages.length; i++) { if (stages[i].includes(phase)) { stageIdx = i; break; } }
         stages.forEach((stage, i) => {
@@ -1084,7 +1090,9 @@
             const data = JSON.parse(e.data);
             const phaseMap = {
                 'INIT': 'research', 'RESEARCH': 'research', 'SCORING': 'scoring', 'WRITING': 'writing',
+                'KNOWLEDGE_GAP_ANALYZING': 'knowledge-gap',
                 'ANSWER_GENERATING': 'answer', 'REVIEWING': 'review', 'CALIBRATING': 'calibrate',
+                'BLOOM_CALIBRATING': 'bloom',
                 'DEDUPLICATING': 'dedup', 'COMPLETED': 'dedup'
             };
             setExamPhase(phaseMap[data.phase] || 'research');
@@ -1100,7 +1108,9 @@
             const agentUiMap = {
                 'exam-researcher': 'researcher', 'exam-scoring': 'scoring', 'exam-writer': 'writer',
                 'exam-kp-dedup': 'kp-dedup',
+                'knowledge-gap-analyzer': 'knowledge-gap',
                 'answer-generator': 'answer', 'exam-reviewer': 'reviewer', 'exam-calibrator': 'calibrator',
+                'bloom-calibrator': 'bloom',
                 'exam-deduplicator': 'deduplicator'
             };
             const uiAgent = agentUiMap[agent] || agent;
@@ -1209,7 +1219,9 @@
             const tokenUiMap = {
                 'exam-researcher': 'researcher', 'exam-scoring': 'scoring', 'exam-writer': 'writer',
                 'exam-kp-dedup': 'kp-dedup',
+                'knowledge-gap-analyzer': 'knowledge-gap',
                 'answer-generator': 'answer', 'exam-reviewer': 'reviewer', 'exam-calibrator': 'calibrator',
+                'bloom-calibrator': 'bloom',
                 'exam-deduplicator': 'deduplicator'
             };
             const ui = tokenUiMap[agent] || agent;
@@ -1235,7 +1247,7 @@
             const data = JSON.parse(e.data);
             eventSource.close();
             hideExamRoundBadge();
-            ['research', 'scoring', 'writing', 'answer', 'calibrate', 'review', 'dedup'].forEach(n => {
+            ['research', 'scoring', 'writing', 'kp-dedup', 'knowledge-gap', 'answer', 'calibrate', 'bloom', 'review', 'dedup'].forEach(n => {
                 const el = document.getElementById('exam-flow-' + n);
                 if (el) { el.classList.remove('active'); el.classList.add('done'); }
             });
@@ -1297,7 +1309,7 @@
 
     function toggleExamPanels() {
         _examThinkingVisible = !_examThinkingVisible;
-        ['researcher', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator', 'scoring'].forEach(a => {
+        ['researcher', 'writer', 'kp-dedup', 'knowledge-gap', 'answer', 'reviewer', 'calibrator', 'bloom', 'deduplicator', 'scoring'].forEach(a => {
             const panel = document.getElementById('exam-panel-' + a);
             if (panel) panel.classList.toggle('open', _examThinkingVisible);
         });
@@ -1557,7 +1569,7 @@
 
     /* ---------- 初始化 ---------- */
     (function bindExamAgentPanelSync() {
-        ['researcher', 'scoring', 'writer', 'kp-dedup', 'answer', 'reviewer', 'calibrator', 'deduplicator'].forEach(ui => {
+        ['researcher', 'scoring', 'writer', 'kp-dedup', 'knowledge-gap', 'answer', 'reviewer', 'calibrator', 'bloom', 'deduplicator'].forEach(ui => {
             const panel = document.getElementById('exam-panel-' + ui);
             if (!panel) return;
             const header = panel.querySelector('.agent-panel-header');

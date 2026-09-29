@@ -16,6 +16,8 @@ import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
@@ -27,6 +29,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import com.mouhin.knowledge.repository.domain.service.QualityGate;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import dev.langchain4j.data.message.AiMessage;
@@ -64,6 +67,8 @@ class ExamGenerationSupportTest {
     private final BlackboardAgent calibrator = mock(BlackboardAgent.class);
     private final BlackboardAgent deduplicator = mock(BlackboardAgent.class);
     private final BlackboardAgent knowledgeDedup = mock(BlackboardAgent.class);
+    private final BlackboardAgent knowledgeGapAnalyzer = mock(BlackboardAgent.class);
+    private final BlackboardAgent difficultyCalibrator = mock(BlackboardAgent.class);
     private final ExamDistributionGateway distributionAgent = mock(ExamDistributionGateway.class);
     private final AuthorizedSearchSupport authorizedSearch = mock(AuthorizedSearchSupport.class);
     private final PermissionDomainService permissionDomainService =
@@ -74,6 +79,11 @@ class ExamGenerationSupportTest {
     private final ExamQuestionSplitSupport splitSupport = mock(ExamQuestionSplitSupport.class);
     private final ExamAlertGateway alertGateway = mock(ExamAlertGateway.class);
     private final SystemConfigService systemConfigService = mock(SystemConfigService.class);
+    private final BlackboardAuditLog auditLog = mock(BlackboardAuditLog.class);
+    private final BlackboardMetrics metrics = mock(BlackboardMetrics.class);
+    private final List<QualityGate> qualityGates = List.of();
+    private final AgentDecoratorRegistrar registrar =
+            new AgentDecoratorRegistrar(auditLog, metrics);
 
     private ExamGenerationSupport support;
     private final Permission permission = new Permission("u-1", "d-1", null, false);
@@ -111,6 +121,8 @@ class ExamGenerationSupportTest {
                         calibrator,
                         deduplicator,
                         knowledgeDedup,
+                        knowledgeGapAnalyzer,
+                        difficultyCalibrator,
                         distributionAgent,
                         authorizedSearch,
                         permissionDomainService,
@@ -119,7 +131,11 @@ class ExamGenerationSupportTest {
                         examHistoryGateway,
                         splitSupport,
                         alertGateway,
-                        systemConfigService);
+                        systemConfigService,
+                        auditLog,
+                        metrics,
+                        qualityGates,
+                        registrar);
         when(permissionDomainService.buildFilterExpression(any())).thenReturn("dept == 'd-1'");
     }
 

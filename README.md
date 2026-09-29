@@ -22,7 +22,7 @@ Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义�
 - **无状态 JWT 鉴权**：管理端账号密码 + HS256 JWT；学生端独立登录；SSE 走 `access_token` query。
 - **全程 SSE 进度**：文档入库 / 出卷 / 评分 / 分发四类长任务统一 EventSource 通道。
 
-技术栈：Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI 5 / H2 + MySQL / Flyway V1-V17。
+技术栈：Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI 5 / Resilience4j 2.2.0 / H2 + MySQL / Flyway V1-V21。
 
 ---
 
@@ -48,7 +48,7 @@ docker compose -f docker-compose.infra.yml up -d
 # 3a. 本地开发模式（源码热跑，最快）
 ./mvnw -pl knowledge-web -am spring-boot:run -DskipTests
 
-# 3b. 或走 Docker 部署（构建 + 起应用一体，V2026092201 自增版本号）
+# 3b. 或走 Docker 部署（构建 + 起应用一体）
 bash deploy.sh
 ```
 
@@ -76,18 +76,18 @@ IMAGE_NAME=ghcr.io/mouhinu/knowledge_repository APP_VERSION=latest \
 ## 项目结构（COLA 5.0）
 
 ```
-knowledge-web              adapter 层     17 Controller + JWT 过滤器 + SSE Store + 静态管理页
+knowledge-web              adapter 层     20 Controller + JWT 过滤器 + SSE Store + 静态管理页
 knowledge-application      app 层         14 特性包 Executor 用例编排（事务边界、DTO ⇄ 领域对象转换）
 knowledge-client           client 层      13 个 *ServiceI 契约 + Cmd/Qry/DTO/VO
-knowledge-domain           domain 层      1 聚合根 + 11 实体 + 17 值对象 + 13 领域服务 + 17 Gateway 接口
-knowledge-infrastructure   infra 层       Gateway 实现 + Mapper/DO/Converter + Milvus + 解析器 + 12 Agent + LLM/Embedding
+knowledge-domain           domain 层      1 聚合根 + 12 实体 + 22 值对象 + 14 领域服务 + 21 Gateway 接口
+knowledge-infrastructure   infra 层       Gateway 实现 + Mapper/DO/Converter + Milvus + 解析器 + 13 Agent + LLM/Embedding
 docs/                      规范分册       tech-stack / architecture / coding / data-migration / rag-domain / security / testing / code-review / deployment-ci-cd
 scripts/                   运维脚本       deploy / docker-build / compose / backup / ... 83 个
 ```
 
 依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（依赖倒置，infra 反向实现 domain Gateway）。domain 层不引用其它业务层，DO 不越过 infrastructure。
 
-约 **343** 个 Java 源文件 + **24** 个测试类。
+约 **404** 个 Java 源文件 + **123** 个测试类。
 
 ---
 
@@ -110,7 +110,7 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 
 ---
 
-## REST API 概览（17 个 Controller / ~85 个端点）
+## REST API 概览（20 个 Controller）
 
 **管理端**（`X-Admin-Token` 或 `Authorization: Bearer <JWT>`）
 
@@ -137,7 +137,7 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 
 ## 数据库与迁移
 
-Flyway V1 → V17，H2 开发 / MySQL 生产同一份迁移脚本。核心表：
+Flyway V1 → V21，H2 开发 / MySQL 生产同一份迁移脚本。核心表：
 
 ```
 sys_department / sys_user / sys_role / sys_user_role      权限基座 (V1, V15 加 password_hash + status)
@@ -148,6 +148,9 @@ kb_exam_question                                           出卷即切分逐题
 kb_exam_session / kb_exam_answer                           在线考试 (V6, V7 加 duration)
 kb_exam_grading_trace / 得分明细 / token 记录              评分链路 (V9, V10, V14)
 kb_document_image                                          配图资产 (V16)
+kb_student                                                 学生注册 (V18)
+kb_extraction_cache                                        解析持久化缓存 (V19)
+sys_config                                                 运行时特性开关 (V21)
 ```
 
 外键与运维：`history.session_id ↔ question.session_key`；`session.exam_history_id ↔ answer.session_id`；错题本派生自 `answer.is_correct=false`。清考试数据：`.buckups/data/clean-exam-data.sh`（本地运维脚本，未纳入版本控制；`--dry-run` / `--yes` / `--with-students` / `--no-backup`）。
@@ -232,6 +235,6 @@ Internal use. 问题反馈请开 GitHub Issue 或到 <https://forum.qoder.com/> 
 **其他链接**
 
 - [AGENTS.md](AGENTS.md) — AI 编码总纲与导航索引
-- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) — 全量能力清单（190 行）
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) — 全量能力清单（261 行）
 - [docs/](docs/) — 规范分册
 - [scripts/](scripts/) — 运维脚本索引

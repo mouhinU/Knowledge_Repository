@@ -5,6 +5,8 @@ import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSuppo
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
@@ -17,6 +19,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import jakarta.annotation.PreDestroy;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
@@ -71,6 +75,8 @@ public class ExamGenerationSupport {
     private final BlackboardAgent examCalibratorAgent;
     private final BlackboardAgent examDeduplicatorAgent;
     private final BlackboardAgent examKnowledgeDedupAgent;
+    private final BlackboardAgent knowledgeGapAnalyzerAgent;
+    private final BlackboardAgent difficultyCalibratorAgent;
     private final ExamDistributionGateway examDistributionAgent;
     private final AuthorizedSearchSupport authorizedSearch;
     private final PermissionDomainService permissionDomainService;
@@ -80,6 +86,9 @@ public class ExamGenerationSupport {
     private final ExamQuestionSplitSupport examQuestionSplitSupport;
     private final ExamAlertGateway examAlertGateway;
     private final SystemConfigService systemConfigService;
+    private final BlackboardAuditLog auditLog;
+    private final BlackboardMetrics metrics;
+    private final List<QualityGate> qualityGates;
 
     private final ExecutorService agentExecutor =
             AgentExecutorFactory.newBoundedAgentPool("exam-gen");
@@ -103,6 +112,8 @@ public class ExamGenerationSupport {
             @Qualifier("examCalibratorAgent") BlackboardAgent examCalibratorAgent,
             @Qualifier("examDeduplicatorAgent") BlackboardAgent examDeduplicatorAgent,
             @Qualifier("examKnowledgeDedupAgent") BlackboardAgent examKnowledgeDedupAgent,
+            @Qualifier("knowledgeGapAnalyzerAgent") BlackboardAgent knowledgeGapAnalyzerAgent,
+            @Qualifier("difficultyCalibratorAgent") BlackboardAgent difficultyCalibratorAgent,
             ExamDistributionGateway examDistributionAgent,
             AuthorizedSearchSupport authorizedSearch,
             PermissionDomainService permissionDomainService,
@@ -111,15 +122,21 @@ public class ExamGenerationSupport {
             ExamHistoryGateway examHistoryGateway,
             ExamQuestionSplitSupport examQuestionSplitSupport,
             ExamAlertGateway examAlertGateway,
-            SystemConfigService systemConfigService) {
-        this.examResearcherAgent = examResearcherAgent;
-        this.examScoringAgent = examScoringAgent;
-        this.examWriterAgent = examWriterAgent;
-        this.answerKeyGeneratorAgent = answerKeyGeneratorAgent;
-        this.examReviewerAgent = examReviewerAgent;
-        this.examCalibratorAgent = examCalibratorAgent;
-        this.examDeduplicatorAgent = examDeduplicatorAgent;
-        this.examKnowledgeDedupAgent = examKnowledgeDedupAgent;
+            SystemConfigService systemConfigService,
+            BlackboardAuditLog auditLog,
+            BlackboardMetrics metrics,
+            List<QualityGate> qualityGates,
+            AgentDecoratorRegistrar registrar) {
+        this.examResearcherAgent = registrar.wrap(examResearcherAgent);
+        this.examScoringAgent = registrar.wrap(examScoringAgent);
+        this.examWriterAgent = registrar.wrap(examWriterAgent);
+        this.answerKeyGeneratorAgent = registrar.wrap(answerKeyGeneratorAgent);
+        this.examReviewerAgent = registrar.wrap(examReviewerAgent);
+        this.examCalibratorAgent = registrar.wrap(examCalibratorAgent);
+        this.examDeduplicatorAgent = registrar.wrap(examDeduplicatorAgent);
+        this.examKnowledgeDedupAgent = registrar.wrap(examKnowledgeDedupAgent);
+        this.knowledgeGapAnalyzerAgent = registrar.wrap(knowledgeGapAnalyzerAgent);
+        this.difficultyCalibratorAgent = registrar.wrap(difficultyCalibratorAgent);
         this.examDistributionAgent = examDistributionAgent;
         this.authorizedSearch = authorizedSearch;
         this.permissionDomainService = permissionDomainService;
@@ -129,6 +146,9 @@ public class ExamGenerationSupport {
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.examAlertGateway = examAlertGateway;
         this.systemConfigService = systemConfigService;
+        this.auditLog = auditLog;
+        this.metrics = metrics;
+        this.qualityGates = qualityGates;
     }
 
     /** 容器优雅停机时关闭出卷异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。 */
@@ -237,6 +257,9 @@ public class ExamGenerationSupport {
         }
 
         try {
+            Instant pipelineStart = Instant.now();
+            auditLog.logAgentStart(sessionId, "pipeline", BlackboardPhase.INIT, topic);
+
             // 1. 知识库检索
             emit(
                     callback,
@@ -268,12 +291,35 @@ public class ExamGenerationSupport {
                 }
             }
 
+            // 1.5 研究阶段质量门禁
+            QualityGateResult researchGate = evaluateGates(BlackboardPhase.RESEARCH, blackboard);
+            auditLog.logQualityGate(
+                    sessionId,
+                    researchGate.getGateName(),
+                    BlackboardPhase.RESEARCH,
+                    researchGate.isPassed(),
+                    researchGate.getReason());
+            metrics.incrementQualityGateCount(
+                    researchGate.getGateName(), BlackboardPhase.RESEARCH, researchGate.isPassed());
+            if (!researchGate.isPassed()) {
+                log.warn(
+                        "[ExamPipeline] 研究门禁未通过 [session={}, gate={}, action={}, reason={}]",
+                        sessionId,
+                        researchGate.getGateName(),
+                        researchGate.getSuggestedAction(),
+                        researchGate.getReason());
+                if (researchGate.getSuggestedAction() == QualityGateResult.Action.TERMINATE) {
+                    throw new IllegalStateException("研究门禁终止: " + researchGate.getReason());
+                }
+            }
+
             // 2. 出卷研究员 Agent ∥ 分值校验与评估 Agent（无数据依赖，并行执行）
             emit(
                     callback,
                     BlackboardProgressEvent.phaseChanged(
                             BlackboardPhase.RESEARCH, "正在检索知识库并校验分值方案..."));
 
+            Instant researchStart = Instant.now();
             CompletableFuture<Void> researchFuture =
                     CompletableFuture.runAsync(
                             () -> examResearcherAgent.execute(blackboard, callback), agentExecutor);
@@ -281,6 +327,17 @@ public class ExamGenerationSupport {
                     CompletableFuture.runAsync(
                             () -> examScoringAgent.execute(blackboard, callback), agentExecutor);
             CompletableFuture.allOf(researchFuture, scoringFuture).join();
+            Duration researchDuration = Duration.between(researchStart, Instant.now());
+            auditLog.logAgentComplete(
+                    sessionId,
+                    "researcher+scoring",
+                    BlackboardPhase.RESEARCH,
+                    researchDuration,
+                    null,
+                    null,
+                    "并行研究+分值校验完成");
+            metrics.recordAgentDuration("researcher", BlackboardPhase.RESEARCH, researchDuration);
+            metrics.incrementAgentCount("researcher", BlackboardPhase.RESEARCH, "COMPLETE");
 
             // 3-5. 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
             // 低分自动重试，最多 MAX_REVIEW_RETRIES 次；
@@ -309,7 +366,10 @@ public class ExamGenerationSupport {
                     examKnowledgeDedupAgent.execute(blackboard, callback);
                 }
 
-                // 4. 答案生成 Agent ∥ 难度校准 Agent（均只依赖 examPaper，并行执行）
+                // 3.6 知识缺口分析：标记无知识库依据的题目，防止幻觉
+                knowledgeGapAnalyzerAgent.execute(blackboard, callback);
+
+                // 4. 答案生成 Agent ∥ 难度校准 Agent ∥ Bloom 认知层级分类 Agent（均只依赖 examPaper，并行执行）
                 CompletableFuture<Void> answerFuture =
                         CompletableFuture.runAsync(
                                 () -> answerKeyGeneratorAgent.execute(blackboard, callback),
@@ -318,7 +378,12 @@ public class ExamGenerationSupport {
                         CompletableFuture.runAsync(
                                 () -> examCalibratorAgent.execute(blackboard, callback),
                                 agentExecutor);
+                CompletableFuture<Void> bloomFuture =
+                        CompletableFuture.runAsync(
+                                () -> difficultyCalibratorAgent.execute(blackboard, callback),
+                                agentExecutor);
                 answerFuture.join(); // 等待答案完成，审核和查重依赖 answerKey
+                bloomFuture.join(); // 等待 Bloom 分类完成
 
                 // 5. 内容审核 Agent ∥ 查重去重 Agent（均依赖 examPaper + answerKey，并行执行）
                 CompletableFuture<Void> reviewFuture =
@@ -394,6 +459,30 @@ public class ExamGenerationSupport {
                                         MAX_REVIEW_RETRIES)));
             }
 
+            // 5.5 写作阶段质量门禁
+            QualityGateResult writingGate = evaluateGates(BlackboardPhase.WRITING, blackboard);
+            auditLog.logQualityGate(
+                    sessionId,
+                    writingGate.getGateName(),
+                    BlackboardPhase.WRITING,
+                    writingGate.isPassed(),
+                    writingGate.getReason());
+            metrics.incrementQualityGateCount(
+                    writingGate.getGateName(), BlackboardPhase.WRITING, writingGate.isPassed());
+            if (!writingGate.isPassed()) {
+                log.warn(
+                        "[ExamPipeline] 写作门禁未通过 [session={}, gate={}, reason={}]",
+                        sessionId,
+                        writingGate.getGateName(),
+                        writingGate.getReason());
+            }
+
+            Duration pipelineDuration = Duration.between(pipelineStart, Instant.now());
+            auditLog.logPipelineComplete(
+                    sessionId, pipelineDuration, null, blackboard.getQualityScore(), 8);
+            metrics.recordPipelineDuration(pipelineDuration);
+            metrics.recordFinalQualityScore(blackboard.getQualityScore());
+
             log.info(
                     "试卷生成完成 [session={}, phase={}, score={}]",
                     sessionId,
@@ -430,6 +519,10 @@ public class ExamGenerationSupport {
             String friendly = unwrapErrorMessage(e);
             log.error("试卷生成失败 [session={}, msg={}]", sessionId, friendly, e);
             blackboard.markFailed(friendly);
+
+            auditLog.logAgentFailed(
+                    sessionId, "pipeline", BlackboardPhase.FAILED, Duration.ZERO, friendly);
+            metrics.incrementAgentCount("pipeline", BlackboardPhase.FAILED, "ERROR");
 
             // 保存失败记录
             saveHistory(
@@ -1357,6 +1450,24 @@ public class ExamGenerationSupport {
         } catch (Exception e) {
             log.error("保存出卷历史记录失败 [session={}]", sessionId, e);
         }
+    }
+
+    /**
+     * 依次执行所有注册的质量门禁，返回首个未通过的结果；全部通过时返回最后一个通过结果（或默认 pass）。
+     *
+     * <p>门禁列表由 Spring 自动注入所有 {@link QualityGate} 实现（如 ResearchQualityGate、WritingQualityGate）。
+     * 每个门禁只评估与当前 phase 匹配的逻辑（非匹配阶段由门禁内部直接返回 pass）。
+     */
+    private QualityGateResult evaluateGates(BlackboardPhase phase, BlackboardState blackboard) {
+        QualityGateResult lastPass = QualityGateResult.pass("none", "无门禁注册");
+        for (QualityGate gate : qualityGates) {
+            QualityGateResult result = gate.evaluate(phase, blackboard);
+            if (!result.isPassed()) {
+                return result;
+            }
+            lastPass = result;
+        }
+        return lastPass;
     }
 
     /**
