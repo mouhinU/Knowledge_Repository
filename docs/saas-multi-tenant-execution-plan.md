@@ -4,8 +4,8 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 # SaaS 化改造 · 可执行计划（Execution Plan）
 
-> 状态：**执行中（Phase 0 已完成；Phase 1 经项目负责人口头授权开工，P1-T1/T2/T3 地基进行中，受 `knowledge.saas.enabled=false` 门控）**
-> 版本：v0.2（2026-09-29） · 作者：QoderWork · 审批：见 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11（口头授权，运维 U1/U3 待补）
+> 状态：**执行中（Phase 0 已完成；Phase 1 地基 P1-T1/T2/T3 已完成并提交，P1-T4~T10 待开工，全程受 `knowledge.saas.enabled=false` 门控）**
+> 版本：v0.3（2026-09-29） · 作者：QoderWork · 审批：见 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11（口头授权，运维 U1/U3 待补）
 > 关联：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策权威）·红线基线 [../AGENTS.md](../AGENTS.md)·迁移规范 [data-and-migration-guideline.md](data-and-migration-guideline.md)·测试规范 [testing-guideline.md](testing-guideline.md)
 
 本文件把变更提案的 §7 路线图**拆到"一次 PR 一子任务"的颗粒度**，每项都有明确锚点文件、依赖、验收与回退。**任务编号规则**：`P<phase>-T<n>`（例：`P0-T1` = Phase 0 第 1 项）。
@@ -79,9 +79,9 @@ Phase 6（配额计费，依赖 P1 全链 + 可选后置）
 
 | ID | 标题 | 主要文件 | 依赖 | 复杂度 | 交付物 | 验收 | 回退 |
 |---|---|---|---|---|---|---|---|
-| P1-T1 | 平台元数据表与默认租户 | 新 `V23__create_sys_tenant.sql`（含 `sys_tenant`+`sys_tenant_placement`）· 迁移 undo `U23__...`（Flyway undo 或手工脚本）· `TenantDO/TenantPlacementDO` | P0-T5 | M | 建表 + 插入 `tenant_key='default'` 一条；H2/MySQL 双方言；`sys_tenant` 与 `sys_platform_admin` 加入拦截器 ignore 列表 | Flyway smoke 通过；启动日志显示默认租户已就绪 | 迁移 undo 或 truncate |
-| P1-T2 | `TenantContext` 与开关骨架 | 新 `domain/context/TenantContext.java`（ThreadLocal + `get/set/clear` API；预留 `ScopedValue` 分支）· `application/support/TenantContextHolder.java` · `@ConfigurationProperties knowledge.saas.enabled` | P1-T1 | S | 上下文提供 `getTenantId() → 默认 default`；`saas.enabled=false` 时 `TenantResolver` 短路 | 单元：clear 后取到 `default`；异步任务显式传参覆盖 | 关闭 `saas.enabled` 即回原行为 |
-| P1-T3 | `TenantResolverFilter` | 新 `web/filter/TenantResolverFilter.java` · 注册到 `WebFilterConfig`（放在 `AdminTokenAuthFilter` 之后、业务 filter 之前） | P1-T2 · X-T2 | M | 三级解析优先级：`X-Tenant-Id` 头 → 子域名 `{key}.example.com` → JWT claim `tenantId`；三者冲突拒绝；写入 `TenantContext`；`finally` clear | 单元：三路径 + 冲突 403；集成：FilterOrder 与 Security Filter 协同 | `saas.enabled=false` 时 filter 直接放行 |
+| ✅ P1-T1 | 平台元数据表与默认租户 | 新 `V23__create_sys_tenant.sql`（含 `sys_tenant`+`sys_tenant_placement`）· `TenantDO/TenantPlacementDO` ·（ignore 列表登记落 P1-T7） | P0-T5 | M | 建表 + 插入 `tenant_key='default'` 一条 + POOL 放置；H2/MySQL 双方言 | Flyway smoke 通过（V23 计数 22→23，默认租户 ACTIVE + POOL 断言）；提交 4a983f9 | 迁移 undo 或 truncate |
+| ✅ P1-T2 | `TenantContext` 与开关骨架 | 新 `domain/context/TenantContext.java`（ThreadLocal + `get/set/clear`/`getOrDefault`；预留 `ScopedValue` 分支；额外提供 `callWithTenant` + `capture/Snapshot` 供 P1-T9）· `application/support/TenantContextHolder.java` · `application/config/SaasProperties.java`（`enabled` + `apexDomain`）| P1-T1 | S | 上下文提供 `getTenantId() → 默认 default`；`saas.enabled=false` 时 holder 恒返回 default、filter 短路 | 单元：TenantContext 11 + Holder 6 全绿（clear 后取 default / 开关门控）；提交 8bce7d4 | 关闭 `saas.enabled` 即回原行为 |
+| ✅ P1-T3 | `TenantResolverFilter` | 新 `web/filter/TenantResolverFilter.java` · 注册到 `WebSecurityConfig`（`addFilterAfter(AdminTokenAuthFilter.class)`，紧随鉴权过滤器） | P1-T2 · X-T2 | M | 三级解析优先级：`X-Tenant-Id` 头 → 子域名 `{key}.{apexDomain}` → JWT claim（读 P1-T8 落到请求属性 `knowledge.tenant.claim`）；冲突 403、非法 400、皆空不绑定；`finally` clear | 单元：11 项覆盖三路径 + 冲突 403 + 非法 400 + 关闭态短路 + 非 /api 跳过；提交 295bdb9（链内 FilterOrder 已接入，端到端 @SpringBootTest 断言待 P1-T10 补） | `saas.enabled=false` 时 filter `shouldNotFilter` 直接放行 |
 | P1-T4 | 15 业务表 ALTER 加 `tenant_id`（先 nullable） | 新 `V24__add_tenant_id_columns.sql`（+H2/MySQL 双方言）· 相关 DO 类批量加字段（`DocumentDO/ExamHistoryDO/...`） | P1-T1 | L | 全表加 `tenant_id BIGINT NULL`；启动 `ApplicationReadyEvent` 回填 default；索引先建 `(tenant_id)` 单列 | 每 DO 有字段；回填脚本幂等；启动 smoke test 无异常 | nullable 阶段可 `UPDATE ... SET NULL` 快速回退 |
 | P1-T5 | 唯一索引切换（全局→租户内） | 新 `V25__switch_unique_indexes.sql`（去旧加新，如 `UNIQUE(kb_document.document_key)` → `UNIQUE(tenant_id, document_key)`） | P1-T4 | M | `document_key`/`username`/`config_key` 等 4-6 个唯一键改造；迁移前预扫描跨租户重复 | H2/MySQL 双方言；`TenantUniqueKeyDuplicationTest` 断言同 key 不同租户可共存 | undo 保留旧索引定义，可回滚 |
 | P1-T6 | `NOT NULL` + 复合索引收紧 | 新 `V26__make_tenant_id_not_null.sql`·业务索引重建 `(tenant_id, ...)` | P1-T5 | M | 全表 tenant_id 转 NOT NULL，默认 `default`；主键外索引重建 | EXPLAIN 断言常用查询走新索引；无 NULL 报错 | 保留旧索引 1 版本；改回 nullable |
