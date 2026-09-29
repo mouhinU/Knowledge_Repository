@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 /**
  * 租户上下文跨线程传播装饰器（P1-T9，SaaS 异步脊柱）。
@@ -42,6 +43,47 @@ public final class TenantContextPropagatingExecutor implements ExecutorService {
             throw new IllegalArgumentException("delegate executor must not be null");
         }
         this.delegate = delegate;
+    }
+
+    /**
+     * 就地包装：在<b>调用线程</b>捕获租户快照，返回一个会在执行时应用快照、{@code finally} 恢复前置状态的 {@link Runnable}。
+     *
+     * <p>用途（P1-T9 收尾）：文档入库三条异步链路（{@code Index / Reindex / IndexCustomChunks AsyncCmdExe}）历史上把
+     * {@code CompletableFuture.runAsync(task)}（<b>无 executor 参数</b>，落 {@link
+     * java.util.concurrent.ForkJoinPool#commonPool()}）作为脱离请求线程的兜底手段。给它们换专属线程池会改变既有拒绝 /
+     * 并发语义（超出本任务"补租户传播"的边界）， 故只在这一处包一层快照：提交线程 {@code capture()}，commonPool worker 执行前 {@code
+     * restore()}、执行后 {@code finally} 复位——commonPool 线程随即回到"未绑定"，绝不把 A 租户带到下一次复用。
+     *
+     * @param task 原始任务，非空
+     * @return 带租户快照传播的包装任务
+     */
+    public static Runnable wrapCurrent(Runnable task) {
+        if (task == null) {
+            throw new NullPointerException("task");
+        }
+        return wrap(task, TenantContext.capture());
+    }
+
+    /**
+     * {@link Runnable} 版的有返回值对应物，供 {@code CompletableFuture.supplyAsync} 落点使用（P1-T9 同语义）。
+     *
+     * @param task 原始供应任务，非空
+     * @param <T> 返回类型
+     * @return 带租户快照传播的包装供应任务
+     */
+    public static <T> Supplier<T> wrapCurrent(Supplier<T> task) {
+        if (task == null) {
+            throw new NullPointerException("task");
+        }
+        TenantContext.Snapshot captured = TenantContext.capture();
+        return () -> {
+            TenantContext.Snapshot previous = captured.restore();
+            try {
+                return task.get();
+            } finally {
+                previous.restore();
+            }
+        };
     }
 
     /**

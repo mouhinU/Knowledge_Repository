@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.application.util.TenantContextPropagatingExecutor;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
@@ -44,40 +45,44 @@ public class IndexAsyncCmdExe {
             String strategy,
             IndexProgressCallback callback) {
         CompletableFuture.runAsync(
-                () -> {
-                    try {
-                        Document document =
-                                documentGateway
-                                        .findByDocumentKey(documentKey)
-                                        .orElseThrow(
-                                                () ->
-                                                        new IllegalArgumentException(
-                                                                "Document not found: "
-                                                                        + documentKey));
+                TenantContextPropagatingExecutor.wrapCurrent(
+                        () -> {
+                            try {
+                                Document document =
+                                        documentGateway
+                                                .findByDocumentKey(documentKey)
+                                                .orElseThrow(
+                                                        () ->
+                                                                new IllegalArgumentException(
+                                                                        "Document not found: "
+                                                                                + documentKey));
 
-                        if (document.getStatus() == DocumentStatusEnum.INDEXED) {
-                            throw new IllegalStateException("Document is already indexed");
-                        }
+                                if (document.getStatus() == DocumentStatusEnum.INDEXED) {
+                                    throw new IllegalStateException("Document is already indexed");
+                                }
 
-                        ChunkingConfig config =
-                                support.buildConfig(
-                                        chunkSize, overlap, support.resolveStrategy(strategy));
-                        document.setChunkingConfig(config);
+                                ChunkingConfig config =
+                                        support.buildConfig(
+                                                chunkSize,
+                                                overlap,
+                                                support.resolveStrategy(strategy));
+                                document.setChunkingConfig(config);
 
-                        ExtractionResult extraction = extractionCache.getOrReextract(document);
-                        support.processDocument(document, extraction, callback);
+                                ExtractionResult extraction =
+                                        extractionCache.getOrReextract(document);
+                                support.processDocument(document, extraction, callback);
 
-                        extractionCache.remove(documentKey);
-                    } catch (Exception e) {
-                        log.error(
-                                "Async indexing failed for document {}: {}",
-                                documentKey,
-                                e.getMessage(),
-                                e);
-                        if (callback != null) {
-                            callback.onError(e.getMessage());
-                        }
-                    }
-                });
+                                extractionCache.remove(documentKey);
+                            } catch (Exception e) {
+                                log.error(
+                                        "Async indexing failed for document {}: {}",
+                                        documentKey,
+                                        e.getMessage(),
+                                        e);
+                                if (callback != null) {
+                                    callback.onError(e.getMessage());
+                                }
+                            }
+                        }));
     }
 }

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.application.util.TenantContextPropagatingExecutor;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
@@ -98,33 +99,36 @@ public class ReindexAsyncCmdExe {
             IndexProgressCallback callback) {
         boolean useCustom = customChunks != null && !customChunks.isEmpty();
         CompletableFuture.runAsync(
-                () -> {
-                    try {
-                        Document document = prepareForReindex(documentKey);
-                        ExtractionResult result = reextract(document);
-                        documentImageSupport.extractAndPersist(
-                                document, Path.of(document.getStoragePath()));
+                TenantContextPropagatingExecutor.wrapCurrent(
+                        () -> {
+                            try {
+                                Document document = prepareForReindex(documentKey);
+                                ExtractionResult result = reextract(document);
+                                documentImageSupport.extractAndPersist(
+                                        document, Path.of(document.getStoragePath()));
 
-                        if (useCustom) {
-                            processCustomChunks(document, result, customChunks, callback);
-                        } else {
-                            ChunkingConfig config =
-                                    support.buildConfig(
-                                            chunkSize, overlap, support.resolveStrategy(strategy));
-                            document.setChunkingConfig(config);
-                            support.processDocument(document, result, callback);
-                        }
-                    } catch (Exception e) {
-                        log.error(
-                                "Async reindex failed for document {}: {}",
-                                documentKey,
-                                e.getMessage(),
-                                e);
-                        if (callback != null) {
-                            callback.onError(e.getMessage());
-                        }
-                    }
-                });
+                                if (useCustom) {
+                                    processCustomChunks(document, result, customChunks, callback);
+                                } else {
+                                    ChunkingConfig config =
+                                            support.buildConfig(
+                                                    chunkSize,
+                                                    overlap,
+                                                    support.resolveStrategy(strategy));
+                                    document.setChunkingConfig(config);
+                                    support.processDocument(document, result, callback);
+                                }
+                            } catch (Exception e) {
+                                log.error(
+                                        "Async reindex failed for document {}: {}",
+                                        documentKey,
+                                        e.getMessage(),
+                                        e);
+                                if (callback != null) {
+                                    callback.onError(e.getMessage());
+                                }
+                            }
+                        }));
     }
 
     /** 前置清理：校验状态 → 删除旧向量 → 短事务删旧分块并重置状态 → 删除旧配图（记录 + 文件）→ 失效提取缓存。 */

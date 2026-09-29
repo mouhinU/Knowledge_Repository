@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.application.util.TenantContextPropagatingExecutor;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
@@ -57,79 +58,82 @@ public class IndexCustomChunksAsyncCmdExe {
             List<CustomChunkInput> customChunks,
             IndexProgressCallback callback) {
         CompletableFuture.runAsync(
-                () -> {
-                    try {
-                        if (customChunks == null || customChunks.isEmpty()) {
-                            throw new IllegalArgumentException("Custom chunks must not be empty");
-                        }
+                TenantContextPropagatingExecutor.wrapCurrent(
+                        () -> {
+                            try {
+                                if (customChunks == null || customChunks.isEmpty()) {
+                                    throw new IllegalArgumentException(
+                                            "Custom chunks must not be empty");
+                                }
 
-                        Document document =
-                                documentGateway
-                                        .findByDocumentKey(documentKey)
-                                        .orElseThrow(
-                                                () ->
-                                                        new IllegalArgumentException(
-                                                                "Document not found: "
-                                                                        + documentKey));
+                                Document document =
+                                        documentGateway
+                                                .findByDocumentKey(documentKey)
+                                                .orElseThrow(
+                                                        () ->
+                                                                new IllegalArgumentException(
+                                                                        "Document not found: "
+                                                                                + documentKey));
 
-                        if (document.getStatus() == DocumentStatusEnum.INDEXED) {
-                            throw new IllegalStateException("Document is already indexed");
-                        }
+                                if (document.getStatus() == DocumentStatusEnum.INDEXED) {
+                                    throw new IllegalStateException("Document is already indexed");
+                                }
 
-                        document.markProcessing();
-                        documentGateway.update(document);
+                                document.markProcessing();
+                                documentGateway.update(document);
 
-                        List<DocumentChunk> chunks =
-                                support.buildCustomChunks(document, customChunks);
+                                List<DocumentChunk> chunks =
+                                        support.buildCustomChunks(document, customChunks);
 
-                        if (chunks.isEmpty()) {
-                            document.markFailed("No valid chunks provided");
-                            documentGateway.update(document);
-                            if (callback != null) {
-                                callback.onError("No valid chunks provided");
-                            }
-                            return;
-                        }
+                                if (chunks.isEmpty()) {
+                                    document.markFailed("No valid chunks provided");
+                                    documentGateway.update(document);
+                                    if (callback != null) {
+                                        callback.onError("No valid chunks provided");
+                                    }
+                                    return;
+                                }
 
-                        chunkGateway.saveBatch(chunks);
-                        vectorStoreService.storeChunks(chunks, callback);
+                                chunkGateway.saveBatch(chunks);
+                                vectorStoreService.storeChunks(chunks, callback);
 
-                        ExtractionResult extraction = extractionCache.getOrReextract(document);
-                        document.markIndexed(extraction.totalPages());
-                        document.setFileChecksum(extraction.checksum());
-                        documentGateway.update(document);
+                                ExtractionResult extraction =
+                                        extractionCache.getOrReextract(document);
+                                document.markIndexed(extraction.totalPages());
+                                document.setFileChecksum(extraction.checksum());
+                                documentGateway.update(document);
 
-                        eventPublisher.publishEvent(
-                                new DocumentProcessedEvent(
+                                eventPublisher.publishEvent(
+                                        new DocumentProcessedEvent(
+                                                document.getDocumentKey(),
+                                                document.getFileName(),
+                                                extraction.totalPages(),
+                                                chunks.size(),
+                                                document.getOwnerId(),
+                                                document.getDepartmentId(),
+                                                LocalDateTime.now()));
+
+                                extractionCache.remove(documentKey);
+
+                                log.info(
+                                        "Document {} indexed with custom chunks: {} chunks",
                                         document.getDocumentKey(),
-                                        document.getFileName(),
-                                        extraction.totalPages(),
-                                        chunks.size(),
-                                        document.getOwnerId(),
-                                        document.getDepartmentId(),
-                                        LocalDateTime.now()));
+                                        chunks.size());
 
-                        extractionCache.remove(documentKey);
+                                if (callback != null) {
+                                    callback.onComplete();
+                                }
 
-                        log.info(
-                                "Document {} indexed with custom chunks: {} chunks",
-                                document.getDocumentKey(),
-                                chunks.size());
-
-                        if (callback != null) {
-                            callback.onComplete();
-                        }
-
-                    } catch (Exception e) {
-                        log.error(
-                                "Async custom indexing failed for document {}: {}",
-                                documentKey,
-                                e.getMessage(),
-                                e);
-                        if (callback != null) {
-                            callback.onError(e.getMessage());
-                        }
-                    }
-                });
+                            } catch (Exception e) {
+                                log.error(
+                                        "Async custom indexing failed for document {}: {}",
+                                        documentKey,
+                                        e.getMessage(),
+                                        e);
+                                if (callback != null) {
+                                    callback.onError(e.getMessage());
+                                }
+                            }
+                        }));
     }
 }

@@ -227,4 +227,76 @@ class TenantContextPropagatingExecutorTest {
             assertTrue(tenantAware.isTerminated());
         }
     }
+
+    @Nested
+    @DisplayName("wrapCurrent：commonPool 落点就地快照 (P1-T9 收尾)")
+    class WrapCurrent {
+
+        @Test
+        @DisplayName("Runnable：wrap 时刻捕获调用线程租户，之后改租户/换线程执行仍读原捕获值")
+        void runnableCapturesAtWrapTime() throws Exception {
+            TenantContext.set("acme");
+            AtomicReference<String> observed = new AtomicReference<>();
+            Runnable probe =
+                    TenantContextPropagatingExecutor.wrapCurrent(
+                            () -> observed.set(TenantContext.get()));
+
+            // wrap 之后立刻改掉当前线程租户：证明捕获发生在 wrap 调用点，而非执行点
+            TenantContext.set("changed-after-wrap");
+
+            // 在另一个线程执行 probe（模拟 commonPool worker，其进入前状态为 null）
+            Thread worker = new Thread(probe);
+            worker.start();
+            worker.join(2000);
+
+            assertEquals("acme", observed.get(), "应读到 wrap 时刻的 acme，而非执行时刻的值");
+        }
+
+        @Test
+        @DisplayName("Runnable：worker 线程执行完后恢复其进入前的绑定，不残留租户")
+        void runnableRestoresWorkerPriorState() throws Exception {
+            TenantContext.set("task-tenant");
+            Runnable wrapped = TenantContextPropagatingExecutor.wrapCurrent(() -> {});
+
+            AtomicReference<String> afterRun = new AtomicReference<>("sentinel");
+            Thread worker =
+                    new Thread(
+                            () -> {
+                                TenantContext.set("worker-preexisting");
+                                wrapped.run();
+                                afterRun.set(TenantContext.get());
+                            });
+            worker.start();
+            worker.join(2000);
+
+            assertEquals(
+                    "worker-preexisting",
+                    afterRun.get(),
+                    "执行完应回到 worker 线程进入前的绑定，而非 task-tenant 或 null");
+        }
+
+        @Test
+        @DisplayName("Supplier：有返回值链路同样携带快照并透传结果")
+        void supplierPropagatesAndReturns() {
+            TenantContext.set("omega");
+            java.util.function.Supplier<String> wrapped =
+                    TenantContextPropagatingExecutor.wrapCurrent(
+                            () -> TenantContext.get() + "|value");
+
+            assertEquals("omega|value", wrapped.get());
+        }
+
+        @Test
+        @DisplayName("wrapCurrent(null) 抛 NPE")
+        void rejectsNull() {
+            assertThrows(
+                    NullPointerException.class,
+                    () -> TenantContextPropagatingExecutor.wrapCurrent((Runnable) null));
+            assertThrows(
+                    NullPointerException.class,
+                    () ->
+                            TenantContextPropagatingExecutor.wrapCurrent(
+                                    (java.util.function.Supplier<String>) null));
+        }
+    }
 }
