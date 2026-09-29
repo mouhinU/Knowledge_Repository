@@ -22,6 +22,9 @@ public class DocumentChunkDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("chunk_key")
     private String chunkKey;
 

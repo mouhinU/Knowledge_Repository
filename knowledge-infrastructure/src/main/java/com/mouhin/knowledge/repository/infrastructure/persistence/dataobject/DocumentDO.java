@@ -22,6 +22,9 @@ public class DocumentDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("document_key")
     private String documentKey;
 

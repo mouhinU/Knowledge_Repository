@@ -22,6 +22,9 @@ public class UserRoleDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("user_id")
     private Long userId;
 

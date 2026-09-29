@@ -22,6 +22,9 @@ public class ExamQuestionDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("session_key")
     private String sessionKey;
 

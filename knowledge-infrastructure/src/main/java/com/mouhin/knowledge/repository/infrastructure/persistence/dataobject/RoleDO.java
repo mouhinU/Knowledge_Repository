@@ -22,6 +22,9 @@ public class RoleDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("role_key")
     private String roleKey;
 

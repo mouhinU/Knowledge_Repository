@@ -22,6 +22,9 @@ public class StudentSessionDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("session_token")
     private String sessionToken;
 

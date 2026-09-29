@@ -22,6 +22,9 @@ public class DocumentImageDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("asset_key")
     private String assetKey;
 

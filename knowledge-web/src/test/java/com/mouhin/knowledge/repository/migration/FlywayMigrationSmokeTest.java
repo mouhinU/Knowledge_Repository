@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * Flyway V1-V23 迁移冒烟测试（体检 HIGH H4）。
+ * Flyway V1-V24 迁移冒烟测试（体检 HIGH H4）。
  *
  * <p>用 H2（MySQL 兼容模式）在内存中一次性回放全部迁移脚本，锁定"库重建 / 迁移链可成功执行"这一 生产启动前置：若任一版本脚本存在语法错误、跨版本对象依赖破坏（如 V11 新表被
  * V13 ALTER 引用）， {@code flyway.migrate()} 会直接抛错、本用例失败。生产虽运行在 MySQL，但项目要求 H2 亦可启动 （见 AGENTS.md 第十章
@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V23 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V24 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V23）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 23;
+    /** 迁移脚本总数（V1..V24）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 24;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 23")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 24")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,10 +54,10 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V23
+        // 二次调用应无待处理迁移（幂等），并停留在 V24
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals("23", current.getVersion().getVersion(), "最终版本应为 V23（SaaS 租户元数据表 sys_tenant）");
+        assertEquals("24", current.getVersion().getVersion(), "最终版本应为 V24（业务表 tenant_id 列 P1-T4）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -239,6 +239,36 @@ class FlywayMigrationSmokeTest {
                     assertTrue(prs.next(), "V23 默认租户放置记录缺失");
                     assertEquals("POOL", prs.getString("placement_type"), "默认租户应为 POOL 放置");
                 }
+            }
+
+            // 抽查 V24（P1-T4）：15 张业务表都已加 tenant_id 列
+            List<String> tenantIdTables = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(table_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(column_name) = 'tenant_id' "
+                                    + "AND LOWER(table_name) IN ("
+                                    + "'kb_document','kb_document_chunk','kb_document_image','kb_category',"
+                                    + "'kb_exam_history','kb_exam_session','kb_exam_question','kb_exam_answer',"
+                                    + "'kb_student','kb_student_session','kb_writing_history',"
+                                    + "'sys_user','sys_role','sys_user_role','sys_department')")) {
+                while (rs.next()) {
+                    tenantIdTables.add(rs.getString(1));
+                }
+            }
+            assertEquals(
+                    15, tenantIdTables.size(), "V24 应为 15 张业务表添加 tenant_id，实际=" + tenantIdTables);
+
+            // 抽查 V24 回填：种子管理员应已归属默认租户（sys_user.user_key='user-admin' 从 V15 起就存在）
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT u.tenant_id AS assigned, d.tenant_id AS dflt "
+                                    + "FROM sys_user u, sys_tenant d "
+                                    + "WHERE u.user_key = 'user-admin' AND d.tenant_key = 'default'")) {
+                assertTrue(rs.next(), "种子管理员行缺失");
+                long assigned = rs.getLong("assigned");
+                long dflt = rs.getLong("dflt");
+                assertEquals(dflt, assigned, "V24 回填：存量 sys_user 应归属默认租户 id");
             }
         }
     }

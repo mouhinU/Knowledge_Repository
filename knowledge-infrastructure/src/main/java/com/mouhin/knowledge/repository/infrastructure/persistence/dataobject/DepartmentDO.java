@@ -22,6 +22,9 @@ public class DepartmentDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("department_key")
     private String departmentKey;
 
