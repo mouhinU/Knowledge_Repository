@@ -73,6 +73,12 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
 
+        <!-- P1-T7：TenantLineInnerInterceptor / 分页插件所需的 jsqlparser 桥接模块（3.5.9+ 起独立可选，版本随父 pom） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
+
         <!-- H2 (dev) -->
         <dependency>
             <groupId>com.h2database</groupId>

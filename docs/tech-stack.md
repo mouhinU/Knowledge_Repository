@@ -21,7 +21,7 @@
 
 | 能力                | 组件          | 版本                        |
 | ------------------- | ------------- | --------------------------- |
-| ORM / 持久层        | MyBatis-Plus  | 3.5.17                      |
+| ORM / 持久层        | MyBatis-Plus  | 3.5.17（含 `mybatis-plus-jsqlparser` 3.5.17 伴生模块，P1-T7 租户/分页插件所需，MP 3.5.9+ 起从 extension 拆分独立可选） |
 | LLM 编排            | LangChain4j   | 1.0.1                       |
 | 向量数据库          | Milvus SDK    | 2.5.4                       |
 | PDF 解析            | Apache PDFBox | 3.0.4                       |

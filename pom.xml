@@ -99,6 +99,14 @@
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+            <!-- MyBatis-Plus 3.5.9+ 起，TenantLine/Pagination 等基于 SQL 解析的插件从 extension
+                 拆分到独立可选模块 mybatis-plus-jsqlparser；本项目 P1-T7 需要 TenantLineInnerInterceptor，
+                 显式引入并将版本对齐 3.5.17 与主 starter 保持同源。 -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
 
             <!-- Milvus -->
             <dependency>
