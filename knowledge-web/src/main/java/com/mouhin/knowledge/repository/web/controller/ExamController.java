@@ -1,12 +1,12 @@
 package com.mouhin.knowledge.repository.web.controller;
 
-import com.alibaba.cola.dto.PageResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.BalanceDistributionQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateDistributionAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamAsyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.GenerateExamSyncCmdExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
+import com.mouhin.knowledge.repository.application.executor.examgeneration.PageHistoryQryExe;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ValidatePlanAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
@@ -60,6 +60,7 @@ public class ExamController {
     private final BalanceDistributionQryExe balanceDistributionQryExe;
     private final ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe;
     private final ListPublishedHistoryQryExe listPublishedHistoryQryExe;
+    private final PageHistoryQryExe pageHistoryQryExe;
     private final ExamWordExporter examWordExporter;
     private final BlackboardProgressStore progressStore;
 
@@ -71,6 +72,7 @@ public class ExamController {
             BalanceDistributionQryExe balanceDistributionQryExe,
             ValidatePlanAsyncCmdExe validatePlanAsyncCmdExe,
             ListPublishedHistoryQryExe listPublishedHistoryQryExe,
+            PageHistoryQryExe pageHistoryQryExe,
             ExamWordExporter examWordExporter,
             BlackboardProgressStore progressStore) {
         this.examGenerationService = examGenerationService;
@@ -80,6 +82,7 @@ public class ExamController {
         this.balanceDistributionQryExe = balanceDistributionQryExe;
         this.validatePlanAsyncCmdExe = validatePlanAsyncCmdExe;
         this.listPublishedHistoryQryExe = listPublishedHistoryQryExe;
+        this.pageHistoryQryExe = pageHistoryQryExe;
         this.examWordExporter = examWordExporter;
         this.progressStore = progressStore;
     }
@@ -465,6 +468,8 @@ public class ExamController {
     /**
      * 分页查询出卷历史列表
      *
+     * <p>P0-T3：从已鉴权主体注入 {@link Permission}，非管理员仅返回自身 owner/dept 范围内的历史。
+     *
      * @param page 页码（从 0 开始），默认 0
      * @param size 每页数量，默认 10
      * @return 分页结果（records / total / page / size）
@@ -472,13 +477,15 @@ public class ExamController {
     @GetMapping("/exam/history/page")
     public ResponseEntity<Map<String, Object>> pageExamHistory(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageResponse<ExamHistoryDTO> resp = examGenerationService.pageHistory(page, size);
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest httpRequest) {
+        Permission permission = resolvePermission(httpRequest);
+        Map<String, Object> raw = pageHistoryQryExe.execute(page, size, permission);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("records", resp.getData());
-        result.put("total", (long) resp.getTotalCount());
-        result.put("page", resp.getPageIndex());
-        result.put("size", resp.getPageSize());
+        result.put("records", raw.get("records"));
+        result.put("total", raw.get("total"));
+        result.put("page", raw.get("page"));
+        result.put("size", raw.get("size"));
         return ResponseEntity.ok(result);
     }
 

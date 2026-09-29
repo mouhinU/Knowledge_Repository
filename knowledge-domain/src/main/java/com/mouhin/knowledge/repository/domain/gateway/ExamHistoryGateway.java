@@ -1,11 +1,17 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * AI 出卷历史仓储接口
+ *
+ * <p>P0-T3：为管理端列表新增 {@link Permission} 作用域方法。 语义约定：{@code permission == null} 或 {@code
+ * permission.isAdmin() == true} → 全局视图；否则在 SQL 层强制 {@code user_id = ? OR department_id = ?} 谓词，null
+ * / 空白一侧自动跳过，两侧都空则退化为 1=0（不可见）。 学生端 {@link #listPublished(int)} 保持公开口径不变（仅返回 PUBLISHED 全量），
+ * 不受本改造影响。
  *
  * @author mouhinU
  * @date 2026-09-14
@@ -57,4 +63,18 @@ public interface ExamHistoryGateway {
 
     /** 根据会话 ID 删除出卷历史 */
     void deleteBySessionId(String sessionId);
+
+    // ==================== P0-T3 带作用域的方法（管理端专用） ====================
+
+    /** 分页查询历史记录（作用域版）。{@code permission==null}/{@code admin=true} → 全局；否则按 owner/dept 谓词过滤。 */
+    List<ExamHistory> listPageScoped(int limit, int offset, Permission permission);
+
+    /** 统计历史记录总数（作用域版）。 */
+    long countAllScoped(Permission permission);
+
+    /** 待校对队列分页（作用域版）。 */
+    List<ExamHistory> listReviewPendingScoped(int limit, int offset, Permission permission);
+
+    /** 待校对队列总数（作用域版）。 */
+    long countReviewPendingScoped(Permission permission);
 }

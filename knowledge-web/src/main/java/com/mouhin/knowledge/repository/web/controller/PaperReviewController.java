@@ -12,7 +12,10 @@ import com.mouhin.knowledge.repository.application.executor.examreview.VoidPaper
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
+import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
+import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,8 +70,10 @@ public class PaperReviewController {
     @GetMapping("/pending")
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
-        List<ExamHistoryDTO> history = listReviewPendingQryExe.execute(limit, offset);
+            @RequestParam(defaultValue = "0") int offset,
+            HttpServletRequest request) {
+        Permission permission = AdminPrincipalSupport.toPermission(request);
+        List<ExamHistoryDTO> history = listReviewPendingQryExe.execute(limit, offset, permission);
         List<Map<String, Object>> records = new ArrayList<>();
         for (ExamHistoryDTO h : history) {
             Map<String, Object> row = new LinkedHashMap<>();
@@ -82,7 +87,7 @@ public class PaperReviewController {
             row.put("createTime", h.getCreateTime() != null ? h.getCreateTime().toString() : null);
             records.add(row);
         }
-        long total = listReviewPendingQryExe.count();
+        long total = listReviewPendingQryExe.count(permission);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("records", records);
         result.put("total", total);
