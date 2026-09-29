@@ -91,7 +91,7 @@ public class ExamGenerationSupport {
     private final List<QualityGate> qualityGates;
 
     private final ExecutorService agentExecutor =
-            AgentExecutorFactory.newBoundedAgentPool("exam-gen");
+            AgentExecutorFactory.newTenantAwareAgentPool("exam-gen");
 
     @Value("${knowledge.blackboard.search.max-results:20}")
     private int searchMaxResults;

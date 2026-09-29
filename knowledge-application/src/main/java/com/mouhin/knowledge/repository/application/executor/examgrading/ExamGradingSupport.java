@@ -98,7 +98,7 @@ public class ExamGradingSupport {
         this.examQuestionSplitSupport = examQuestionSplitSupport;
         this.streamingChatGateway = streamingChatGateway;
         this.examAlertGateway = examAlertGateway;
-        this.agentExecutor = AgentExecutorFactory.newBoundedAgentPool("exam-grading");
+        this.agentExecutor = AgentExecutorFactory.newTenantAwareAgentPool("exam-grading");
     }
 
     /** 容器优雅停机时关闭评分异步线程池：先温和 shutdown 拒绝新任务， 给在途评分留出短暂收尾窗口，超时则强制中断，杜绝停机后遗留在跑线程。 */

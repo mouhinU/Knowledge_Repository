@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.util;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -51,6 +52,21 @@ public final class AgentExecutorFactory {
                 new SynchronousQueue<>(),
                 new NamedDaemonThreadFactory(namePrefix),
                 new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    /**
+     * P1-T9：在 {@link #newBoundedAgentPool(String)} 之上包一层 {@link TenantContextPropagatingExecutor}，
+     * 让出卷 / 评分 / 文章流水线经此池提交的每一个任务都自带 {@code TenantContext} 快照传播。
+     *
+     * <p>为什么单开一个方法而不是把 {@link #newBoundedAgentPool(String)} 的返回类型换成 {@code ExecutorService}：现有测试要拿
+     * {@link ThreadPoolExecutor} 具体类型直接触发饱和、断言 {@code RejectedExecutionException}，装饰后 {@code
+     * execute} 抛出点在包装层、行为等价但类型收窄丢失；保留工厂原类型、 只在真实业务出口处加装饰，能同时守住回归测试与被测语义。
+     *
+     * @param namePrefix 线程名前缀（与 {@link #newBoundedAgentPool(String)} 一致）
+     * @return 已绑定 {@link TenantContextPropagatingExecutor} 的 {@code ExecutorService}
+     */
+    public static ExecutorService newTenantAwareAgentPool(String namePrefix) {
+        return new TenantContextPropagatingExecutor(newBoundedAgentPool(namePrefix));
     }
 
     /**

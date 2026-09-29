@@ -68,7 +68,7 @@ public class ArticleGenerationSupport {
     private final List<QualityGate> qualityGates;
 
     private final ExecutorService agentExecutor =
-            AgentExecutorFactory.newBoundedAgentPool("article-gen");
+            AgentExecutorFactory.newTenantAwareAgentPool("article-gen");
 
     @Value("${knowledge.blackboard.search.max-results:10}")
     private int searchMaxResults;
