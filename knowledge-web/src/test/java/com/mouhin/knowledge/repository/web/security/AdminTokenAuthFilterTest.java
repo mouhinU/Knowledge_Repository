@@ -12,7 +12,9 @@ import static org.mockito.Mockito.when;
 import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import jakarta.servlet.FilterChain;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -163,5 +165,38 @@ class AdminTokenAuthFilterTest {
 
         assertNotNull(chain.getRequest(), uri + " 应直接放行");
         assertNull(req.getAttribute(AdminTokenAuthFilter.PRINCIPAL_ATTRIBUTE));
+    }
+
+    @Test
+    @DisplayName("P1-T8：principal 携带非空 tenantKey 时写入 knowledge.tenant.claim 请求属性供下游过滤器读取")
+    void validTokenWithTenant_populatesClaimAttribute() throws Exception {
+        MockHttpServletRequest req = protectedRequest();
+        req.addHeader(AdminTokenAuthFilter.TOKEN_HEADER, "acme-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        AdminPrincipalDTO principal =
+                new AdminPrincipalDTO("k1", "admin", true, null, List.of("ADMIN"), "acme");
+        when(adminAuthService.validateToken("acme-token")).thenReturn(SingleResponse.of(principal));
+
+        filter.doFilter(req, resp, chain);
+
+        assertNotNull(chain.getRequest());
+        assertEquals("acme", req.getAttribute(TenantResolverFilter.TENANT_CLAIM_ATTRIBUTE));
+    }
+
+    @Test
+    @DisplayName("P1-T8：旧 3 参 principal（tenantKey=null）不写 claim 属性，向后兼容窗口不打破")
+    void validTokenWithoutTenant_skipsClaimAttribute() throws Exception {
+        MockHttpServletRequest req = protectedRequest();
+        req.addHeader(AdminTokenAuthFilter.TOKEN_HEADER, "legacy-token");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        when(adminAuthService.validateToken("legacy-token"))
+                .thenReturn(SingleResponse.of(new AdminPrincipalDTO("k1", "admin", true)));
+
+        filter.doFilter(req, resp, chain);
+
+        assertNotNull(chain.getRequest());
+        assertNull(req.getAttribute(TenantResolverFilter.TENANT_CLAIM_ATTRIBUTE));
     }
 }

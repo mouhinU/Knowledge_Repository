@@ -18,6 +18,10 @@ import org.springframework.stereotype.Component;
  * {@code sys_user_role} 快照写入。旧令牌若无 {@code roles} 字段， {@link AdminTokenPayload#roles()} 归一为空列表，与恒
  * null 兜底语义等价。
  *
+ * <p>P1-T8：新增 {@code tenantKey} 字段，来源同样是已验证令牌 claim（缺失归一为 {@code default}）， 由 {@code
+ * AdminTokenAuthFilter} 落到 request attr {@code knowledge.tenant.claim} 供 {@code
+ * TenantResolverFilter} 三级解析的最后一级消费。租户身份只信令牌，不由请求参数决定。
+ *
  * @author mouhinU
  * @date 2026-09-19
  */
@@ -50,6 +54,7 @@ public class AdminValidateTokenQryExe {
                 user.getUsername(),
                 Boolean.TRUE.equals(user.getAdmin()),
                 user.getDepartmentId(),
-                payload.roles());
+                payload.roles(),
+                payload.tenantKey());
     }
 }

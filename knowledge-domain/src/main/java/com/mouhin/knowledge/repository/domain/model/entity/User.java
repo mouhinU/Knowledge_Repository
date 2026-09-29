@@ -22,6 +22,13 @@ public class User {
     /** 所属部门 ID */
     private String departmentId;
 
+    /**
+     * 所属租户 key（P1-T8 SaaS 租户脊柱）。对应 {@code UserDO.tenant_id} (BIGINT) 转换后的字符串形式， 由 infrastructure 层
+     * {@code UserGatewayImpl} 借 {@code TenantIdResolver.lookupKeyOrDefault} 还原； 若 DB 行 tenant_id
+     * 缺失/漂移，回退为 {@code default}。app 层登录用例在签发 JWT 时直接读取本字段， 避免每次登录回库查 sys_tenant。
+     */
+    private String tenantKey;
+
     /** 是否为超级管理员 */
     private Boolean admin;
 
@@ -84,6 +91,14 @@ public class User {
 
     public void setDepartmentId(String departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public String getTenantKey() {
+        return tenantKey;
+    }
+
+    public void setTenantKey(String tenantKey) {
+        this.tenantKey = tenantKey;
     }
 
     public Boolean getAdmin() {

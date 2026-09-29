@@ -126,4 +126,38 @@ class AdminJwtGatewayImplTest {
         assertEquals(List.of(), verified.get().roles(), "旧签名应产出 roles:[] 而非 null");
         assertTrue(verified.get().admin(), "admin 标志仍需还原");
     }
+
+    @Test
+    @DisplayName("P1-T8: 5 参 issue 携带真实 tenantKey，verify 后原样往返")
+    void issueThenVerify_roundTripsTenantKey() {
+        AdminJwtGatewayImpl gw = gateway(8);
+        String token = gw.issue("k1", "admin", true, List.of("ADMIN"), "acme");
+
+        Optional<AdminTokenPayload> verified = gw.verify(token);
+        assertTrue(verified.isPresent());
+        assertEquals("acme", verified.get().tenantKey(), "tenantKey claim 应原样往返");
+        assertEquals(List.of("ADMIN"), verified.get().roles());
+    }
+
+    @Test
+    @DisplayName("P1-T8: 5 参 issue 传 null/blank → tenantKey 归一 default")
+    void issueThenVerify_normalizesTenantKeyDefault() {
+        AdminJwtGatewayImpl gw = gateway(8);
+        String nullToken = gw.issue("k-null", "admin", true, List.of(), null);
+        String blankToken = gw.issue("k-blank", "admin", true, List.of(), "   ");
+
+        assertEquals("default", gw.verify(nullToken).orElseThrow().tenantKey());
+        assertEquals("default", gw.verify(blankToken).orElseThrow().tenantKey());
+    }
+
+    @Test
+    @DisplayName("P1-T8: 旧 3/4 参 issue 未携带 tenantKey claim，verify 后归一 default 保向后兼容")
+    void legacyIssue_stillNormalizesTenantKey() {
+        AdminJwtGatewayImpl gw = gateway(8);
+        String fourArg = gw.issue("k4", "admin", true, List.of("ADMIN"));
+        String threeArg = gw.issue("k3", "admin", true);
+
+        assertEquals("default", gw.verify(fourArg).orElseThrow().tenantKey());
+        assertEquals("default", gw.verify(threeArg).orElseThrow().tenantKey());
+    }
 }

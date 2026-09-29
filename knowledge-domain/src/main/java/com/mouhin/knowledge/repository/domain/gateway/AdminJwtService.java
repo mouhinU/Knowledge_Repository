@@ -14,6 +14,11 @@ import java.util.Optional;
  * sys_role.role_key} 列表），下游 {@code AdminPrincipalSupport} 从 claim 直接读取，无需回库； 旧签名 {@link
  * #issue(String, String, boolean)} 保留为兼容入口，缺省写入空列表。
  *
+ * <p>P1-T8 起 {@link #issue(String, String, boolean, List, String)} 进一步携带 {@code tenantKey}（{@code
+ * sys_tenant.tenant_key} 字符串），下游 {@code AdminTokenAuthFilter} 校验成功后写入 {@code
+ * knowledge.tenant.claim} request attr 供 {@code TenantResolverFilter} 消费；旧签名保留向后兼容窗口， 缺省写入 {@code
+ * default}。
+ *
  * @author mouhinU
  * @date 2026-09-19
  */
@@ -30,7 +35,7 @@ public interface AdminJwtService {
     String issue(String userKey, String username, boolean admin);
 
     /**
-     * 签发管理端访问令牌，携带 {@code roles} claim（P0-T2 主用途）。
+     * 签发管理端访问令牌，携带 {@code roles} claim（P0-T2 主用途，不带 tenantKey）。
      *
      * @param userKey 用户唯一标识
      * @param username 用户名
@@ -41,6 +46,22 @@ public interface AdminJwtService {
     default String issue(String userKey, String username, boolean admin, List<String> roles) {
         // 默认降级为旧签名；具体实现在 infrastructure 层重写以真正写入 roles。
         return issue(userKey, username, admin);
+    }
+
+    /**
+     * 签发管理端访问令牌，同时携带 {@code roles} 与 {@code tenantKey} claim（P1-T8 主用途）。
+     *
+     * @param userKey 用户唯一标识
+     * @param username 用户名
+     * @param admin 是否超级管理员
+     * @param roles 用户角色 key 列表；{@code null} 视为空
+     * @param tenantKey 所属租户 key；{@code null}/blank 由实现方归一为 {@code default}
+     * @return 已签名的令牌字符串
+     */
+    default String issue(
+            String userKey, String username, boolean admin, List<String> roles, String tenantKey) {
+        // 默认降级到不带 tenantKey 的重载；具体实现在 infrastructure 层重写以真正写入 claim。
+        return issue(userKey, username, admin, roles);
     }
 
     /**

@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>放行边界（与鉴权链路配套）：健康探针、静态资源、以及考生侧 {@code /api/student/**}、 {@code /api/exam/**}（各自 app 层用学生 token
  * 校验）不参与本过滤器；管理端登录 / 登出端点 因获取令牌之前即需可达，也在放行之列。
+ *
+ * <p>P1-T8：鉴权成功后，若令牌 {@code tenantKey} claim 非空，将值写入 request attr {@code
+ * knowledge.tenant.claim}（键名对齐 {@link TenantResolverFilter#TENANT_CLAIM_ATTRIBUTE}），作为 {@code
+ * TenantResolverFilter} 三级解析的最后一级来源。旧令牌无 tenantKey claim 时该 attr 不写入，由 {@code TenantResolverFilter}
+ * 自行回退到 header/subdomain/default。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -85,6 +91,10 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
             return;
         }
         request.setAttribute(PRINCIPAL_ATTRIBUTE, principal);
+        String tenantKey = principal.getTenantKey();
+        if (tenantKey != null && !tenantKey.isBlank()) {
+            request.setAttribute(TenantResolverFilter.TENANT_CLAIM_ATTRIBUTE, tenantKey);
+        }
         filterChain.doFilter(request, response);
     }
 

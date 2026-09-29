@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +28,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * 管理端登录执行器单元测试。
+ *
+ * <p>P1-T8 起 SUT 调用 5 参 {@code issue(userKey, username, admin, roles, tenantKey)}；activeAdmin() 未设置
+ * {@code tenantKey} → SUT 传入 {@code null}，实现层归一为 {@code default}。测试覆盖三种典型： (a) 无 tenantKey 场景（stub
+ * isNull）；(b) 有 tenantKey 场景（stub eq("acme")）；(c) 旧 token 兼容路径（payload 使用 5 参构造）。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -65,7 +70,7 @@ class AdminLoginCmdExeTest {
     void success() {
         when(userGateway.findByUsername("admin")).thenReturn(Optional.of(activeAdmin()));
         when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
-        when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true), anyList()))
+        when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true), anyList(), isNull()))
                 .thenReturn("jwt-token");
         when(adminJwtService.verify("jwt-token"))
                 .thenReturn(
@@ -87,7 +92,7 @@ class AdminLoginCmdExeTest {
     }
 
     @Test
-    @DisplayName("P0-T2：用户持有角色时登录签发会携带 roles claim 至 4 参 issue")
+    @DisplayName("P0-T2：用户持有角色时登录签发会携带 roles claim 至 5 参 issue")
     void successPassesRolesToIssue() {
         User u = activeAdmin();
         u.setId(99L);
@@ -95,7 +100,12 @@ class AdminLoginCmdExeTest {
         when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
         when(userGateway.findRoleKeysByUserIdAndDocumentId(99L, null))
                 .thenReturn(List.of("ADMIN", "AUDITOR"));
-        when(adminJwtService.issue("key-1", "admin", true, List.of("ADMIN", "AUDITOR")))
+        when(adminJwtService.issue(
+                        eq("key-1"),
+                        eq("admin"),
+                        eq(true),
+                        eq(List.of("ADMIN", "AUDITOR")),
+                        isNull()))
                 .thenReturn("jwt-with-roles");
         when(adminJwtService.verify("jwt-with-roles"))
                 .thenReturn(
@@ -115,7 +125,43 @@ class AdminLoginCmdExeTest {
 
         assertEquals("jwt-with-roles", result.getToken());
         org.mockito.Mockito.verify(adminJwtService)
-                .issue("key-1", "admin", true, List.of("ADMIN", "AUDITOR"));
+                .issue(
+                        eq("key-1"),
+                        eq("admin"),
+                        eq(true),
+                        eq(List.of("ADMIN", "AUDITOR")),
+                        isNull());
+    }
+
+    @Test
+    @DisplayName("P1-T8：User.tenantKey=acme 时应透传到 issue 的第 5 参")
+    void successForwardsTenantKey() {
+        User u = activeAdmin();
+        u.setTenantKey("acme");
+        when(userGateway.findByUsername("admin")).thenReturn(Optional.of(u));
+        when(passwordEncoder.matches("pass", HASH)).thenReturn(true);
+        when(adminJwtService.issue(eq("key-1"), eq("admin"), eq(true), anyList(), eq("acme")))
+                .thenReturn("jwt-acme");
+        when(adminJwtService.verify("jwt-acme"))
+                .thenReturn(
+                        Optional.of(
+                                new AdminTokenPayload(
+                                        "key-1",
+                                        "admin",
+                                        true,
+                                        List.of(),
+                                        "acme",
+                                        Instant.now().plusSeconds(3600))));
+
+        AdminLoginCmd cmd = new AdminLoginCmd();
+        cmd.setUsername("admin");
+        cmd.setPassword("pass");
+
+        AdminLoginResultDTO result = exe.execute(cmd);
+
+        assertEquals("jwt-acme", result.getToken());
+        org.mockito.Mockito.verify(adminJwtService)
+                .issue(eq("key-1"), eq("admin"), eq(true), anyList(), eq("acme"));
     }
 
     @Test

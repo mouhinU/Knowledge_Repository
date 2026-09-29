@@ -3,6 +3,9 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -13,6 +16,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.UserDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserRoleMapper;
+import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +27,8 @@ import org.mockito.ArgumentCaptor;
  * {@link UserGatewayImpl} 契约单测：锁定 Entity⇄DO 字段回写、查询转换与空/缺失分支。
  *
  * <p>Mapper 以 {@code mock(UserMapper.class)} 手工注入，不启 Spring；SQL 行为由 Flyway 冒烟与 E2E
- * 覆盖，本类仅验证仓储实现的转换契约。
+ * 覆盖，本类仅验证仓储实现的转换契约。P1-T8 起 {@code toDomain} 会借 {@link TenantIdResolver} 反查 {@code UserDO.tenant_id
+ * → tenant_key}； 此处的 resolver mock 保持"零副作用"，只在需要断言映射结果的用例里 stub。
  *
  * @author mouhinU
  * @date 2026-09-24 18:21:00
@@ -33,7 +38,9 @@ class UserGatewayImplTest {
 
     private final UserMapper userMapper = mock(UserMapper.class);
     private final UserRoleMapper userRoleMapper = mock(UserRoleMapper.class);
-    private final UserGatewayImpl gateway = new UserGatewayImpl(userMapper, userRoleMapper);
+    private final TenantIdResolver tenantIdResolver = mock(TenantIdResolver.class);
+    private final UserGatewayImpl gateway =
+            new UserGatewayImpl(userMapper, userRoleMapper, tenantIdResolver);
 
     private UserDO sampleDO() {
         UserDO doObj = new UserDO();
@@ -63,6 +70,33 @@ class UserGatewayImplTest {
         assertThat(user.getAdmin()).isTrue();
         assertThat(user.getPasswordHash()).isEqualTo("$2a$10$hash");
         assertThat(user.getStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("findById DO.tenantId=null → User.tenantKey=default，不触 resolver")
+    void findByIdNullTenantUsesDefault() {
+        when(userMapper.selectById(7L)).thenReturn(sampleDO());
+
+        Optional<User> result = gateway.findById(7L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getTenantKey()).isEqualTo("default");
+        verify(tenantIdResolver, never()).lookupKeyOrDefault(anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("findById DO.tenantId=42 → resolver 反查 acme 落到 User.tenantKey")
+    void findByIdMapsTenantIdToKey() {
+        UserDO withTenant = sampleDO();
+        withTenant.setTenantId(42L);
+        when(userMapper.selectById(7L)).thenReturn(withTenant);
+        when(tenantIdResolver.lookupKeyOrDefault(eq(42L), anyString())).thenReturn("acme");
+
+        Optional<User> result = gateway.findById(7L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getTenantKey()).isEqualTo("acme");
+        verify(tenantIdResolver).lookupKeyOrDefault(eq(42L), eq("default"));
     }
 
     @Test

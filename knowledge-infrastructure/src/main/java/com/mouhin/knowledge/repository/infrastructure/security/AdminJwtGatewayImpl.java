@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>header：{@code {"alg":"HS256","typ":"JWT"}}
  *   <li>payload：{@code
- *       {"sub":userKey,"username":..,"admin":..,"roles":["ADMIN","AUDITOR"],..,"iat":..,"exp":..}}
+ *       {"sub":userKey,"username":..,"admin":..,"roles":["ADMIN","AUDITOR"],"tenantKey":"default",..,"iat":..,"exp":..}}
  * </ul>
  *
  * <p>密钥经 {@code knowledge.admin.jwt.secret}（推荐由 {@code KNOWLEDGE_ADMIN_JWT_SECRET} 环境变量注入，
@@ -38,6 +38,10 @@ import org.springframework.stereotype.Component;
  *
  * <p>P0-T2 起 {@code roles} claim 承载 {@code sys_role.role_key} 列表；签发端可选传入，未传时写入空数组，
  * 反序列化端读取缺失或非法类型时同样归一为空列表，与 {@link AdminTokenPayload} 的紧凑构造器语义一致。
+ *
+ * <p>P1-T8 起 {@code tenantKey} claim 承载 {@code sys_tenant.tenant_key} 字符串；签发端传入 {@code null}/blank
+ * 时归一为 {@code default}，反序列化端读取缺失或非文本节点同样回退 {@code default}， 保证升级前签发的旧令牌在校验端仍可解析（向后兼容窗口 30 天，P3
+ * 起强制）。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -55,8 +59,10 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
     private static final String CLAIM_USERNAME = "username";
     private static final String CLAIM_ADMIN = "admin";
     private static final String CLAIM_ROLES = "roles";
+    private static final String CLAIM_TENANT_KEY = "tenantKey";
     private static final String CLAIM_IAT = "iat";
     private static final String CLAIM_EXP = "exp";
+    private static final String DEFAULT_TENANT_KEY = "default";
     private static final int TOKEN_SEGMENT_COUNT = 3;
     private static final long SECONDS_PER_HOUR = 3600L;
 
@@ -76,11 +82,17 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
 
     @Override
     public String issue(String userKey, String username, boolean admin) {
-        return issue(userKey, username, admin, List.of());
+        return issue(userKey, username, admin, List.of(), null);
     }
 
     @Override
     public String issue(String userKey, String username, boolean admin, List<String> roles) {
+        return issue(userKey, username, admin, roles, null);
+    }
+
+    @Override
+    public String issue(
+            String userKey, String username, boolean admin, List<String> roles, String tenantKey) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationSeconds);
         ObjectNode payload = objectMapper.createObjectNode();
@@ -95,6 +107,9 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
                 }
             }
         }
+        payload.put(
+                CLAIM_TENANT_KEY,
+                tenantKey == null || tenantKey.isBlank() ? DEFAULT_TENANT_KEY : tenantKey);
         payload.put(CLAIM_IAT, now.getEpochSecond());
         payload.put(CLAIM_EXP, exp.getEpochSecond());
 
@@ -141,9 +156,18 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             String username = payload.path(CLAIM_USERNAME).asText(null);
             boolean admin = payload.path(CLAIM_ADMIN).asBoolean(false);
             List<String> roles = readRoles(payload.path(CLAIM_ROLES));
+            String tenantKey = payload.path(CLAIM_TENANT_KEY).asText(null);
+            if (tenantKey == null || tenantKey.isBlank()) {
+                tenantKey = DEFAULT_TENANT_KEY;
+            }
             return Optional.of(
                     new AdminTokenPayload(
-                            userKey, username, admin, roles, Instant.ofEpochSecond(exp)));
+                            userKey,
+                            username,
+                            admin,
+                            roles,
+                            tenantKey,
+                            Instant.ofEpochSecond(exp)));
         } catch (Exception e) {
             log.debug("Admin token verification failed: {}", e.getMessage());
             return Optional.empty();

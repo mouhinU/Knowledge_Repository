@@ -71,7 +71,8 @@ public class AdminLoginCmdExe {
                         user.getUserKey(),
                         user.getUsername(),
                         Boolean.TRUE.equals(user.getAdmin()),
-                        roles);
+                        roles,
+                        user.getTenantKey());
         AdminTokenPayload payload =
                 adminJwtService
                         .verify(token)
@@ -89,10 +90,11 @@ public class AdminLoginCmdExe {
                 Optional.ofNullable(payload.expiresAt()).map(Object::toString).orElse(""));
 
         log.info(
-                "管理端登录成功: username='{}', userKey={}, roles={}",
+                "管理端登录成功: username='{}', userKey={}, roles={}, tenantKey={}",
                 user.getUsername(),
                 user.getUserKey(),
-                roles.size());
+                roles.size(),
+                payload.tenantKey());
         return result;
     }
 
