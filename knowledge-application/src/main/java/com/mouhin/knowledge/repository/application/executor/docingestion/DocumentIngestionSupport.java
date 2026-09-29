@@ -16,6 +16,7 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
+import com.mouhin.knowledge.repository.domain.util.PathGuard;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -63,7 +64,7 @@ public class DocumentIngestionSupport {
         this.vectorStoreService = vectorStoreService;
         this.ingestionDomainService = ingestionDomainService;
         this.eventPublisher = eventPublisher;
-        this.storagePath = Path.of(storageDir);
+        this.storagePath = Path.of(storageDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.storagePath);
         } catch (IOException e) {
@@ -208,14 +209,9 @@ public class DocumentIngestionSupport {
     public Path saveToTemp(MultipartFile file) throws IOException {
         Path tempDir = createOwnerOnlyTempDir("knowledge-pdf-");
         String originalName = file.getOriginalFilename();
-        String tempName;
-        if (originalName != null && originalName.contains(".")) {
-            String ext = originalName.substring(originalName.lastIndexOf('.'));
-            tempName = "upload" + ext;
-        } else {
-            tempName = "upload.tmp";
-        }
-        Path tempFile = tempDir.resolve(tempName);
+        String ext = PathGuard.sanitizeExtension(originalName);
+        String tempName = "upload" + (ext.isEmpty() ? ".tmp" : ext);
+        Path tempFile = PathGuard.resolveWithin(tempDir, tempName);
         try (InputStream is = file.getInputStream()) {
             Files.copy(is, tempFile, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -254,12 +250,9 @@ public class DocumentIngestionSupport {
     }
 
     public Path copyToStorage(Path sourceFile, String originalName) throws IOException {
-        String ext = "";
-        if (originalName != null && originalName.contains(".")) {
-            ext = originalName.substring(originalName.lastIndexOf('.'));
-        }
+        String ext = PathGuard.sanitizeExtension(originalName);
         String storedName = UUID.randomUUID() + ext;
-        Path target = storagePath.resolve(storedName);
+        Path target = PathGuard.resolveWithin(storagePath, storedName);
         Files.copy(sourceFile, target, StandardCopyOption.REPLACE_EXISTING);
         return target;
     }

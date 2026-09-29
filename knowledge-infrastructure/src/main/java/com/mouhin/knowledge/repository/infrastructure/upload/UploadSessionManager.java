@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.upload;
 
+import com.mouhin.knowledge.repository.domain.util.PathGuard;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -129,16 +130,13 @@ public class UploadSessionManager {
                             session.getTotalChunks()));
         }
 
-        // 确定文件扩展名
+        // 确定文件扩展名（P0-T4：白名单截，防止 fileName 尾部注入穿越段）
         String fileName = session.getFileName();
-        String extension = "";
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex >= 0) {
-            extension = fileName.substring(dotIndex);
-        }
+        String extension = PathGuard.sanitizeExtension(fileName);
 
-        // 组装到永久存储目录
-        Path targetFile = Path.of(storagePath, UUID.randomUUID() + extension);
+        // 组装到永久存储目录（P0-T4：归一化 + startsWith 白名单）
+        Path storageRoot = Path.of(storagePath).toAbsolutePath().normalize();
+        Path targetFile = PathGuard.resolveWithin(storageRoot, UUID.randomUUID() + extension);
         Files.createDirectories(targetFile.getParent());
 
         log.info("开始组装分片 [uploadId={}, target={}]", uploadId, targetFile);

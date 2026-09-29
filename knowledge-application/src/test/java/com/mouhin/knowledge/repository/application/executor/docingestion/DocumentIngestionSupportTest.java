@@ -230,6 +230,64 @@ class DocumentIngestionSupportTest {
     }
 
     @Test
+    @DisplayName("P0-T4 负向：copyToStorage 面对恶意 originalName 不越界，扩展名降级为空")
+    void copyToStorageRejectsPathTraversal() throws IOException {
+        Path source = Files.createTempFile("payload-", ".bin");
+        Files.write(source, "x".getBytes(StandardCharsets.UTF_8));
+        try {
+            String[] malicious = {
+                "foo.pdf/../../etc/passwd",
+                "evil.pdf\\..\\..\\windows\\win.ini",
+                "with.nul\0txt",
+                "/abs/path/file.bin",
+                "noextension",
+                "shell.pdf$(rm -rf /)",
+            };
+            for (String originalName : malicious) {
+                Path stored = support.copyToStorage(source, originalName);
+                Path absRoot = storageDir.toAbsolutePath().normalize();
+                assertTrue(
+                        stored.startsWith(absRoot),
+                        "存储路径必须留在 root 内 [originalName=" + originalName + "]: " + stored);
+                // 名称只允许 UUID（36 位）或 UUID+合法 ext（长度 ≤ 47），且无路径分隔符
+                String fileName = stored.getFileName().toString();
+                assertFalse(
+                        fileName.contains("/") || fileName.contains("\\"),
+                        "落盘文件名不允许携带分隔符：" + fileName);
+                assertFalse(fileName.contains(".."), "落盘文件名不允许携带 '..'：" + fileName);
+            }
+        } finally {
+            Files.deleteIfExists(source);
+        }
+    }
+
+    @Test
+    @DisplayName("P0-T4 负向：saveToTemp 面对恶意 originalName 仍写入 owner-only 临时目录内")
+    void saveToTempRejectsPathTraversal() throws IOException {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("evil.pdf/../../etc/passwd");
+        byte[] payload = "x".getBytes(StandardCharsets.UTF_8);
+        when(file.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(payload));
+
+        Path temp = support.saveToTemp(file);
+        try {
+            Path parent = temp.getParent().toAbsolutePath().normalize();
+            String name = temp.getFileName().toString();
+            assertTrue(name.startsWith("upload"), "temp 文件仍以 'upload' 打头: " + name);
+            assertFalse(name.contains("/") || name.contains("\\"), "temp 名不带分隔符: " + name);
+            assertFalse(name.contains(".."), "temp 名不带 '..': " + name);
+            // 父目录在系统 tmpdir 之下，非 root 之下
+            assertTrue(
+                    parent.startsWith(
+                            Path.of(System.getProperty("java.io.tmpdir"))
+                                    .toAbsolutePath()
+                                    .normalize()));
+        } finally {
+            support.deleteTempFile(temp);
+        }
+    }
+
+    @Test
     @DisplayName("detectFileType：常见扩展名映射 MIME；未知与无扩展名回退 octet-stream")
     void detectFileTypeMapping() {
         assertEquals("application/pdf", support.detectFileType(Path.of("a.pdf")));
