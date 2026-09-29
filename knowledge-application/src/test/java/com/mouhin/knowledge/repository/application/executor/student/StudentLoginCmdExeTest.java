@@ -12,7 +12,9 @@ import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
+import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * 考生登录命令执行器单测：锁定四条关键分支—— 用户名不存在与密码错误均回相同消息（防枚举）；账号被禁用应显式区分；成功路径回写 24h 令牌；参数缺失走非法。
+ * 考生登录命令执行器单测：锁定四条关键分支—— 用户名不存在与密码错误均回相同消息（防枚举）；账号被禁用应显式区分；成功路径回写 24h 令牌；参数缺失走非法。 P0-T5
+ * 追加：登录成功须同时向会话表落一行 + 刷新 legacy 快照；两次登录产生两条不同的会话行。
  *
  * @author mouhinU
  * @date 2026-09-24 16:30:00
@@ -29,8 +32,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 class StudentLoginCmdExeTest {
 
     private final StudentGateway studentGateway = mock(StudentGateway.class);
+    private final StudentSessionGateway studentSessionGateway = mock(StudentSessionGateway.class);
     private final BCryptPasswordEncoder passwordEncoder = mock(BCryptPasswordEncoder.class);
-    private final StudentLoginCmdExe exe = new StudentLoginCmdExe(studentGateway, passwordEncoder);
+    private final StudentLoginCmdExe exe =
+            new StudentLoginCmdExe(studentGateway, studentSessionGateway, passwordEncoder);
 
     private StudentLoginCmd cmd(String user, String pwd) {
         StudentLoginCmd c = new StudentLoginCmd();
@@ -57,6 +62,7 @@ class StudentLoginCmdExeTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("用户名或密码错误");
         verify(studentGateway, never()).update(any());
+        verify(studentSessionGateway, never()).save(any());
     }
 
     @Test
@@ -70,6 +76,7 @@ class StudentLoginCmdExeTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("用户名或密码错误");
         verify(studentGateway, never()).update(any());
+        verify(studentSessionGateway, never()).save(any());
     }
 
     @Test
@@ -85,10 +92,11 @@ class StudentLoginCmdExeTest {
         // 未验证密码前即抛出：禁用短路
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(studentGateway, never()).update(any());
+        verify(studentSessionGateway, never()).save(any());
     }
 
     @Test
-    @DisplayName("登录成功 → 回写 sessionToken + 24h 过期时间，返回同一 token")
+    @DisplayName("登录成功 → 回写 sessionToken + 24h 过期时间 + 会话表落一行，返回同一 token")
     void successPersistsTokenAndExpiry() {
         Student s = activeStudentWithHash("$2a$10$abc");
         when(studentGateway.findByUsername("alice")).thenReturn(Optional.of(s));
@@ -103,10 +111,19 @@ class StudentLoginCmdExeTest {
         assertThat(saved.getSessionToken()).isEqualTo(token);
         assertThat(saved.getTokenExpiry()).isNotNull();
         assertThat(saved.getUpdateTime()).isNotNull();
+
+        ArgumentCaptor<StudentSession> sessCap = ArgumentCaptor.forClass(StudentSession.class);
+        verify(studentSessionGateway, times(1)).save(sessCap.capture());
+        StudentSession row = sessCap.getValue();
+        assertThat(row.getSessionToken()).isEqualTo(token);
+        assertThat(row.getStudentId()).isEqualTo(1L);
+        assertThat(row.getExpiresAt()).isNotNull();
+        assertThat(row.getCreateTime()).isNotNull();
+        assertThat(row.getUpdateTime()).isNotNull();
     }
 
     @Test
-    @DisplayName("两次连续登录产生不同 token（每次刷新，不与历史串号）")
+    @DisplayName("P0-T5：两次连续登录 → 两条不同会话行 + 两个不同 token")
     void consecutiveLoginsProduceDistinctTokens() {
         Student s = activeStudentWithHash("$2a$10$abc");
         when(studentGateway.findByUsername("alice")).thenReturn(Optional.of(s));
@@ -116,5 +133,10 @@ class StudentLoginCmdExeTest {
         String t2 = exe.execute(cmd("alice", "right"));
 
         assertThat(t1).isNotEqualTo(t2);
+        ArgumentCaptor<StudentSession> sessCap = ArgumentCaptor.forClass(StudentSession.class);
+        verify(studentSessionGateway, times(2)).save(sessCap.capture());
+        assertThat(sessCap.getAllValues())
+                .extracting(StudentSession::getSessionToken)
+                .containsExactly(t1, t2);
     }
 }

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * Flyway V1-V21 迁移冒烟测试（体检 HIGH H4）。
+ * Flyway V1-V22 迁移冒烟测试（体检 HIGH H4）。
  *
  * <p>用 H2（MySQL 兼容模式）在内存中一次性回放全部迁移脚本，锁定"库重建 / 迁移链可成功执行"这一 生产启动前置：若任一版本脚本存在语法错误、跨版本对象依赖破坏（如 V11 新表被
  * V13 ALTER 引用）， {@code flyway.migrate()} 会直接抛错、本用例失败。生产虽运行在 MySQL，但项目要求 H2 亦可启动 （见 AGENTS.md 第十章
@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V21 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V22 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V21）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 21;
+    /** 迁移脚本总数（V1..V22）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 22;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -54,10 +54,11 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V21
+        // 二次调用应无待处理迁移（幂等），并停留在 V22
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals("21", current.getVersion().getVersion(), "最终版本应为 V21（系统配置表 sys_config）");
+        assertEquals(
+                "22", current.getVersion().getVersion(), "最终版本应为 V22（考生会话表 kb_student_session）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -159,6 +160,38 @@ class FlywayMigrationSmokeTest {
                 hasExtractionCache = rs.getInt(1) > 0;
             }
             assertTrue(hasExtractionCache, "V19 表缺失 (kb_extraction_cache)");
+
+            // 抽查 V22（P0-T5 学生多会话）新建表 kb_student_session 及关键列存在
+            boolean hasStudentSession = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'kb_student_session'")) {
+                assertTrue(rs.next());
+                hasStudentSession = rs.getInt(1) > 0;
+            }
+            assertTrue(hasStudentSession, "V22 表缺失 (kb_student_session)");
+
+            List<String> sessionCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'kb_student_session' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('session_token','student_id','expires_at','revoked_at')")) {
+                while (rs.next()) {
+                    sessionCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    sessionCols.contains("session_token"),
+                    "V22 列缺失 (kb_student_session.session_token)");
+            assertTrue(
+                    sessionCols.contains("student_id"), "V22 列缺失 (kb_student_session.student_id)");
+            assertTrue(
+                    sessionCols.contains("expires_at"), "V22 列缺失 (kb_student_session.expires_at)");
+            assertTrue(
+                    sessionCols.contains("revoked_at"), "V22 列缺失 (kb_student_session.revoked_at)");
         }
     }
 }
