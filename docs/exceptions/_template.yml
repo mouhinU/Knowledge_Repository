@@ -1,0 +1,17 @@
+# 例外记录模板 —— 复制本文件为 EX-YYYYMMDD-NNN（或 saas-xxx-NNN.yml）后填写。
+# 依据：AGENTS.md §5「例外申请与审批流程」。登记位置：docs/exceptions/。
+# 复审：到期或功能变更时，责任人发起复审 Issue，30 天内给出是否恢复规范的决议。
+
+id: EX-YYYYMMDD-NNN            # 唯一编号：EX-日期-序号
+title: ""                      # 一句话概括例外内容
+affected_rule: ""              # 引用 AGENTS.md §0 或某分册具体章节，如红线 #12 / coding-guideline §十
+scope: ""                      # 影响面：模块/包/端点/表（尽量精确到可枚举）
+reason: ""                     # 无法适用规范的原因（为什么必须例外，而非为什么不想遵守）
+alternative: ""                # 替代方案与合规性论证（例外期间如何保证原规范想防的风险）
+risk: ""                       # 风险评估（最坏情况、影响范围、可检测性）
+rollback: ""                   # 回退计划（例外撤销/恢复规范时如何收敛回来）
+created: YYYY-MM-DD            # 登记日期
+expiry: YYYY-MM-DD             # 到期日（到期必须复审，未复审视为 expired 失效）
+reviewer: ""                   # 架构/安全/运维负责人签字（姓名 + 角色 + 日期）
+status: draft                  # draft | approved | expired | revoked
+review_issue: ""               # 复审 Issue 链接（到期前 30 天创建）

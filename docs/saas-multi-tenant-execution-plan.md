@@ -4,8 +4,8 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 # SaaS 化改造 · 可执行计划（Execution Plan）
 
-> 状态：**Planning（配合 `saas-multi-tenant-proposal.md` 使用，提案批准前不开工）**
-> 版本：v0.1（2026-09-29） · 作者：QoderWork
+> 状态：**执行中（Phase 0 已完成；Phase 1 经项目负责人口头授权开工，P1-T1/T2/T3 地基进行中，受 `knowledge.saas.enabled=false` 门控）**
+> 版本：v0.2（2026-09-29） · 作者：QoderWork · 审批：见 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11（口头授权，运维 U1/U3 待补）
 > 关联：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策权威）·红线基线 [../AGENTS.md](../AGENTS.md)·迁移规范 [data-and-migration-guideline.md](data-and-migration-guideline.md)·测试规范 [testing-guideline.md](testing-guideline.md)
 
 本文件把变更提案的 §7 路线图**拆到"一次 PR 一子任务"的颗粒度**，每项都有明确锚点文件、依赖、验收与回退。**任务编号规则**：`P<phase>-T<n>`（例：`P0-T1` = Phase 0 第 1 项）。

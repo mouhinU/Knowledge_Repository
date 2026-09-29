@@ -1,8 +1,9 @@
 # SaaS 化改造 · 变更提案（Multi-Tenant Transformation Proposal）
 
-> 状态：**提案 / 待审批（DRAFT — Pending Architect + Security Approval）**
-> 依据：根目录 `AGENTS.md` §0 红线 #11「重大框架/架构变更须提交变更提案（影响评估、回退计划、测试覆盖）并经架构/负责人审批」。本文件即该提案，**审批通过前不进入编码**。
-> 版本：v0.1（2026-09-29） · 作者：QoderWork（调研） · 待签署审批人：架构负责人 + 安全负责人
+> 状态：**已批准（口头授权，2026-09-29）· 基线（APPROVED-VERBAL — Phase 1 可开工，受 `knowledge.saas.enabled=false` 安全开关门控）**
+> 依据：根目录 `AGENTS.md` §0 红线 #11「重大框架/架构变更须提交变更提案（影响评估、回退计划、测试覆盖）并经架构/负责人审批」。本文件即该提案。
+> 审批记录：项目负责人 mouhinU 于 2026-09-29 以 Phase 0 同款「口头同意先行」方式授权进入 Phase 1（运行时仅 `default` 租户、开关默认关闭、行为与主干等价可回退）。**运维/基础设施侧承接项（评审包 U1 Milvus 环境、U3 集群）尚待正式书面确认，不阻塞 P1-T1/T2/T3 地基开发。**
+> 版本：v0.2（2026-09-29） · 作者：QoderWork（调研） · 审批：项目负责人口头签署（架构+安全）；运维待补
 > 基线技术栈：COLA 5.0 · Spring Boot 3.4 / Java 21 · MyBatis-Plus 3.5.17 · LangChain4j 1.0.1 · Milvus 2.5.4 · MySQL 8 + H2 · Flyway
 > 配套：**任务级拆解见** [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)（提案批准后按此执行）
 
@@ -238,9 +239,9 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
 
 ## 11. 审批（依据 AGENTS.md §0 #11 / §5 例外与审批流程）
 
-- [ ] 架构负责人签署（同意混合模型 + 路线图 + 回退方案）
-- [ ] 安全负责人签署（Phase 0 存量安全修复 + 租户隔离威胁模型 + 跨租户越权测试充分性）
-- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）
-- [ ] 通过后：本文件从 `docs/saas-multi-tenant-proposal.md`（DRAFT）转为分册基线，并在 `AGENTS.md` 分册地图补一行入口；例外（如某些表暂不加租户列）登记到 `docs/exceptions/`。
+- [x] 架构负责人签署（同意混合模型 + 路线图 + 回退方案）—— 项目负责人 mouhinU 口头授权，2026-09-29
+- [x] 安全负责人签署（Phase 0 存量安全修复 + 租户隔离威胁模型 + 跨租户越权测试充分性）—— 项目负责人 mouhinU 口头授权，2026-09-29
+- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）—— **待 U1/U3 正式书面确认；不阻塞 P1-T1/T2/T3 地基开发，但阻塞 Phase 2 向量隔离开工**
+- [x] 通过后：本文件从 DRAFT 转为分册基线（已转）；`AGENTS.md` 分册地图补一行入口（待 X-T6 补）；例外（如某些表暂不加租户列）登记到 `docs/exceptions/`（EX-20260929-001 已登记）
 
-> 审批前，本提案不作为编码依据；Phase 0 的存量安全修复因独立且低耦合，可在获得口头同意后先行启动。
+> 审批说明：本轮为项目负责人「口头同意先行」（与 Phase 0 同模式），已解锁 Phase 1 地基（P1-T1/T2/T3），全程受 `knowledge.saas.enabled=false` 开关门控、运行时仅 `default` 租户、行为与主干等价可回退。正式三方书面签署与运维承接确认（评审包 §6 签署页、U1/U3）仍需在开启 Phase 2 前补齐。

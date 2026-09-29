@@ -1,0 +1,42 @@
+# 例外记录：平台级容器表豁免 tenant_id 列
+# 依据：AGENTS.md §5「例外申请与审批流程」· 模板见 _template.yml
+
+id: EX-20260929-001
+title: "平台级容器表（sys_tenant / sys_platform_admin / Flyway schema history）不加 tenant_id 列"
+affected_rule: >
+  AGENTS.md §0 红线 #7（DO 不越 infrastructure，转换只在层边界）在 SaaS 语境下的延伸——
+  TenantLineInnerInterceptor 对全部业务表自动注入 tenant_id 谓词（saas-multi-tenant-execution-plan.md
+  P1-T7）；本例外登记拦截器 ignore 白名单表，使其**不适用**「业务数据一律带租户列」的统一约束。
+  同时引用 saas-multi-tenant-proposal.md §2.3 末段与 §2.3「MyBatis-Plus 改造」ignore 列表条款。
+scope: >
+  表级豁免：sys_tenant、sys_tenant_placement、sys_platform_admin、flyway_schema_history；
+  代码级豁免：infrastructure/config/MyBatisPlusConfig 的 TenantLineHandler.ignoreTable 白名单
+  （P1-T1 / P1-T7 交付物）。新增平台级表需另行登记，不得默认加入白名单。
+reason: >
+  这些表是「租户的容器」而非「租户的数据」：sys_tenant 本身定义租户边界，给租户表加
+  tenant_id 属于自我指涉、破坏语义；sys_platform_admin 是跨租户运维主体（提案 §2.6 三层身份
+  之首），其归属是平台而非任何单一租户；Flyway schema history 由迁移框架管理，与业务租户
+  无关。若强行加列，拦截器将为容器表注入其自身无法提供的租户条件，导致启动期与迁移期 SQL
+  全部失效。
+alternative: >
+  1) 白名单为**封闭枚举**，写在 MyBatisPlusConfig 常量中并配单元测试断言
+  「select from sys_tenant 生成的 SQL 不含 tenant_id 谓词、select from kb_document 必含」
+  （对应 execution-plan P1-T7 验收项与提案 §8 拦截器测试策略）。
+  2) 平台级表的访问统一收口到 /api/platform/** 且仅平台管理员鉴权（P3-T1），以接口层权限
+  弥补列级隔离的缺失。
+  3) 例外不豁免这些表的手写 SQL 规范（#{} 参数化、红线 #5 仍然适用）。
+risk: >
+  白名单表若被误用存业务数据，将完全脱离租户隔离；sys_platform_admin 凭证泄露即等于全平台
+  越权。缓解：白名单代码评审双重确认 + P1-T10/P2-T5 跨租户负向用例覆盖 + 平台端点审计
+  （提案 §3 生命周期全量入 BlackboardAuditLog）。
+rollback: >
+  恢复规范的成本低：从 ignoreTable 移除即让拦截器生效；但因这些表语义上无租户归属，实际回滚
+  方案是「把误入白名单的业务表迁出容器表清单」而非给容器表补列。若 sys_platform_admin 被证明
+  需按租户拆分，则其应改造为 sys_user 的租户内角色而非平台表，属架构变更须另立提案。
+created: 2026-09-29
+expiry: 2026-12-31             # 随 Phase 3 退出条件（P3-T1 平台端鉴权/审计落地）复审
+reviewer: "mouhinU（项目负责人口头签署）· 2026-09-29"   # 正式书面会签待补（架构+安全）
+status: approved-verbal        # 随提案 §11 口头授权一并批准；正式会议复审前有效
+review_issue: >
+  复审触发点：saas-multi-tenant-execution-plan.md P3-T1/P3-T6 合并后，确认 ignore 白名单
+  与平台端权限模型仍与本例外描述一致；不一致则 30 天内发起复审并更新本记录。
