@@ -1,9 +1,9 @@
 # SaaS 化改造 · 变更提案（Multi-Tenant Transformation Proposal）
 
-> 状态：**已批准（口头授权，2026-09-29）· 基线（APPROVED-VERBAL — Phase 1 可开工，受 `knowledge.saas.enabled=false` 安全开关门控）**
+> 状态：**已批准（口头授权，2026-09-29）· 执行中（APPROVED-VERBAL — Phase 0/1/2 已完成交付归档，Phase 3 待开工授权）**
 > 依据：根目录 `AGENTS.md` §0 红线 #11「重大框架/架构变更须提交变更提案（影响评估、回退计划、测试覆盖）并经架构/负责人审批」。本文件即该提案。
-> 审批记录：项目负责人 mouhinU 于 2026-09-29 以 Phase 0 同款「口头同意先行」方式授权进入 Phase 1（运行时仅 `default` 租户、开关默认关闭、行为与主干等价可回退）。**运维/基础设施侧承接项（评审包 U1 Milvus 环境、U3 集群）尚待正式书面确认，不阻塞 P1-T1/T2/T3 地基开发。**
-> 版本：v0.2（2026-09-29） · 作者：QoderWork（调研） · 审批：项目负责人口头签署（架构+安全）；运维待补
+> 审批记录：项目负责人 mouhinU 于 2026-09-29 以 Phase 0 同款「口头同意先行」方式授权进入 Phase 1（运行时仅 `default` 租户、开关默认关闭、行为与主干等价可回退）；2026-09-30 同模式追加 Phase 2 开工授权（S-1 方案 B + S-2 方案 b），并于同日完成 P2-T1~P2-T5 交付归档。**运维/基础设施侧承接项（评审包 U1 Milvus 环境、U3 集群）尚待 Phase 3 引入 partition-key + SILO 时正式书面确认，不阻塞 Phase 2 方案 b 落地。**
+> 版本：v0.3（2026-09-30） · 作者：QoderWork（调研） · 审批：项目负责人口头签署（架构+安全）；运维待补
 > 基线技术栈：COLA 5.0 · Spring Boot 3.4 / Java 21 · MyBatis-Plus 3.5.17 · LangChain4j 1.0.1 · Milvus 2.5.4 · MySQL 8 + H2 · Flyway
 > 配套：**任务级拆解见** [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)（提案批准后按此执行）
 
@@ -192,7 +192,7 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
 |---|---|---|---|
 | **Phase 0（安全地基）** | 先修存量越权 | G10 身份只信令牌、G5 roles 接线、G6 列表加谓词、路径归一化 | ✅（不改租户语义） |
 | **Phase 1（租户脊柱）** | 单租户语义打穿 | `sys_tenant`+默认租户、`TenantContext`、`MyBatisPlusConfig`+`TenantLineInnerInterceptor`、15 表加 `tenant_id`+回填、JWT 加 tenant claim、resolver filter | ✅（仅 default 租户运行） |
-| **Phase 2（向量隔离）** | Milvus 租户化 | `EmbeddingStoreProvider` 重构、`tenant_id` metadata+partition-key、下推修复、SILO 独立 collection | ✅（POOL 先行） |
+| **Phase 2（向量隔离）✅ 已交付（2026-09-30）** | Milvus 租户化（S-2 方案 b） | `EmbeddingStoreProvider` 骨架 + `metadata.tenant_id` 写入（Long）+ `IsEqualTo` JSON 谓词下推（`buildFilter` 永不 null）+ SILO 命名工具静态校验 + 跨租户负向 `@SpringBootTest` + CI `tenant-isolation` job；🚧 **partition-key 建集合 / SILO 独立集合生命周期 / 万级时延阈值 P95 / 运维 B 类正式签署 转 Phase 3** | ✅（POOL 单 store 先行） |
 | **Phase 3（生命周期）** | 多租户自助 | 平台管理端、provisioning 状态机、suspend/archive/delete、SILO 建库+逐库 Flyway | ⚠️ 需 1+2 |
 | **Phase 4（配置/缓存/LLM 租户化）** | 去全局化 | `sys_config`/`extraction_cache` 加租户维+分布式失效、per-tenant LLM 配置 | ✅ |
 | **Phase 5（对象存储+无状态）** | 可水平扩展 | MinIO prefix、上传会话外置 Redis、去固定名 compose、副本化 | ✅（WL-D） |
@@ -239,6 +239,7 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
     LangChain4j 仅保留 embedding 模型/query 向量化；**即时回退** = 沿用 LangChain4j JSON 谓词下推（已证隔离正确、零重构风险）；
     **SILO** = 独立集合 `kc_{tenantKey}`。三者由 `EmbeddingStoreProvider` 按 placement 路由，`saas.enabled=false` 仍走旧 store。
   - **落地节奏（Phase 2 开工授权 · 2026-09-30 项目负责人口头采纳 S-2 方案 b + S-1 方案 B）**：**Phase 2** 走"即时回退"路径——保留 LangChain4j 单例 + 现网 `knowledge_chunks` 集合，`metadata.tenant_id` 走 `IsEqualTo` JSON 谓词下推（spike 已证 0 leak），provider 骨架先落但不分片、SILO 命名工具与静态校验落但集合不建；**Phase 3** 引入 SILO 时同步上 partition-key 目标态（`io.milvus` SDK 自建 `knowledge_chunks_pk`）、SILO 集合生命周期、运维 B 类正式签署与万级时延阈值会审。R1 决策本身（partition-key 为 POOL 目标态）**不回退**，只是**落地节奏分两段**。详见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) §1/§3/§7 与 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §4 P2-T1~P2-T5（v0.7 措辞已同步）。
+  - **✅ Phase 2 已交付归档（2026-09-30）**：P2-T1~P2-T5 依次合入 `ddbcfb3`/`5c1982d`/`10fc424`/`908aac9`/`c702fce`，退出条件达成——`MilvusVectorStoreService` 全部经 `EmbeddingStoreProvider` 拿 store（不再直连 bean）；`metadata.tenant_id` 100% 写入非空（Long 型，`TenantIdResolver` 缓存 key→id）+ 检索必带 `IsEqualTo("tenant_id", ...)` 前置（`buildFilter` 永不返 null）；P2-T5 `MilvusTenantIsolationTest` 4 用例断言跨租户零泄漏（CI `tenant-isolation` job 首跑真绿由 GitHub Actions 承担，本机无 Docker 时 `disabledWithoutDocker=true` skipped）。全 reactor `./mvnw test` BUILD SUCCESS、单测新增 100 用例全绿。partition-key/SILO/万级时延阈值/运维 B 类正式签署留待 Phase 3 会审。措辞同步至执行计划 v0.8 + Phase 2 清单 v0.3 + AGENTS.md §1 分册地图。
 - **R2（高）** 混合模型的双轨（POOL+SILO）长期维护复杂度；需明确 SILO 准入门槛与「是否只支持一种」的退让方案。**Phase 2 授权（2026-09-30）**：采纳方案 B 延后至 Phase 3——`sys_tenant_placement.placement` 恒 POOL，SILO 分支代码保留但运行时不放开；准入门槛与商务模型一并留至 Phase 3 会审（评审包 U2）
 - **R3（中）** 无外键（G4）导致租户删除/级联只能应用层编排，误删风险高，需强对账。
 - **R4（中）** JDK21 虚拟线程/上下文传播与 `ThreadLocal` 语义冲突，选型 `ScopedValue` vs 快照装饰需评审。

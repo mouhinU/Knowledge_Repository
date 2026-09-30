@@ -7,7 +7,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 > 用途：**Phase 2（向量隔离，P2-T1~T5）开工前的最后一道闭环清单**。把提案 §10 R1 决策、评审包 §2.3/§3/§6、执行计划 §4/§13 中所有仍"待补/未拍板/交叉未接"的条目落成一页可勾选的 Go/No-Go 表。
 > 权威文档：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策）· 三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md)（签署栏）· 可执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)（P2 任务表）· 规范基线 [../AGENTS.md](../AGENTS.md) §0 红线 #11
 > Spike 报告：[../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)（P2-T0 结论）
-> 版本：v0.2（2026-09-30） · 作者：QoderWork · 状态：**Phase 2 开工授权已下**——项目负责人 2026-09-30 口头采纳 **S-1 方案 B**（SILO 授权延后至 Phase 3）+ **S-2 方案 b**（现网 `knowledge_chunks` 走 LangChain4j JSON 谓词路径，partition-key 目标态与 SILO 独立集合一并延后）。B 类硬阻塞随之消解至 Phase 3 会审；T-1/T-3 与 S-2 决策绑定；Phase 2 P2-T1~P2-T5 可在 `saas.enabled=false` 门控下开工。正式运维三方签署（B-1/B-2/B-3）与 partition-key 目标态落地会审留至 **Phase 3 SILO 引入时**。
+> 版本：v0.3（2026-09-30） · 作者：QoderWork · 状态：**Phase 2 已交付归档**——P2-T1~P2-T5 于 2026-09-30 依次合入 `ddbcfb3`/`5c1982d`/`10fc424`/`908aac9`/`c702fce`，退出条件达成（全 reactor `./mvnw test` BUILD SUCCESS、单测新增 100 用例全绿、CI `tenant-isolation` job 就位、P2-T5 集成 4 用例 compile 通过 + `disabledWithoutDocker=true` 环境无 Docker 时 skipped）。上游授权不变：**S-1 方案 B**（SILO 授权延后至 Phase 3）+ **S-2 方案 b**（现网 `knowledge_chunks` 走 LangChain4j JSON 谓词路径）；B-1/B-2/B-3 正式运维签署与 partition-key/SILO/万级时延阈值会审留至 **Phase 3 引入时**（届时参照本清单格式新建 `docs/saas-phase3-go-checklist.md`）。
 
 ---
 
@@ -113,43 +113,51 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 ## 7. 通过后的下一步
 
-1. **回读同步（v0.2 已执行）**：本清单 S/T 结论已回写：
-   - [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §4 P2-T1/P2-T2/P2-T3/P2-T4/P2-T5 交付物与验收栏按方案 b 调整（partition-key/SILO 措辞延后）。
-   - [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) 头部 v0.6 → v0.7，标注 Phase 2 开工授权已下。
-   - [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 R1 决策段追加"落地节奏分两段"说明；§11 审批说明段补记 2026-09-30 S-1/S-2 口头授权。
-   - [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md) §6 附带决议追加 S-1 B/S-2 b 授权条目；运维栏保持 ☑ 需补料并加"Phase 2 范围内消解、Phase 3 补齐"注。
-   - [../AGENTS.md](../AGENTS.md) §1 分册地图清单行版本戳由 v0.1→v0.2。
-   - 本清单 v0.1 → v0.2（当前状态），Phase 3 起前归档为"生效基线"，届时参照格式创建 `docs/saas-phase3-go-checklist.md`。
+1. **回读同步（v0.2/v0.3 已执行两轮）**：
+   - **v0.2（开工授权落地）**：本清单 S/T 结论已回写：
+     - [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §4 P2-T1/P2-T2/P2-T3/P2-T4/P2-T5 交付物与验收栏按方案 b 调整（partition-key/SILO 措辞延后）。
+     - [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) 头部 v0.6 → v0.7，标注 Phase 2 开工授权已下。
+     - [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 R1 决策段追加"落地节奏分两段"说明；§11 审批说明段补记 2026-09-30 S-1/S-2 口头授权。
+     - [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md) §6 附带决议追加 S-1 B/S-2 b 授权条目；运维栏保持 ☑ 需补料并加"Phase 2 范围内消解、Phase 3 补齐"注。
+     - [../AGENTS.md](../AGENTS.md) §1 分册地图清单行版本戳由 v0.1→v0.2。
+     - 本清单 v0.1 → v0.2。
+   - **v0.3（Phase 2 交付归档）**：P2-T1~P2-T5 依次合入后再次回读：
+     - [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) 头部 v0.7 → v0.8，状态行加 Phase 2 交付完成里程碑；§4 P2-T1~P2-T5 5 行标题栏前缀 ✅、验收栏补 commit SHA + 单测用例数 + CI job 状态；§4 "Phase 2 退出条件" 段落由"待达成"→"已达成"，附 5 commit SHA 与新增单测计数；§11 S5 Sprint 条 ✅ 已交付、关键路径 v0.7→v0.8。
+     - 本清单 v0.2 → v0.3（当前状态），Phase 3 起前作为"生效基线"归档，届时参照格式创建 `docs/saas-phase3-go-checklist.md`。
+     - [../AGENTS.md](../AGENTS.md) §1 分册地图清单行版本戳由 v0.2→v0.3。
 
-2. **P2-T1 起 PR**（下一步动作）：以 `feat(tenant): P2-T1 EmbeddingStoreProvider 注册表（Phase 2 方案 b 单 store + metadata.tenant_id）` 提交，交付内容：
-   - 新 `infrastructure/milvus/EmbeddingStoreProvider.java`（骨架，Phase 2 内部仅代理 `MilvusEmbeddingStore` 单例）+ `EmbeddingStoreRouter.java`（Phase 2 恒返回单 store，接口预留 SILO 分片钩子）。
-   - 改 `MilvusConfig.java` 保持 `@Lazy EmbeddingStore<TextSegment>` 单例 bean 不变（provider 内部消费）。
-   - 单测覆盖：provider 返回非 null、router 恒单 store、`saas.enabled=false` 与 `true` 行为等价。
-   - PR 描述引用清单编号：`docs(saas): 落地 S-2 方案 b、T-1 Phase 2 消解、C-2 无 tenant tag 自检`。
+2. **✅ P2-T1 已交付**（提交 `ddbcfb3`）：`feat(tenant): P2-T1 EmbeddingStoreProvider 骨架（Phase 2 方案 b 单 store + SILO 分片接缝预留）`，实际落地：
+   - 新 `infrastructure/milvus/EmbeddingStoreProvider.java`（`store()` 直通 poolStore；`storeFor(tenantKey, placement)` 委托 router）+ `EmbeddingStoreRouter.java`（`route(tenantKey, placement, poolStore)` 恒返 poolStore，SILO 分支注释化占位 Phase 3 落）；`MilvusVectorStoreService` 构造改为 `(storeProvider, embeddingModel, tenantIdResolver)`，不再直连 `EmbeddingStore` bean。
+   - `MilvusConfig.java` 保持 `@Lazy EmbeddingStore<TextSegment>` 单例 bean 不变（provider 内部消费）。
+   - 单测：`EmbeddingStoreProviderTest` 8 用例 + `EmbeddingStoreRouterTest` 13 用例全绿；C-2 无 tenant tag 自检通过（未引入 MeterRegistry）。
+   - **偏离说明**：Router 参数顺序由 `(poolStore, tenantKey, placement)` 修正为 `(tenantKey, placement, poolStore)` 以对齐 provider 调用；Javadoc 同步。
 
-3. **P2-T2 起 PR**：以 `feat(tenant): P2-T2 metadata.tenant_id 写入路径` 提交，交付内容：
-   - `DocumentChunk` 增 `tenantId` 字段（domain 层）、`DocumentChunkDO` 与 metadata 序列化联动。
-   - `MilvusVectorStoreService.storeChunks` 在 `Metadata.put("tenant_id", ...)` 补写，非空断言。
-   - `DocumentIngestionSupport` 在构建 chunk 时从 `TenantContext` 读 tenantId（P1-T9 快照已就位）。
-   - 单元 + 集成：写入 JSON metadata 含 `tenant_id`；`saas.enabled=false` 时值 = `default`。
+3. **✅ P2-T2 已交付**（提交 `5c1982d`）：`feat(tenant): P2-T2 metadata.tenant_id 写入路径（S-2 方案 b JSON 谓词地基）`，实际落地：
+   - `DocumentChunk` domain 增 `tenantKey`（transient，仅向量写路径；DB `tenant_id` 由 P1-T4 拦截器注入）·`DocumentIngestionDomainService`/`DocumentIngestionSupport`/`IndexCustomChunksCmdExe` 在构建 chunk 处调 `chunk.setTenantKey(TenantContext.getOrDefault())`。
+   - `MilvusVectorStoreService.storeChunks` 内 metadata **首位** `put("tenant_id", tenantIdResolver.resolve(effectiveTenantKey(chunk)))`——采用 **数值型 Long** 对齐 spike Int64 与 Phase 3 partition-key 目标态，`Metadata.put(String, long)` 重载。
+   - 单元：`MilvusVectorStoreServiceTest` 6 nested 类 12 用例全绿；未知 tenantKey 抛 `IllegalStateException`（P1-T8 sentinel）；`saas.enabled=false` 时值 = default（tenant_id=1）。
    - **不做**：partition-key 集合、集合迁移脚本、io.milvus SDK 直连建集合（转 Phase 3）。
 
-4. **P2-T3 起 PR**：以 `feat(tenant): P2-T3 tenant_id 前置过滤下推 + buildFilter 陈旧注释修正` 提交，交付内容：
-   - `MilvusVectorStoreService.buildFilter` 加入 `IsEqualTo("tenant_id", TenantContext.get())` 作前置，`And` 组合 category（利用 spike 发现的 `mapAnd` 支持）；修 Javadoc 陈旧"不支持复杂 OR/AND"口径。
+4. **✅ P2-T3 已交付**（提交 `10fc424`）：`feat(tenant): P2-T3 tenant_id 前置过滤下推 + buildFilter 陈旧注释修正`，实际落地：
+   - `MilvusVectorStoreService.buildFilter` 重写：`new IsEqualTo("tenant_id", currentTenantId)` + 可选 `Filter.and(tenantFilter, new IsEqualTo("category", ...))` 组合，**永不返 null**（旧签名允许 null 会导致无上下文时检索全库泄漏，已修）；陈旧 Javadoc "不直接支持复杂 OR/AND" 口径 → 真因是字符串反解析器缺失非 API 限制（spike 已证 `MilvusMetadataFilterMapper` 支持 And/Or/Not/In）。
    - `AuthorizedSearchSupport.filterAccessible` 保留（双保险）。
-   - 单测：filter 表达式含 `tenant_id`；集成：A 建 B 查返空。
+   - 单元：`MilvusVectorStoreServiceTest.SearchFilterPushdown` 7 用例全绿（捕获 `EmbeddingSearchRequest.filter()` 断言结构 + `comparisonValue` Long；`SystemStatusQryExe` 4-arg 健康检查回退到 `default` id=1 已覆盖）。
    - over-fetch ×3+10/上限 500 阈值沿用（Phase 2 单集合无剪枝损失，Phase 3 partition-key 引入时重估）。
 
-5. **P2-T4 交付降级**：以 `chore(saas): P2-T4 SILO 命名工具类（Phase 2 仅静态校验，集合实现延后）` 提交，交付内容：
-   - 新 `infrastructure/milvus/SiloCollectionNaming.java`（工具类：`toCollectionName(tenantKey)` + `validate(tenantKey)` 正则 `^[a-z][a-z0-9_]{1,62}$`）。
-   - P3-T1 平台端 `create` 接口预留调用点（占位 TODO）。
+5. **✅ P2-T4 已交付**（提交 `908aac9`）：`chore(saas): P2-T4 SILO 命名工具类（Phase 2 仅静态校验，集合实现延后至 Phase 3）`，实际落地：
+   - 新 `infrastructure/milvus/SiloCollectionNaming.java`（工具类：`toCollectionName(tenantKey)` 校验 + `kc_` 前缀拼接·`isValid(tenantKey)` 布尔正则 `^[a-z][a-z0-9_]{1,62}$`·`assertValidForProvisioning` Phase 3 钩子·`isSiloCollectionName`/`fromCollectionName` 反解·`MAX_MILVUS_COLLECTION_NAME_LENGTH=255`）。
+   - P3-T1 平台端 `create` 接口预留调用点（TODO 注释化占位）。
+   - 单元：`SiloCollectionNamingTest` 57 用例全绿（`@CsvSource` 正例 + `@ValueSource` 反例覆盖 null/blank/首字符数字/首字符下划线/大写/连字符/点/`kc_` 前缀重复/长度 2 与 63 边界允许、64 拒）。
+   - **偏离说明**：`@ValueSource` 不支持非编译期常量表达式（`"a"+"b".repeat(62)`），改为独立 `rejectsOverflowLength()` 测试方法。
    - **不做**：`SiloCollectionAdmin.java` 集合生命周期（转 Phase 3）。
 
-6. **P2-T5 门禁降级**：以 `test(tenant): P2-T5 向量跨租户负向 @SpringBootTest + Testcontainers Milvus（正确性断言，阈值转 Phase 3）` 提交，交付内容：
-   - 新 `knowledge-web/src/test/java/.../tenant/MilvusTenantIsolationTest.java`（Testcontainers Milvus standalone 或 disabledWithoutDocker），断言：A 建 100 向量 + B 检索 0 命中；单租户召回非空；metadata.tenant_id 谓词表达式在 search 请求 filter 中可见。
-   - `@Tag("tenant")`，与 P1-T10 同标签。
-   - C-1 CI gate 独立 job（`-Dgroups=tenant -DargLine="-Dapi.version=1.44"`）与 P2-T5 同期合入。
-   - **不做**：partition-key 万级时延阈值（转 Phase 3 会审）。
+6. **✅ P2-T5 已交付**（提交 `c702fce`）：`test(tenant): P2-T5 向量跨租户负向 @SpringBootTest + Testcontainers Milvus`，实际落地：
+   - 新 `knowledge-web/src/test/java/.../tenant/MilvusTenantIsolationTest.java`（`@Tag("tenant") @Testcontainers(disabledWithoutDocker=true) @SpringBootTest(classes=TestConfig.class)`；`MilvusContainer("milvusdb/milvus:v2.5.4")` + `MySQLContainer("mysql:8.0")`；`@DynamicPropertySource` 装配 `knowledge.saas.enabled=true` + Flyway + Milvus host/mappedPort/collection `p2t5_knowledge_chunks` dim=4；`@Primary EmbeddingModel deterministicEmbeddingModel()` 返常量 `Embedding.from(new float[]{1f,0f,0f,0f})`）。4 用例：`sameTenantRecallIsNonEmpty`（A 建 100→search=100）·`crossTenantQueryDoesNotLeak`（B 上下文只见 `p2t5-b-*` 不含 `p2t5-a-*`）·`unboundContextFallsBackToDefault`（无 TenantContext→返空不抛）·`tenantIdsDistinct`（default=1、acme/beta 各自 distinct）。
+   - `knowledge-web/pom.xml` test-scope 加 `org.testcontainers:milvus`（版本随 spring-boot BOM）。
+   - `.github/workflows/ci.yml` 新增 `tenant-isolation` job：`needs: build` + `runs-on: ubuntu-24.04` + 预拉 mysql:8.0/milvusdb/milvus:v2.5.4 + `mvn -B test -pl knowledge-web -am -Dgroups=tenant -DfailIfNoTests=false -DargLine="-Dapi.version=1.44"`（Docker Engine 29.x API 协商 workaround）。
+   - **诚实披露**：本机无 Docker → 4 用例 compile 通过 + `disabledWithoutDocker=true` 自动 skipped（web skip 从 6→10，全 reactor `./mvnw test` BUILD SUCCESS 单元 481 + 100 新单测全绿），首次真实绿跑由 CI 承担。此约束已写入 commit message 与类级 Javadoc。
+   - **偏离说明**：`SearchResult` 是普通类而非 record，暴露 `getDocumentId()`（实际承载 `document_key` metadata）；断言字段名相应调整。
+   - **不做**：partition-key 万级时延阈值 P95（转 Phase 3 会审）。
 
 ---
 
