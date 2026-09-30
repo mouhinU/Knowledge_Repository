@@ -252,7 +252,7 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
 
 - [x] 架构负责人签署（同意混合模型 + 路线图 + 回退方案）—— 项目负责人 mouhinU 口头授权，2026-09-29
 - [x] 安全负责人签署（Phase 0 存量安全修复 + 租户隔离威胁模型 + 跨租户越权测试充分性）—— 项目负责人 mouhinU 口头授权，2026-09-29
-- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）—— **待 U1/U3 正式书面确认；不阻塞 P1-T1/T2/T3 地基开发，但阻塞 Phase 2 向量隔离开工**
+- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）—— **待 U1/U3 正式书面确认；不阻塞 P1-T1/T2/T3 地基开发，但阻塞 Phase 2 向量隔离开工**。Phase 2 专项收口见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（B-1 Milvus 现网承接 / B-2 单机 vs cluster 决策 / B-3 本 checkbox 闭环 三项签署后方可开工）
 - [x] 通过后：本文件从 DRAFT 转为分册基线（已转）；`AGENTS.md` 分册地图补一行入口（待 X-T6 补）；例外（如某些表暂不加租户列）登记到 `docs/exceptions/`（EX-20260929-001 已登记）
 
-> 审批说明：本轮为项目负责人「口头同意先行」（与 Phase 0 同模式），已解锁 Phase 1 地基（P1-T1/T2/T3），全程受 `knowledge.saas.enabled=false` 开关门控、运行时仅 `default` 租户、行为与主干等价可回退。正式三方书面签署与运维承接确认（评审包 §6 签署页、U1/U3）仍需在开启 Phase 2 前补齐。
+> 审批说明：本轮为项目负责人「口头同意先行」（与 Phase 0 同模式），已解锁 Phase 1 地基（P1-T1/T2/T3），全程受 `knowledge.saas.enabled=false` 开关门控、运行时仅 `default` 租户、行为与主干等价可回退。正式三方书面签署与运维承接确认（评审包 §6 签署页、U1/U3）仍需在开启 Phase 2 前补齐；Phase 2 收口清单见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)。

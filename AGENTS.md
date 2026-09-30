@@ -40,6 +40,7 @@
 | [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                     | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
 | [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md)    | **SaaS 化改造 · 变更提案**：混合多租户架构、隔离模型、影响评估、回退计划、审批门                | 涉及"租户/tenant_id/跨租户隔离/平台管理员/配额"决策或改动任何数据出口时 | 新（红线 #11 提案）              |
 | [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) | **SaaS 化改造 · 可执行计划**：Phase 0–6 任务清单、依赖图、每任务锚点与验收 | 提案批准开工后按此排产 PR；每 Phase 结束回读 X-T6 更新规范 | 新（配套提案）                   |
+| [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) | **SaaS Phase 2 开工门禁清单**：12 项分四类（B 硬阻塞 / S 软阻塞 / T 技术细节 / C 交叉项）+ 三方签署页 | Phase 2 向量隔离开工前必读；B/S 项签署后回读提案 §11、评审包 §6、执行计划 §4 保持零漂移 | 新（配套提案 §10 R1 + 执行计划 §4） |
 
 ---
 
@@ -54,6 +55,7 @@
 - 我要**加鉴权 / 改权限 / 处理上传 / 发令牌 / 存口令**？→ [docs/security-guideline.md](docs/security-guideline.md)。
 - 我要**配 CI/CD 或把 Actions 产物部署到本地 Docker**？→ [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)（GHCR 推镜像 / Artifacts 拉 jar / 离线 tar 三方案）。
 - 我要**写测试 / 提交前自验**？→ [docs/testing-guideline.md](docs/testing-guideline.md) + [docs/code-review-checklist.md](docs/code-review-checklist.md)。
+- 我要**开 SaaS Phase 2（向量隔离）或动 Milvus `EmbeddingStore` / partition-key / SILO**？→ 先过门禁 [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md)（12 项 B/S/T/C），再查排产 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) §4 P2-T1~T5，最后核对决策权威 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md) §10 R1。
 
 ---
 

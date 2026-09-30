@@ -96,7 +96,7 @@ Phase 6（配额计费，依赖 P1 全链 + 可选后置）
 
 ## 4. Phase 2 · 向量隔离（Milvus）
 
-> 目标：POOL 租户走 partition-key 下推；SILO 租户走独立 collection。这是提案 §10 R1（高风险）的落点，开工前建议先做一次技术 spike。
+> 目标：POOL 租户走 partition-key 下推；SILO 租户走独立 collection。这是提案 §10 R1（高风险）的落点。**P2-T0 技术 spike 已完成（2026-09-30，报告见 [../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)）**，R1 决策已回写提案 §10；开工门禁与未闭环项收口清单见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（v0.1，B 硬阻塞 3 / S 软阻塞 3 / T 技术细节 3 / C 交叉项 3 = 12 项，待三方签署）。
 
 | ID | 标题 | 主要文件 | 依赖 | 复杂度 | 交付物 | 验收 | 回退 |
 |---|---|---|---|---|---|---|---|
