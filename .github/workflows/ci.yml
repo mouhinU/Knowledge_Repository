@@ -42,3 +42,46 @@ jobs:
 
       - name: Build and run checks
         run: mvn -B -V clean verify -DskipTests
+
+  # C-1 · SaaS 租户门禁独立 job（Phase 2 清单 §5 C-1）
+  # 只跑 @Tag("tenant") 用例（当前包含 P1-T10 MySQL 6 + P2-T5 Milvus 4），
+  # 与主 build 分离，避免 Milvus 冷启动 / Testcontainers API 协商类偶发拖慢主干。
+  tenant-isolation:
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-tenant-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      # 预热 Testcontainers 使用的镜像：MySQL 8 + Milvus 2.5.4 standalone。
+      # Milvus standalone 镜像 ~5GB，若首次拉取在容器启动阶段会挤占 testcontainers
+      # 默认 60s 超时预算；显式 pull 让 Docker daemon cache 就位。
+      - name: Pre-pull Testcontainers images
+        run: |
+          docker pull mysql:8.0
+          docker pull milvusdb/milvus:v2.5.4
+
+      # -Dapi.version=1.44：Testcontainers 1.20.6 与 Docker Engine 29.x 之间的
+      #   API 版本协商坑（P1-T10 记录）。钉 1.44 走兼容层，避免 "client version
+      #   too new" 报错。
+      - name: Run tenant-tagged integration tests
+        run: |
+          mvn -B -V test \
+            -pl knowledge-web -am \
+            -Dgroups=tenant \
+            -DfailIfNoTests=false \
+            -DargLine="-Dapi.version=1.44"
