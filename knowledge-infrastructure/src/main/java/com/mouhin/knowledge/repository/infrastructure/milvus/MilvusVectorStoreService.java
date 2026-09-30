@@ -11,19 +11,20 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
  * Milvus 向量存储服务
  *
  * <p>封装 LangChain4j EmbeddingStore 操作，提供文档向量写入和带权限过滤的语义检索。
+ *
+ * <p>P2-T1 起：store 实例经 {@link EmbeddingStoreProvider} 路由获取，Phase 2 方案 b 下恒返回 {@code
+ * knowledge_chunks} 单例；Phase 3 SILO 打开后同一接口会按 {@code placement} 分派到独立集合，调用点无需改动。
  *
  * @author mouhinU
  * @date 2026-09-02
@@ -35,12 +36,12 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     /** 每批向量化处理的分块数量 */
     private static final int EMBEDDING_BATCH_SIZE = 20;
 
-    private final EmbeddingStore<TextSegment> embeddingStore;
+    private final EmbeddingStoreProvider storeProvider;
     private final EmbeddingModel embeddingModel;
 
     public MilvusVectorStoreService(
-            @Lazy EmbeddingStore<TextSegment> embeddingStore, EmbeddingModel embeddingModel) {
-        this.embeddingStore = embeddingStore;
+            EmbeddingStoreProvider storeProvider, EmbeddingModel embeddingModel) {
+        this.storeProvider = storeProvider;
         this.embeddingModel = embeddingModel;
     }
 
@@ -119,7 +120,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         }
 
         // 一次性存储到 Milvus
-        embeddingStore.addAll(allEmbeddings, segments);
+        storeProvider.store().addAll(allEmbeddings, segments);
 
         log.info("Stored {} chunks in Milvus", totalChunks);
     }
@@ -151,7 +152,8 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
             requestBuilder.filter(filter);
         }
 
-        EmbeddingSearchResult<TextSegment> result = embeddingStore.search(requestBuilder.build());
+        EmbeddingSearchResult<TextSegment> result =
+                storeProvider.store().search(requestBuilder.build());
 
         List<SearchResult> searchResults = new ArrayList<>();
         for (EmbeddingMatch<TextSegment> match : result.matches()) {
@@ -207,7 +209,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     @Override
     public void deleteByDocumentKey(String documentKey) {
         Filter filter = new IsEqualTo("document_key", documentKey);
-        embeddingStore.removeAll(filter);
+        storeProvider.store().removeAll(filter);
         log.info("Deleted vectors for document {}", documentKey);
     }
 
