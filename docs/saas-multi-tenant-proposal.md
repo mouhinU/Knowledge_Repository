@@ -227,6 +227,17 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
 ## 10. 风险与开放问题
 
 - **R1（高）** `EmbeddingStore` 单例→provider 重构牵动全部向量读写，是最大技术不确定点，Phase 2 前需一次技术验证 spike。
+  - **✅ P2-T0 spike 已完成（2026-09-30，报告见 [../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)）**：在真实 Milvus 2.5.4 + bge-m3 1024 维实测。
+    ① partition-key 隔离正确——`tenant_id` 作 Int64 partition-key，跨租户检索 `cross_tenant_leak_count=0`（三租户 4/3/3 行零串味）。
+    ② LangChain4j `MilvusEmbeddingStore`（1.0.1-beta6）**无法**表达 partition-key：生产 `knowledge_chunks` schema 写死 4 列
+    （`id`/`text`/**`metadata` 单 JSON**/`vector` dim=1024），`Builder` 只能改名这 4 列、不能增设顶层标量列，租户被塞进 JSON
+    → `IsEqualTo("tenant_id", …)` 会译为 `metadata["tenant_id"]==X` JSON 谓词（隔离**正确**但**无物理分区剪枝**）。
+    ③ 时延收益在 toy 规模（10 行）不可测（partition-key 与标量过滤 median 均 ~15ms），真实收益判定推迟到 P2-T5（≥万级向量）。
+    ④ **顺带修正过时口径**：`MilvusVectorStoreService.buildFilter` 注释称"LangChain4j Filter 不支持复杂 OR/AND"其实有误——
+    `MilvusMetadataFilterMapper` 支持 `And/Or/Not/In`，G3 的复杂 ACL 下推可重新评估。
+  - **决策（R1 落定）**：POOL **目标态** = 用 `io.milvus`（已随 langchain4j-milvus 传递引入）自建 `tenant_id Int64 partitionKey=true` 集合，
+    LangChain4j 仅保留 embedding 模型/query 向量化；**即时回退** = 沿用 LangChain4j JSON 谓词下推（已证隔离正确、零重构风险）；
+    **SILO** = 独立集合 `kc_{tenantKey}`。三者由 `EmbeddingStoreProvider` 按 placement 路由，`saas.enabled=false` 仍走旧 store。
 - **R2（高）** 混合模型的双轨（POOL+SILO）长期维护复杂度；需明确 SILO 准入门槛与「是否只支持一种」的退让方案。
 - **R3（中）** 无外键（G4）导致租户删除/级联只能应用层编排，误删风险高，需强对账。
 - **R4（中）** JDK21 虚拟线程/上下文传播与 `ThreadLocal` 语义冲突，选型 `ScopedValue` vs 快照装饰需评审。

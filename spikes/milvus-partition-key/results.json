@@ -1,0 +1,59 @@
+{
+  "recall": [
+    {
+      "query": "求根公式与判别式",
+      "tenant": 1,
+      "engine_top_tag": "数学",
+      "local_top_tag": "数学",
+      "local_top_cos": 0.6418,
+      "agree": true
+    },
+    {
+      "query": "植物如何制造养分",
+      "tenant": 2,
+      "engine_top_tag": "生物",
+      "local_top_tag": "生物",
+      "local_top_cos": 0.6712,
+      "agree": true
+    },
+    {
+      "query": "石头记的作者是谁",
+      "tenant": 3,
+      "engine_top_tag": "语文",
+      "local_top_tag": "语文",
+      "local_top_cos": 0.7642,
+      "agree": true
+    }
+  ],
+  "isolation": [
+    {
+      "tenant": 1,
+      "pk_returned": 4,
+      "json_returned": 4,
+      "rows_owned": 4,
+      "pk_nonempty": true
+    },
+    {
+      "tenant": 2,
+      "pk_returned": 3,
+      "json_returned": 3,
+      "rows_owned": 3,
+      "pk_nonempty": true
+    },
+    {
+      "tenant": 3,
+      "pk_returned": 3,
+      "json_returned": 3,
+      "rows_owned": 3,
+      "pk_nonempty": true
+    }
+  ],
+  "cross_tenant_leak_count": 0,
+  "latency_ms": {
+    "n": 40,
+    "partition_key_median": 15.14,
+    "partition_key_p95": 26.31,
+    "plain_scalar_median": 15.85,
+    "plain_scalar_p95": 25.32
+  }
+}
