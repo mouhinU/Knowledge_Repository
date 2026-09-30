@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,7 +48,11 @@ public class TenantIdResolver {
     private final ConcurrentMap<String, Long> keyToId = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, String> idToKey = new ConcurrentHashMap<>();
 
-    public TenantIdResolver(TenantMapper tenantMapper) {
+    public TenantIdResolver(@Lazy TenantMapper tenantMapper) {
+        // @Lazy：TenantMapper→SqlSessionFactory→MybatisPlusAutoConfiguration 会回收集
+        // mybatisPlusInterceptor
+        // 而该 interceptor 又依赖本 resolver，构成构造期循环（saas.enabled=true 才触发，P1-T10 首次暴露）。
+        // 延迟解析 mapper，本 bean 得以先行构造，首次 resolve()/lookupKey() 时再拿到真实 mapper。
         this.tenantMapper = tenantMapper;
     }
 
