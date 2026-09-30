@@ -155,11 +155,10 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
                         .maxResults(maxResults)
                         .minScore(minScore);
 
-        // 构建 LangChain4j Filter：权限过滤 + 分类过滤
-        Filter filter = buildFilter(filterExpr, category);
-        if (filter != null) {
-            requestBuilder.filter(filter);
-        }
+        // P2-T3：tenant_id 前置谓词强制下推（S-2 方案 b）；ACL filterExpr 由应用层后过滤，本方法参数保留兼容签名。
+        long currentTenantId = tenantIdResolver.resolve(TenantContext.getOrDefault());
+        Filter filter = buildFilter(currentTenantId, category);
+        requestBuilder.filter(filter);
 
         EmbeddingSearchResult<TextSegment> result =
                 storeProvider.store().search(requestBuilder.build());
@@ -192,22 +191,31 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     }
 
     /**
-     * 构建 LangChain4j Filter，组合分类过滤
+     * 构建 LangChain4j Filter：租户前置过滤（必带）+ 可选分类过滤。
      *
-     * <p>分类过滤：使用 LangChain4j 的 {@link IsEqualTo} 构建，下推到 Milvus 层执行，减少无关 category 的 chunk 进入结果集。
+     * <p>P2-T3 起：{@code tenant_id} 作为**强制**前置谓词下推到 Milvus JSON 层（S-2 方案 b： {@code
+     * metadata["tenant_id"]==X}）。spike（{@code spikes/milvus-partition-key/RESULTS.md} §2） 已证与
+     * partition-key 谓词 结果集完全一致、0 泄漏；Phase 3 partition-key 引入时 本行改为对顶层 Int64 列过滤并享受分区剪枝收益。
      *
-     * <p>权限过滤（ACL）：当前仍由应用层 {@code AuthorizedSearchSupport.filterAccessible} 后过滤。原因：LangChain4j
-     * Filter API 不直接支持复杂 OR/AND 组合表达式（如 "PUBLIC or (INTERNAL and dept=X) or (RESTRICTED and role
-     * like Y)"），而 {@code PermissionDomainService.buildFilterExpression} 生成的 Milvus 原生表达式无法反向解析为
-     * LangChain4j Filter 对象。 后过滤虽效率略低，但逻辑正确且已覆盖 SEC-1 修复。
+     * <p>分类过滤：走 LangChain4j {@link IsEqualTo}，通过 {@link Filter#and(Filter)} 与租户谓词 AND 组合。
+     *
+     * <p>ACL 过滤（{@code filterExpr}）：仍由应用层 {@code AuthorizedSearchSupport.filterAccessible} 后过滤。
+     * 原因：<b>不是</b> LangChain4j 不支持复杂表达式（{@code MilvusMetadataFilterMapper} 可译 {@code
+     * And/Or/Not/In/ContainsString} 及基础比较），而是 {@code PermissionDomainService.buildFilterExpression}
+     * 当前生成的是 **Milvus 原生字符串** 表达式，缺一个反向解析器把字符串读回 Filter 对象。 后过滤保留作双保险；SEC-1 修复仍生效。反向解析器留待后续独立 PR。
+     *
+     * <p>注意：本方法**总是返回非 null**（tenant_id 谓词强制）。旧的"category 空则不过滤"分支已在 P2-T3 移除。
+     *
+     * @param currentTenantId 已由 {@link TenantIdResolver#resolve(String)} 解析出的数值租户 id
+     * @param category 文档分类过滤字面量；{@code null} 或空白视为不带
+     * @return 至少含 {@code IsEqualTo("tenant_id", currentTenantId)} 的 {@link Filter}
      */
-    private Filter buildFilter(String filterExpr, String category) {
-        // category 过滤：下推到 Milvus
-        if (category != null && !category.isBlank()) {
-            return new IsEqualTo("category", category);
+    private Filter buildFilter(long currentTenantId, String category) {
+        Filter tenantFilter = new IsEqualTo("tenant_id", currentTenantId);
+        if (category == null || category.isBlank()) {
+            return tenantFilter;
         }
-        // ACL 过滤：保留为应用层后过滤（filterExpr 参数当前未使用）
-        return null;
+        return Filter.and(tenantFilter, new IsEqualTo("category", category));
     }
 
     /**

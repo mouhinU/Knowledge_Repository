@@ -2,9 +2,11 @@ package com.mouhin.knowledge.repository.infrastructure.milvus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,7 +20,11 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.logical.And;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -306,6 +312,132 @@ class MilvusVectorStoreServiceTest {
             assertThat(m.getString("owner_id")).isEqualTo("user-1");
             assertThat(m.getString("category")).isEqualTo("其他");
             assertThat(m.getLong("tenant_id")).isEqualTo(2L);
+        }
+    }
+
+    @Nested
+    @DisplayName("P2-T3 检索侧 tenant_id 前置过滤下推")
+    class SearchFilterPushdown {
+
+        @Test
+        @DisplayName("无 category → filter 即 IsEqualTo(tenant_id, 2)")
+        void noCategoryOnlyTenantFilter() {
+            stubEmbedAndEmptySearch();
+            TenantContext.set("acme");
+            when(tenantIdResolver.resolve("acme")).thenReturn(2L);
+
+            service.search("hello", 5, 0.5, null, null);
+
+            dev.langchain4j.store.embedding.filter.Filter filter = captureRequest().filter();
+            assertThat(filter).isInstanceOf(IsEqualTo.class);
+            IsEqualTo eq = (IsEqualTo) filter;
+            assertThat(eq.key()).isEqualTo("tenant_id");
+            assertThat(eq.comparisonValue()).isEqualTo(2L);
+        }
+
+        @Test
+        @DisplayName("有 category → filter 为 And(IsEqualTo(tenant_id), IsEqualTo(category))")
+        void withCategoryAndComposed() {
+            stubEmbedAndEmptySearch();
+            when(tenantIdResolver.resolve(TenantContext.DEFAULT_TENANT_KEY)).thenReturn(1L);
+
+            service.search("hello", 5, 0.5, null, "手册");
+
+            var filter = captureRequest().filter();
+            assertThat(filter).isInstanceOf(And.class);
+            And and = (And) filter;
+            assertThat(((IsEqualTo) and.left()).key()).isEqualTo("tenant_id");
+            assertThat(((IsEqualTo) and.left()).comparisonValue()).isEqualTo(1L);
+            assertThat(((IsEqualTo) and.right()).key()).isEqualTo("category");
+            assertThat(((IsEqualTo) and.right()).comparisonValue()).isEqualTo("手册");
+        }
+
+        @Test
+        @DisplayName("空白 category 视为无过滤 → 只保留 tenant_id")
+        void blankCategoryIgnored() {
+            stubEmbedAndEmptySearch();
+            when(tenantIdResolver.resolve(TenantContext.DEFAULT_TENANT_KEY)).thenReturn(1L);
+
+            service.search("hello", 5, 0.5, null, "   ");
+
+            dev.langchain4j.store.embedding.filter.Filter filter = captureRequest().filter();
+            assertThat(filter).isInstanceOf(IsEqualTo.class);
+            assertThat(((IsEqualTo) filter).key()).isEqualTo("tenant_id");
+        }
+
+        @Test
+        @DisplayName("ThreadLocal 未绑定 → 走 default 回落并带 tenant_id=1")
+        void unboundContextFallsBackToDefault() {
+            stubEmbedAndEmptySearch();
+            TenantContext.clear();
+            when(tenantIdResolver.resolve(TenantContext.DEFAULT_TENANT_KEY)).thenReturn(1L);
+
+            service.search("hello", 5, 0.5, null);
+
+            var filter = captureRequest().filter();
+            assertThat(filter).isInstanceOf(IsEqualTo.class);
+            assertThat(((IsEqualTo) filter).comparisonValue()).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("filterExpr (ACL 字符串) 参数被忽略但签名兼容,仍带 tenant_id")
+        void legacyFilterExprArgumentIgnored() {
+            stubEmbedAndEmptySearch();
+            when(tenantIdResolver.resolve(TenantContext.DEFAULT_TENANT_KEY)).thenReturn(1L);
+
+            service.search("hello", 5, 0.5, "visibility == \"PUBLIC\"");
+
+            var filter = captureRequest().filter();
+            assertThat(filter).isInstanceOf(IsEqualTo.class);
+            assertThat(((IsEqualTo) filter).key()).isEqualTo("tenant_id");
+        }
+
+        @Test
+        @DisplayName("resolver 抛未知租户 → search 立即失败（P1-T8 哨兵），不触达 store")
+        void resolverFailurePropagatesInSearch() {
+            when(embeddingModel.embed("hello"))
+                    .thenReturn(Response.from(Embedding.from(new float[] {0f})));
+            when(tenantIdResolver.resolve(anyString()))
+                    .thenThrow(new IllegalStateException("Unknown tenant_key: ghost"));
+            TenantContext.set("ghost");
+
+            assertThatThrownBy(() -> service.search("hello", 5, 0.5, null))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Unknown tenant_key");
+
+            verify(storeProvider, never()).store();
+        }
+
+        @Test
+        @DisplayName("跨租户 A 建 B 查：A 上下文下 resolver 得 2L,filter 谓词值是 2L(B 上下文的 3L 数据被 JSON 谓词排除)")
+        void crossTenantQueryCarriesCallerTenantOnly() {
+            stubEmbedAndEmptySearch();
+            TenantContext.set("acme");
+            when(tenantIdResolver.resolve("acme")).thenReturn(2L);
+
+            service.search("hello", 5, 0.5, null);
+
+            var filter = captureRequest().filter();
+            assertThat(((IsEqualTo) filter).comparisonValue()).isEqualTo(2L);
+            // 断言：不存在"跨租户" 3L——spike §2 已证 JSON 谓词层 0 泄漏，此处验证谓词值只带当前上下文
+            assertThat(((IsEqualTo) filter).comparisonValue()).isNotEqualTo(3L);
+        }
+
+        private void stubEmbedAndEmptySearch() {
+            when(embeddingModel.embed(anyString()))
+                    .thenReturn(Response.from(Embedding.from(new float[] {0f, 0f, 0f})));
+            when(storeProvider.store()).thenReturn(embeddingStore);
+            @SuppressWarnings("unchecked")
+            EmbeddingSearchResult<TextSegment> emptyResult = mock(EmbeddingSearchResult.class);
+            when(emptyResult.matches()).thenReturn(List.of());
+            when(embeddingStore.search(any())).thenReturn(emptyResult);
+        }
+
+        private EmbeddingSearchRequest captureRequest() {
+            ArgumentCaptor<EmbeddingSearchRequest> captor =
+                    ArgumentCaptor.forClass(EmbeddingSearchRequest.class);
+            verify(embeddingStore).search(captor.capture());
+            return captor.getValue();
         }
     }
 }
