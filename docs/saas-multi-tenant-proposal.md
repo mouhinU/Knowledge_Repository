@@ -238,7 +238,8 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
   - **决策（R1 落定）**：POOL **目标态** = 用 `io.milvus`（已随 langchain4j-milvus 传递引入）自建 `tenant_id Int64 partitionKey=true` 集合，
     LangChain4j 仅保留 embedding 模型/query 向量化；**即时回退** = 沿用 LangChain4j JSON 谓词下推（已证隔离正确、零重构风险）；
     **SILO** = 独立集合 `kc_{tenantKey}`。三者由 `EmbeddingStoreProvider` 按 placement 路由，`saas.enabled=false` 仍走旧 store。
-- **R2（高）** 混合模型的双轨（POOL+SILO）长期维护复杂度；需明确 SILO 准入门槛与「是否只支持一种」的退让方案。
+  - **落地节奏（Phase 2 开工授权 · 2026-09-30 项目负责人口头采纳 S-2 方案 b + S-1 方案 B）**：**Phase 2** 走"即时回退"路径——保留 LangChain4j 单例 + 现网 `knowledge_chunks` 集合，`metadata.tenant_id` 走 `IsEqualTo` JSON 谓词下推（spike 已证 0 leak），provider 骨架先落但不分片、SILO 命名工具与静态校验落但集合不建；**Phase 3** 引入 SILO 时同步上 partition-key 目标态（`io.milvus` SDK 自建 `knowledge_chunks_pk`）、SILO 集合生命周期、运维 B 类正式签署与万级时延阈值会审。R1 决策本身（partition-key 为 POOL 目标态）**不回退**，只是**落地节奏分两段**。详见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) §1/§3/§7 与 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §4 P2-T1~P2-T5（v0.7 措辞已同步）。
+- **R2（高）** 混合模型的双轨（POOL+SILO）长期维护复杂度；需明确 SILO 准入门槛与「是否只支持一种」的退让方案。**Phase 2 授权（2026-09-30）**：采纳方案 B 延后至 Phase 3——`sys_tenant_placement.placement` 恒 POOL，SILO 分支代码保留但运行时不放开；准入门槛与商务模型一并留至 Phase 3 会审（评审包 U2）
 - **R3（中）** 无外键（G4）导致租户删除/级联只能应用层编排，误删风险高，需强对账。
 - **R4（中）** JDK21 虚拟线程/上下文传播与 `ThreadLocal` 语义冲突，选型 `ScopedValue` vs 快照装饰需评审。
 - **R5（中）** 前端需配合子域或 `X-Tenant-Id`；跨域/Cookie/SSO 登录态未定义（是否要租户内 SSO？）。
@@ -252,7 +253,9 @@ Request │ TenantResolverFilter (从 JWT claim / 域名 /   │
 
 - [x] 架构负责人签署（同意混合模型 + 路线图 + 回退方案）—— 项目负责人 mouhinU 口头授权，2026-09-29
 - [x] 安全负责人签署（Phase 0 存量安全修复 + 租户隔离威胁模型 + 跨租户越权测试充分性）—— 项目负责人 mouhinU 口头授权，2026-09-29
-- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）—— **待 U1/U3 正式书面确认；不阻塞 P1-T1/T2/T3 地基开发，但阻塞 Phase 2 向量隔离开工**。Phase 2 专项收口见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（B-1 Milvus 现网承接 / B-2 单机 vs cluster 决策 / B-3 本 checkbox 闭环 三项签署后方可开工）
+- [ ] 运维/基础设施确认（多副本 / 对象存储 / Redis / Milvus cluster 可承接）—— **待 U1/U3 正式书面确认；不阻塞 P1-T1/T2/T3 地基开发**。~~阻塞 Phase 2 向量隔离开工~~ → **Phase 2 范围内触发条件已消解**（2026-09-30 项目负责人口头采纳 S-2 方案 b：不动集合/权限/拓扑；见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) §2 B-1/B-2/B-3）；**正式运维签署随 Phase 3 partition-key + SILO 引入时补齐**（届时 B-1 Milvus 现网承接 / B-2 单机 vs cluster 决策 / B-3 本 checkbox 闭环 三项签署后开工 Phase 3 相关任务）
 - [x] 通过后：本文件从 DRAFT 转为分册基线（已转）；`AGENTS.md` 分册地图补一行入口（待 X-T6 补）；例外（如某些表暂不加租户列）登记到 `docs/exceptions/`（EX-20260929-001 已登记）
 
 > 审批说明：本轮为项目负责人「口头同意先行」（与 Phase 0 同模式），已解锁 Phase 1 地基（P1-T1/T2/T3），全程受 `knowledge.saas.enabled=false` 开关门控、运行时仅 `default` 租户、行为与主干等价可回退。正式三方书面签署与运维承接确认（评审包 §6 签署页、U1/U3）仍需在开启 Phase 2 前补齐；Phase 2 收口清单见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)。
+>
+> **Phase 2 开工授权（2026-09-30 项目负责人口头采纳）**：经 P2-T0 spike 结论 + Phase 2 收口清单 v0.2 分析，项目负责人口头采纳 **S-1 方案 B**（SILO 授权延后至 Phase 3，`sys_tenant_placement.placement` 恒 POOL）+ **S-2 方案 b**（现网 `knowledge_chunks` 走 LangChain4j JSON 谓词路径，`metadata.tenant_id` 走 `IsEqualTo` 下推、spike 已证 0 leak）+ **S-3 门禁降级**（partition-key 万级时延阈值不再是 Phase 2 CI gate 断言，改设正确性断言）。B-1/B-2/B-3 三项运维硬阻塞在 Phase 2 范围内触发条件已消解（方案 b 不动集合/权限/拓扑），Phase 2 沿用"项目负责人口头授权先行"模式开工；**正式运维三方签署随 partition-key 目标态 + SILO 生命周期引入时（Phase 3）补齐**，届时创建 `docs/saas-phase3-go-checklist.md` 参照本 Phase 2 清单格式，本 checkbox 转为 ☑ 签署。R1 决策本身（partition-key 为 POOL 目标态）不回退，落地节奏分两段（Phase 2 JSON 谓词、Phase 3 partition-key + SILO）。

@@ -4,9 +4,9 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 # SaaS 化改造 · 可执行计划（Execution Plan）
 
-> 状态：**执行中（Phase 0 已完成；Phase 1 地基 P1-T1/T2/T3 + 迁移波 P1-T4/T5/T6 + 脊柱串联 P1-T7/T8/T9/T10 已完成并提交；全程受 `knowledge.saas.enabled=false` 门控。生产迁移里程碑：V21→V26 已实跑至真实 MySQL 8（`localhost:3307`），schema 校验全绿——默认租户 ACTIVE id=1、15 张业务表 `tenant_id NOT NULL DEFAULT 1`、V25 六张复合唯一在位、存量行回填全部 `tenant_id=1`）**
-> 版本：v0.6（2026-09-30） · 作者：QoderWork · 审批：见 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11（口头授权，运维 U1/U3 待补）
-> 关联：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策权威）·红线基线 [../AGENTS.md](../AGENTS.md)·迁移规范 [data-and-migration-guideline.md](data-and-migration-guideline.md)·测试规范 [testing-guideline.md](testing-guideline.md)
+> 状态：**执行中（Phase 0 已完成；Phase 1 地基 P1-T1/T2/T3 + 迁移波 P1-T4/T5/T6 + 脊柱串联 P1-T7/T8/T9/T10 已完成并提交；全程受 `knowledge.saas.enabled=false` 门控。生产迁移里程碑：V21→V26 已实跑至真实 MySQL 8（`localhost:3307`），schema 校验全绿——默认租户 ACTIVE id=1、15 张业务表 `tenant_id NOT NULL DEFAULT 1`、V25 六张复合唯一在位、存量行回填全部 `tenant_id=1`。Phase 2 开工授权：2026-09-30 项目负责人口头采纳 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) v0.2 的 S-1 方案 B（SILO 延后至 Phase 3）+ S-2 方案 b（LangChain4j JSON 谓词路径），P2-T1~T5 可开工；partition-key 目标态与 SILO 生命周期、运维正式 B 类签署转入 Phase 3 会审）**
+> 版本：v0.7（2026-09-30） · 作者：QoderWork · 审批：见 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11（口头授权，运维 U1/U3 待补；Phase 2 开工走方案 b 授权先行、正式运维签署留至 Phase 3 SILO 引入）
+> 关联：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策权威）·三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md)·Phase 2 开工门禁清单 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)·红线基线 [../AGENTS.md](../AGENTS.md)·迁移规范 [data-and-migration-guideline.md](data-and-migration-guideline.md)·测试规范 [testing-guideline.md](testing-guideline.md)
 
 本文件把变更提案的 §7 路线图**拆到"一次 PR 一子任务"的颗粒度**，每项都有明确锚点文件、依赖、验收与回退。**任务编号规则**：`P<phase>-T<n>`（例：`P0-T1` = Phase 0 第 1 项）。
 
@@ -96,18 +96,18 @@ Phase 6（配额计费，依赖 P1 全链 + 可选后置）
 
 ## 4. Phase 2 · 向量隔离（Milvus）
 
-> 目标：POOL 租户走 partition-key 下推；SILO 租户走独立 collection。这是提案 §10 R1（高风险）的落点。**P2-T0 技术 spike 已完成（2026-09-30，报告见 [../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)）**，R1 决策已回写提案 §10；开工门禁与未闭环项收口清单见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（v0.1，B 硬阻塞 3 / S 软阻塞 3 / T 技术细节 3 / C 交叉项 3 = 12 项，待三方签署）。
+> 目标：POOL 租户走 partition-key 下推；SILO 租户走独立 collection。这是提案 §10 R1（高风险）的落点。**P2-T0 技术 spike 已完成（2026-09-30，报告见 [../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)）**，R1 决策已回写提案 §10；开工门禁与未闭环项收口清单见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（v0.2，B 硬阻塞 3 / S 软阻塞 3 / T 技术细节 3 / C 交叉项 3 = 12 项，**Phase 2 开工授权已下——S-1 方案 B + S-2 方案 b 采纳，partition-key 目标态与 SILO 生命周期转入 Phase 3 会审**）。**Phase 2 落地范围**：只走 LangChain4j 单 store + `metadata.tenant_id` JSON 谓词路径（spike 已证 0 leak），provider 骨架先落但不分片，SILO 集合实现与 partition-key 建集合在 Phase 3 引入。
 
 | ID | 标题 | 主要文件 | 依赖 | 复杂度 | 交付物 | 验收 | 回退 |
 |---|---|---|---|---|---|---|---|
 | ✅ P2-T0 | partition-key 技术 spike | 独立小样 `spikes/milvus-partition-key/`（`spike.py`+`RESULTS.md`+`results.json`） | P1-T2 | S | 用 Milvus 2.5.4 本地起样例集合，插入 `tenant_id` 作为 partition-key，验证：a) 等值过滤下推性能 b) bge-m3 1024 维召回正确性 c) LangChain4j `Filter` API 表达能力 | **结论**：a) partition-key 跨租户 `leak_count=0`（三租户 4/3/3 行），但时延收益 toy 规模（10 行）不可测 → 真实收益推迟 P2-T5 复测；b) bge-m3 1024 维召回引擎↔本地余弦 top-1 全一致（3/3）；c) **LangChain4j `MilvusEmbeddingStore` 无法表达 partition-key**（schema 写死 4 列、`metadata` 单 JSON，`Builder` 不能增设顶层标量列）→ POOL 目标态须用裸 `io.milvus` SDK 自建 `tenant_id Int64 partitionKey=true` 集合，LangChain4j `IsEqualTo` JSON 谓词下推作即时回退（隔离已证正确），SILO 走 `kc_{tenantKey}`；顺带修正 `buildFilter` 过时注释（Filter 实支持 And/Or/Not/In）。决策写回提案 §10 R1 | — |
-| P2-T1 | `EmbeddingStoreProvider` 注册表 | 新 `infrastructure/milvus/EmbeddingStoreProvider.java`·`EmbeddingStoreRouter.java`·改 `MilvusConfig.java`（拆掉单例 bean） | P2-T0 · P1-T2 | L | 按 `tenantId + placement` 返回目标 store；POOL 走共享 store（带 partition-key 表达式），SILO 走独立 collection；本地缓存 store 实例 | 单元：mock router 返回两 store；集成：写入落到目标 collection | provider 内部默认 store 走旧逻辑（`saas.enabled=false`） |
-| P2-T2 | `tenant_id` metadata + 写入路径 | 改 `MilvusVectorStoreService.java`（193-200 行附近 `buildFilter` 返 null）· `DocumentIngestionSupport` 写入前填 `tenant_id` · `DocumentChunkDO` | P1-T4 · P2-T1 | M | metadata schema 加 `tenant_id`；写入断言非空；集合 schema 迁移脚本（对 SILO 建新集合，POOL 加字段） | 集成：写入的向量含 tenant_id；Milvus 端 grep 断言 | 迁移前保留旧集合副本；改回旧集合名 |
-| P2-T3 | 检索 filter 下推 | 改 `MilvusVectorStoreService.search()` · `AuthorizedSearchSupport` · LangChain4j `EmbeddingSearchRequest.filter` 构造 | P1-T7 · P2-T2 | M | `IsEqualTo("tenant_id", ctx.getTenantId())` 作为**必带前置过滤**；复杂 ACL 仍在应用层；over-fetch 从"×3+10/上限 500"重估 | 单测：SQL/Filter 表达式包含 tenant；集成：A 建 B 查为空 | 应用层后置过滤保留作双保险 |
-| P2-T4 | SILO 独立 collection 命名与生命周期 | 新 `infrastructure/milvus/SiloCollectionAdmin.java` | P2-T1 · P2-T2 · P3-T1 | M | 命名 `kc_{tenantKey}`；provision 时创建、archive 时删除；`MilvusConfig.database-name` 支持每 SILO 独立 database | 集成：provision 后 list_collections 含目标；archive 后清理 | 保留 collection 30 天再物理删 |
-| P2-T5 | 向量跨租户负向用例 | 新 `MilvusTenantIsolationTest.java`（testcontainers） | P2-T3 · P2-T4 | M | 覆盖：A/B 两租户各插 100 向量，B 检索召回不含 A；SILO 与 POOL 混跑互不污染；partition-key 表达式命中 | CI 门禁；P95 检索时延与 P2-T0 spike 基线对齐（±20%） | `saas.enabled=false` 时跳过 |
+| P2-T1 | `EmbeddingStoreProvider` 注册表（Phase 2 骨架） | 新 `infrastructure/milvus/EmbeddingStoreProvider.java`·`EmbeddingStoreRouter.java`·`MilvusConfig.java`（Phase 2 **不动单例 bean**，provider 内部代理） | P2-T0 · P1-T2 | S→M | **S-2 方案 b 授权范围**：provider 骨架先落，内部只 1 个 store（沿用 `@Lazy EmbeddingStore<TextSegment>` 单例），`router.route(tenantId, placement)` 恒返回该 store；SILO 分片接口预留但返回 POOL store；本地缓存留待 Phase 3 启用 | 单元：provider 返回非 null、router 恒单 store；集成：`saas.enabled=false/true` 行为等价；C-2 无 tenant 高基数 tag 自检 | provider 内部默认 store 走旧逻辑；关闭 `saas.enabled` 时 provider 直通旧 bean |
+| P2-T2 | `tenant_id` metadata + 写入路径 | 改 `MilvusVectorStoreService.java`（`storeChunks` 内 metadata 加 `tenant_id` 键）· `DocumentIngestionSupport` 从 `TenantContext` 读 tenantId · `DocumentChunk` domain 增字段 · `DocumentChunkDO` 联动 | P1-T4 · P2-T1 | M | metadata JSON 加 `tenant_id` 键；写入断言非空；**🚧 集合 schema 迁移脚本（partition-key 建新集合 / SILO 独立集合）延后至 Phase 3**（S-2 方案 b 保留现集合） | 集成：写入的向量 `metadata.tenant_id` 非空；`saas.enabled=false` 时值 = `default`；Spike 0 leak 已证 | 无需回退集合结构；metadata 键可 `null` 兼容旧数据 |
+| P2-T3 | 检索 filter 下推 | 改 `MilvusVectorStoreService.search()`（`buildFilter` 内 `IsEqualTo("tenant_id", TenantContext.get()) + And(category)` 组合，同步修 Javadoc 陈旧"不支持复杂 OR/AND"口径） · `AuthorizedSearchSupport` 保留后置双保险 · LangChain4j `EmbeddingSearchRequest.filter` 构造 | P1-T7 · P2-T2 | M | `tenant_id` 前置过滤**必带**（S-2 方案 b 下走 JSON 谓词 `metadata["tenant_id"]==X`）；复杂 ACL 仍应用层；over-fetch ×3+10/上限 500 沿用（Phase 2 单集合无剪枝损失） | 单测：filter 表达式含 `tenant_id`；集成：A 建 B 查为空 | 应用层后置过滤保留作双保险；🚧 阈值与剪枝收益重估转 Phase 3 partition-key |
+| P2-T4 | SILO 命名工具与静态校验 | 新 `infrastructure/milvus/SiloCollectionNaming.java`（工具类：`toCollectionName(tenantKey)` + `validate(tenantKey)` 正则 `^[a-z][a-z0-9_]{1,62}$`）·**🚧 `SiloCollectionAdmin.java` 集合生命周期实现延后至 Phase 3**（S-1 方案 B） | P2-T1 · P2-T2 · P3-T1（部分） | S | Phase 2 只落命名工具与入库校验（P3-T1 平台端 `create` 接口预校验调用点占位 TODO）；`kc_{tenantKey}` 命名规范已定（T-3）；**🚧 provision 建集合 / archive 删集合 / `database-name` 每 SILO 独立库 转 Phase 3** | 单元：命名转换与正则校验；集成：Phase 2 无（Phase 3 补 provision 后 `list_collections` 断言） | 工具类可独立存在；Phase 3 起前无运行时影响 |
+| P2-T5 | 向量跨租户负向用例（正确性门禁） | 新 `knowledge-web/src/test/java/.../tenant/MilvusTenantIsolationTest.java`（Testcontainers Milvus 或 `disabledWithoutDocker` 兜底） | P2-T3 · P2-T4（工具类） · C-1 | M | **🚧 门禁降级（S-3 方案）**：Phase 2 断言 A 建 100 向量 + B 检索 0 命中、单租户召回非空、`metadata.tenant_id` 谓词表达式在 search 请求 filter 中可见；**partition-key 万级时延阈值 P95 转 Phase 3 会审** | CI 门禁（C-1 X-T3 独立 job 与 P2-T5 同期上线）；`@Tag("tenant")` 与 P1-T10 同标签；🚧 时延阈值 Phase 3 引入 partition-key 时重设 | `saas.enabled=false` 时跳过；🚧 partition-key 与 SILO 混跑断言转 Phase 3 |
 
-**Phase 2 退出条件**：所有既有向量出口（`DocumentIngestionService`/`IndexProgressStore`/`KnowledgeSearchQryExe` 内部）走新 provider；`MilvusVectorStoreService` 无进程级单例；跨租户泄漏零命中。
+**Phase 2 退出条件**（S-2 方案 b 授权范围）：所有既有向量出口（`DocumentIngestionService`/`IndexProgressStore`/`KnowledgeSearchQryExe` 内部）经 `EmbeddingStoreProvider` 路由（Phase 2 内部只 1 个 store 实例）；`MilvusVectorStoreService` 通过 provider 拿 store（不直连 bean）；`metadata.tenant_id` 100% 写入非空 + 检索必带 `IsEqualTo` 前置；跨租户泄漏零命中（P2-T5 断言）。**🚧 转 Phase 3 会审**：partition-key 集合落地、SILO 独立集合生命周期、`MilvusVectorStoreService` 从单例升级为多 store、复杂 ACL 下推、partition-key 万级时延阈值。
 
 ---
 
@@ -197,15 +197,10 @@ Phase 6（配额计费，依赖 P1 全链 + 可选后置）
 - **S1（1–2 周）**：Phase 0 全 5 项 + X-T2 开关骨架 + X-T1 提案评审 → 存量安全修复上线，观察 1 周
 - **S2（2–3 周）**：Phase 1 前 6 项（表列+索引，运行时仍默认租户）→ 灰度
 - **S3（2–3 周）**：Phase 1 后 4 项（拦截器+JWT+异步+负向测试）+ X-T4 演练 → `saas.enabled=true` 内部试用
-- **S4（1 周）**：P2-T0 spike → 决定 partition-key vs 多 collection → 更新提案
-- **S5（2–3 周）**：Phase 2 全 5 项 → 向量层跨租户负向通过
-- **S6（2 周）**：Phase 4 全 4 项 → 去全局化
-- **S7（3 周）**：Phase 5 全 5 项 → 2 副本可用
-- **S8（3–4 周）**：Phase 3 全 6 项 → 自助开通/归档闭环
-- **S9（可选 2 周）**：Phase 6 全 4 项 → 配额计费
-- **全程并行**：X-T3 CI 门禁、X-T5 前端配合、X-T6 文档更新
+- **S4（1 周）**：✅ P2-T0 spike 已完成（提交 a181d4c）→ R1 决策落定（partition-key 目标态 + LangChain4j JSON 谓词回退 + SILO 延后）→ 提案 §10 R1 已回写；S-1 方案 B/S-2 方案 b 已授权（[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) v0.2）
+- **S5（1–2 周）**：Phase 2 全 5 项（**范围已缩：S-2 方案 b**——provider 骨架 + `metadata.tenant_id` 写入 + `IsEqualTo` 下推 + SILO 命名工具 + 跨租户正确性负向；**不含 partition-key 建集合 / SILO 生命周期 / 万级时延阈值**，均转 Phase 3 会审）→ 向量层跨租户负向通过
 
-关键路径：**S4 spike 是最大不确定点**（R1），建议提前 2 周与运维协调 Milvus 环境；Phase 2 若退化到多 collection 方案，则 P3-T6 的逐库 Flyway 变复杂，需要在 S7 前重新评估。
+**关键路径（v0.7 更新）**：~~S4 spike 是最大不确定点~~→ S4 已完成、R1 决策落定；Phase 2 走方案 b 无集合变更、无运维承接前置，Sprint 时长从"2–3 周"缩到"1–2 周"。**下一段关键路径转为 Phase 3 SILO 引入时的运维承接（partition-key + cluster + DDL 流程）与商务准入门槛**——届时创建 `docs/saas-phase3-go-checklist.md` 参照本 Phase 2 清单格式。
 
 ---
 
@@ -223,14 +218,14 @@ Phase 6（配额计费，依赖 P1 全链 + 可选后置）
 
 ## 13. 未决项清单（开工前需二次拍板）
 
-1. **R1 技术方案**：P2-T0 spike 结果决定"partition-key"还是"多 collection"，影响后续 3 项。
-2. **SILO 准入门槛**：合同/数据量/QPS 具体阈值（提案未定），P3-T1 平台端需据此设计 placement 决策器。
+1. **R1 技术方案** ✅ **已定（2026-09-30）**：P2-T0 spike 完成，走"partition-key 目标态 + LangChain4j JSON 谓词即时回退（S-2 方案 b）+ SILO 延后（S-1 方案 B）"三段式；见 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) §3 S-1/S-2 与提案 §10 R1 决策段。
+2. **SILO 准入门槛** ✅ **已定（2026-09-30）**：合同/数据量/QPS 具体阈值授权延后至 Phase 3，Phase 2 `sys_tenant_placement.placement` 恒 POOL；P3-T1 平台端 placement 决策器届时补上；见清单 §3 S-1 方案 B。
 3. **SSO**：X-T5 是否要接企业 IdP（OIDC/SAML）；若是，Phase 3 前完成。
 4. **数据驻留**：`sys_tenant.data_region` 是否要求物理分区部署（影响 compose/网络策略）。
 5. **迁移窗口**：P1-T5 唯一索引切换需要停机窗口 or 双写？取决于最大租户的表规模，运维需给出预估。
 6. **前端改造深度**：X-T5 是仅改 fetch 头还是引入租户切换 UI？由产品/教务拍板。
 
-以上 6 点在提案 §11 审批会一并给出决策；本计划据此调整。
+以上 6 点中 1/2 已定（走方案 b + S-1 B 授权）；3/4/5/6 在提案 §11 审批会或 Phase 3 开工门禁清单中给出决策。
 
 ---
 

@@ -40,7 +40,7 @@
 | [docs/code-review-checklist.md](docs/code-review-checklist.md)               | **提交前检查清单**：风险分级、工作流、变更模板、31 条自检                                     | 每次生成代码收尾自检                                    | 原末章清单（扩充）               |
 | [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md)    | **SaaS 化改造 · 变更提案**：混合多租户架构、隔离模型、影响评估、回退计划、审批门                | 涉及"租户/tenant_id/跨租户隔离/平台管理员/配额"决策或改动任何数据出口时 | 新（红线 #11 提案）              |
 | [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) | **SaaS 化改造 · 可执行计划**：Phase 0–6 任务清单、依赖图、每任务锚点与验收 | 提案批准开工后按此排产 PR；每 Phase 结束回读 X-T6 更新规范 | 新（配套提案）                   |
-| [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) | **SaaS Phase 2 开工门禁清单**：12 项分四类（B 硬阻塞 / S 软阻塞 / T 技术细节 / C 交叉项）+ 三方签署页 | Phase 2 向量隔离开工前必读；B/S 项签署后回读提案 §11、评审包 §6、执行计划 §4 保持零漂移 | 新（配套提案 §10 R1 + 执行计划 §4） |
+| [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) | **SaaS Phase 2 开工门禁清单**：12 项分四类（B 硬阻塞 / S 软阻塞 / T 技术细节 / C 交叉项）+ 五方签署页 | Phase 2 向量隔离开工前必读；**v0.2 状态：Phase 2 开工授权已下**（S-1 方案 B + S-2 方案 b 采纳，partition-key 与 SILO 转 Phase 3 会审）；每项签署/变更后回读提案 §11、评审包 §6、执行计划 §4 保持零漂移 | 新（配套提案 §10 R1 + 执行计划 §4） |
 
 ---
 

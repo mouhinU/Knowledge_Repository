@@ -124,6 +124,7 @@
 - ☑ 同意 Phase 1 地基（P1-T1/T2/T3）口头先行，受 `saas.enabled=false` 门控。
 - ☑ 例外 EX-saas-001 随本提案一并批准（口头）。
 - ☐ U1~U6 各项责任人与时限已按 §3 表格指派。（运维侧待正式会议指派）
-- ☑ **Phase 2 未闭环项已由专项收口清单承接**：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) v0.1（12 项分四类：B 硬阻塞 3 / S 软阻塞 3 / T 技术细节 3 / C 交叉项 3）；B-1/B-2/B-3 三项运维书面签署后视为 U1/U3 正式确认，同步回写本评审包运维栏与本提案 §11。
+- ☑ **Phase 2 未闭环项已由专项收口清单承接**：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) v0.2（12 项分四类：B 硬阻塞 3 / S 软阻塞 3 / T 技术细节 3 / C 交叉项 3）；B-1/B-2/B-3 三项运维书面签署后视为 U1/U3 正式确认，同步回写本评审包运维栏与本提案 §11。
+- ☑ **Phase 2 开工授权（2026-09-30 项目负责人口头采纳，与 Phase 0/1 同模式）**：清单 v0.2 落地 S-1 方案 B（SILO 授权延后至 Phase 3）+ S-2 方案 b（LangChain4j JSON 谓词路径，`metadata.tenant_id` 走 `IsEqualTo` 下推）+ S-3 门禁降级（partition-key 万级时延阈值不再是 Phase 2 CI gate 断言）；B-1/B-2/B-3 触发条件在 Phase 2 范围内已消解（不动集合/权限/拓扑），T-1/T-2/T-3 联动结论落定；**正式运维三方签署（本 §6 运维栏 ☑ 需补料 → ☑ 签署）随 Phase 3 partition-key + SILO 引入时补齐**，届时创建 `docs/saas-phase3-go-checklist.md` 参照本清单格式。R1 决策（partition-key 为 POOL 目标态）不回退，落地节奏分两段。
 
 > 记录人：QoderWork ｜ 性质：项目负责人口头授权，非正式三方书面会签。正式书面签署与运维承接确认需在开启 Phase 2 前补齐。
