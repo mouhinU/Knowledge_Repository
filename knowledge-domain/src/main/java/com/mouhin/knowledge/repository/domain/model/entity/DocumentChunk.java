@@ -64,6 +64,16 @@ public class DocumentChunk {
     /** 文档分类（冗余，用于 Milvus 元数据过滤） */
     private String category;
 
+    /**
+     * 租户业务键（P2-T2，SaaS 向量隔离）。
+     *
+     * <p>由 app / domain 构造点从 {@link
+     * com.mouhin.knowledge.repository.domain.context.TenantContext#getOrDefault()} 读入，用于 {@code
+     * MilvusVectorStoreService.storeChunks} 在写入 metadata 前解析数值 {@code tenant_id}。DB 侧不持久化本字段（{@code
+     * kb_document_chunk.tenant_id} 由 MyBatis-Plus 拦截器自动注入），此处只作为向量写入路径的"随行标识"。
+     */
+    private String tenantKey;
+
     private LocalDateTime createdTime;
 
     // ==================== 业务方法 ====================
@@ -229,6 +239,14 @@ public class DocumentChunk {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getTenantKey() {
+        return tenantKey;
+    }
+
+    public void setTenantKey(String tenantKey) {
+        this.tenantKey = tenantKey;
     }
 
     public LocalDateTime getCreatedTime() {

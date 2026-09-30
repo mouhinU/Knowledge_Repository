@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 import com.mouhin.knowledge.repository.application.converter.DocumentConverter;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
@@ -138,6 +139,8 @@ public class IndexCustomChunksCmdExe {
             }
             DocumentChunk chunk = new DocumentChunk();
             chunk.setChunkKey(UUID.randomUUID().toString());
+            // P2-T2：随行租户标识（自定义分块同步入口）
+            chunk.setTenantKey(TenantContext.getOrDefault());
             chunk.setDocumentId(document.getId());
             chunk.setDocumentKey(document.getDocumentKey());
             chunk.setChunkIndex(index++);

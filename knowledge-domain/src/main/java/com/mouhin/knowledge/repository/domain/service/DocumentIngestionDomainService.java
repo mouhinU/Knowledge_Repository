@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkWindow;
@@ -651,6 +652,8 @@ public class DocumentIngestionDomainService {
             Document document, int chunkIndex, int startPage, int endPage, String content) {
         DocumentChunk chunk = new DocumentChunk();
         chunk.setChunkKey(UUID.randomUUID().toString());
+        // P2-T2：随行租户标识，供 MilvusVectorStoreService 写入 metadata.tenant_id
+        chunk.setTenantKey(TenantContext.getOrDefault());
         chunk.setDocumentId(document.getId());
         chunk.setDocumentKey(document.getDocumentKey());
         chunk.setChunkIndex(chunkIndex);

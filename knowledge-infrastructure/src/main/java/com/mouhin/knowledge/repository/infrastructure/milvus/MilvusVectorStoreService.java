@@ -1,9 +1,11 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
+import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -38,11 +40,15 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
 
     private final EmbeddingStoreProvider storeProvider;
     private final EmbeddingModel embeddingModel;
+    private final TenantIdResolver tenantIdResolver;
 
     public MilvusVectorStoreService(
-            EmbeddingStoreProvider storeProvider, EmbeddingModel embeddingModel) {
+            EmbeddingStoreProvider storeProvider,
+            EmbeddingModel embeddingModel,
+            TenantIdResolver tenantIdResolver) {
         this.storeProvider = storeProvider;
         this.embeddingModel = embeddingModel;
+        this.tenantIdResolver = tenantIdResolver;
     }
 
     /**
@@ -72,8 +78,11 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         // 构建所有 TextSegment
         List<TextSegment> segments = new ArrayList<>(totalChunks);
         for (DocumentChunk chunk : chunks) {
+            // P2-T2：随行租户标识→数值 tenant_id，写入 Milvus metadata JSON（S-2 方案 b：JSON 谓词路径）
+            long tenantId = tenantIdResolver.resolve(effectiveTenantKey(chunk));
             Metadata metadata =
                     new Metadata()
+                            .put("tenant_id", tenantId)
                             .put("document_key", chunk.getDocumentKey())
                             .put(
                                     "document_name",
@@ -222,5 +231,18 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * 解析当前 chunk 应归属的 tenant_key：优先随行字段（P2-T2 app / domain 构造点已注入），缺失则回落到 {@link
+     * TenantContext#getOrDefault()}。
+     *
+     * <p>回落覆盖两类场景：(1) 老数据重灌入口未走 P2-T2 之后的构造点；(2) 单元测试直接 {@code new DocumentChunk()} 未设
+     * tenantKey。任一路径最终仍由 {@link TenantIdResolver#resolve(String)} 校验租户存在性，未知即抛 {@code
+     * IllegalStateException}（P1-T8 哨兵）。
+     */
+    private static String effectiveTenantKey(DocumentChunk chunk) {
+        String key = chunk.getTenantKey();
+        return (key == null || key.isBlank()) ? TenantContext.getOrDefault() : key;
     }
 }
