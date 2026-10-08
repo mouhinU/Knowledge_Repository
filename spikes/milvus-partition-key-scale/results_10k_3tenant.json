@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "uri": "http://localhost:19530",
+    "dim": 1024,
+    "total_rows": 10000,
+    "tenants": 3,
+    "rows_per_tenant": [
+      3334,
+      3333,
+      3333
+    ],
+    "num_partitions": 64,
+    "queries": 200,
+    "limit": 10,
+    "use_ollama": false,
+    "index": "IVF_FLAT nlist=128 metric=COSINE",
+    "random_seed": 20260930,
+    "build_dataset_ms": 5857.7
+  },
+  "ingest": {
+    "spikescale_pk": {
+      "create_ms": 185.3,
+      "insert_ms": 26631.9,
+      "rows": 10000,
+      "insert_rows_per_sec": 375.5
+    },
+    "spikescale_nopk": {
+      "create_ms": 55.8,
+      "insert_ms": 32669.8,
+      "rows": 10000,
+      "insert_rows_per_sec": 306.1
+    },
+    "spikescale_json": {
+      "create_ms": 62.9,
+      "insert_ms": 21762.6,
+      "rows": 10000,
+      "insert_rows_per_sec": 459.5
+    }
+  },
+  "latency": {
+    "spikescale_pk": {
+      "n": 200,
+      "p50_ms": 13.65,
+      "p95_ms": 20.71,
+      "p99_ms": 27.73,
+      "mean_ms": 14.8,
+      "max_ms": 46.85,
+      "min_ms": 12.46
+    },
+    "spikescale_nopk": {
+      "n": 200,
+      "p50_ms": 5.78,
+      "p95_ms": 8.34,
+      "p99_ms": 9.95,
+      "mean_ms": 6.14,
+      "max_ms": 14.73,
+      "min_ms": 4.97
+    },
+    "spikescale_json": {
+      "n": 200,
+      "p50_ms": 6.77,
+      "p95_ms": 10.34,
+      "p99_ms": 14.43,
+      "mean_ms": 7.28,
+      "max_ms": 22.99,
+      "min_ms": 6.2
+    }
+  },
+  "cross_tenant_leak": {
+    "spikescale_pk": 0,
+    "spikescale_nopk": 0,
+    "spikescale_json": 0
+  },
+  "avg_hits": {
+    "spikescale_pk": 10.0,
+    "spikescale_nopk": 10.0,
+    "spikescale_json": 10.0
+  },
+  "pruning_gain": {
+    "pk_vs_nopk_p95_pct": -148.3,
+    "pk_vs_json_p95_pct": -100.3,
+    "note": "正值=partition-key 更快；收益随 num_partitions 与租户数、剪掉的空分区比例放大。"
+  }
+}

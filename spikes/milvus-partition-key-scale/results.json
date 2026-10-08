@@ -1,0 +1,397 @@
+{
+  "spike": "P3-T0 Milvus partition-key scale",
+  "server": "Milvus v2.5.4 standalone (docker knowledge-milvus, ~3.82GiB mem cap), localhost:19530",
+  "index": "IVF_FLAT nlist=128 metric=COSINE dim=1024",
+  "vector_source": "deterministic unit random (seed 20260930) - measures infra latency/pruning, NOT recall (recall proven in P2-T0)",
+  "runs": [
+    {
+      "config": "10k/3t",
+      "meta": {
+        "uri": "http://localhost:19530",
+        "dim": 1024,
+        "total_rows": 10000,
+        "tenants": 3,
+        "rows_per_tenant": [
+          3334,
+          3333,
+          3333
+        ],
+        "num_partitions": 64,
+        "queries": 200,
+        "limit": 10,
+        "use_ollama": false,
+        "index": "IVF_FLAT nlist=128 metric=COSINE",
+        "random_seed": 20260930,
+        "build_dataset_ms": 5857.7
+      },
+      "ingest": {
+        "spikescale_pk": {
+          "create_ms": 185.3,
+          "insert_ms": 26631.9,
+          "rows": 10000,
+          "insert_rows_per_sec": 375.5
+        },
+        "spikescale_nopk": {
+          "create_ms": 55.8,
+          "insert_ms": 32669.8,
+          "rows": 10000,
+          "insert_rows_per_sec": 306.1
+        },
+        "spikescale_json": {
+          "create_ms": 62.9,
+          "insert_ms": 21762.6,
+          "rows": 10000,
+          "insert_rows_per_sec": 459.5
+        }
+      },
+      "latency": {
+        "spikescale_pk": {
+          "n": 200,
+          "p50_ms": 13.65,
+          "p95_ms": 20.71,
+          "p99_ms": 27.73,
+          "mean_ms": 14.8,
+          "max_ms": 46.85,
+          "min_ms": 12.46
+        },
+        "spikescale_nopk": {
+          "n": 200,
+          "p50_ms": 5.78,
+          "p95_ms": 8.34,
+          "p99_ms": 9.95,
+          "mean_ms": 6.14,
+          "max_ms": 14.73,
+          "min_ms": 4.97
+        },
+        "spikescale_json": {
+          "n": 200,
+          "p50_ms": 6.77,
+          "p95_ms": 10.34,
+          "p99_ms": 14.43,
+          "mean_ms": 7.28,
+          "max_ms": 22.99,
+          "min_ms": 6.2
+        }
+      },
+      "pruning_gain": {
+        "pk_vs_nopk_p95_pct": -148.3,
+        "pk_vs_json_p95_pct": -100.3,
+        "note": "正值=partition-key 更快；收益随 num_partitions 与租户数、剪掉的空分区比例放大。"
+      },
+      "cross_tenant_leak": {
+        "spikescale_pk": 0,
+        "spikescale_nopk": 0,
+        "spikescale_json": 0
+      }
+    },
+    {
+      "config": "10k/50t",
+      "meta": {
+        "uri": "http://localhost:19530",
+        "dim": 1024,
+        "total_rows": 10000,
+        "tenants": 50,
+        "rows_per_tenant": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "num_partitions": 128,
+        "queries": 200,
+        "limit": 10,
+        "use_ollama": false,
+        "index": "IVF_FLAT nlist=128 metric=COSINE",
+        "random_seed": 20260930,
+        "build_dataset_ms": 5914.2
+      },
+      "ingest": {
+        "spikescale_pk": {
+          "create_ms": 300.2,
+          "insert_ms": 23948.4,
+          "rows": 10000,
+          "insert_rows_per_sec": 417.6
+        },
+        "spikescale_nopk": {
+          "create_ms": 85.8,
+          "insert_ms": 21713.9,
+          "rows": 10000,
+          "insert_rows_per_sec": 460.5
+        },
+        "spikescale_json": {
+          "create_ms": 57.3,
+          "insert_ms": 26194.4,
+          "rows": 10000,
+          "insert_rows_per_sec": 381.8
+        }
+      },
+      "latency": {
+        "spikescale_pk": {
+          "n": 200,
+          "p50_ms": 6.94,
+          "p95_ms": 13.4,
+          "p99_ms": 15.54,
+          "mean_ms": 8.13,
+          "max_ms": 29.75,
+          "min_ms": 5.52
+        },
+        "spikescale_nopk": {
+          "n": 200,
+          "p50_ms": 5.97,
+          "p95_ms": 10.09,
+          "p99_ms": 18.8,
+          "mean_ms": 7.01,
+          "max_ms": 29.65,
+          "min_ms": 5.08
+        },
+        "spikescale_json": {
+          "n": 200,
+          "p50_ms": 7.08,
+          "p95_ms": 11.28,
+          "p99_ms": 13.31,
+          "mean_ms": 7.95,
+          "max_ms": 19.89,
+          "min_ms": 6.14
+        }
+      },
+      "pruning_gain": {
+        "pk_vs_nopk_p95_pct": -32.8,
+        "pk_vs_json_p95_pct": -18.8,
+        "note": "正值=partition-key 更快；收益随 num_partitions 与租户数、剪掉的空分区比例放大。"
+      },
+      "cross_tenant_leak": {
+        "spikescale_pk": 0,
+        "spikescale_nopk": 0,
+        "spikescale_json": 0
+      }
+    },
+    {
+      "config": "20k/100t",
+      "meta": {
+        "uri": "http://localhost:19530",
+        "dim": 1024,
+        "total_rows": 20000,
+        "tenants": 100,
+        "rows_per_tenant": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "num_partitions": 256,
+        "queries": 150,
+        "limit": 10,
+        "use_ollama": false,
+        "index": "IVF_FLAT nlist=128 metric=COSINE",
+        "random_seed": 20260930,
+        "build_dataset_ms": 21314.7
+      },
+      "ingest": {
+        "spikescale_pk": {
+          "create_ms": 362.6,
+          "insert_ms": 43222.8,
+          "rows": 20000,
+          "insert_rows_per_sec": 462.7
+        },
+        "spikescale_nopk": {
+          "create_ms": 47.8,
+          "insert_ms": 46581.3,
+          "rows": 20000,
+          "insert_rows_per_sec": 429.4
+        },
+        "spikescale_json": {
+          "create_ms": 69.9,
+          "insert_ms": 41054.7,
+          "rows": 20000,
+          "insert_rows_per_sec": 487.2
+        }
+      },
+      "latency": {
+        "spikescale_pk": {
+          "n": 150,
+          "p50_ms": 7.34,
+          "p95_ms": 20.93,
+          "p99_ms": 27.16,
+          "mean_ms": 9.62,
+          "max_ms": 34.33,
+          "min_ms": 5.68
+        },
+        "spikescale_nopk": {
+          "n": 150,
+          "p50_ms": 5.66,
+          "p95_ms": 8.63,
+          "p99_ms": 10.64,
+          "mean_ms": 6.09,
+          "max_ms": 11.3,
+          "min_ms": 4.99
+        },
+        "spikescale_json": {
+          "n": 150,
+          "p50_ms": 7.76,
+          "p95_ms": 12.2,
+          "p99_ms": 14.84,
+          "mean_ms": 8.39,
+          "max_ms": 15.68,
+          "min_ms": 7.15
+        }
+      },
+      "pruning_gain": {
+        "pk_vs_nopk_p95_pct": -142.5,
+        "pk_vs_json_p95_pct": -71.6,
+        "note": "正值=partition-key 更快；收益随 num_partitions 与租户数、剪掉的空分区比例放大。"
+      },
+      "cross_tenant_leak": {
+        "spikescale_pk": 0,
+        "spikescale_nopk": 0,
+        "spikescale_json": 0
+      }
+    }
+  ],
+  "crash_event": {
+    "config": "50k/100t partitions=256",
+    "outcome": "Milvus standalone OOM/crash (broken pipe) mid-insert; container auto-restarted ~20s later",
+    "finding": "50k x 1024-dim ingest exceeds local standalone ~3.8GB memory; ops must reserve materially more (B-1)"
+  }
+}

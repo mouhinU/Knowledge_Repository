@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "uri": "http://localhost:19530",
+    "dim": 1024,
+    "total_rows": 10000,
+    "tenants": 50,
+    "rows_per_tenant": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "num_partitions": 128,
+    "queries": 200,
+    "limit": 10,
+    "use_ollama": false,
+    "index": "IVF_FLAT nlist=128 metric=COSINE",
+    "random_seed": 20260930,
+    "build_dataset_ms": 5914.2
+  },
+  "ingest": {
+    "spikescale_pk": {
+      "create_ms": 300.2,
+      "insert_ms": 23948.4,
+      "rows": 10000,
+      "insert_rows_per_sec": 417.6
+    },
+    "spikescale_nopk": {
+      "create_ms": 85.8,
+      "insert_ms": 21713.9,
+      "rows": 10000,
+      "insert_rows_per_sec": 460.5
+    },
+    "spikescale_json": {
+      "create_ms": 57.3,
+      "insert_ms": 26194.4,
+      "rows": 10000,
+      "insert_rows_per_sec": 381.8
+    }
+  },
+  "latency": {
+    "spikescale_pk": {
+      "n": 200,
+      "p50_ms": 6.94,
+      "p95_ms": 13.4,
+      "p99_ms": 15.54,
+      "mean_ms": 8.13,
+      "max_ms": 29.75,
+      "min_ms": 5.52
+    },
+    "spikescale_nopk": {
+      "n": 200,
+      "p50_ms": 5.97,
+      "p95_ms": 10.09,
+      "p99_ms": 18.8,
+      "mean_ms": 7.01,
+      "max_ms": 29.65,
+      "min_ms": 5.08
+    },
+    "spikescale_json": {
+      "n": 200,
+      "p50_ms": 7.08,
+      "p95_ms": 11.28,
+      "p99_ms": 13.31,
+      "mean_ms": 7.95,
+      "max_ms": 19.89,
+      "min_ms": 6.14
+    }
+  },
+  "cross_tenant_leak": {
+    "spikescale_pk": 0,
+    "spikescale_nopk": 0,
+    "spikescale_json": 0
+  },
+  "avg_hits": {
+    "spikescale_pk": 10.0,
+    "spikescale_nopk": 10.0,
+    "spikescale_json": 10.0
+  },
+  "pruning_gain": {
+    "pk_vs_nopk_p95_pct": -32.8,
+    "pk_vs_json_p95_pct": -18.8,
+    "note": "正值=partition-key 更快；收益随 num_partitions 与租户数、剪掉的空分区比例放大。"
+  }
+}

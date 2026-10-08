@@ -6,7 +6,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 > 用途：**Phase 3（生命周期 + SILO 引入，P3-T0~T6）开工前的最后一道闭环清单**。把 Phase 2 清单消解/延后至 Phase 3 的 B/S/T 项、评审包 §3 未决项 U2/U3/U4/U6、执行计划 §5 Phase 3 任务表中的开放设计问题落成可勾选的 Go/No-Go 表。
 > 权威文档：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策，v0.3）· 三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md)（签署栏，v1.1）· 可执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)（P3 任务表，v0.9——本次清单起草已同步加 P3-T0 spike 行 + §11 S6 Sprint 条 + 关键路径更新）· Phase 2 生效基线 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（v0.3，已交付归档）· 规范基线 [../AGENTS.md](../AGENTS.md) §0 红线 #11
-> Spike 报告：[../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)（P2-T0 结论，Phase 3 P3-T0 需扩规模复测）
+> Spike 报告：[../spikes/milvus-partition-key/RESULTS.md](../spikes/milvus-partition-key/RESULTS.md)（P2-T0 toy 规模结论：partition-key 语义正确 + LangChain4j JSON 谓词等价）· [../spikes/milvus-partition-key-scale/RESULTS.md](../spikes/milvus-partition-key-scale/RESULTS.md)（**P3-T0 万级规模复测，2026-10-07 已跑**：为 S-2/S-3/T-2 提供实证——核心负向结论：10k–20k/≤100 租户 IVF_FLAT 下 partition-key P95 13–21ms 反而慢于普通标量/JSON 谓词 8–12ms，无剪枝性能收益；schema 可建可查 T-2 已验证；触发 R1 复核建议）
 > 版本：v0.1（2026-09-30 起草）· 作者：QoderWork · 状态：**待会审**——Phase 2 交付归档同日起草本清单，把 Phase 2 消解/延后至 Phase 3 的 6 项（B-1/B-2/B-3/S-1/S-3/T-1）与新引入的 12 项（P3-T0~T6 本体 + SSO/迁移演练/CI 扩展/配置耦合）合并成 18 项 B/S/T/C 四类可勾选表。**未签署前 Phase 3 不得开工**；项目负责人（架构+安全侧）口头授权或三方书面会签均可解锁开工。
 
 ---
@@ -67,6 +67,12 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 **S 类决策模板**：五项 S 中 S-1/S-2/S-3 是 partition-key + SILO 引入的核心决策，S-4/S-5 是生命周期细节。若 S-1 采纳方案 C（手工 placement）则 Phase 3 前段可先起 P3-T0 spike；若 S-2 采纳方案 c（延后至 P3-T5 一并做）则 P3-T1~T4 不依赖 partition-key 建集合，可先落生命周期骨架；S-3/S-4/S-5 三项均可"延后至具体 P3-TX 起草 PR 时给结论"，不阻断开工。
 
+**S 类 · P3-T0 万级 spike 实证补充（2026-10-07，证据已就绪供会审，勾选位仍留待决策）**：详见 [../spikes/milvus-partition-key-scale/RESULTS.md](../spikes/milvus-partition-key-scale/RESULTS.md)。
+
+- **对 S-3**：实测 partition-key 检索 P95 在 10k/3t=20.7ms、10k/50t=13.4ms、20k/100t=20.9ms（本机 standalone / IVF_FLAT / Bounded / limit=10）；同谓词普通标量 P95=8.3/10.1/8.6ms、LangChain4j JSON 谓词 P95=10.3/11.3/12.2ms。**partition-key 三组全部慢于对照 1.2–2.5 倍，无剪枝正收益**。建议：P95 门禁阈值应锚定 JSON 谓词/普通标量路径（如 P95 ≤ 50ms 有裕度），partition-key 若选用则只设隔离正确性断言（P2-T5 已覆盖）、不设性能收益断言。绝对值须预生产/cluster 复跑校准（联动 B-1），不可由本机外推。
+- **对 S-2**：三条迁移路径技术均无障碍——① 影子双写：partition-key 集合与 LangChain4j JSON 集合可在同库共存、互不冲突（本 spike 三集合同库建/查/0 泄漏即共存证据），代价是写放大 + 双一致性；② 停机重灌：本机 ingest ~400 rows/s，10k≈25s/20k≈43s（未计索引 build/compaction），作停机窗口下界；③ **方案 c（延后 partition-key、维持 JSON 谓词）被本次性能负结果最有力支撑**——现网隔离已 0 泄漏、更快、零 schema 迁移成本。
+- **R1 复核触发点（新增，供会审）**：提案 §10 R1（partition-key 为 POOL 目标态）当初部分基于预期剪枝收益；本 spike 证实在 POOL 现实规模该收益不存在，partition-key 的正当前提应改为"物理隔离/可运维性/未来超大规模期权"而非当前时延。**建议会审把"POOL 是否仍需 partition-key 目标态"重新列为决策项**——本 spike 不单方面改架构，仅把负向实证摆到 S-2/T-2 门禁前供定夺。
+
 ---
 
 ## 4. T 类 · Phase 3 内部技术细节（Technical）
@@ -83,6 +89,10 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 | **T-6** | **SILO placement 决策器**（P3-T1，与 S-1 联动）：`sys_tenant_placement` 表已 Phase 1 P1-T2 建（当前恒 POOL），Phase 3 引入决策器——按 S-1 阈值自动或半自动切 SILO。方案 A：决策器为**运行时查询**（每次 `storeFor()` 都查 `sys_tenant_placement` + 短 TTL 缓存 5min，与 T-1 缓存失效策略配合）；方案 B：决策器为**写入时快照**（provision 时一次决策，placement 变更需手动触发 reswitch 端点重灌向量）；方案 C：Phase 3 只落 CRUD（平台管理员手动切换 placement），决策器算法延后 | 架构 + 产品/商务 | Phase 2 清单 §3 S-1 · 执行计划 §5 P3-T1 · 提案 §5 placement 章节 | ☐ 方案 A ☐ 方案 B ☐ 方案 C（若 S-1 采纳方案 C 则本项自动 C） | P3-T1 起前 |
 
 **T 类决策模板**：六项 T 中 T-1/T-2/T-3/T-6 与 partition-key/SILO 引入强绑定（若 S-1/S-2 采纳延后方案则 T-1/T-2/T-3/T-6 可随之后移至具体 P3-TX 起草时）；T-4 与 Phase 3 P3-T1 平台端点强绑定，P3-T1 起前必闭；T-5 与 Phase 3 本体解耦，可延后至中评。
+
+**T 类 · P3-T0 万级 spike 实证补充（2026-10-07）**：
+
+- **对 T-2**：目标态 schema 在 Milvus 2.5.4 **可建可查已验证**——用 REST v2（`io.milvus` Java SDK 为同层薄封装，schema 表达等价）成功建立 `id Int64 PK / vector FloatVector(1024) / tenant_id Int64 isPartitionKey=true / category VarChar / numPartitions 64–256` 并配 `enableDynamic=true` 容纳 metadata 兼容层，按 `tenant_id==X` 剪枝查询成功且 0 泄漏。`isPartitionKey` 与 `numPartitions` 须经 schema 段传入。T-2 的"SDK 兼容性"子问题从"待验证"转"已验证可行"。**但**附带发现 partition-key 无性能收益（见 S 类补充对 S-3/R1），因此 T-2 最终选方案 A/B/C 应与 S-2 会审结论合并定夺：若 S-2 采纳方案 c（延后 partition-key），则 T-2 可先只做方案 B（`MilvusSdkAdapter` 骨架 + LangChain4j 回退 bean 并存），不急于抽 `VectorStorePort`。
 
 ---
 
@@ -133,10 +143,10 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
      - [../AGENTS.md](../AGENTS.md) §1 分册地图 Phase 3 清单行版本戳由 v0.1 → v0.2、状态由"待会审"→"开工授权已下"；§2 决策树 Phase 3 分支同步。
      - 本清单 v0.1 → v0.2（授权状态），Phase 3 交付完成后升 v0.3（归档生效基线）。
 
-2. **P3-T0 spike 起 PR**（若 S-2/T-2 未采纳"延后至 P3-T5"则优先）：以 `chore(saas): P3-T0 partition-key 集合 spike（万级基准 + io.milvus SDK 建集合可行性）` 提交，交付内容：
-   - 独立小样 `spikes/milvus-partition-key-scale/`（`spike_scale.py` + `RESULTS.md` + `results.json`），扩数据集到 1–5 万条 bge-m3 1024 维（三租户均分），跑 S-3 万级时延阈值 P95 断言。
-   - `io.milvus` SDK 建 `knowledge_chunks_pk` 集合最小可行样例（`tenant_id Int64 partitionKey=true` + `metadata JSON` 兼容层），验证与 LangChain4j 现网 `knowledge_chunks` 双写不冲突。
-   - **不做**：改生产代码；本 spike 只出报告与结论回写本清单 S-2/T-2。
+2. **P3-T0 spike · 已执行（2026-10-07，`chore(saas): P3-T0 partition-key 集合万级 spike`）**：交付内容见 [../spikes/milvus-partition-key-scale/](../spikes/milvus-partition-key-scale/)（`spike_scale.py` + `README.md` + `RESULTS.md` + 合并 `results.json` + 三组分档 `results_*.json`）：
+   - 万级规模复测三组：10k/3t、10k/50t、20k/100t（IVF_FLAT / 随机归一 1024 维 / Bounded / 本机 standalone），另 `50k/100t` 触发 Milvus standalone（~3.8GB）**OOM 崩溃**（作 B-1 运维内存预留实证，非数据档）。
+   - **核心结论（回写本清单 §3 S-2/S-3、§4 T-2）**：partition-key 无剪枝性能收益（P95 13–21ms，慢于普通标量/JSON 谓词 8–12ms）；目标态 schema 可建可查 + 与 LangChain4j JSON 集合同库共存 0 泄漏（T-2 SDK 兼容已验证）；触发"POOL 是否仍需 partition-key 目标态"的 **R1 复核建议**。
+   - **未改生产代码**：全程 `spikescale_*` 临时集合自动 drop，仅复核生产 `knowledge_chunks` 未受影响；结论作为证据摆到门禁前，**S-2/S-3/T-2 勾选位仍留待会审定夺**（本 spike 不单方面改架构）。
 
 3. **P3-T1 起 PR**：以 `feat(tenant): P3-T1 PlatformTenantController 与平台端鉴权` 提交，交付内容：
    - 新 `web/controller/PlatformTenantController.java`（`/api/platform/**`）· `application/executor/platform/*`（`create/suspend/resume/archive/delete/get/list` 六 executor）· 平台管理员鉴权按 T-4 决策落 `@PreAuthorize` 或独立 `PlatformTokenAuthFilter`。
