@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 平台端开通租户命令执行器（app 层用例，事务边界，P3-T1）。
  *
- * <p>本期（解耦子集）落「创建即 {@link Tenant#STATUS_ACTIVE}」的直接开通：校验 {@code tenantKey} 合法性（引用 domain 单一事实源
- * {@link TenantKey}，与 SILO 集合命名口径一致）→ 查重 → 落库 → 审计。 PENDING → PROVISIONING → ACTIVE/FAILED 的编排状态机由
- * P3-T2 在本执行器之上叠加，届时 {@code status} 初值改为 PENDING 并触发异步开通步骤。
+ * <p>校验 {@code tenantKey} 合法性（引用 domain 单一事实源 {@link TenantKey}，与 SILO 集合命名口径一致）→ 查重 → 以 {@link
+ * Tenant#STATUS_PENDING} 落库并生成 UUID v4 {@code provisionRequestId}（S-5=方案 A 幂等键）→ 审计。
+ * 创建<b>不</b>直接开通：后续由 {@code TenantProvisionCmdExe} 驱动 {@code ProvisioningStateMachine} 走 PENDING →
+ * PROVISIONING → ACTIVE/FAILED。 如此把"写元数据"与"跑开通副作用"解耦，失败可携 {@code provisionRequestId} 重放。
  *
  * <p>不含 LLM / 外部 IO，可安全置于 {@link Transactional} 内（红线 #8）。
  *
@@ -66,7 +68,8 @@ public class TenantCreateCmdExe {
         tenant.setPlan(
                 cmd.getPlan() == null || cmd.getPlan().isBlank() ? DEFAULT_PLAN : cmd.getPlan());
         tenant.setDataRegion(cmd.getDataRegion());
-        tenant.setStatus(Tenant.STATUS_ACTIVE);
+        tenant.setStatus(Tenant.STATUS_PENDING);
+        tenant.setProvisionRequestId(UUID.randomUUID().toString());
         tenantGateway.save(tenant);
 
         platformAuditLog.logTenantAction(
@@ -74,8 +77,12 @@ public class TenantCreateCmdExe {
                 ACTION,
                 tenantKey,
                 "SUCCESS",
-                "created status=ACTIVE plan=" + tenant.getPlan());
-        log.info("Platform tenant created: {} (id={})", tenantKey, tenant.getTenantId());
+                "created status=PENDING plan=" + tenant.getPlan());
+        log.info(
+                "Platform tenant created (pending provisioning): {} (id={}, requestId={})",
+                tenantKey,
+                tenant.getTenantId(),
+                tenant.getProvisionRequestId());
         return TenantVoConverter.toVO(tenant);
     }
 }

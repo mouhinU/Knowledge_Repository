@@ -33,6 +33,8 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
      *
      * <ul>
      *   <li>{@code sys_tenant} / {@code sys_tenant_placement}：平台元数据表，本身就是租户目录；若加过滤会导致自引用悖论。
+     *   <li>{@code sys_tenant_provision_step}：平台端开通步骤审计表（P3-T2），其 {@code tenant_id} 是"被开通的租户"
+     *       业务列而非过滤维度；若加过滤会与 {@code sys_tenant} 同陷自引用悖论。
      *   <li>{@code flyway_schema_history}：Flyway 内部表，DDL 迁移链与租户无关。
      *   <li>{@code sys_config}：全局配置，Phase 4-T1 才做租户级 override，此处暂不参与过滤。
      *   <li>{@code kb_extraction_cache}：文档解析结果缓存，Phase 4-T3 才补 tenant_id 列，此处暂不参与过滤。
@@ -42,6 +44,7 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
             Set.of(
                     "sys_tenant",
                     "sys_tenant_placement",
+                    "sys_tenant_provision_step",
                     "flyway_schema_history",
                     "sys_config",
                     "kb_extraction_cache");

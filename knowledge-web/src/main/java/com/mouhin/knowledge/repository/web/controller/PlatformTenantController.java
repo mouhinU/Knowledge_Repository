@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
 import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
@@ -47,6 +49,7 @@ public class PlatformTenantController {
     private static final String FIELD_PLAN = "plan";
     private static final String FIELD_DATA_REGION = "dataRegion";
     private static final String FIELD_REASON = "reason";
+    private static final String FIELD_PROVISION_REQUEST_ID = "provisionRequestId";
 
     private final PlatformTenantServiceI platformTenantService;
 
@@ -74,6 +77,19 @@ public class PlatformTenantController {
         cmd.setDataRegion(stringOf(body.get(FIELD_DATA_REGION)));
         applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
         return ResponseEntity.ok(platformTenantService.createTenant(cmd));
+    }
+
+    @PostMapping("/{tenantKey}/provision")
+    public ResponseEntity<TenantProvisionVO> provision(
+            @PathVariable String tenantKey,
+            @RequestBody(required = false) Map<String, Object> body,
+            HttpServletRequest request) {
+        TenantProvisionCmd cmd = new TenantProvisionCmd();
+        cmd.setTenantKey(tenantKey);
+        cmd.setProvisionRequestId(
+                body == null ? null : stringOf(body.get(FIELD_PROVISION_REQUEST_ID)));
+        applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
+        return ResponseEntity.ok(platformTenantService.provisionTenant(cmd));
     }
 
     @PostMapping("/{tenantKey}/suspend")

@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V26 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V27 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V26）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 26;
+    /** 迁移脚本总数（V1..V27）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 27;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 26")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 27")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,11 +54,10 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V26
+        // 二次调用应无待处理迁移（幂等），并停留在 V27
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals(
-                "26", current.getVersion().getVersion(), "最终版本应为 V26（tenant_id NOT NULL P1-T6）");
+        assertEquals("27", current.getVersion().getVersion(), "最终版本应为 V27（provision 状态机 P3-T2）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -297,6 +296,55 @@ class FlywayMigrationSmokeTest {
             }
             assertEquals(
                     15, notNullCount, "V26 应将 15 张业务表 tenant_id 全部收紧为 NOT NULL，实际=" + notNullCount);
+
+            // 抽查 V27（P3-T2 开通状态机）：新表 sys_tenant_provision_step 存在
+            boolean hasProvisionStep = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_provision_step'")) {
+                assertTrue(rs.next());
+                hasProvisionStep = rs.getInt(1) > 0;
+            }
+            assertTrue(hasProvisionStep, "V27 表缺失 (sys_tenant_provision_step)");
+
+            // 抽查 V27：sys_tenant 增加 provision_request_id 列
+            boolean hasTenantRequestId = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant' "
+                                    + "AND LOWER(column_name) = 'provision_request_id'")) {
+                assertTrue(rs.next());
+                hasTenantRequestId = rs.getInt(1) > 0;
+            }
+            assertTrue(hasTenantRequestId, "V27 列缺失 (sys_tenant.provision_request_id)");
+
+            // 抽查 V27：sys_tenant_provision_step 关键列齐备
+            List<String> stepCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_provision_step' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('provision_request_id','step_name','attempt_no','status','error_detail')")) {
+                while (rs.next()) {
+                    stepCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    stepCols.contains("provision_request_id"),
+                    "V27 列缺失 (sys_tenant_provision_step.provision_request_id)");
+            assertTrue(
+                    stepCols.contains("step_name"),
+                    "V27 列缺失 (sys_tenant_provision_step.step_name)");
+            assertTrue(
+                    stepCols.contains("attempt_no"),
+                    "V27 列缺失 (sys_tenant_provision_step.attempt_no)");
+            assertTrue(stepCols.contains("status"), "V27 列缺失 (sys_tenant_provision_step.status)");
+            assertTrue(
+                    stepCols.contains("error_detail"),
+                    "V27 列缺失 (sys_tenant_provision_step.error_detail)");
         }
     }
 }

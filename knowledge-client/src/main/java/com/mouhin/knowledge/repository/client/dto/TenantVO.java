@@ -22,6 +22,10 @@ public class TenantVO {
     private String name;
     private String plan;
     private String status;
+
+    /** 当前 provision 请求 UUID v4（P3-T2，S-5=方案 A 幂等键）。 */
+    private String provisionRequestId;
+
     private String dataRegion;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

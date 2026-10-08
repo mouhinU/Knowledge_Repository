@@ -22,6 +22,12 @@ import lombok.Setter;
 @TableName("sys_tenant")
 public class TenantDO {
 
+    /** 状态：已创建但尚未开通（P3-T2 起点）。 */
+    public static final String STATUS_PENDING = "PENDING";
+
+    /** 状态：开通中（步骤逐条落 {@code sys_tenant_provision_step}）。 */
+    public static final String STATUS_PROVISIONING = "PROVISIONING";
+
     /** 状态：正常。 */
     public static final String STATUS_ACTIVE = "ACTIVE";
 
@@ -33,6 +39,9 @@ public class TenantDO {
 
     /** 状态：已删除（终态）。 */
     public static final String STATUS_DELETED = "DELETED";
+
+    /** 状态：开通失败（可通过 {@code provisionRequestId} + attempt_no+1 重放）。 */
+    public static final String STATUS_FAILED = "FAILED";
 
     @TableId(value = "tenant_id", type = IdType.AUTO)
     private Long tenantId;
@@ -51,6 +60,9 @@ public class TenantDO {
 
     @TableField("data_region")
     private String dataRegion;
+
+    @TableField("provision_request_id")
+    private String provisionRequestId;
 
     @TableField("create_time")
     private LocalDateTime createTime;

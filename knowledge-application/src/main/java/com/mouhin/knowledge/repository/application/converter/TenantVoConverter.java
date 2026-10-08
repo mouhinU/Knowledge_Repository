@@ -26,6 +26,7 @@ public final class TenantVoConverter {
         vo.setName(tenant.getName());
         vo.setPlan(tenant.getPlan());
         vo.setStatus(tenant.getStatus());
+        vo.setProvisionRequestId(tenant.getProvisionRequestId());
         vo.setDataRegion(tenant.getDataRegion());
         vo.setCreateTime(tenant.getCreateTime());
         vo.setUpdateTime(tenant.getUpdateTime());

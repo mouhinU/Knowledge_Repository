@@ -106,6 +106,7 @@ class KnowledgeTenantLineHandlerTest {
                     new String[] {
                         "sys_tenant",
                         "sys_tenant_placement",
+                        "sys_tenant_provision_step",
                         "flyway_schema_history",
                         "sys_config",
                         "kb_extraction_cache"

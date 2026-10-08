@@ -23,7 +23,8 @@ import org.mockito.ArgumentCaptor;
 /**
  * {@link TenantCreateCmdExe} 平台端开通租户执行器单测（P3-T1）。
  *
- * <p>锁定：合法键归一化落库为 ACTIVE、plan 缺省 FREE、审计 SUCCESS；非法键 / 重复键拒绝且不落库、审计 REJECTED。
+ * <p>锁定：合法键归一化落库为 PENDING（P3-T2：创建不直接开通，生成 UUID v4 provisionRequestId）、plan 缺省 FREE、审计 SUCCESS；非法键
+ * / 重复键拒绝且不落库、审计 REJECTED。
  *
  * @author mouhinU
  * @date 2026-10-08
@@ -46,8 +47,8 @@ class TenantCreateCmdExeTest {
     }
 
     @Test
-    @DisplayName("合法键 → 归一化小写落库、status=ACTIVE、plan 直传、审计 SUCCESS")
-    void createsActiveTenant() {
+    @DisplayName("合法键 → 归一化小写落库、status=PENDING、生成 provisionRequestId、plan 直传、审计 SUCCESS")
+    void createsPendingTenant() {
         when(tenantGateway.findByTenantKey("acme")).thenReturn(Optional.empty());
 
         TenantVO vo = exe.execute(cmd("  acme  ", "Acme Inc", "ENTERPRISE"));
@@ -56,10 +57,12 @@ class TenantCreateCmdExeTest {
         verify(tenantGateway, times(1)).save(cap.capture());
         Tenant saved = cap.getValue();
         assertThat(saved.getTenantKey()).isEqualTo("acme");
-        assertThat(saved.getStatus()).isEqualTo(Tenant.STATUS_ACTIVE);
+        assertThat(saved.getStatus()).isEqualTo(Tenant.STATUS_PENDING);
+        assertThat(saved.getProvisionRequestId()).isNotBlank();
         assertThat(saved.getPlan()).isEqualTo("ENTERPRISE");
         assertThat(saved.getName()).isEqualTo("Acme Inc");
         assertThat(vo.getTenantKey()).isEqualTo("acme");
+        assertThat(vo.getStatus()).isEqualTo(Tenant.STATUS_PENDING);
         verify(auditLog)
                 .logTenantAction(
                         eq("op-1"),

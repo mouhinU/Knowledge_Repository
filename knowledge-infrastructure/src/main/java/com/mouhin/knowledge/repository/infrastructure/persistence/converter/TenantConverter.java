@@ -28,6 +28,7 @@ public final class TenantConverter {
         tenant.setPlan(doObj.getPlan());
         tenant.setStatus(doObj.getStatus());
         tenant.setDataRegion(doObj.getDataRegion());
+        tenant.setProvisionRequestId(doObj.getProvisionRequestId());
         tenant.setCreateTime(doObj.getCreateTime());
         tenant.setUpdateTime(doObj.getUpdateTime());
         return tenant;
@@ -45,6 +46,7 @@ public final class TenantConverter {
         doObj.setPlan(tenant.getPlan());
         doObj.setStatus(tenant.getStatus());
         doObj.setDataRegion(tenant.getDataRegion());
+        doObj.setProvisionRequestId(tenant.getProvisionRequestId());
         doObj.setCreateTime(tenant.getCreateTime());
         doObj.setUpdateTime(tenant.getUpdateTime());
         return doObj;

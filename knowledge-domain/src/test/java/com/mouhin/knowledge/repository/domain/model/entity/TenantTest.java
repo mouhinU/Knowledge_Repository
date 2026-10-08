@@ -74,4 +74,71 @@ class TenantTest {
         Tenant b = withStatus(Tenant.STATUS_SUSPENDED);
         assertThat(a).isEqualTo(b).hasSameHashCodeAs(b);
     }
+
+    // ==================== P3-T2 开通状态机流转 ====================
+
+    @Test
+    @DisplayName("PENDING → beginProvisioning(reqId) → PROVISIONING 且回填 requestId")
+    void beginProvisioningFromPending() {
+        Tenant t = withStatus(Tenant.STATUS_PENDING);
+        t.beginProvisioning("req-uuid-1");
+        assertThat(t.getStatus()).isEqualTo(Tenant.STATUS_PROVISIONING);
+        assertThat(t.isProvisioning()).isTrue();
+        assertThat(t.getProvisionRequestId()).isEqualTo("req-uuid-1");
+    }
+
+    @Test
+    @DisplayName("FAILED → beginProvisioning(reqId) → PROVISIONING（重放允许）")
+    void beginProvisioningFromFailedReplay() {
+        Tenant t = withStatus(Tenant.STATUS_FAILED);
+        t.beginProvisioning("req-uuid-2");
+        assertThat(t.isProvisioning()).isTrue();
+        assertThat(t.getProvisionRequestId()).isEqualTo("req-uuid-2");
+    }
+
+    @Test
+    @DisplayName("PROVISIONING → completeProvisioning() → ACTIVE")
+    void completeProvisioning() {
+        Tenant t = withStatus(Tenant.STATUS_PROVISIONING);
+        t.completeProvisioning();
+        assertThat(t.isActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("PROVISIONING → failProvisioning() → FAILED")
+    void failProvisioning() {
+        Tenant t = withStatus(Tenant.STATUS_PROVISIONING);
+        t.failProvisioning();
+        assertThat(t.isFailed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("ACTIVE 态 beginProvisioning() 抛 IllegalStateException（已开通不可重开）")
+    void beginProvisioningFromActiveRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).beginProvisioning("req"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot begin provisioning");
+    }
+
+    @Test
+    @DisplayName("beginProvisioning 空白 requestId 抛 IllegalArgumentException")
+    void beginProvisioningBlankRequestIdRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_PENDING).beginProvisioning("  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("provisionRequestId");
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_PENDING).beginProvisioning(null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName(
+            "非 PROVISIONING 态 completeProvisioning()/failProvisioning() 抛 IllegalStateException")
+    void completeOrFailFromNonProvisioningRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_PENDING).completeProvisioning())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot complete provisioning");
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).failProvisioning())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot fail provisioning");
+    }
 }

@@ -3,10 +3,13 @@ package com.mouhin.knowledge.repository.application.service;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantCreateCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantGetQryExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantListQryExe;
+import com.mouhin.knowledge.repository.application.executor.platform.TenantProvisionCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantResumeCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantSuspendCmdExe;
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
 import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import java.util.List;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
 
     private final TenantCreateCmdExe tenantCreateCmdExe;
+    private final TenantProvisionCmdExe tenantProvisionCmdExe;
     private final TenantSuspendCmdExe tenantSuspendCmdExe;
     private final TenantResumeCmdExe tenantResumeCmdExe;
     private final TenantGetQryExe tenantGetQryExe;
@@ -29,11 +33,13 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
 
     public PlatformTenantServiceImpl(
             TenantCreateCmdExe tenantCreateCmdExe,
+            TenantProvisionCmdExe tenantProvisionCmdExe,
             TenantSuspendCmdExe tenantSuspendCmdExe,
             TenantResumeCmdExe tenantResumeCmdExe,
             TenantGetQryExe tenantGetQryExe,
             TenantListQryExe tenantListQryExe) {
         this.tenantCreateCmdExe = tenantCreateCmdExe;
+        this.tenantProvisionCmdExe = tenantProvisionCmdExe;
         this.tenantSuspendCmdExe = tenantSuspendCmdExe;
         this.tenantResumeCmdExe = tenantResumeCmdExe;
         this.tenantGetQryExe = tenantGetQryExe;
@@ -43,6 +49,11 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
     @Override
     public TenantVO createTenant(TenantCreateCmd cmd) {
         return tenantCreateCmdExe.execute(cmd);
+    }
+
+    @Override
+    public TenantProvisionVO provisionTenant(TenantProvisionCmd cmd) {
+        return tenantProvisionCmdExe.execute(cmd);
     }
 
     @Override
