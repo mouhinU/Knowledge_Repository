@@ -42,6 +42,7 @@
 | [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) | **SaaS 化改造 · 可执行计划**：Phase 0–6 任务清单、依赖图、每任务锚点与验收 | 提案批准开工后按此排产 PR；每 Phase 结束回读 X-T6 更新规范 | 新（配套提案）                   |
 | [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) | **SaaS Phase 2 门禁清单（生效基线）**：12 项分四类（B 硬阻塞 / S 软阻塞 / T 技术细节 / C 交叉项）+ 五方签署页 + 交付归档记录 | Phase 2 已交付归档；**v0.3 状态：P2-T1~P2-T5 于 2026-09-30 依次合入 `ddbcfb3`/`5c1982d`/`10fc424`/`908aac9`/`c702fce`，退出条件达成**（S-1 方案 B + S-2 方案 b 落地；partition-key/SILO/万级时延阈值/运维 B 类正式签署转 Phase 3 会审）；Phase 3 起前保留为"生效基线"，已参照格式起草 [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md) v0.1（待会审，18 项 B/S/T/C） | 新（配套提案 §10 R1 + 执行计划 §4） |
 | [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md) | **SaaS Phase 3 开工门禁清单**：18 项分四类（B 硬阻塞 3 / S 软阻塞 5 / T 技术细节 6 / C 交叉项 4）+ 五方签署页 | Phase 3（生命周期 + partition-key/SILO 引入，P3-T0~T6）开工前必读；**v0.1 状态：待会审**——B-1/B-2/B-3 三项运维承接不再消解（建集合/drop 集合/cluster 决策为硬门槛）；S-1 SILO 准入门槛/S-2 现网集合迁移策略/S-3 万级时延阈值 P95/S-4 Archive 保留期与双人复核/S-5 Provisioning 状态机幂等键；T-1 provider 多 store 缓存/T-2 partition-key schema 与 LangChain4j 兼容/T-3 SiloCollectionAdmin API/T-4 平台端鉴权分层/T-5 复杂 ACL 下推边界/T-6 SILO placement 决策器；每项签署/变更后回读提案 §11、评审包 §6、执行计划 §5 保持零漂移 | 新（承接 Phase 2 清单 §2 B/§3 S/§4 T 延后项 + 执行计划 §5 Phase 3 本体） |
+| [docs/saas-phase3-review-brief.md](docs/saas-phase3-review-brief.md) | **SaaS Phase 3 会审决策建议一页纸**：把 P3-T0 万级 spike 实证浓缩为 S-2/S-3/T-2 + R1 复核的可直接定夺建议（含连带排产影响与否决对冲预案） | 参加 Phase 3 会审、需就 partition-key/SILO 取舍定夺时；清单 §3 S/§4 T 勾选位需要证据支撑时 | 新（配套清单 §3/§4 + 提案 §10 R1 + spike RESULTS 证据；纯决策辅助不改判） |
 
 ---
 
@@ -56,7 +57,7 @@
 - 我要**加鉴权 / 改权限 / 处理上传 / 发令牌 / 存口令**？→ [docs/security-guideline.md](docs/security-guideline.md)。
 - 我要**配 CI/CD 或把 Actions 产物部署到本地 Docker**？→ [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)（GHCR 推镜像 / Artifacts 拉 jar / 离线 tar 三方案）。
 - 我要**写测试 / 提交前自验**？→ [docs/testing-guideline.md](docs/testing-guideline.md) + [docs/code-review-checklist.md](docs/code-review-checklist.md)。
-- 我要**动 Milvus `EmbeddingStore` / partition-key / SILO / Phase 3 生命周期（`PlatformTenantController`/Provisioning 状态机/Archive & Delete 编排/SILO Flyway 逐库 runner）**？→ 先过 Phase 3 门禁清单 [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md)（v0.1 待会审，18 项 B/S/T/C），再查排产 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) §5 P3-T0~T6 与生效基线 Phase 2 [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) v0.3（已交付归档，作为下游承接参考），最后核对决策权威 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md) §10 R1。
+- 我要**动 Milvus `EmbeddingStore` / partition-key / SILO / Phase 3 生命周期（`PlatformTenantController`/Provisioning 状态机/Archive & Delete 编排/SILO Flyway 逐库 runner）**？→ 先过 Phase 3 门禁清单 [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md)（v0.1 待会审，18 项 B/S/T/C），会审取舍需要证据支撑时配读 [决策建议一页纸 docs/saas-phase3-review-brief.md](docs/saas-phase3-review-brief.md)（P3-T0 spike 实证 → S-2/S-3/T-2/R1 建议），再查排产 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) §5 P3-T0~T6 与生效基线 Phase 2 [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md) v0.3（已交付归档，作为下游承接参考），最后核对决策权威 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md) §10 R1。
 
 ---
 
