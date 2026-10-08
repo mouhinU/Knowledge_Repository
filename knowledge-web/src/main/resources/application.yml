@@ -112,6 +112,17 @@ knowledge:
   saas:
     enabled: ${KNOWLEDGE_SAAS_ENABLED:false}
 
+  # ---------- 平台端管理总开关（P3-T1 / T-4 方案 B）----------
+  # 默认 false：PlatformTokenAuthFilter 与 PlatformTenantController 均不注册（@ConditionalOnProperty），
+  # /api/platform/** 整体不可达——与 knowledge.saas.enabled 构成双门控，关闭态即"零风险回退"。
+  # 开启时平台令牌用独立 secret 签发，与租户管理员令牌（knowledge.admin.jwt.secret）完全隔离，两套令牌互不可用。
+  platform:
+    enabled: ${KNOWLEDGE_PLATFORM_ENABLED:false}
+    jwt:
+      # 平台端独立密钥，必须由 KNOWLEDGE_PLATFORM_JWT_SECRET 注入；platform.enabled=true 而密钥缺失时启动失败（fail-fast）。
+      secret: ${KNOWLEDGE_PLATFORM_JWT_SECRET:}
+      expiration-hours: ${KNOWLEDGE_PLATFORM_JWT_EXPIRATION_HOURS:8}
+
   # ---------- Milvus 向量数据库 ----------
   milvus:
     host: ${MILVUS_HOST:localhost}

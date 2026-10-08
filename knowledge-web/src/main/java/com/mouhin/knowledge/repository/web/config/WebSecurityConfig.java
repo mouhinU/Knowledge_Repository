@@ -2,8 +2,12 @@ package com.mouhin.knowledge.repository.web.config;
 
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
+import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
+import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,11 +53,24 @@ public class WebSecurityConfig {
         return new TenantResolverFilter(saasProperties);
     }
 
+    /**
+     * 平台端令牌鉴权过滤器（P3-T1 / T-4 方案 B）：仅当 {@code knowledge.platform.enabled=true} 时才注册（{@link
+     * org.springframework.boot.autoconfigure.condition.ConditionalOnProperty}，与 {@code
+     * PlatformJwtGatewayImpl}、{@code PlatformTenantController} 同门控）。默认关闭态下本 bean 缺席，{@code
+     * /api/platform/**} 不注册任何平台鉴权， 且控制器本身也不注册，端点整体不可达。
+     */
+    @Bean
+    @ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+    public PlatformTokenAuthFilter platformTokenAuthFilter(PlatformJwtService platformJwtService) {
+        return new PlatformTokenAuthFilter(platformJwtService);
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             AdminTokenAuthFilter adminTokenAuthFilter,
-            TenantResolverFilter tenantResolverFilter)
+            TenantResolverFilter tenantResolverFilter,
+            ObjectProvider<PlatformTokenAuthFilter> platformTokenAuthFilterProvider)
             throws Exception {
         // CSRF 关闭合理性（java:S4502 例外）：本服务纯前后端分离 + 无状态令牌鉴权——
         //   1) SessionCreationPolicy.STATELESS，服务端不建任何 HttpSession，浏览器 Cookie 里没有 JSESSIONID；
@@ -71,6 +88,12 @@ public class WebSecurityConfig {
                 // 租户解析（P1-T3）：晚于鉴权过滤器，确保其可读 AdminTokenAuthFilter 落下的租户 claim；
                 // saas.enabled=false 时该过滤器 shouldNotFilter 直接放行，等价单租户。
                 .addFilterAfter(tenantResolverFilter, AdminTokenAuthFilter.class);
+        // 平台端鉴权（P3-T1 / T-4 方案 B）：仅当平台开关开启（filter bean 存在）才挂链，只拦 /api/platform/**；
+        // 与 AdminTokenAuthFilter 路径互斥（后者 PUBLIC_PREFIXES 已放行 /api/platform/），两套令牌互不可用。
+        PlatformTokenAuthFilter platformFilter = platformTokenAuthFilterProvider.getIfAvailable();
+        if (platformFilter != null) {
+            http.addFilterAfter(platformFilter, AdminTokenAuthFilter.class);
+        }
         return http.build();
     }
 }

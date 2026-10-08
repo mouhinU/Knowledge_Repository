@@ -59,11 +59,17 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     private static final List<String> PUBLIC_ACTUATOR_PATHS =
             List.of("/actuator/health", "/actuator/prometheus");
 
-    /** 考生 / 学生侧与管理端登录登出等自带鉴权或须先可达的路径，本过滤器放行。 */
+    /**
+     * 考生 / 学生侧与管理端登录登出等自带鉴权或须先可达的路径，本过滤器放行。
+     *
+     * <p>{@code /api/platform/}（P3-T1 / T-4 方案 B）由独立的 {@code PlatformTokenAuthFilter} 用平台令牌专属管辖，
+     * 与本管理端令牌体系路径互斥、令牌互不可用，故此处必须放行，否则本过滤器（拦全部 {@code /api/**}）会先于平台过滤器把平台请求 401。
+     */
     private static final List<String> PUBLIC_PREFIXES =
             List.of(
                     "/api/student/",
                     "/api/exam/",
+                    "/api/platform/",
                     "/api/admin/auth/login",
                     "/api/admin/auth/logout");
 

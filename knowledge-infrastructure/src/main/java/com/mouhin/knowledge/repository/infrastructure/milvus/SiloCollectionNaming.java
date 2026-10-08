@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -37,7 +38,7 @@ public final class SiloCollectionNaming {
      * <p>{@code ^[a-z][a-z0-9_]{1,62}$}：首字符必须是字母（避免 Milvus "下划线开头"在某些 SDK 版本被识别为保留字），后续 1–62
      * 个字符允许字母 / 数字 / 下划线。上限 63 给前缀 {@code kc_}（3 字符）留出 192 字符的 Milvus 硬限余量。
      */
-    public static final String TENANT_KEY_PATTERN = "^[a-z][a-z0-9_]{1,62}$";
+    public static final String TENANT_KEY_PATTERN = TenantKey.PATTERN;
 
     /** {@link #TENANT_KEY_PATTERN} 的预编译形态，避免热路径重复构造。 */
     private static final Pattern TENANT_KEY_REGEX = Pattern.compile(TENANT_KEY_PATTERN);

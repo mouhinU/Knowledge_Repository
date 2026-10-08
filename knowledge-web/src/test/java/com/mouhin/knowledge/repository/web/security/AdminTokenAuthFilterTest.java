@@ -128,7 +128,7 @@ class AdminTokenAuthFilterTest {
     }
 
     @Test
-    @DisplayName("考生侧 / 登录 / 健康 / Prometheus 探针路径放行，不做管理端校验")
+    @DisplayName("考生侧 / 登录 / 健康 / Prometheus 探针 / 平台端路径放行，不做管理端校验")
     void publicPaths_skipped() throws Exception {
         assertSkipped("/api/student/auth/login");
         assertSkipped("/api/exam/submit");
@@ -137,6 +137,9 @@ class AdminTokenAuthFilterTest {
         assertSkipped("/actuator/health");
         assertSkipped("/actuator/prometheus");
         assertSkipped("/admin/index.html");
+        // P3-T1 / T-4 方案 B：平台端点由独立 PlatformTokenAuthFilter 专属管辖，本过滤器必须放行（路径互斥）
+        assertSkipped("/api/platform/tenants");
+        assertSkipped("/api/platform/tenants/acme/suspend");
     }
 
     @Test
