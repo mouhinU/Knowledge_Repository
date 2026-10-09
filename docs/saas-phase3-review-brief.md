@@ -5,9 +5,9 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 # SaaS Phase 3 会审 · partition-key / SILO 决策建议一页纸（Review Brief）
 
 > 用途：把 **P3-T0 万级 spike 的实证**浓缩成会审现场可直接定夺的**建议 + 依据 + 待确认项**，服务于 [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) 的 S-2 / S-3 / T-2 三项勾选与提案 §10 R1 复核。
-> 定位：**这是"阐述方案、供确认"的决策辅助材料，不是改判文件**。本文不给任何项打勾、不提前升版本戳——所有勾选位与版本戳仍由会审现场按清单 §5 五方签署落定。
-> 版本：v0.1（2026-10-08 起草，配套清单 v0.1）· 作者：QoderWork · 证据来源：[../spikes/milvus-partition-key-scale/RESULTS.md](../spikes/milvus-partition-key-scale/RESULTS.md)（2026-10-07 跑）
-> 关联：门禁清单 [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) · 变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 R1 · 三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md) §6 · 可执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §5 P3-T0
+> 定位：**这是"阐述方案、供确认"的决策辅助材料，本身不改判、不代权威文档打勾**。本文四条建议已于 **2026-10-09 会审全部被采纳**（S-2=方案 c · S-3=门禁锚定现网 JSON/标量路径、partition-key 不设性能收益断言 · T-2=方案 B 骨架先行 · R1=不回退并重定性为隔离/运维目标态），勾选位与结论已回写清单 §5/§6、提案 §10 R1、执行计划 §5、评审包 §6——**本 brief 仅作证据与建议留档，权威以清单为准**。
+> 版本：v0.2（**定稿** · 2026-10-09 会审采纳四条建议后升版；原 v0.1 2026-10-08 起草，配套清单 v0.1）· 作者：QoderWork · 证据来源：[../spikes/milvus-partition-key-scale/RESULTS.md](../spikes/milvus-partition-key-scale/RESULTS.md)（2026-10-07 跑）
+> 关联：门禁清单 [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md)（**v0.3 全量授权开工**）· 变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 R1（**v0.4**）· 三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md) §6（**v1.2**）· 可执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §5 P3-T0/P3-T5（**v1.0**）
 
 ---
 
@@ -88,21 +88,21 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 1. **P3-T1~T4（平台端点 / Provisioning 状态机 / 建库默认 / Suspend·Resume）可与 partition-key 解耦先行**——它们不依赖 io.milvus 建 partition-key 集合，只依赖 T-4（平台端鉴权分层）与 S-5（幂等键）结论。这降低 Phase 3 前段对运维 B-1 建集合权限的耦合。
 2. **partition-key 切换与 SILO 合并到 P3-T5 议题**延后评估（S-2 方案 c 的直接结果）；SILO 引入仍依赖 S-1（准入门槛/placement）与 T-3（`SiloCollectionAdmin` 生命周期 + 是否独立 database）结论。
 3. **运维 B-1 权重上调**：spike 的 50k OOM 让"内存/磁盘预留 + cluster 承接"从"建议"变为"有实证支撑的硬门槛"；评审包 §6 运维栏（U1/U3）会审时应据此复核，而非按原预期轻签。
-4. **版本戳计划不变**：本 brief 不触发升版。仍按清单 §7——待会审 B/S/T 结论落定、运维 B-1/B-2/B-3 书面签署后，**统一在 v0.2 授权里程碑**同时升：执行计划 v0.9→v1.0、提案 v0.3→v0.4、评审包 v1.1→v1.2、清单 v0.1→v0.2、本 brief v0.1→v0.2（定稿）。
+4. **版本戳已统一升版（2026-10-09 会审后）**：本轮会审 B/S/T/C 结论落定 + 五方书面齐签后，按清单 §7 约定同一里程碑统一升版——清单 v0.2→**v0.3（全量授权开工）**、执行计划 v0.9→**v1.0**、提案 v0.3→**v0.4**、评审包 v1.1→**v1.2**、本 brief v0.1→**v0.2（定稿）**。五处版本戳与交叉引用四处一致（索引表↔正文↔链接↔计数）。
 
 ---
 
-## 4. 会审现场需产出的最小决议集（对照清单，勾选位仍留白）
+## 4. 会审现场最小决议集（2026-10-09 会审已定）
 
-- [ ] S-2 采纳 { a / b / **c** } —— 建议 c
-- [ ] S-3 阈值表述确认 + { X=___ms / Y=___% } 回填责任人与时点（cluster 决策后）
-- [ ] T-2 SDK 兼容性判定 = **已验证**；落地范围 = { B 骨架先行 / A 抽端口 } —— 建议 B，绑定 S-2
-- [ ] R1 复核结论 = { 维持且重定性为隔离/运维目标态 / 其他 } —— 建议维持 + 重标注
-- [ ] S-1 placement 方案 { A 给初值 / B 延后 P3-T1 / C 手工 } —— 与 SILO 一并定
-- [ ] B-1 / B-2 / B-3 运维书面签署（**Phase 3 唯一不可绕过硬门槛**，spike 已加固其必要性）
-- [ ] 是否批准 P3-T1~T4 与 partition-key 解耦先行开工（若 S-2=c）
+- [x] **S-2 = 方案 c** ✅ 采纳建议——延后 partition-key 切换，现网维持更快且零迁移的 LangChain4j JSON 谓词路径；切换并入 P3-T5 SILO 议题再评估。
+- [x] **S-3 阈值表述确认** ✅ 采纳——门禁锚定现网实际路径（JSON 谓词 / 普通标量），partition-key 若选用只设隔离正确性断言、**不设性能收益断言**（前提已被 spike 证伪）；绝对值 X（P95 ms）与裕度 Y 随 **cluster 决策（B-2）后由运维 + 架构校准回填**，联动 B-1，不在本机 standalone 断言。
+- [x] **T-2 SDK 兼容性判定 = 已验证** ✅；落地范围 = **方案 B 骨架先行**（`MilvusSdkAdapter` + LangChain4j 回退 bean 并存，暂不抽 `VectorStorePort`），绑定 S-2=方案 c。
+- [x] **R1 复核结论 = 维持且重定性** ✅——不回退 partition-key 目标态，定性由"性能剪枝收益"改标注为"**物理隔离 / 可运维 / 未来超大规模期权**，性能收益未经证实"，已落入提案 §10 R1。
+- [x] **S-1 placement 方案 = C（手工指派）** ✅——与 SILO 一并延后至 P3-T5；`sys_tenant_placement.placement` 恒 POOL 直至 SILO 生命周期引入。
+- [x] **B-1 / B-2 / B-3 运维书面签署** ✅——运维/基础设施负责人 **无始** 于 **2026-10-09** 承接签署（B-1 建集合/drop 权限 · B-2 单机 vs cluster 决策列为 **P3-T5 前置** · B-3 内存/cluster 预留随 spike 50k OOM 实证加固）。
+- [x] **批准 P3-T1~T4 与 partition-key 解耦先行开工** ✅——已交付（commits `372994a` / `55a0872` / `73b0626` / `eece61a`），全程双门控 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false`。
 
-上述任一项签署/变更后，回读清单 §7 更新流程与提案 §11、评审包 §6、执行计划 §5 保持零漂移。
+上述各项签署/变更后，已回读清单 §7 更新流程与提案 §11、评审包 §6、执行计划 §5 保持零漂移。
 
 ---
 
