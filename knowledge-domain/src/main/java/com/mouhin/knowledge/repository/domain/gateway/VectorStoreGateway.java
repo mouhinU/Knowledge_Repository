@@ -30,4 +30,14 @@ public interface VectorStoreGateway {
 
     /** 删除指定文档的所有向量 */
     void deleteByDocumentKey(String documentKey);
+
+    /**
+     * 删除指定租户的所有向量（P3-T5 租户硬删，按 metadata {@code tenant_id} 谓词全量移除）。
+     *
+     * <p>与 Phase 2「S-2 方案 b：JSON 谓词路径」写入侧对齐——{@code tenant_id} 以数值 long 存于 metadata， 本方法按等值谓词
+     * {@code removeAll}。操作幂等：租户无向量时为无副作用空操作。
+     *
+     * @param tenantId 数值租户主键（{@code sys_tenant.tenant_id}）
+     */
+    void deleteByTenantId(long tenantId);
 }

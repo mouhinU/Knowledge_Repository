@@ -29,6 +29,9 @@ public final class TenantConverter {
         tenant.setStatus(doObj.getStatus());
         tenant.setDataRegion(doObj.getDataRegion());
         tenant.setProvisionRequestId(doObj.getProvisionRequestId());
+        tenant.setDeletionRequestId(doObj.getDeletionRequestId());
+        tenant.setArchivedAt(doObj.getArchivedAt());
+        tenant.setDeletedAt(doObj.getDeletedAt());
         tenant.setCreateTime(doObj.getCreateTime());
         tenant.setUpdateTime(doObj.getUpdateTime());
         return tenant;
@@ -47,6 +50,9 @@ public final class TenantConverter {
         doObj.setStatus(tenant.getStatus());
         doObj.setDataRegion(tenant.getDataRegion());
         doObj.setProvisionRequestId(tenant.getProvisionRequestId());
+        doObj.setDeletionRequestId(tenant.getDeletionRequestId());
+        doObj.setArchivedAt(tenant.getArchivedAt());
+        doObj.setDeletedAt(tenant.getDeletedAt());
         doObj.setCreateTime(tenant.getCreateTime());
         doObj.setUpdateTime(tenant.getUpdateTime());
         return doObj;

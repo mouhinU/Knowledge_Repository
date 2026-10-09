@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -140,5 +141,127 @@ class TenantTest {
         assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).failProvisioning())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cannot fail provisioning");
+    }
+
+    // ==================== P3-T5 归档 / 硬删生命周期 ====================
+
+    @Test
+    @DisplayName("ACTIVE → archive(ts) → ARCHIVED 且打 archivedAt 保留期起点戳")
+    void archiveFromActive() {
+        Tenant t = withStatus(Tenant.STATUS_ACTIVE);
+        LocalDateTime ts = LocalDateTime.of(2026, 10, 9, 10, 0);
+        t.archive(ts);
+        assertThat(t.isArchived()).isTrue();
+        assertThat(t.getStatus()).isEqualTo(Tenant.STATUS_ARCHIVED);
+        assertThat(t.getArchivedAt()).isEqualTo(ts);
+    }
+
+    @Test
+    @DisplayName("SUSPENDED → archive(ts) → ARCHIVED（软停态亦可归档）")
+    void archiveFromSuspended() {
+        Tenant t = withStatus(Tenant.STATUS_SUSPENDED);
+        LocalDateTime ts = LocalDateTime.of(2026, 10, 9, 11, 0);
+        t.archive(ts);
+        assertThat(t.isArchived()).isTrue();
+        assertThat(t.getArchivedAt()).isEqualTo(ts);
+    }
+
+    @Test
+    @DisplayName("非 ACTIVE/SUSPENDED 态 archive() 抛 IllegalStateException")
+    void archiveFromNonArchivableRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_DELETED).archive(LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot archive");
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_PENDING).archive(LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ARCHIVED).archive(LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    @DisplayName("archive(null) 抛 IllegalArgumentException")
+    void archiveNullTimestampRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).archive(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("archivedAt");
+    }
+
+    @Test
+    @DisplayName("ARCHIVED → restore() → ACTIVE 且清空 archivedAt（保留期内撤销归档）")
+    void restoreFromArchived() {
+        Tenant t = withStatus(Tenant.STATUS_ACTIVE);
+        t.archive(LocalDateTime.of(2026, 10, 9, 12, 0));
+        t.restore();
+        assertThat(t.isActive()).isTrue();
+        assertThat(t.getArchivedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("非 ARCHIVED 态 restore() 抛 IllegalStateException")
+    void restoreFromNonArchivedRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).restore())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot restore");
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_DELETED).restore())
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    @DisplayName("ARCHIVED → markDeleting(reqId) → DELETING 且绑定 deletionRequestId")
+    void markDeletingFromArchived() {
+        Tenant t = withStatus(Tenant.STATUS_ACTIVE);
+        t.archive(LocalDateTime.of(2026, 10, 9, 12, 0));
+        t.markDeleting("del-uuid-1");
+        assertThat(t.isDeleting()).isTrue();
+        assertThat(t.getStatus()).isEqualTo(Tenant.STATUS_DELETING);
+        assertThat(t.getDeletionRequestId()).isEqualTo("del-uuid-1");
+    }
+
+    @Test
+    @DisplayName("非 ARCHIVED 态 markDeleting() 抛 IllegalStateException")
+    void markDeletingFromNonArchivedRejected() {
+        assertThatThrownBy(() -> withStatus(Tenant.STATUS_ACTIVE).markDeleting("del"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot begin deletion");
+    }
+
+    @Test
+    @DisplayName("markDeleting 空白 requestId 抛 IllegalArgumentException")
+    void markDeletingBlankRequestIdRejected() {
+        Tenant t = withStatus(Tenant.STATUS_ACTIVE);
+        t.archive(LocalDateTime.of(2026, 10, 9, 12, 0));
+        assertThatThrownBy(() -> t.markDeleting("  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deletionRequestId");
+        assertThatThrownBy(() -> t.markDeleting(null)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("DELETING → markDeleted(ts) → DELETED 终态且打 deletedAt 戳")
+    void markDeletedFromDeleting() {
+        Tenant t = withStatus(Tenant.STATUS_ACTIVE);
+        t.archive(LocalDateTime.of(2026, 10, 9, 12, 0));
+        t.markDeleting("del-uuid-1");
+        LocalDateTime done = LocalDateTime.of(2026, 10, 9, 13, 0);
+        t.markDeleted(done);
+        assertThat(t.isDeleted()).isTrue();
+        assertThat(t.getStatus()).isEqualTo(Tenant.STATUS_DELETED);
+        assertThat(t.getDeletedAt()).isEqualTo(done);
+    }
+
+    @Test
+    @DisplayName(
+            "非 DELETING 态 markDeleted() 抛 IllegalStateException；null 戳抛 IllegalArgumentException")
+    void markDeletedFromNonDeletingRejected() {
+        assertThatThrownBy(
+                        () -> withStatus(Tenant.STATUS_ARCHIVED).markDeleted(LocalDateTime.now()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot complete deletion");
+        Tenant deleting = withStatus(Tenant.STATUS_ACTIVE);
+        deleting.archive(LocalDateTime.of(2026, 10, 9, 12, 0));
+        deleting.markDeleting("del-uuid-1");
+        assertThatThrownBy(() -> deleting.markDeleted(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("deletedAt");
     }
 }

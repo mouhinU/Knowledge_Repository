@@ -37,6 +37,9 @@ public class TenantDO {
     /** 状态：已归档（保留期内可恢复）。 */
     public static final String STATUS_ARCHIVED = "ARCHIVED";
 
+    /** 状态：删除中（ARCHIVED 过保留期 + 双人复核后由 reconciler 认领硬删的中间态）。 */
+    public static final String STATUS_DELETING = "DELETING";
+
     /** 状态：已删除（终态）。 */
     public static final String STATUS_DELETED = "DELETED";
 
@@ -63,6 +66,15 @@ public class TenantDO {
 
     @TableField("provision_request_id")
     private String provisionRequestId;
+
+    @TableField("deletion_request_id")
+    private String deletionRequestId;
+
+    @TableField("archived_at")
+    private LocalDateTime archivedAt;
+
+    @TableField("deleted_at")
+    private LocalDateTime deletedAt;
 
     @TableField("create_time")
     private LocalDateTime createTime;

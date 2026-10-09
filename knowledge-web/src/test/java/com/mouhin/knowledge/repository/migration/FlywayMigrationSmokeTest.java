@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V28 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V29 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V28）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 28;
+    /** 迁移脚本总数（V1..V29）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 29;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 28")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 29")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,13 +54,10 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V28
+        // 二次调用应无待处理迁移（幂等），并停留在 V29
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals(
-                "28",
-                current.getVersion().getVersion(),
-                "最终版本应为 V28（P3-T3 邀请式引导 + sys_config 租户化）");
+        assertEquals("29", current.getVersion().getVersion(), "最终版本应为 V29（P3-T5 租户归档 + 删除生命周期）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -419,6 +416,94 @@ class FlywayMigrationSmokeTest {
                 hasMustChangePwd = rs.getInt(1) > 0;
             }
             assertTrue(hasMustChangePwd, "V28 列缺失 (sys_user.must_change_password)");
+
+            // 抽查 V29（P3-T5 租户归档 + 删除生命周期）：sys_tenant 增加 archived_at / deleted_at /
+            // deletion_request_id
+            List<String> tenantArchiveCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('archived_at','deleted_at','deletion_request_id')")) {
+                while (rs.next()) {
+                    tenantArchiveCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    tenantArchiveCols.contains("archived_at"), "V29 列缺失 (sys_tenant.archived_at)");
+            assertTrue(tenantArchiveCols.contains("deleted_at"), "V29 列缺失 (sys_tenant.deleted_at)");
+            assertTrue(
+                    tenantArchiveCols.contains("deletion_request_id"),
+                    "V29 列缺失 (sys_tenant.deletion_request_id)");
+
+            // 抽查 V29：三张新表存在
+            List<String> newTables = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(table_name) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) IN "
+                                    + "('sys_tenant_delete_approval','sys_tenant_deletion_step','sys_audit_log')")) {
+                while (rs.next()) {
+                    newTables.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    newTables.contains("sys_tenant_delete_approval"),
+                    "V29 表缺失 (sys_tenant_delete_approval)");
+            assertTrue(
+                    newTables.contains("sys_tenant_deletion_step"),
+                    "V29 表缺失 (sys_tenant_deletion_step)");
+            assertTrue(newTables.contains("sys_audit_log"), "V29 表缺失 (sys_audit_log)");
+
+            // 抽查 V29：sys_tenant_deletion_step 关键列齐备
+            List<String> delStepCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_deletion_step' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('tenant_id','deletion_request_id','step_name','attempt_no','status','rows_affected')")) {
+                while (rs.next()) {
+                    delStepCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    delStepCols.contains("tenant_id"),
+                    "V29 列缺失 (sys_tenant_deletion_step.tenant_id)");
+            assertTrue(
+                    delStepCols.contains("deletion_request_id"),
+                    "V29 列缺失 (sys_tenant_deletion_step.deletion_request_id)");
+            assertTrue(
+                    delStepCols.contains("step_name"),
+                    "V29 列缺失 (sys_tenant_deletion_step.step_name)");
+            assertTrue(
+                    delStepCols.contains("attempt_no"),
+                    "V29 列缺失 (sys_tenant_deletion_step.attempt_no)");
+            assertTrue(delStepCols.contains("status"), "V29 列缺失 (sys_tenant_deletion_step.status)");
+            assertTrue(
+                    delStepCols.contains("rows_affected"),
+                    "V29 列缺失 (sys_tenant_deletion_step.rows_affected)");
+
+            // 抽查 V29：复合唯一索引 uk_deletion_step 应覆盖 (tenant_id, deletion_request_id, step_name,
+            // attempt_no)
+            List<String> delStepUkCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.index_columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_deletion_step' "
+                                    + "AND LOWER(index_name) = 'uk_deletion_step'")) {
+                while (rs.next()) {
+                    delStepUkCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    delStepUkCols.contains("tenant_id")
+                            && delStepUkCols.contains("deletion_request_id")
+                            && delStepUkCols.contains("step_name")
+                            && delStepUkCols.contains("attempt_no"),
+                    "V29 复合唯一索引 uk_deletion_step 应覆盖 (tenant_id, deletion_request_id, step_name, attempt_no)，实际="
+                            + delStepUkCols);
         }
     }
 }

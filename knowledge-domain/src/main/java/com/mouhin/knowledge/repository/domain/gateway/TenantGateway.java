@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,26 @@ public interface TenantGateway {
 
     /** 列出全部租户（平台端管理视图，租户数量级 ≤ 千，暂不分页）。 */
     List<Tenant> listAll();
+
+    /**
+     * 按生命周期状态列出租户（P3-T5 reconciler 扫描 {@code DELETING} 认领态用），按 {@code tenantId} 升序取前 {@code limit}
+     * 条。
+     *
+     * @param status 状态取值，见 {@code Tenant.STATUS_*}
+     * @param limit 单轮批量上限（&le;0 视为不分页上限，实现方须自我保护）
+     * @return 命中租户列表；无命中返回空列表
+     */
+    List<Tenant> listByStatus(String status, int limit);
+
+    /**
+     * 列出归档时间早于保留期截止点的 ARCHIVED 租户（S-4=方案 A 保留期到期扫描），按 {@code archivedAt} 升序、{@code tenantId} 升序取前
+     * {@code limit} 条。
+     *
+     * @param cutoff 保留期截止点（{@code archivedAt < cutoff} 视为已到期）
+     * @param limit 单轮批量上限
+     * @return 到期归档租户列表；无命中返回空列表
+     */
+    List<Tenant> listArchivedBefore(LocalDateTime cutoff, int limit);
 
     /** 新增租户，回填自增主键到入参实体。 */
     void save(Tenant tenant);

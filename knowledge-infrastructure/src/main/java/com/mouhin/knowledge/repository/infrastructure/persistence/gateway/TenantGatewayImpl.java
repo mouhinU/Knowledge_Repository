@@ -58,6 +58,35 @@ public class TenantGatewayImpl implements TenantGateway {
     }
 
     @Override
+    public List<Tenant> listByStatus(String status, int limit) {
+        if (status == null || status.isBlank()) {
+            return List.of();
+        }
+        LambdaQueryWrapper<TenantDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TenantDO::getStatus, status).orderByAsc(TenantDO::getTenantId);
+        if (limit > 0) {
+            wrapper.last("LIMIT " + limit);
+        }
+        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+    }
+
+    @Override
+    public List<Tenant> listArchivedBefore(LocalDateTime cutoff, int limit) {
+        if (cutoff == null) {
+            return List.of();
+        }
+        LambdaQueryWrapper<TenantDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TenantDO::getStatus, Tenant.STATUS_ARCHIVED)
+                .lt(TenantDO::getArchivedAt, cutoff)
+                .orderByAsc(TenantDO::getArchivedAt)
+                .orderByAsc(TenantDO::getTenantId);
+        if (limit > 0) {
+            wrapper.last("LIMIT " + limit);
+        }
+        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+    }
+
+    @Override
     public void save(Tenant tenant) {
         java.util.Objects.requireNonNull(tenant, "Tenant must not be null on save");
         TenantDO doObj = TenantConverter.toDO(tenant);

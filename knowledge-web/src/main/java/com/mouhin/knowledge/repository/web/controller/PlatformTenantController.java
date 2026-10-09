@@ -1,7 +1,12 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
+import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
+import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
@@ -31,7 +36,8 @@ import org.springframework.web.bind.annotation.RestController;
  * <p><b>门控</b>：仅当 {@code knowledge.platform.enabled=true} 才注册本控制器（{@link ConditionalOnProperty}），
  * 默认关闭态下 {@code /api/platform/**} 整体不可达。
  *
- * <p>本期交付 create / suspend / resume / get / list 五端点；archive / delete 完整编排属 P3-T5，暂不暴露。
+ * <p>本期交付 create / suspend / resume / get / list 五端点；P3-T5 叠加 archive / deletion-approval / delete
+ * / deletion-preview 四端点（S-4=方案 A：归档 + 30 天保留期 + 双人复核 + 硬删，硬删由 reconciler 异步续跑）。
  *
  * @author mouhinU
  * @date 2026-10-08
@@ -50,6 +56,8 @@ public class PlatformTenantController {
     private static final String FIELD_DATA_REGION = "dataRegion";
     private static final String FIELD_REASON = "reason";
     private static final String FIELD_PROVISION_REQUEST_ID = "provisionRequestId";
+    private static final String FIELD_APPROVAL_TOKEN = "approvalToken";
+    private static final String FIELD_TTL_HOURS = "ttlHours";
 
     private final PlatformTenantServiceI platformTenantService;
 
@@ -110,6 +118,47 @@ public class PlatformTenantController {
                 platformTenantService.resumeTenant(statusCmd(tenantKey, body, request)));
     }
 
+    @PostMapping("/{tenantKey}/archive")
+    public ResponseEntity<TenantVO> archive(
+            @PathVariable String tenantKey,
+            @RequestBody(required = false) Map<String, Object> body,
+            HttpServletRequest request) {
+        TenantArchiveCmd cmd = new TenantArchiveCmd();
+        cmd.setTenantKey(tenantKey);
+        cmd.setReason(body == null ? null : stringOf(body.get(FIELD_REASON)));
+        applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
+        return ResponseEntity.ok(platformTenantService.archiveTenant(cmd));
+    }
+
+    @PostMapping("/{tenantKey}/deletion-approval")
+    public ResponseEntity<TenantDeleteApprovalVO> issueDeletionApproval(
+            @PathVariable String tenantKey,
+            @RequestBody(required = false) Map<String, Object> body,
+            HttpServletRequest request) {
+        TenantDeleteApprovalCmd cmd = new TenantDeleteApprovalCmd();
+        cmd.setTenantKey(tenantKey);
+        cmd.setTtlHours(body == null ? null : intOf(body.get(FIELD_TTL_HOURS)));
+        applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
+        return ResponseEntity.ok(platformTenantService.issueDeleteApproval(cmd));
+    }
+
+    @PostMapping("/{tenantKey}/delete")
+    public ResponseEntity<TenantVO> delete(
+            @PathVariable String tenantKey,
+            @RequestBody(required = false) Map<String, Object> body,
+            HttpServletRequest request) {
+        TenantDeleteCmd cmd = new TenantDeleteCmd();
+        cmd.setTenantKey(tenantKey);
+        cmd.setApprovalToken(body == null ? null : stringOf(body.get(FIELD_APPROVAL_TOKEN)));
+        applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
+        return ResponseEntity.ok(platformTenantService.confirmDeletion(cmd));
+    }
+
+    @GetMapping("/{tenantKey}/deletion-preview")
+    public ResponseEntity<TenantDeletionPreviewVO> deletionPreview(@PathVariable String tenantKey) {
+        return ResponseEntity.ok(platformTenantService.previewDeletion(tenantKey));
+    }
+
     private TenantStatusCmd statusCmd(
             String tenantKey, Map<String, Object> body, HttpServletRequest request) {
         TenantStatusCmd cmd = new TenantStatusCmd();
@@ -133,5 +182,20 @@ public class PlatformTenantController {
 
     private static String stringOf(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    /** 防御性解析整型请求体字段：非数值 / 缺省返回 {@code null}，由服务层回落默认值（不因脏输入 400）。 */
+    private static Integer intOf(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

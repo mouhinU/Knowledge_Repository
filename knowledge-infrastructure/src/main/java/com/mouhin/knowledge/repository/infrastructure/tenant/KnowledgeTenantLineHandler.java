@@ -36,6 +36,10 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
      *   <li>{@code sys_tenant} / {@code sys_tenant_placement}：平台元数据表，本身就是租户目录；若加过滤会导致自引用悖论。
      *   <li>{@code sys_tenant_provision_step}：平台端开通步骤审计表（P3-T2），其 {@code tenant_id} 是"被开通的租户"
      *       业务列而非过滤维度；若加过滤会与 {@code sys_tenant} 同陷自引用悖论。
+     *   <li>{@code sys_tenant_delete_approval} / {@code sys_tenant_deletion_step} / {@code
+     *       sys_audit_log}：平台端删除审批令牌 / 删除步骤审计 / 高敏操作审计表（P3-T5），其 {@code tenant_id} / {@code
+     *       tenant_key} 均是"被操作的租户"业务列而非过滤维度； 由各自 GatewayImpl 显式追加谓词，同 {@code
+     *       sys_tenant_provision_step} 逻辑。
      *   <li>{@code sys_user_invite}：一次性设密邀请表（P3-T3），其 {@code tenant_id} 是"被邀请加入的租户"业务列， 由 {@code
      *       UserInviteGatewayImpl} 显式追加谓词；同 {@code sys_tenant_provision_step} 逻辑。
      *   <li>{@code flyway_schema_history}：Flyway 内部表，DDL 迁移链与租户无关。
@@ -50,6 +54,9 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
                     "sys_tenant",
                     "sys_tenant_placement",
                     "sys_tenant_provision_step",
+                    "sys_tenant_delete_approval",
+                    "sys_tenant_deletion_step",
+                    "sys_audit_log",
                     "sys_user_invite",
                     "flyway_schema_history",
                     "kb_extraction_cache");

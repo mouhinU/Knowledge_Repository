@@ -230,6 +230,21 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         log.info("Deleted vectors for document {}", documentKey);
     }
 
+    /**
+     * 删除指定租户的所有向量（P3-T5 租户硬删）。
+     *
+     * <p>按 metadata 数值 {@code tenant_id} 等值谓词 {@code removeAll}，与写入侧（{@link #storeChunks}）及检索侧
+     * （{@link #buildFilter}）的 S-2 方案 b JSON 谓词路径完全对齐。幂等：租户无向量时为空操作。
+     *
+     * @param tenantId 数值租户主键
+     */
+    @Override
+    public void deleteByTenantId(long tenantId) {
+        Filter filter = new IsEqualTo("tenant_id", tenantId);
+        storeProvider.store().removeAll(filter);
+        log.info("Deleted all vectors for tenant {}", tenantId);
+    }
+
     private Integer parseIntOrNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
