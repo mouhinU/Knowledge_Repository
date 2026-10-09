@@ -104,7 +104,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 |---|---|---|---|---|---|
 | **C-1** | **X-T3 CI 门禁扩展**：Phase 2 P2-T5 已落 CI `tenant-isolation` job（`-Dgroups=tenant -DargLine="-Dapi.version=1.44"`）。Phase 3 引入 partition-key + SILO 后需扩展：a) 加 `perf` tag（S-3 万级时延阈值）到 nightly；b) 加 `silo` tag 覆盖 SILO 集合生命周期集成（provision → write → search → archive → drop）；c) POOL/SILO 混跑断言（同一 store 分别建 A=POOL、B=SILO，交叉查询零泄漏）。GitHub Actions matrix job 或独立 workflow | 项目负责人 + DevOps + 测试 | 执行计划 §9 X-T3 · Phase 2 清单 §5 C-1 · 现有 [.github/workflows/ci.yml](../.github/workflows/ci.yml) `tenant-isolation` job | ☐ 已扩展 ☐ 待 P3-T5/T6 起时同步 | 与 P3-T5/T6 同期 |
 | **C-2** | **X-T4 迁移停机演练**：Phase 1 已跑通 V21→V26（15 表加 `tenant_id` + 默认租户 id=1 + 存量回填）。Phase 3 若 S-2 采纳方案 a（影子双写）则需演练"现网 LangChain4j 集合 → partition-key 新集合灰度切读 → 旧集合 30 天后 drop"运维窗口；若 S-2 采纳方案 b（停机重灌）则需演练"N 小时停机窗口批量重算 embedding"成本与回滚。演练脚本归档到 `.buckups/` 或 `scripts/migration-drills/`（对齐用户运维脚本归档偏好） | 运维 + 项目负责人 | 执行计划 §9 X-T4 · 提案 §7 迁移章节 · Phase 2 清单 §8 U6 | ☐ 已演练 ☐ 待 S-2 决策后指派 | 与 S-2 决策同期 |
-| **C-3** | **X-T5 SSO 决策**（评审包 U4）：Phase 3 前是否要接企业 IdP（OIDC/SAML）？若开则影响 P3-T1 平台端点鉴权形态（T-4 需扩展）与 P3-T3 建库管理员引导 token 生成方式；若不开延后至 Phase 4/5。方案 A：延后至 Phase 4；方案 B：Phase 3 内接 OIDC；方案 C：延后至商务窗口独立评估 | 产品 + 安全 + 运维 | 评审包 §3 U4 · 执行计划 §10 X-T5 · Phase 2 清单 §8 U4 | ☐ 方案 A ☐ 方案 B ☐ 方案 C | 本清单会审前 1 周 |
+| **C-3** | **X-T5 SSO 决策**（评审包 U4）：Phase 3 前是否要接企业 IdP（OIDC/SAML）？若开则影响 P3-T1 平台端点鉴权形态（T-4 需扩展）与 P3-T3 建库管理员初始凭据生成方式（现为邀请式一次性设密链接）；若不开延后至 Phase 4/5。方案 A：延后至 Phase 4；方案 B：Phase 3 内接 OIDC；方案 C：延后至商务窗口独立评估 | 产品 + 安全 + 运维 | 评审包 §3 U4 · 执行计划 §10 X-T5 · Phase 2 清单 §8 U4 | ☐ 方案 A ☐ 方案 B ☐ 方案 C | 本清单会审前 1 周 |
 | **C-4** | **Phase 4 P4-T1 `sys_config` 加租户维 与 Phase 3 P3-T3 建库默认配置耦合顺序**：P3-T3 provisioning 最后一步"拷贝平台默认 → 租户级 sys_config"依赖 P4-T1 完成 `sys_config` 表 `(tenant_id, config_key)` 唯一约束改造。方案 A：P4-T1 提前至 Phase 3 尾（作为 P3-T3 前置任务）；方案 B：P3-T3 只做"根部门 + 首个 admin"，租户级 config 延后至 Phase 4；方案 C：Phase 3 用平台默认 config 硬编码常量占位，Phase 4 迁移到表 | 架构 + 项目负责人 | 执行计划 §5 P3-T3 · §6 P4-T1 · 提案 §6 配置章节 | ☑ **方案 A（2026-10-08 采纳：提前 P4-T1 至 Phase 3，`sys_config` 加 `tenant_id` + `(tenant_id, config_key)` 复合唯一）** ☐ 方案 B ☐ 方案 C | P3-T3 起前 2 周 |
 
 ---
@@ -152,23 +152,24 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 3. **P3-T1 起 PR**：以 `feat(tenant): P3-T1 PlatformTenantController 与平台端鉴权` 提交，交付内容（**按 2026-10-08 锁定的 T-4=方案 B 落**）：
    - 新 `web/controller/PlatformTenantController.java`（`/api/platform/**`）· `application/executor/platform/*`（`create/suspend/resume/get/list` 五 executor 本期落地；`archive/delete` 端点仅落软状态流转骨架，完整 Archive & Delete 编排属 P3-T5）· 新增 domain `TenantGateway` + infra `TenantGatewayImpl`（COLA 红线 #6/#7：app 不直连 `TenantMapper`）。
-   - **鉴权走 T-4 方案 B**：新建独立 `PlatformTokenAuthFilter`（只拦 `/api/platform/**`）+ 独立 JWT secret（`knowledge.platform.jwt.secret`，与 `knowledge.admin.jwt.secret` 分离）+ 独立签发/校验；**不**引入 `@EnableMethodSecurity`/`@PreAuthorize`、**不**建 `sys_platform_admin` 表、**不**新增 `PLATFORM_ADMIN` sys_role。`AdminTokenAuthFilter` 的 `PUBLIC_PREFIXES` 不需放行 `/api/platform/**`（由独立 filter 接管）。
+   - **鉴权走 T-4 方案 B**：新建独立 `PlatformTokenAuthFilter`（只拦 `/api/platform/**`）+ 独立 JWT secret（`knowledge.platform.jwt.secret`，与 `knowledge.admin.jwt.secret` 分离）+ 独立签发/校验；**不**引入 `@EnableMethodSecurity`/`@PreAuthorize`、**不**建 `sys_platform_admin` 表、**不**新增 `PLATFORM_ADMIN` sys_role。`AdminTokenAuthFilter` 拦 `/api/**` 会覆盖 `/api/platform/**`，故其 `PUBLIC_PREFIXES` **须放行** `/api/platform/`（交独立 `PlatformTokenAuthFilter` 专属管辖）+ `/api/admin/auth/set-password-by-invite`（P3-T3 邀请式设密端点，凭 raw invite code 免管理员 token）。
    - 端点默认关闭，`knowledge.platform.enabled=true` 才注册 filter + controller（`@ConditionalOnProperty`）；写操作审计本期落 **SLF4J `PlatformAuditLog`**（对齐现有 `Slf4jBlackboardAuditLog` 模式，脱敏），DB 化审计（`sys_audit_log`/`platform_audit_log`）延后（无现存表基座）。
    - **不做**：状态机（P3-T2）、SILO placement 决策器实现（S-1/T-6 未签署，本期 placement 恒 POOL、只留 CRUD 钩子）、partition-key/建集合（P3-T5/T6）。
 
 4. **P3-T2 起 PR**：以 `feat(tenant): P3-T2 租户开通状态机（Provisioning PENDING→PROVISIONING→ACTIVE/FAILED）` 提交，交付内容：
-   - 新 `application/service/ProvisioningStateMachine.java` · 迁移 `V28__provision_state_machine.sql`（`sys_tenant.status` 加列 + 新表 `sys_tenant_provision_step`）。
+   - 新 `application/service/ProvisioningStateMachine.java` · 迁移 `V27__provision_state_machine.sql`（`sys_tenant.status` 加列 + 新表 `sys_tenant_provision_step`）。
    - 幂等键与失败重放语义按 S-5 决策落；集成测试覆盖"中断后重试不重复建表 / FAILED 可查询原因 / 步骤级幂等"。
    - **不做**：SILO 建集合（属 P3-T5/T6，视 S-2 决策可能合并）；默认 sys_config 拷贝（属 P3-T3）。
 
 5. **P3-T3 起 PR**（依赖 C-4 决策）：以 `feat(tenant): P3-T3 建库默认配置与根部门引导` 提交，交付内容：
-   - Provisioning 最后一步：按 C-4 方案落 `sys_config` 拷贝逻辑（若 A 提前 P4-T1 则走表，若 B/C 则走常量或延后）；建根 dept（`parent_id=null`）；建首个 admin 用户并发引导 token。
-   - 集成：新租户首次登录即看到默认值。
+   - Provisioning 最后一步：按 C-4 方案落 `sys_config` 拷贝逻辑（**A 提前 P4-T1 已采纳**，走表，迁移 `V28__tenant_scope_sys_config_and_invite.sql`：`sys_config` 加 `tenant_id` + `(tenant_id,config_key)` 复合唯一 + 新表 `sys_user_invite`）；建根 dept（`parent_id=null`）；建首个 admin 用户并签发**邀请式一次性设密链接**（`/set-password.html?code=...`，raw code 仅返回一次、库存 SHA-256 hash；**不发引导 token**，设密后走标准登录）。
+   - 集成：新租户凭邀请链接设密后标准登录即看到默认值。
    - **不做**：租户级 config 分布式失效（属 P4-T2）。
 
 6. **P3-T4 起 PR**：以 `feat(tenant): P3-T4 Suspend/Resume 软拦` 提交，交付内容：
-   - `sys_tenant.status=SUSPENDED` 时 `AdminTokenAuthFilter`（或 `PlatformTokenAuthFilter` 若 T-4 采纳方案 B）返 403 且带明确 `error_code=TENANT_SUSPENDED`。
-   - 集成：suspend 后 5s 内该租户请求全拒；resume 立即恢复。
+   - `sys_tenant.status=SUSPENDED` 时 `TenantResolverFilter` 在绑定上下文前软拦返 403 且带明确 `error_code=TENANT_SUSPENDED`；状态经新 domain 端口 `TenantDirectory.findStatusByKey`（由 `TenantIdResolver` 的 `key→status` 缓存实现）读取，平台端 `/api/platform/**` 前缀豁免（走独立平台令牌）。
+   - suspend/resume 执行器落库后调 `TenantDirectory.invalidateByKey` + `SystemConfigService.evictTenant`，失效缓存使下次请求回源即见新状态。
+   - 集成：suspend 后该租户请求即拒（缓存失效即时生效）；resume 立即恢复。
    - **不做**：Archive/Delete 编排（属 P3-T5）。
 
 7. **P3-T5 起 PR**（关键任务，可能吸收 partition-key 切换 S-2 c 方案）：以 `feat(tenant): P3-T5 Archive & Delete 编排（保留期 + 对账 dry-run + 双人复核）` 提交，交付内容：
@@ -188,6 +189,8 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
    - C-2 迁移演练在 S-2 决策后 2 周内完成，脚本归档到 `.buckups/` 或 `scripts/migration-drills/`。
    - C-3 SSO 决策在本清单会审前 1 周给出（若延后至 Phase 4 则在 §7 归档记录注明）。
    - C-4 sys_config 与 P3-T3 耦合顺序在 P3-T3 起前 2 周闭环。
+
+10. **部分授权子集交付记录（2026-10-08，P3-T1~T4）**：口头部分授权（见本 §7 第 2.5 条）的解耦子集已依次实现并提交——P3-T1 `372994a`（`PlatformTenantController` + 独立 `PlatformTokenAuthFilter`，T-4=B）· P3-T2 `55a0872`（`ProvisioningStateMachine` + `V27__provision_state_machine.sql`，S-5=A）· P3-T3 `73b0626`（默认配置/根部门/首位 admin + 邀请式一次性设密链接 + `V28__tenant_scope_sys_config_and_invite.sql`，C-4=A）· P3-T4 `eece61a`（`TenantResolverFilter` SUSPENDED 软拦 403 `TENANT_SUSPENDED` + domain 端口 `TenantDirectory` + `TenantIdResolver` `key→status` 缓存与 `invalidateByKey/ById/All` 失效钩子 + suspend/resume 执行器即时 evict）。全程 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false` 双门控；全 reactor `./mvnw test` 绿（1080 用例，0 fail / 0 err，10 skip 为本机无 Docker 的 Milvus testcontainers）。**本记录不触发升版**：清单仍为 **v0.2（部分授权 provisional）**；P3-T5/P3-T6 与 partition-key/SILO/运维 B-1/B-2/B-3 仍未签署，须三方书面会签后另升 **v0.3（Phase 3 已交付归档）**（见文末归档时机）。
 
 ---
 
