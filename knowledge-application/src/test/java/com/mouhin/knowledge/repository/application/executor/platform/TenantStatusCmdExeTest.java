@@ -9,9 +9,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import java.util.Optional;
@@ -19,9 +21,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@link TenantSuspendCmdExe} / {@link TenantResumeCmdExe} 软停与恢复执行器单测（P3-T1）。
+ * {@link TenantSuspendCmdExe} / {@link TenantResumeCmdExe} 软停与恢复执行器单测（P3-T1 + P3-T4 缓存即时失效）。
  *
  * <p>锁定：ACTIVE→SUSPENDED、SUSPENDED→ACTIVE 正常流转 + 落库 + 审计 SUCCESS；非法态迁移与租户不存在拒绝 + 审计 REJECTED + 不落库。
+ *
+ * <p>P3-T4：成功流转后须失效 {@link TenantDirectory} 缓存 + evict {@link SystemConfigService}
+ * 配置缓存；拒绝路径两者均不得触发。
  *
  * @author mouhinU
  * @date 2026-10-08
@@ -31,8 +36,12 @@ class TenantStatusCmdExeTest {
 
     private final TenantGateway tenantGateway = mock(TenantGateway.class);
     private final PlatformAuditLog auditLog = mock(PlatformAuditLog.class);
-    private final TenantSuspendCmdExe suspendExe = new TenantSuspendCmdExe(tenantGateway, auditLog);
-    private final TenantResumeCmdExe resumeExe = new TenantResumeCmdExe(tenantGateway, auditLog);
+    private final TenantDirectory tenantDirectory = mock(TenantDirectory.class);
+    private final SystemConfigService systemConfigService = mock(SystemConfigService.class);
+    private final TenantSuspendCmdExe suspendExe =
+            new TenantSuspendCmdExe(tenantGateway, auditLog, tenantDirectory, systemConfigService);
+    private final TenantResumeCmdExe resumeExe =
+            new TenantResumeCmdExe(tenantGateway, auditLog, tenantDirectory, systemConfigService);
 
     private TenantStatusCmd cmd(String key) {
         TenantStatusCmd c = new TenantStatusCmd();
@@ -68,6 +77,8 @@ class TenantStatusCmdExeTest {
                         eq("acme"),
                         eq("SUCCESS"),
                         any());
+        verify(tenantDirectory).invalidateByKey("acme");
+        verify(systemConfigService).evictTenant("acme");
     }
 
     @Test
@@ -87,6 +98,8 @@ class TenantStatusCmdExeTest {
                         eq("acme"),
                         eq("REJECTED"),
                         any());
+        verify(tenantDirectory, never()).invalidateByKey(any());
+        verify(systemConfigService, never()).evictTenant(any());
     }
 
     @Test
@@ -106,6 +119,8 @@ class TenantStatusCmdExeTest {
                         eq("acme"),
                         eq("SUCCESS"),
                         any());
+        verify(tenantDirectory).invalidateByKey("acme");
+        verify(systemConfigService).evictTenant("acme");
     }
 
     @Test
@@ -124,5 +139,7 @@ class TenantStatusCmdExeTest {
                         eq("ghost"),
                         eq("REJECTED"),
                         any());
+        verify(tenantDirectory, never()).invalidateByKey(any());
+        verify(systemConfigService, never()).evictTenant(any());
     }
 }

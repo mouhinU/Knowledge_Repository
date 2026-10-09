@@ -132,7 +132,7 @@ class TenantIsolationIntegrationTest {
                             Long.class);
         }
         acmeId = existing;
-        tenantIdResolver.invalidate("acme"); // 强制走 DB 回填双向缓存
+        tenantIdResolver.invalidateByKey("acme"); // 强制走 DB 回填双向缓存
         tenantIdResolver.resolve("acme");
     }
 

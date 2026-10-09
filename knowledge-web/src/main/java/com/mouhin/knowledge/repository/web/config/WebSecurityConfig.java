@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.config;
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
+import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
@@ -36,10 +37,15 @@ public class WebSecurityConfig {
 
     private final AdminAuthServiceI adminAuthService;
     private final SaasProperties saasProperties;
+    private final TenantDirectory tenantDirectory;
 
-    public WebSecurityConfig(AdminAuthServiceI adminAuthService, SaasProperties saasProperties) {
+    public WebSecurityConfig(
+            AdminAuthServiceI adminAuthService,
+            SaasProperties saasProperties,
+            TenantDirectory tenantDirectory) {
         this.adminAuthService = adminAuthService;
         this.saasProperties = saasProperties;
+        this.tenantDirectory = tenantDirectory;
     }
 
     @Bean
@@ -47,10 +53,10 @@ public class WebSecurityConfig {
         return new AdminTokenAuthFilter(adminAuthService);
     }
 
-    /** 租户解析过滤器（P1-T3）：紧随鉴权过滤器，以便读取其落到请求属性的 JWT 租户 claim。 */
+    /** 租户解析过滤器（P1-T3）：紧随鉴权过滤器，以便读取其落到请求属性的 JWT 租户 claim；P3-T4 起兼做软停租户 403 软拦。 */
     @Bean
     public TenantResolverFilter tenantResolverFilter() {
-        return new TenantResolverFilter(saasProperties);
+        return new TenantResolverFilter(saasProperties, tenantDirectory);
     }
 
     /**

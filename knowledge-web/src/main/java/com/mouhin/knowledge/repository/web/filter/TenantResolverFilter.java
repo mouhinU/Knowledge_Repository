@@ -3,6 +3,8 @@ package com.mouhin.knowledge.repository.web.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
+import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +55,12 @@ public class TenantResolverFilter extends OncePerRequestFilter {
     /** 错误码：非法租户标识格式。 */
     public static final String ERROR_CODE_INVALID = "INVALID_TENANT_KEY";
 
+    /** 错误码：租户已软停（P3-T4，{@code sys_tenant.status=SUSPENDED} 时租户侧请求返 403）。 */
+    public static final String ERROR_CODE_SUSPENDED = "TENANT_SUSPENDED";
+
+    /** 平台端路径前缀：走独立平台令牌，<b>不</b>受租户软停影响，故软拦跳过此前缀。 */
+    private static final String PLATFORM_PREFIX = "/api/platform/";
+
     /** 合法租户键：1~64 位字母 / 数字 / 下划线 / 连字符（对齐 {@code sys_tenant.tenant_key} 语义）。 */
     private static final Pattern VALID_TENANT_KEY = Pattern.compile("^[A-Za-z0-9_-]{1,64}$");
 
@@ -60,10 +68,12 @@ public class TenantResolverFilter extends OncePerRequestFilter {
     private static final String API_PREFIX = "/api/";
 
     private final SaasProperties saasProperties;
+    private final TenantDirectory tenantDirectory;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TenantResolverFilter(SaasProperties saasProperties) {
+    public TenantResolverFilter(SaasProperties saasProperties, TenantDirectory tenantDirectory) {
         this.saasProperties = saasProperties;
+        this.tenantDirectory = tenantDirectory;
     }
 
     @Override
@@ -100,6 +110,21 @@ public class TenantResolverFilter extends OncePerRequestFilter {
             return;
         }
 
+        // P3-T4 软拦：已解析出租户且非平台端路径时，SUSPENDED 租户直接 403，不绑定上下文、不进链。
+        // 平台端 /api/platform/** 走独立平台令牌，不受租户软停影响，故跳过；未知/空状态放行（下游 resolve 严格校验）。
+        if (resolved != null && !isPlatformPath(request)) {
+            String status = tenantDirectory.findStatusByKey(resolved).orElse(null);
+            if (Tenant.STATUS_SUSPENDED.equals(status)) {
+                log.debug("租户 '{}' 已软停，拒绝请求（TENANT_SUSPENDED）", resolved);
+                writeError(
+                        response,
+                        HttpServletResponse.SC_FORBIDDEN,
+                        ERROR_CODE_SUSPENDED,
+                        "租户已停用，请联系平台管理员");
+                return;
+            }
+        }
+
         try {
             if (resolved != null) {
                 TenantContext.set(resolved);
@@ -108,6 +133,12 @@ public class TenantResolverFilter extends OncePerRequestFilter {
         } finally {
             TenantContext.clear();
         }
+    }
+
+    /** 是否平台端路径（{@code /api/platform/} 前缀）；平台端走独立平台令牌，不受租户软停影响。 */
+    private static boolean isPlatformPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path != null && path.startsWith(PLATFORM_PREFIX);
     }
 
     /**

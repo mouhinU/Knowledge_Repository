@@ -4,7 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
+import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import jakarta.servlet.FilterChain;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,12 +31,14 @@ import org.springframework.mock.web.MockHttpServletResponse;
 class TenantResolverFilterTest {
 
     private SaasProperties saasProperties;
+    private StubTenantDirectory directory;
     private TenantResolverFilter filter;
 
     @BeforeEach
     void setUp() {
         saasProperties = new SaasProperties();
-        filter = new TenantResolverFilter(saasProperties);
+        directory = new StubTenantDirectory();
+        filter = new TenantResolverFilter(saasProperties, directory);
     }
 
     @AfterEach
@@ -233,6 +240,114 @@ class TenantResolverFilterTest {
 
             // shouldNotFilter 命中 → 直接进入下游链，上下文未绑定
             assertThat(captured).isEqualTo("null");
+        }
+    }
+
+    @Nested
+    @DisplayName("软拦 (P3-T4)：SUSPENDED 租户 403")
+    class SuspendedSoftBlock {
+
+        @Test
+        @DisplayName("SUSPENDED 租户普通 /api/ 请求 → 403 TENANT_SUSPENDED，链不执行")
+        void suspendedTenantRejected() throws Exception {
+            saasProperties.setEnabled(true);
+            directory.setStatus("acme", Tenant.STATUS_SUSPENDED);
+            MockHttpServletRequest request = apiRequest();
+            request.addHeader(TenantResolverFilter.TENANT_HEADER, "acme");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            String captured = runCapturing(request, response);
+
+            assertThat(captured).isEqualTo(SENTINEL); // 被拒，链未执行
+            assertThat(response.getStatus()).isEqualTo(403);
+            assertThat(response.getContentAsString()).contains("TENANT_SUSPENDED");
+            assertThat(TenantContext.get()).isNull(); // 未绑定上下文
+        }
+
+        @Test
+        @DisplayName("ACTIVE 租户 → 放行（链执行，200）")
+        void activeTenantPasses() {
+            saasProperties.setEnabled(true);
+            directory.setStatus("acme", Tenant.STATUS_ACTIVE);
+            MockHttpServletRequest request = apiRequest();
+            request.addHeader(TenantResolverFilter.TENANT_HEADER, "acme");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            assertThat(runCapturing(request, response)).isEqualTo("acme");
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("平台端 /api/platform/** 即便租户 SUSPENDED 也不软拦（独立平台令牌）")
+        void platformPathExempt() {
+            saasProperties.setEnabled(true);
+            directory.setStatus("acme", Tenant.STATUS_SUSPENDED);
+            MockHttpServletRequest request =
+                    new MockHttpServletRequest("POST", "/api/platform/tenants");
+            request.setRequestURI("/api/platform/tenants");
+            request.addHeader(TenantResolverFilter.TENANT_HEADER, "acme");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            // 平台路径跳过软拦：链执行、上下文照常绑定，不返 403
+            assertThat(runCapturing(request, response)).isEqualTo("acme");
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("未知租户状态（empty）→ 放行，交由下游 resolve 严格校验")
+        void unknownStatusPassesThrough() {
+            saasProperties.setEnabled(true);
+            directory.setStatus("ghost", StubTenantDirectory.UNKNOWN);
+            MockHttpServletRequest request = apiRequest();
+            request.addHeader(TenantResolverFilter.TENANT_HEADER, "ghost");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            assertThat(runCapturing(request, response)).isEqualTo("ghost");
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
+    }
+
+    /**
+     * 可控状态桩：默认任意 key 返回 {@code ACTIVE}（既有解析用例据此保持放行）； 单测可 {@link #setStatus} 覆盖某 key 为
+     * SUSPENDED，或用哨兵 {@link #UNKNOWN} 表示"未知租户"（返回 empty）。失效方法为空操作（本桩无缓存）。
+     */
+    static class StubTenantDirectory implements TenantDirectory {
+
+        /** 哨兵：令 {@link #findStatusByKey} 返回 {@link Optional#empty()}（模拟未知租户）。 */
+        static final String UNKNOWN = "<<UNKNOWN>>";
+
+        private final Map<String, String> statuses = new HashMap<>();
+        private final String defaultStatus = Tenant.STATUS_ACTIVE;
+
+        void setStatus(String tenantKey, String status) {
+            statuses.put(tenantKey.trim().toLowerCase(java.util.Locale.ROOT), status);
+        }
+
+        @Override
+        public Optional<String> findStatusByKey(String tenantKey) {
+            if (tenantKey == null || tenantKey.isBlank()) {
+                return Optional.empty();
+            }
+            String key = tenantKey.trim().toLowerCase(java.util.Locale.ROOT);
+            String status = statuses.getOrDefault(key, defaultStatus);
+            return UNKNOWN.equals(status) || status == null
+                    ? Optional.empty()
+                    : Optional.of(status);
+        }
+
+        @Override
+        public void invalidateByKey(String tenantKey) {
+            // no-op：桩无缓存
+        }
+
+        @Override
+        public void invalidateById(long tenantId) {
+            // no-op
+        }
+
+        @Override
+        public void invalidateAll() {
+            // no-op
         }
     }
 }

@@ -187,8 +187,8 @@ class MilvusTenantIsolationTest {
         acmeTenantId = ensureTenant("acme", "Acme 制造");
         betaTenantId = ensureTenant("beta", "Beta 教育");
         // 强制 resolver 双向缓存刷新（seed 走的是 raw JDBC 而非 mapper）
-        tenantIdResolver.invalidate("acme");
-        tenantIdResolver.invalidate("beta");
+        tenantIdResolver.invalidateByKey("acme");
+        tenantIdResolver.invalidateByKey("beta");
         tenantIdResolver.resolve("acme");
         tenantIdResolver.resolve("beta");
         // 集合级清场（本 PR 独立集合名 p2t5_knowledge_chunks，与生产 knowledge_chunks 隔离）

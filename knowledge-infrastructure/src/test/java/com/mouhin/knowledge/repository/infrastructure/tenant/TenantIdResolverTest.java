@@ -139,20 +139,20 @@ class TenantIdResolverTest {
     class Invalidation {
 
         @Test
-        @DisplayName("invalidate 后下次 resolve 会回源 DB")
+        @DisplayName("invalidateByKey 后下次 resolve 会回源 DB")
         void invalidateEvictsSingleKey() {
             when(tenantMapper.selectOne(any(Wrapper.class)))
                     .thenReturn(activeRow(1L, "default"))
                     .thenReturn(activeRow(101L, "default"));
 
             assertThat(resolver.resolve("default")).isEqualTo(1L);
-            resolver.invalidate("DEFAULT");
+            resolver.invalidateByKey("DEFAULT");
             assertThat(resolver.resolve("default")).isEqualTo(101L);
             verify(tenantMapper, times(2)).selectOne(any(Wrapper.class));
         }
 
         @Test
-        @DisplayName("clear 全量清空缓存")
+        @DisplayName("invalidateAll 全量清空缓存")
         void clearEmptiesCache() {
             when(tenantMapper.selectOne(any(Wrapper.class)))
                     .thenReturn(activeRow(1L, "default"))
@@ -160,7 +160,7 @@ class TenantIdResolverTest {
 
             assertThat(resolver.resolve("default")).isEqualTo(1L);
             assertThat(resolver.resolve("acme")).isEqualTo(2L);
-            resolver.clear();
+            resolver.invalidateAll();
             assertThat(resolver.resolve("default")).isIn(1L, 2L);
             verify(tenantMapper, times(3)).selectOne(any(Wrapper.class));
         }
