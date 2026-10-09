@@ -63,7 +63,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 | **S-2** | **现网 `knowledge_chunks` → partition-key `knowledge_chunks_pk` 迁移策略**（Phase 2 清单 §3 S-2 方案 b 的下一步）：Phase 2 走 LangChain4j JSON 谓词已在现网跑通，Phase 3 引入 partition-key 目标态时如何切换。选项 a)**影子集合双写**——新建 `knowledge_chunks_pk`（io.milvus SDK 建，`tenant_id Int64 partitionKey=true`），写入双路（LangChain4j 旧集合 + partition-key 新集合）、灰度切读（`saas.vector.partitionKey.enabled` 开关）、旧集合保留 30 天后 drop；b)**一次性停机重灌**——运维窗口停机批量 embedding 重算并写新集合（成本 = N × 单条 embed 时间 + 停机窗口）；c)**延后至 SILO 引入 P3-T5 一并做**——Phase 3 前段（P3-T1~T4 生命周期）只做 placement 与状态机，partition-key 切换与 SILO 生命周期同一 PR 落 | 架构 + 运维 | Phase 2 清单 §3 S-2 · spike RESULTS §3 · 执行计划 §5 P3-T0/T5 · 提案 §10 R1 决策段 | ☐ 方案 a（影子双写） ☐ 方案 b（停机重灌） ☐ 方案 c（延后至 P3-T5 一并做） | P3-T0 spike 起前 |
 | **S-3** | **万级时延阈值 P95**（Phase 2 清单 §3 S-3 承接）：spike 只在 10 行 toy 规模跑（median ~15ms、p95 ~26ms），无法定分位数阈值。需约定基准数据集（例如从真实 `knowledge_chunks` 采 1–5 万条 bge-m3 1024 维向量 + 三租户均分），并写明"partition-key 检索 P95 时延 ≤ X ms 且 ≤ 标量过滤基线 × Y%"作为 P3-T0 spike 门禁断言；CI gate 加 `-Dgroups=tenant,perf` 分层跑（perf 只在 nightly / pre-prod 触发） | 架构 + 测试 | Phase 2 清单 §3 S-3 · spike RESULTS §5 · 执行计划 §5 P3-T0 | ☐ 已定阈值（填 X/Y） ☐ 延后至 P3-T0 spike 报告一起给 ☐ 由运维在 cluster 决策后重设 | P3-T0 spike 前 |
 | **S-4** | **Archive & Delete 保留期与双人复核流程**（P3-T5）：软删保留期默认 **30 天**（proposal §4 归档章节）是否合理？双人复核 token 具体形态（临时 token + 二次确认密码？还是 OTP？审计日志落到 `sys_audit_log` 还是独立表？）。方案 A：沿用 30 天 + 项目负责人临时 token；方案 B：调整保留期（如 15/60/90 天）；方案 C：Phase 3 只落软删与归档状态，物理清理延后至合规窗口独立审批 | 项目负责人 + 运维 + 合规 | 提案 §4 归档章节 · 执行计划 §5 P3-T5 | ☐ 方案 A ☐ 方案 B（填天数）☐ 方案 C（延后物理清理） | P3-T5 起前 1 周 |
-| **S-5** | **Provisioning 状态机幂等键与失败重放语义**（P3-T2）：`provision_request_id` 生成方式（UUID v4 / snowflake / `tenantKey + timestamp` 组合？），"各步骤幂等"的具体判定——Flyway 迁移天然幂等（版本号），建 Milvus 集合幂等（`hasCollection` 前置查），建默认 sys_config 需 `(tenant_id, config_key)` 唯一 upsert；FAILED 状态可查询原因（`sys_tenant_provision_step.error_detail` 字段）。方案 A：UUID v4 + `hasCollection` 前置查 + upsert；方案 B：`tenantKey + yyyyMMdd` 业务可读 id | 架构 + 数据库 | 执行计划 §5 P3-T2 · 提案 §5 provisioning 章节 | ☑ **方案 A（2026-10-08 采纳）** ☐ 方案 B ☐ 延后至 P3-T2 起草 PR 时给结论 | P3-T2 起前 1 周 |
+| **S-5** | **Provisioning 状态机幂等键与失败重放语义**（P3-T2）：`provision_request_id` 生成方式（UUID v4 / snowflake / `tenantKey + timestamp` 组合？），"各步骤幂等"的具体判定——Flyway 迁移天然幂等（版本号），建 Milvus 集合幂等（`hasCollection` 前置查），建默认 sys_config 需 `(tenant_id, config_key)` 唯一 upsert；FAILED 状态可查询原因（`sys_tenant_provision_step.error_detail` 字段）。方案 A：UUID v4 + `hasCollection` 前置查 + upsert；方案 B：`tenantKey + yyyyMMdd` 业务可读 id | 架构 + 数据库 | 执行计划 §5 P3-T2 · 提案 §5 provisioning 章节 | ☑ **方案 A（2026-10-08 项目负责人口头采纳；2026-10-09 架构负责人 蒙斌 书面签署）** ☐ 方案 B ☐ 延后至 P3-T2 起草 PR 时给结论 | P3-T2 起前 1 周 |
 
 **S 类决策模板**：五项 S 中 S-1/S-2/S-3 是 partition-key + SILO 引入的核心决策，S-4/S-5 是生命周期细节。若 S-1 采纳方案 C（手工 placement）则 Phase 3 前段可先起 P3-T0 spike；若 S-2 采纳方案 c（延后至 P3-T5 一并做）则 P3-T1~T4 不依赖 partition-key 建集合，可先落生命周期骨架；S-3/S-4/S-5 三项均可"延后至具体 P3-TX 起草 PR 时给结论"，不阻断开工。
 
@@ -115,7 +115,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 | 角色 | 关注条目 | 结论 | 签署人 | 日期 |
 |---|---|---|---|---|
-| 架构负责人 | B-2 · S-1 · S-2 · S-3 · S-5 · T-1 · T-2 · T-3 · T-5 · T-6 · C-3 · C-4 | ☐ 签署 ☐ 需补料 ☐ 否决 | ______ | ______ |
+| 架构负责人 | B-2 · S-1 · S-2 · S-3 · S-5 · T-1 · T-2 · T-3 · T-5 · T-6 · C-3 · C-4 | ☐ 签署（整行未齐）· ☑ **仅 S-5=方案 A** ☐ 需补料 ☐ 否决 | 蒙斌（仅 S-5） | 2026-10-09（仅 S-5） |
 | 安全负责人 | S-4 · T-4 · T-5 · C-1 · C-3 | ☐ 签署 ☐ 需补料 ☐ 否决 | ______ | ______ |
 | 运维/基础设施负责人 | **B-1 · B-2 · B-3** · S-2 · S-3 · S-4 · T-3 · C-1 · C-2 · C-3 | ☐ 签署 ☐ 需补料（列明条目） ☐ 否决 | ______ | ______ |
 | 产品/商务（S-1/T-6/C-3 相关） | S-1 · T-6 · C-3 | ☐ 签署 ☐ 需补料 ☐ 否决 | ______ | ______ |
@@ -123,7 +123,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 **一句话结论**（每方必填）：
 
-- 架构：______
+- 架构：**S-5（Provisioning 幂等键）= 方案 A，已由架构负责人蒙斌书面签署于 2026-10-09**（P3-T2 `55a0872` 已按此落地）；本行其余 B-2/S-1/S-2/S-3/T-1/T-2/T-3/T-5/T-6/C-3/C-4 待 partition-key/SILO 会审，暂未签署，故上方角色行整行「签署」位仍保持 ☐。
 - 安全：______
 - 运维/基础设施：______
 - 产品/商务：______
@@ -191,6 +191,8 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
    - C-4 sys_config 与 P3-T3 耦合顺序在 P3-T3 起前 2 周闭环。
 
 10. **部分授权子集交付记录（2026-10-08，P3-T1~T4）**：口头部分授权（见本 §7 第 2.5 条）的解耦子集已依次实现并提交——P3-T1 `372994a`（`PlatformTenantController` + 独立 `PlatformTokenAuthFilter`，T-4=B）· P3-T2 `55a0872`（`ProvisioningStateMachine` + `V27__provision_state_machine.sql`，S-5=A）· P3-T3 `73b0626`（默认配置/根部门/首位 admin + 邀请式一次性设密链接 + `V28__tenant_scope_sys_config_and_invite.sql`，C-4=A）· P3-T4 `eece61a`（`TenantResolverFilter` SUSPENDED 软拦 403 `TENANT_SUSPENDED` + domain 端口 `TenantDirectory` + `TenantIdResolver` `key→status` 缓存与 `invalidateByKey/ById/All` 失效钩子 + suspend/resume 执行器即时 evict）。全程 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false` 双门控；全 reactor `./mvnw test` 绿（1080 用例，0 fail / 0 err，10 skip 为本机无 Docker 的 Milvus testcontainers）。**本记录不触发升版**：清单仍为 **v0.2（部分授权 provisional）**；P3-T5/P3-T6 与 partition-key/SILO/运维 B-1/B-2/B-3 仍未签署，须三方书面会签后另升 **v0.3（Phase 3 已交付归档）**（见文末归档时机）。
+
+11. **S-5 书面签署补记（2026-10-09）**：S-5（Provisioning 状态机幂等键与失败重放语义）由 **架构负责人蒙斌书面签署确认 = 方案 A**（`provision_request_id`=UUID v4 + Flyway 版本号天然幂等 + `hasCollection` 前置查 + `(tenant_id,config_key)` upsert + FAILED 可查 `error_detail`），状态从 2026-10-08「项目负责人口头采纳」升级为「架构负责人书面签署」；回写 §3 S-5 判断位 + §6 架构负责人行（签署人/日期，范围限定「仅 S-5」）+ §6 架构一句话结论。**单项签署不触发升版**：清单仍为 v0.2（部分授权 provisional），架构负责人行整行「签署」位因 B-2/S-1/S-2/S-3/T-1/T-2/T-3/T-5/T-6/C-3/C-4 未决仍保持 ☐；**不解锁 P3-T5/T6**——两者仍待运维 B-1/B-2/B-3 书面会签 + 其余 S/T 结论落定后升 v0.3 全量授权。
 
 ---
 
