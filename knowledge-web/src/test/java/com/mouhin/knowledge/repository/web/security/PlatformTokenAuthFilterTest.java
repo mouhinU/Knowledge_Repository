@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import jakarta.servlet.FilterChain;
@@ -130,5 +131,68 @@ class PlatformTokenAuthFilterTest {
 
         assertThat(ran).isFalse();
         assertThat(response.getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("本地 JWT 不命中但企业 IdP 校验通过 → 放行且落 IdP 归一载荷（P3-T7）")
+    void idpFallbackPasses() {
+        PlatformIdpTokenService idpTokenService = mock(PlatformIdpTokenService.class);
+        PlatformTokenAuthFilter idpFilter =
+                new PlatformTokenAuthFilter(jwtService, idpTokenService);
+        when(jwtService.verify("idp-token")).thenReturn(Optional.empty());
+        when(idpTokenService.verify("idp-token"))
+                .thenReturn(
+                        Optional.of(
+                                new PlatformTokenPayload(
+                                        "idp-sub-9", "ops.li", Instant.now().plusSeconds(3600))));
+
+        MockHttpServletRequest request = platformRequest();
+        request.addHeader(PlatformTokenAuthFilter.TOKEN_HEADER, "idp-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean[] ran = {false};
+        try {
+            idpFilter.doFilter(request, response, (rq, rs) -> ran[0] = true);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        assertThat(ran[0]).isTrue();
+        Object attr = request.getAttribute(PlatformTokenAuthFilter.PRINCIPAL_ATTRIBUTE);
+        assertThat(attr).isInstanceOf(PlatformTokenPayload.class);
+        assertThat(((PlatformTokenPayload) attr).operatorId()).isEqualTo("idp-sub-9");
+    }
+
+    @Test
+    @DisplayName("本地 JWT 与企业 IdP 均不命中 → 401 拒绝（P3-T7）")
+    void bothPathsReject() {
+        PlatformIdpTokenService idpTokenService = mock(PlatformIdpTokenService.class);
+        PlatformTokenAuthFilter idpFilter =
+                new PlatformTokenAuthFilter(jwtService, idpTokenService);
+        when(jwtService.verify(anyString())).thenReturn(Optional.empty());
+        when(idpTokenService.verify(anyString())).thenReturn(Optional.empty());
+
+        MockHttpServletRequest request = platformRequest();
+        request.addHeader(PlatformTokenAuthFilter.TOKEN_HEADER, "nope");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean ran = runChainWith(idpFilter, request, response);
+
+        assertThat(ran).isFalse();
+        assertThat(response.getStatus()).isEqualTo(401);
+    }
+
+    private boolean runChainWith(
+            PlatformTokenAuthFilter targetFilter,
+            MockHttpServletRequest request,
+            MockHttpServletResponse response) {
+        boolean[] ran = {false};
+        FilterChain chain = (rq, rs) -> ran[0] = true;
+        try {
+            targetFilter.doFilter(request, response, chain);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return ran[0];
     }
 }

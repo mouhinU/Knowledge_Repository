@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.web.config;
 
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
+import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
@@ -67,8 +68,11 @@ public class WebSecurityConfig {
      */
     @Bean
     @ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
-    public PlatformTokenAuthFilter platformTokenAuthFilter(PlatformJwtService platformJwtService) {
-        return new PlatformTokenAuthFilter(platformJwtService);
+    public PlatformTokenAuthFilter platformTokenAuthFilter(
+            PlatformJwtService platformJwtService,
+            ObjectProvider<PlatformIdpTokenService> platformIdpTokenServiceProvider) {
+        return new PlatformTokenAuthFilter(
+                platformJwtService, platformIdpTokenServiceProvider.getIfAvailable());
     }
 
     @Bean

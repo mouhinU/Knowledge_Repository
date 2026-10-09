@@ -122,6 +122,21 @@ knowledge:
       # 平台端独立密钥，必须由 KNOWLEDGE_PLATFORM_JWT_SECRET 注入；platform.enabled=true 而密钥缺失时启动失败（fail-fast）。
       secret: ${KNOWLEDGE_PLATFORM_JWT_SECRET:}
       expiration-hours: ${KNOWLEDGE_PLATFORM_JWT_EXPIRATION_HOURS:8}
+    # ---------- 企业 IdP OIDC 接入（P3-T7 / C-3=方案 B）----------
+    # 默认 false：PlatformIdpTokenGatewayImpl / HttpJwkSetProvider 均不装配（@ConditionalOnProperty），
+    # /api/platform/** 仅认本地平台 JWT——与 P3-T1 行为完全等价（回退闸门）。
+    # 开启后平台端点同时接受企业 IdP 签发的 RS256 令牌（本地 JWT 校验不命中时回退到 IdP 校验）。
+    # issuer 与 (audience | client-id) 必须配置，缺失即启动失败；jwks-uri 为 IdP JWKS 端点（RS256 公钥来源）。
+    # client-secret 为 OIDC 授权流程预留（RS256 验签路径不使用），严禁出现在日志或对外响应。
+    oidc:
+      enabled: ${KNOWLEDGE_PLATFORM_OIDC_ENABLED:false}
+      issuer: ${KNOWLEDGE_PLATFORM_OIDC_ISSUER:}
+      audience: ${KNOWLEDGE_PLATFORM_OIDC_AUDIENCE:}
+      client-id: ${KNOWLEDGE_PLATFORM_OIDC_CLIENT_ID:}
+      client-secret: ${KNOWLEDGE_PLATFORM_OIDC_CLIENT_SECRET:}
+      jwks-uri: ${KNOWLEDGE_PLATFORM_OIDC_JWKS_URI:}
+      jwks-cache-ttl-seconds: ${KNOWLEDGE_PLATFORM_OIDC_JWKS_CACHE_TTL_SECONDS:300}
+      clock-skew-seconds: ${KNOWLEDGE_PLATFORM_OIDC_CLOCK_SKEW_SECONDS:60}
 
   # ---------- Milvus 向量数据库 ----------
   milvus:

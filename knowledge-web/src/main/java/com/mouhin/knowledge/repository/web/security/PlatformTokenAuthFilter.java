@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.web.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import jakarta.servlet.FilterChain;
@@ -26,6 +27,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * 本过滤器也不触碰 {@code /api/platform/**} 之外的任何路径（{@link #shouldNotFilter}）。两套令牌互不可用，
  * 即便租户管理员令牌泄漏也无法触达平台生命周期端点（T-4 方案 B 的核心安全边界）。
  *
+ * <p><b>企业 IdP 并存（P3-T7 / C-3=方案 B）</b>：本地平台 JWT 校验不命中时，若已装配 {@link PlatformIdpTokenService}（{@code
+ * knowledge.platform.oidc.enabled=true}）则追加一次企业 IdP 令牌（RS256/JWKS）校验， 两套令牌并存、任一通过即放行；{@code
+ * oidc.enabled=false} 时校验器缺席，行为与 P3-T1 完全一致（本地 JWT 单路径回退闸门）。
+ *
  * <p>鉴权成功后把 {@link PlatformTokenPayload} 落到请求属性 {@value #PRINCIPAL_ATTRIBUTE}，供 {@code
  * PlatformTenantController} 读取操作者身份注入审计，避免重复解析令牌。
  *
@@ -48,10 +53,20 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
     private static final String ERROR_CODE = "PLATFORM_UNAUTHORIZED";
 
     private final PlatformJwtService platformJwtService;
+
+    /** 企业 IdP 令牌校验器（P3-T7，可空）：{@code oidc.enabled=false} 或未装配时缺席，平台端仅走本地 JWT。 */
+    private final PlatformIdpTokenService idpTokenService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PlatformTokenAuthFilter(PlatformJwtService platformJwtService) {
+        this(platformJwtService, null);
+    }
+
+    public PlatformTokenAuthFilter(
+            PlatformJwtService platformJwtService, PlatformIdpTokenService idpTokenService) {
         this.platformJwtService = platformJwtService;
+        this.idpTokenService = idpTokenService;
     }
 
     @Override
@@ -67,6 +82,10 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
         Optional<PlatformTokenPayload> payload =
                 token == null ? Optional.empty() : platformJwtService.verify(token);
+        // P3-T7 本地平台 JWT 不命中且已接入企业 IdP → 追加 IdP 令牌校验分支（C-3=方案 B），两套令牌并存互不影响。
+        if (payload.isEmpty() && token != null && idpTokenService != null) {
+            payload = idpTokenService.verify(token);
+        }
         if (payload.isEmpty()) {
             writeUnauthorized(response);
             return;
