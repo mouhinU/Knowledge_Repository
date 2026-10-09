@@ -6,7 +6,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 > 用途：**Phase 4（配置 / 缓存 / LLM 租户化，P4-T1~T4）开工前的最后一道闭环清单**。把 Phase 3 消解/延后至 Phase 4 的 B/S/T 项、执行计划 §6 Phase 4 任务表中的开放设计问题、Phase 4 退出条件"三处进程内缓存脑裂消除 / 密钥不进 Prometheus 高基数标签 / `config_key`/`checksum` 唯一约束已切租户内"落成可勾选的 Go/No-Go 表。
 > 权威文档：变更提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)（架构决策，v0.4）· 三方评审包 [saas-multi-tenant-proposal-review-pack.md](saas-multi-tenant-proposal-review-pack.md)（签署栏，v1.2）· 可执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)（P4 任务表，v1.0）· Phase 3 生效基线 [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md)（v0.3，全量授权开工中；Phase 4 起前保留为"生效基线"）· Phase 2 归档基线 [saas-phase2-go-checklist.md](saas-phase2-go-checklist.md)（v0.3）· 规范基线 [../AGENTS.md](../AGENTS.md) §0 红线 #11
-> 版本：**v0.1（2026-10-09 起草）** · 作者：QoderWork · 状态：**待会审**——Phase 3 已交付 P3-T1~T4 + P3-T5 Archive & Delete 子切片 + P3-T7 OIDC 子切片；partition-key/SILO 分支 + P3-T6 逐库 runner 仍受运维 B-2 硬前置门控。Phase 4 起草与 Phase 3 尾分支解耦（P4-T1 迁移已由 C-4=方案 A 提前并入 P3-T3；P4-T2 Redis 依赖 Phase 5 P5-T2 需前置或延后；P4-T3/P4-T4 独立）。**本清单起草不代表 Phase 4 已授权开工**——需 B 类三项运维/安全书面承接 + S/T 类全项闭环 + C 类已指派责任人与里程碑后，方按 §7 阶梯升 v0.2/v0.3。
+> 版本：**v0.1（2026-10-09 起草）** · 作者：QoderWork · 状态：**待会审**——Phase 3 已交付 P3-T1~T4 + P3-T5 Archive & Delete 子切片 + P3-T7 OIDC 子切片 + P3-T7 邀请式设密回访子切片；partition-key/SILO 分支 + P3-T6 逐库 runner 仍受运维 B-2 硬前置门控。Phase 4 起草与 Phase 3 尾分支解耦（P4-T1 迁移已由 C-4=方案 A 提前并入 P3-T3；P4-T2 Redis 依赖 Phase 5 P5-T2 需前置或延后；P4-T3/P4-T4 独立）。**本清单起草不代表 Phase 4 已授权开工**——需 B 类三项运维/安全书面承接 + S/T 类全项闭环 + C 类已指派责任人与里程碑后，方按 §7 阶梯升 v0.2/v0.3。
 
 ---
 
@@ -143,7 +143,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 |---|---|---|
 | Phase 3 尾分支 P3-T5 partition-key 切换 / `MilvusSdkAdapter` / `SiloCollectionAdmin` / `knowledge_chunks_pk` 建集合 | Phase 3 | 由 Phase 3 清单 §7 第 14 条门控，等待运维 B-2 cluster 扩容 + 备份方案书面落定 |
 | Phase 3 尾分支 P3-T6 SILO Flyway 逐库 runner | Phase 3 | 由 Phase 3 清单 §7 第 15 条门控，依赖 `SiloCollectionAdmin` + 首批 SILO placement 出现 |
-| Phase 3 尾分支 P3-T7 IdP 邀请式设密回访（P3-T3 建库 → IdP 首登绑定） | Phase 3（可选后续子切片） | 随客户 IdP 首次接入排产，不阻塞 Phase 4 |
+| Phase 3 尾分支 P3-T7 IdP 邀请式设密回访 · **落地页预检查 + 平台运维重签 + 前端四态引导子切片已交付**；**IdP 首登绑定 RBAC/租户归属映射**仍未做 | Phase 3（IdP 首登绑定为可选后续子切片） | 邀请式设密回访预检查 + 重签两段已随 P3-T7 子切片交付（详见 Phase 3 清单 §7 第 16 条）；IdP 首登绑定 RBAC/租户归属映射随客户 IdP 首次接入排产，不阻塞 Phase 4（本清单 C-3 承接） |
 | Phase 5 全部（MinIO SDK / Redis 上传会话 / assetKey 校验 / compose 副本化 / 定时任务分片） | Phase 5 | 本清单 B-1 Redis 决策与 Phase 5 P5-T2 上传会话 Redis 部署形态同期评估，Phase 5 本体另立 Phase 5 开工门禁清单 |
 | Phase 6 计费配额（`tenant_usage` 表 / QuotaGuard / 套餐限额） | Phase 6 可选后置 | 与 Phase 4 退出条件解耦，本清单 C-4 只跟踪 P4-T4 埋点时序 |
 | U3 数据驻留 `data_region` 物理分区部署 | Phase 5 布局 | 评审包 §3 U3；不影响 Phase 4 配置/缓存/LLM 本体 |
@@ -157,7 +157,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 - Phase 3 全量授权 v0.3 已于 2026-10-09 达成，Phase 3 尾分支不受本清单起草阻塞。
 - Phase 2 交付归档 S-2=方案 b + S-1=方案 B 已在 Phase 2 清单 §8 归档记录留痕。
 - P4-T1 迁移已提前并入 P3-T3（`V28__tenant_scope_sys_config_and_invite.sql`，C-4=方案 A），Phase 4 起草时只需处理读取顺序与缓存 key 抽象。
-- P3-T7 `93dcbb9` 已交付，IdP token 校验通过 RBAC 延后至本清单 C-3 承接。
+- P3-T7 `93dcbb9` 已交付（OIDC 分支），P3-T7 邀请式设密回访子切片 `9aa358b` 已交付（落地页预检查 + 平台重签 + 前端四态引导）；剩余 **IdP 首登绑定 RBAC/租户归属映射**延后至本清单 C-3 承接。
 
 ---
 
