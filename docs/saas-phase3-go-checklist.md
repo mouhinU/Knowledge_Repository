@@ -173,7 +173,7 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
    - 集成：suspend 后该租户请求即拒（缓存失效即时生效）；resume 立即恢复。
    - **不做**：Archive/Delete 编排（属 P3-T5）。
 
-7. **P3-T5 起 PR**（关键任务，可能吸收 partition-key 切换 S-2 c 方案）：以 `feat(tenant): P3-T5 Archive & Delete 编排（保留期 + 对账 dry-run + 双人复核）` 提交，交付内容：
+7. **P3-T5 起 PR**（关键任务，可能吸收 partition-key 切换 S-2 c 方案）：以 `feat(tenant): P3-T5 Archive & Delete 编排（保留期 + 对账 dry-run + 双人复核）` 提交，交付内容（**🟡 Archive & Delete 编排子切片已交付 `ed51f63`，详见第 14 条；partition-key 切换分支（S-2=c）仍待 B-2 cluster 前置**）：
    - 新 `application/executor/tenant/ArchiveTenantCmdExe.java` · 后台对账 `TenantDeletionReconciler`（`@Scheduled` 每日跑）。
    - 顺序：软删 → 保留期（S-4 决策值，默认 30 天）→ 逐租户遍历 `kb_document` → Milvus 删向量（走 `SiloCollectionAdmin.drop` 或 POOL partition-key 删 `tenant_id=X` 记录）→ 对象存储删文件（**依赖 P5-T1 MinIO 已接入**——若 P5-T1 未完成则本 PR 只落 DB/Milvus，文件层延后）→ DB 行删。
    - 每次执行前 dry-run 预览；双人复核 token 流程按 S-4 落。
@@ -211,6 +211,16 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
     - **⚠️ C-3=方案 B scope 影响（不可静默吸收，须排产）**：Phase 3 内接 OIDC 企业 IdP 是超出已交付 P3-T1~T4 的范围扩展——①扩展 T-4 已落地的独立 `PlatformTokenAuthFilter`（追加 OIDC/IdP token 校验路径）；②回访 P3-T3 邀请式一次性设密链接（建库管理员初始凭据生成方式可能改走 IdP）。二者作为 **P3-T5 同期新增任务**排产，回写 §4 T-4 尾注 + §5 C-3 + 执行计划 §5 新增 OIDC 任务行。
     - **版本戳联动升版（本次同一提交内执行）**：清单 v0.2 → **v0.3**；执行计划 v0.9 → **v1.0**（§5 P3-T5/T6 解锁 + 新增 OIDC 任务行 + S/T/B 结论回写）；提案 v0.3 → **v0.4**（§10 R1 节奏 + §11 第三条运维 B 签署 + §8 路线图状态）；评审包 v1.1 → **v1.2**（§6 运维栏 ☑ 需补料→☑ 签署 + U2/U3/U4/U6 闭环）；决策建议一页纸 v0.1 → **v0.2（定稿）**；AGENTS.md §1 分册地图 Phase 3 清单行版本戳 v0.2 → v0.3、状态「部分授权」→「全量授权开工」+ §2 决策树同步。
     - **治理完整性声明**：所有签署人/会签人姓名均由项目负责人当次提供，**无任何捏造**；运维 B 类承接、S-4 方案、C-3 SSO、T 类默认四项决策均经项目负责人明确选择后方记录；角色行「签署」位仅在整行覆盖条目全部闭环后方翻转 ☑。全程维持双门控 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false`，未部署、未动生产 `knowledge_chunks`。
+
+14. **P3-T5 Archive & Delete 编排子切片交付记录（2026-10-09，`ed51f63`）**：承接第 13 条全量授权，P3-T5 的 **Archive & Delete 编排（生命周期）子切片**已实现并提交于 feature 分支 `feat/p3-t5-archive-delete`（commit `ed51f63`），落 S-4=方案 A：
+    - **domain**：`Tenant` 增 `STATUS_DELETING` + `archive/restore/markDeleting/markDeleted` 状态机（`archivedAt` 保留期起点 / `deletedAt` 终态戳 / `deletionRequestId` UUID v4 幂等键）；新实体 `TenantDeletionStep` / `TenantDeleteApproval`；新端口 `TenantDeletionStepGateway` / `TenantDeleteApprovalGateway` / `TenantDataPurgeGateway`；`VectorStoreGateway.deleteByTenantId`。
+    - **infra**：三表 DO/Mapper/Converter/GatewayImpl；`TenantPurgeMapper`（`@InterceptorIgnore(tenantLine=true)` 绕过租户拦截器 + 17 表硬编码白名单 `${tableName}`/`#{tenantId}`，红线 #5）；`DbPlatformAuditLog`（`@Primary` 覆盖 SLF4J 审计，落 `sys_audit_log`，DB 失败降级 error 日志不阻断主流程）；三新表进 `KnowledgeTenantLineHandler` IGNORE_TABLES 白名单。
+    - **app**：`ArchiveTenantCmdExe`（ACTIVE/SUSPENDED→ARCHIVED）· `IssueDeleteApprovalCmdExe`（一次性 raw token，SecureRandom 32B→Base64URL，SHA-256 存 hash，仅返回一次、不入库不入日志）· `ConfirmTenantDeletionCmdExe`（四门槛：已归档 + 保留期已过 + 令牌有效 + 双人复核确认者≠签发者 → 消费令牌 → DELETING + 绑定 UUID）· `TenantDeletionPreviewQryExe`（只读 dry-run 各表行数 + 保留期）· `DeleteApprovalService` · `TenantDeletionReconciler`（`@ConditionalOnProperty platform.enabled=true` + `@Scheduled`，步骤级幂等续跑：`findSuccess`→SKIPPED、`attemptNo+1`、PURGE_DB_ROWS→PURGE_VECTORS→markDeleted，任一步 FAILED 保留 DELETING 待下轮）。
+    - **web**：`PlatformTenantController` 增 `archive` / `deletion-approval` / `delete` / `deletion-preview` 四端点。
+    - **迁移 V29**：`sys_tenant` 加 `archived_at`/`deleted_at`/`deletion_request_id` + 索引；新表 `sys_tenant_delete_approval` / `sys_tenant_deletion_step` / `sys_audit_log`。
+    - **测试**：domain `TenantTest` +11 生命周期用例；app Archive/Confirm/Reconciler 单测 17 例；web H2 全链路集成 `TenantArchiveDeleteIntegrationTest`（归档→签发→双人复核→reconcile 硬删→DELETED + 幂等二次空操作 + 只读预览）+ `FlywayMigrationSmokeTest` 升 V29（计数 28→29 + schema 抽查）。全 reactor `./mvnw test` **BUILD SUCCESS**。
+    - **范围边界（不可静默扩张）**：本切片**只交付 Archive & Delete 编排（生命周期）**；**partition-key 切换（S-2=方案 c）/ `MilvusSdkAdapter` 骨架（T-2=方案 B）/ `knowledge_chunks_pk` 建集合 / T-1 多 store 缓存策略未含**，仍待 **B-2 cluster 扩容 + 备份硬前置**由运维落定后于同 PR 续交（对应第 7 条 partition-key 分支）；文件层（MinIO）物理清理受 P5-T1 约束延后，本期只清 DB 行 + Milvus 向量两处。全程双门控 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false`，生产态不装配 reconciler、不触碰数据。
+    - **PR 前置提醒**：起 P3-T5 PR 前须确认 B-2（cluster 扩容 + 备份方案）已由运维书面落定；在此之前本切片留在 feature 分支 `feat/p3-t5-archive-delete`，不合并、不部署。
 
 ---
 
