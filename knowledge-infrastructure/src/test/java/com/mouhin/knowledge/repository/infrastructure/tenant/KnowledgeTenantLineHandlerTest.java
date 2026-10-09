@@ -100,15 +100,15 @@ class KnowledgeTenantLineHandlerTest {
     class IgnoreTable {
 
         @Test
-        @DisplayName("平台/Flyway/Phase 4 延后表命中白名单")
+        @DisplayName("平台/Flyway/邀请表命中白名单（P3-T3 起 sys_config 移出白名单）")
         void ignoresPlatformTables() {
             for (String t :
                     new String[] {
                         "sys_tenant",
                         "sys_tenant_placement",
                         "sys_tenant_provision_step",
+                        "sys_user_invite",
                         "flyway_schema_history",
-                        "sys_config",
                         "kb_extraction_cache"
                     }) {
                 assertThat(handler.ignoreTable(t))
@@ -119,7 +119,7 @@ class KnowledgeTenantLineHandlerTest {
         }
 
         @Test
-        @DisplayName("15 业务表均不在白名单内")
+        @DisplayName("业务表均不在白名单内（P3-T3 起 sys_config 参与租户过滤）")
         void doesNotIgnoreBusinessTables() {
             for (String t :
                     new String[] {
@@ -137,7 +137,8 @@ class KnowledgeTenantLineHandlerTest {
                         "sys_user",
                         "sys_role",
                         "sys_user_role",
-                        "sys_department"
+                        "sys_department",
+                        "sys_config"
                     }) {
                 assertThat(handler.ignoreTable(t)).as("参与过滤 " + t).isFalse();
             }

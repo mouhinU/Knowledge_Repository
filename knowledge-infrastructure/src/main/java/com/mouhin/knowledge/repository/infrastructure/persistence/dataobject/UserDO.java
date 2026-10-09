@@ -40,6 +40,14 @@ public class UserDO {
     @TableField("password_hash")
     private String passwordHash;
 
+    /**
+     * 首次登录是否必须改密（V28 加列，P3-T3 邀请式引导）。
+     *
+     * <p>{@code TINYINT(1) NOT NULL DEFAULT 0}；MyBatis-Plus 以 {@link Boolean} 映射 0/1。
+     */
+    @TableField("must_change_password")
+    private Boolean mustChangePassword;
+
     @TableField("status")
     private String status;
 

@@ -19,6 +19,7 @@ public final class SystemConfigConverter {
         }
         SystemConfig entity = new SystemConfig();
         entity.setId(doObj.getId());
+        entity.setTenantId(doObj.getTenantId());
         entity.setConfigKey(doObj.getConfigKey());
         entity.setConfigValue(doObj.getConfigValue());
         entity.setValueType(doObj.getValueType());
@@ -36,6 +37,7 @@ public final class SystemConfigConverter {
         }
         SystemConfigDO doObj = new SystemConfigDO();
         doObj.setId(entity.getId());
+        doObj.setTenantId(entity.getTenantId());
         doObj.setConfigKey(entity.getConfigKey());
         doObj.setConfigValue(entity.getConfigValue());
         doObj.setValueType(entity.getValueType());

@@ -35,6 +35,15 @@ public class User {
     /** 登录密码 BCrypt 哈希（$2a）。为 null 表示该账号尚未设置密码、不可通过密码登录。 */
     private String passwordHash;
 
+    /**
+     * 首次登录是否必须改密（P3-T3 邀请式引导）。
+     *
+     * <p>由 {@code CreateFirstAdminStep} 建首位管理员时置 {@code true}，{@code SetPasswordByInviteCmdExe}
+     * 完成设密后置 {@code false}。UI / 登录链路可据此强制跳转改密页。默认 {@code false}， 与 V28 迁移 {@code
+     * must_change_password TINYINT(1) NOT NULL DEFAULT 0} 对齐。
+     */
+    private Boolean mustChangePassword;
+
     /** 账号状态：ACTIVE / DISABLED。禁用账号登录与被拦截的令牌校验均实时读此字段。 */
     private String status;
 
@@ -115,6 +124,14 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public Boolean getMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(Boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
     }
 
     public String getStatus() {

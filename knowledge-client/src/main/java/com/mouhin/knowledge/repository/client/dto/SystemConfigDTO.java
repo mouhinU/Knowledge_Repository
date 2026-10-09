@@ -17,6 +17,13 @@ public class SystemConfigDTO {
     /** 主键 */
     private Long id;
 
+    /**
+     * 所属租户 id（P3-T3 / C-4=方案 A：sys_config 租户化，V28 加列）。
+     *
+     * <p>前端一般无需回显此字段（读写均由服务端按 {@code TenantContext} 自动作用域），保留供平台端跨租户视图 或调试使用。
+     */
+    private Long tenantId;
+
     /** 配置键 */
     private String configKey;
 

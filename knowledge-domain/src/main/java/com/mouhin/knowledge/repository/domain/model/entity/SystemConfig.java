@@ -16,6 +16,15 @@ public class SystemConfig {
     /** 主键 */
     private Long id;
 
+    /**
+     * 所属租户 id（P3-T3 / C-4=方案 A：提前 P4-T1 租户化 sys_config）。
+     *
+     * <p>与 {@code SystemConfigDO.tenant_id} 一一对应；由 infrastructure 层 {@code SystemConfigGatewayImpl}
+     * 依据 {@code TenantContext} + {@code TenantIdResolver} 显式回填，不依赖 MyBatis-Plus 拦截器
+     * （saas.enabled=false 双闸门关闭态下拦截器缺席，显式路径确保读写均租户隔离）。
+     */
+    private Long tenantId;
+
     /** 配置键（全局唯一） */
     private String configKey;
 
@@ -52,6 +61,14 @@ public class SystemConfig {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getConfigKey() {

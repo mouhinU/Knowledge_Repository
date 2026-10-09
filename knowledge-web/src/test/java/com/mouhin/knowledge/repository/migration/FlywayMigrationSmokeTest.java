@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V27 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V28 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V27）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 27;
+    /** 迁移脚本总数（V1..V28）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 28;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 27")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 28")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,10 +54,13 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V27
+        // 二次调用应无待处理迁移（幂等），并停留在 V28
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals("27", current.getVersion().getVersion(), "最终版本应为 V27（provision 状态机 P3-T2）");
+        assertEquals(
+                "28",
+                current.getVersion().getVersion(),
+                "最终版本应为 V28（P3-T3 邀请式引导 + sys_config 租户化）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -345,6 +348,77 @@ class FlywayMigrationSmokeTest {
             assertTrue(
                     stepCols.contains("error_detail"),
                     "V27 列缺失 (sys_tenant_provision_step.error_detail)");
+
+            // 抽查 V28（P3-T3 sys_config 租户化 + 邀请式引导）：sys_config 增加 tenant_id 列
+            boolean hasConfigTenantId = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_config' "
+                                    + "AND LOWER(column_name) = 'tenant_id'")) {
+                assertTrue(rs.next());
+                hasConfigTenantId = rs.getInt(1) > 0;
+            }
+            assertTrue(hasConfigTenantId, "V28 列缺失 (sys_config.tenant_id)");
+
+            // 抽查 V28：复合唯一索引 uk_config_tenant_key 应覆盖 (tenant_id, config_key)
+            List<String> ukCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.index_columns "
+                                    + "WHERE LOWER(table_name) = 'sys_config' "
+                                    + "AND LOWER(index_name) = 'uk_config_tenant_key'")) {
+                while (rs.next()) {
+                    ukCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    ukCols.contains("tenant_id") && ukCols.contains("config_key"),
+                    "V28 复合唯一索引 uk_config_tenant_key 应覆盖 (tenant_id, config_key)，实际=" + ukCols);
+
+            // 抽查 V28：新表 sys_user_invite 存在
+            boolean hasUserInvite = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'sys_user_invite'")) {
+                assertTrue(rs.next());
+                hasUserInvite = rs.getInt(1) > 0;
+            }
+            assertTrue(hasUserInvite, "V28 表缺失 (sys_user_invite)");
+
+            // 抽查 V28：sys_user_invite 关键列齐备
+            List<String> inviteCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_user_invite' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('invite_id','tenant_id','user_id','invite_code_hash','status','expires_at')")) {
+                while (rs.next()) {
+                    inviteCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(inviteCols.contains("invite_id"), "V28 列缺失 (sys_user_invite.invite_id)");
+            assertTrue(inviteCols.contains("tenant_id"), "V28 列缺失 (sys_user_invite.tenant_id)");
+            assertTrue(inviteCols.contains("user_id"), "V28 列缺失 (sys_user_invite.user_id)");
+            assertTrue(
+                    inviteCols.contains("invite_code_hash"),
+                    "V28 列缺失 (sys_user_invite.invite_code_hash)");
+            assertTrue(inviteCols.contains("status"), "V28 列缺失 (sys_user_invite.status)");
+            assertTrue(inviteCols.contains("expires_at"), "V28 列缺失 (sys_user_invite.expires_at)");
+
+            // 抽查 V28：sys_user 增加 must_change_password 列
+            boolean hasMustChangePwd = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_user' "
+                                    + "AND LOWER(column_name) = 'must_change_password'")) {
+                assertTrue(rs.next());
+                hasMustChangePwd = rs.getInt(1) > 0;
+            }
+            assertTrue(hasMustChangePwd, "V28 列缺失 (sys_user.must_change_password)");
         }
     }
 }

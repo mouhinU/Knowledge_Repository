@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.StepOutcome;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -112,8 +113,10 @@ public class ProvisioningStateMachine {
         tenantGateway.update(tenant);
         auditLog.logTenantAction(
                 operatorId, ACTION, tenant.getTenantKey(), "SUCCESS", "steps=" + outcomes.size());
+        InviteInfo invite =
+                (InviteInfo) context.attributes().get(ProvisioningContext.ATTR_INVITE_INFO);
         return new ProvisioningOutcome(
-                provisionRequestId, Tenant.STATUS_ACTIVE, List.copyOf(outcomes));
+                provisionRequestId, Tenant.STATUS_ACTIVE, List.copyOf(outcomes), invite);
     }
 
     /**

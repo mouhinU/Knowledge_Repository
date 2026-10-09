@@ -11,8 +11,12 @@ import java.util.Optional;
  * 接受；租户管理员令牌用 {@code knowledge.admin.jwt.secret}，二者互不通用。这是 T-4 方案 B 的核心安全边界——
  * 即便租户管理员令牌泄漏，也无法触达平台生命周期端点。
  *
- * <p>校验只负责<b>令牌本身</b>（签名 + 过期）的合法性；平台管理员账号体系（{@code sys_platform_admin}）本期不建， 令牌签发面向运维带外流程 /
- * 引导脚本（P3-T3 引导 token 复用本接口）。
+ * <p>校验只负责<b>令牌本身</b>（签名 + 过期）的合法性；平台管理员账号体系（{@code sys_platform_admin}）本期不建， 令牌签发面向运维带外流程 / 引导脚本。
+ *
+ * <p><b>与 P3-T3 的关系</b>：新租户首位 admin 的引导流程<b>不</b>复用本接口——平台令牌（scope=platform） 会被 {@code
+ * AdminTokenAuthFilter} 拒绝，无法访问任何 {@code /api/admin/**} 端点。P3-T3 采用邀请式设密 （{@code UserInviteService}
+ * + {@code POST /api/admin/auth/set-password-by-invite}），管理员设密后走 标准 {@code
+ * AdminJwtService}（scope=admin）登录链路，避免"响应体回显长期令牌"红线。
  *
  * @author mouhinU
  * @date 2026-10-08

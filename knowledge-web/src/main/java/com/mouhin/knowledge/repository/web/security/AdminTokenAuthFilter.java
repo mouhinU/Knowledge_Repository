@@ -64,6 +64,9 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
      *
      * <p>{@code /api/platform/}（P3-T1 / T-4 方案 B）由独立的 {@code PlatformTokenAuthFilter} 用平台令牌专属管辖，
      * 与本管理端令牌体系路径互斥、令牌互不可用，故此处必须放行，否则本过滤器（拦全部 {@code /api/**}）会先于平台过滤器把平台请求 401。
+     *
+     * <p>{@code /api/admin/auth/set-password-by-invite}（P3-T3）为新租户首位 admin 邀请式设密端点， 凭 raw invite
+     * code 换设密权限、<b>不</b>需要登录令牌；本过滤器放行后由 executor 内部按邀请码状态判定合法性。
      */
     private static final List<String> PUBLIC_PREFIXES =
             List.of(
@@ -71,7 +74,8 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
                     "/api/exam/",
                     "/api/platform/",
                     "/api/admin/auth/login",
-                    "/api/admin/auth/logout");
+                    "/api/admin/auth/logout",
+                    "/api/admin/auth/set-password-by-invite");
 
     private final AdminAuthServiceI adminAuthService;
     private final ObjectMapper objectMapper = new ObjectMapper();

@@ -5,6 +5,8 @@ import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
+import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
@@ -21,9 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 管理端认证控制器（adapter 层）。
  *
- * <p>提供登录 / 登出 / 当前身份 / 自助改密四个端点。{@code /login}、{@code /logout} 在过滤器放行清单内， 无需令牌即可达；{@code
- * /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌， 控制器从请求属性读取已认证身份，其中改密的 {@code
- * userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
+ * <p>提供登录 / 登出 / 当前身份 / 自助改密 / 邀请式设密五个端点。{@code /login}、{@code /logout}、 {@code
+ * /set-password-by-invite} 在过滤器放行清单内，无需令牌即可达（P3-T3 引导流：租户开通后 首位管理员凭一次性邀请码设密，随后走标准 {@code /login}
+ * 换取访问令牌）；{@code /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌，
+ * 控制器从请求属性读取已认证身份，其中改密的 {@code userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -120,6 +123,38 @@ public class AdminAuthController {
             return ResponseEntity.ok(Map.of(MSG_FIELD, "密码修改成功"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(ERR_FIELD, "密码修改请求不合法"));
+        }
+    }
+
+    /**
+     * 邀请式设密（P3-T3 引导流）：租户开通后，首位管理员凭一次性邀请码设置正式密码。
+     *
+     * <p>本端点在 {@link AdminTokenAuthFilter} 的放行清单内，不需要令牌即可访问；邀请码由 {@code TenantProvisionCmdExe}
+     * 在开通响应中一次性返回（数据库仅存 SHA-256 哈希），设密成功后邀请码 立即置 USED，同一用户后续登录走标准 {@code /login}。
+     */
+    @PostMapping("/set-password-by-invite")
+    public ResponseEntity<Map<String, Object>> setPasswordByInvite(
+            @RequestBody SetPasswordByInviteCmd cmd) {
+        try {
+            SetPasswordByInviteVO data = adminAuthService.setPasswordByInvite(cmd).getData();
+            return ResponseEntity.ok(
+                    Map.of(
+                            MSG_FIELD,
+                            data.getMessage() == null ? "密码已设置" : data.getMessage(),
+                            "username",
+                            data.getUsername() == null ? "" : data.getUsername(),
+                            "tenantKey",
+                            data.getTenantKey() == null ? "" : data.getTenantKey(),
+                            "success",
+                            data.isSuccess()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(
+                            Map.of(
+                                    ERR_FIELD,
+                                    e.getMessage() == null ? "请求不合法" : e.getMessage(),
+                                    "code",
+                                    HttpStatus.BAD_REQUEST.value()));
         }
     }
 

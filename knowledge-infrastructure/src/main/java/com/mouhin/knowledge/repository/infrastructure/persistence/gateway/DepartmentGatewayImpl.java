@@ -8,11 +8,16 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.Departm
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 /**
- * 部门仓储实现
+ * 部门仓储实现。
+ *
+ * <p><b>P3-T3 扩展</b>：新增 {@link #saveWithTenant(Department, long)} 与 {@link
+ * #findByDepartmentKeyAndTenant(String, long)}，支持"平台端开通新租户时建根部门"场景， 绕过 {@code
+ * TenantContext}（此时是平台调用者身份，非目标租户）。
  *
  * @author mouhinU
  * @date 2026-09-02
@@ -41,6 +46,15 @@ public class DepartmentGatewayImpl implements DepartmentGateway {
     }
 
     @Override
+    public Optional<Department> findByDepartmentKeyAndTenant(String departmentKey, long tenantId) {
+        LambdaQueryWrapper<DepartmentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DepartmentDO::getDepartmentKey, departmentKey)
+                .eq(DepartmentDO::getTenantId, tenantId);
+        DepartmentDO doObj = departmentMapper.selectOne(wrapper);
+        return Optional.ofNullable(toDomain(doObj));
+    }
+
+    @Override
     public List<Department> listAll() {
         return departmentMapper.selectList(null).stream().map(this::toDomain).toList();
     }
@@ -64,8 +78,18 @@ public class DepartmentGatewayImpl implements DepartmentGateway {
 
     @Override
     public void save(Department department) {
-        java.util.Objects.requireNonNull(department, "Department must not be null on save");
+        Objects.requireNonNull(department, "Department must not be null on save");
         DepartmentDO doObj = toDO(department);
+        doObj.setCreateTime(LocalDateTime.now());
+        departmentMapper.insert(doObj);
+        department.setId(doObj.getId());
+    }
+
+    @Override
+    public void saveWithTenant(Department department, long tenantId) {
+        Objects.requireNonNull(department, "Department must not be null on saveWithTenant");
+        DepartmentDO doObj = toDO(department);
+        doObj.setTenantId(tenantId);
         doObj.setCreateTime(LocalDateTime.now());
         departmentMapper.insert(doObj);
         department.setId(doObj.getId());

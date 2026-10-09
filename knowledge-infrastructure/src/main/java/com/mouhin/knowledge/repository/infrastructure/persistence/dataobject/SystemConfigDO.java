@@ -22,6 +22,16 @@ public class SystemConfigDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /**
+     * 所属租户 id（P3-T3 / C-4=方案 A：提前 P4-T1 租户化 sys_config，V28 加列 NOT NULL DEFAULT 1）。
+     *
+     * <p>{@code sys_config} 已从 {@code KnowledgeTenantLineHandler.IGNORE_TABLES} 白名单移除，
+     * saas.enabled=true 时 MyBatis-Plus 拦截器会自动追加 {@code WHERE tenant_id=?}；双闸门关闭态 由 {@code
+     * SystemConfigGatewayImpl} 显式按 {@code TenantContext} 追加。
+     */
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("config_key")
     private String configKey;
 
