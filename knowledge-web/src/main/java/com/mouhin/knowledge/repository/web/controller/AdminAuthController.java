@@ -5,10 +5,13 @@ import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,14 +21,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 管理端认证控制器（adapter 层）。
  *
- * <p>提供登录 / 登出 / 当前身份 / 自助改密 / 邀请式设密五个端点。{@code /login}、{@code /logout}、 {@code
- * /set-password-by-invite} 在过滤器放行清单内，无需令牌即可达（P3-T3 引导流：租户开通后 首位管理员凭一次性邀请码设密，随后走标准 {@code /login}
- * 换取访问令牌）；{@code /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌，
+ * <p>提供登录 / 登出 / 当前身份 / 自助改密 / 邀请式设密 / 邀请码状态预检查六个端点。{@code /login}、{@code /logout}、 {@code
+ * /set-password-by-invite}、{@code /invite-status} 在过滤器放行清单内，无需令牌即可达（P3-T3 引导流：租户开通后
+ * 首位管理员凭一次性邀请码设密，随后走标准 {@code /login} 换取访问令牌；P3-T7 邀请式设密<b>回访</b>：落地页 加载时先只读预检查邀请码状态，命中 PENDING
+ * 才渲染表单）。{@code /me}、{@code /change-password} 由 {@link AdminTokenAuthFilter} 先行校验令牌，
  * 控制器从请求属性读取已认证身份，其中改密的 {@code userKey} 一律以令牌身份为准，忽略请求体传入，防越权。
  *
  * @author mouhinU
@@ -40,6 +45,10 @@ public class AdminAuthController {
     private static final String ERR_FIELD = "error";
 
     private static final String MSG_FIELD = "message";
+
+    /** ISO-8601 本地时间字符串格式，用于 {@code expiresAt} 序列化。 */
+    private static final DateTimeFormatter EXPIRES_AT_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final AdminAuthServiceI adminAuthService;
 
@@ -156,6 +165,35 @@ public class AdminAuthController {
                                     "code",
                                     HttpStatus.BAD_REQUEST.value()));
         }
+    }
+
+    /**
+     * 邀请码状态预检查（P3-T7 邀请式设密<b>回访</b>）：邀请落地页加载时先只读查询 raw code 的当前语义态，命中 {@code PENDING}
+     * 才渲染设密表单，其它态给出对应引导。
+     *
+     * <p><b>安全</b>：{@code code} 缺失 / 空白一律按 {@code UNKNOWN} 返回（不 400，避免"码不存在 vs 请求格式错"
+     * 侧信道区分）；响应体仅在命中场景回填 {@code tenantKeyHint} / {@code usernameHint}，且仅 {@code PENDING} 态 携带
+     * {@code expiresAt}——其它态返回体大小一致，抗枚举。
+     *
+     * <p><b>放行</b>：本端点在 {@link AdminTokenAuthFilter#PUBLIC_PREFIXES} 白名单，无需登录令牌。
+     */
+    @GetMapping("/invite-status")
+    public ResponseEntity<Map<String, Object>> inviteStatus(
+            @RequestParam(name = "code", required = false) String code) {
+        InviteStatusVO data = adminAuthService.queryInviteStatus(code).getData();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", data.getStatus());
+        body.put("hint", data.getHint());
+        if (data.getTenantKeyHint() != null) {
+            body.put("tenantKeyHint", data.getTenantKeyHint());
+        }
+        if (data.getUsernameHint() != null) {
+            body.put("usernameHint", data.getUsernameHint());
+        }
+        if (data.getExpiresAt() != null) {
+            body.put("expiresAt", data.getExpiresAt().format(EXPIRES_AT_FORMAT));
+        }
+        return ResponseEntity.ok(body);
     }
 
     private AdminPrincipalDTO currentPrincipal(HttpServletRequest request) {

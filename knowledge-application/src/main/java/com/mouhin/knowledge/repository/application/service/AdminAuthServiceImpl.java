@@ -6,12 +6,14 @@ import com.mouhin.knowledge.repository.application.executor.adminauth.AdminChang
 import com.mouhin.knowledge.repository.application.executor.adminauth.AdminLoginCmdExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.AdminLogoutCmdExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.AdminValidateTokenQryExe;
+import com.mouhin.knowledge.repository.application.executor.adminauth.InviteStatusQryExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.SetPasswordByInviteCmdExe;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
 import org.springframework.stereotype.Service;
@@ -30,18 +32,21 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
     private final AdminValidateTokenQryExe adminValidateTokenQryExe;
     private final AdminChangePasswordCmdExe adminChangePasswordCmdExe;
     private final SetPasswordByInviteCmdExe setPasswordByInviteCmdExe;
+    private final InviteStatusQryExe inviteStatusQryExe;
 
     public AdminAuthServiceImpl(
             AdminLoginCmdExe adminLoginCmdExe,
             AdminLogoutCmdExe adminLogoutCmdExe,
             AdminValidateTokenQryExe adminValidateTokenQryExe,
             AdminChangePasswordCmdExe adminChangePasswordCmdExe,
-            SetPasswordByInviteCmdExe setPasswordByInviteCmdExe) {
+            SetPasswordByInviteCmdExe setPasswordByInviteCmdExe,
+            InviteStatusQryExe inviteStatusQryExe) {
         this.adminLoginCmdExe = adminLoginCmdExe;
         this.adminLogoutCmdExe = adminLogoutCmdExe;
         this.adminValidateTokenQryExe = adminValidateTokenQryExe;
         this.adminChangePasswordCmdExe = adminChangePasswordCmdExe;
         this.setPasswordByInviteCmdExe = setPasswordByInviteCmdExe;
+        this.inviteStatusQryExe = inviteStatusQryExe;
     }
 
     @Override
@@ -69,5 +74,10 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
     @Override
     public SingleResponse<SetPasswordByInviteVO> setPasswordByInvite(SetPasswordByInviteCmd cmd) {
         return SingleResponse.of(setPasswordByInviteCmdExe.execute(cmd));
+    }
+
+    @Override
+    public SingleResponse<InviteStatusVO> queryInviteStatus(String rawCode) {
+        return SingleResponse.of(inviteStatusQryExe.execute(rawCode));
     }
 }

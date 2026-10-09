@@ -67,6 +67,10 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
      *
      * <p>{@code /api/admin/auth/set-password-by-invite}（P3-T3）为新租户首位 admin 邀请式设密端点， 凭 raw invite
      * code 换设密权限、<b>不</b>需要登录令牌；本过滤器放行后由 executor 内部按邀请码状态判定合法性。
+     *
+     * <p>{@code /api/admin/auth/invite-status}（P3-T7 邀请式设密<b>回访</b>）为邀请落地页加载时的状态预检查只读端点， 输入 raw
+     * code、输出脱敏状态视图（{@code UNKNOWN}/{@code PENDING}/{@code USED}/{@code EXPIRED}/{@code
+     * REVOKED}），未知态不查 User/Tenant、不 log rawCode，防枚举。
      */
     private static final List<String> PUBLIC_PREFIXES =
             List.of(
@@ -75,7 +79,8 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
                     "/api/platform/",
                     "/api/admin/auth/login",
                     "/api/admin/auth/logout",
-                    "/api/admin/auth/set-password-by-invite");
+                    "/api/admin/auth/set-password-by-invite",
+                    "/api/admin/auth/invite-status");
 
     private final AdminAuthServiceI adminAuthService;
     private final ObjectMapper objectMapper = new ObjectMapper();

@@ -62,7 +62,13 @@ public class CreateFirstAdminStep implements ProvisioningStep {
     /** 首位 admin username 后缀，与 tenantKey 拼接：{@code acme + "-admin" = "acme-admin"}。 */
     public static final String ADMIN_USERNAME_SUFFIX = "-admin";
 
-    /** 邀请 URL 前缀（相对路径，前端 host 由 caller 决定）。 */
+    /**
+     * 邀请 URL 前缀（相对路径，前端 host 由 caller 决定）。
+     *
+     * <p>落地页 {@code /set-password.html}（{@code
+     * knowledge-web/src/main/resources/static/set-password.html}）由 P3-T3 首次交付（一次性设密表单）；P3-T7
+     * 邀请式设密<b>回访</b>子切片在其上叠加"进入页面先只读预检查邀请码状态 + 四态引导 + 剩余时间倒计时"， URL 常量保持不变以兼容已发送的旧链接。
+     */
     public static final String INVITE_URL_PREFIX = "/set-password.html?code=";
 
     /** 邀请 TTL；与 {@link UserInviteService#DEFAULT_TTL} 对齐。 */

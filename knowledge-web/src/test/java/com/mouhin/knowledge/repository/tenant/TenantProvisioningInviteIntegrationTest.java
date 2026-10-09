@@ -2,7 +2,9 @@ package com.mouhin.knowledge.repository.tenant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mouhin.knowledge.repository.application.executor.adminauth.InviteStatusQryExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.SetPasswordByInviteCmdExe;
+import com.mouhin.knowledge.repository.application.executor.platform.ReissueInviteCmdExe;
 import com.mouhin.knowledge.repository.application.provisioning.step.CopyDefaultSystemConfigStep;
 import com.mouhin.knowledge.repository.application.provisioning.step.CreateFirstAdminStep;
 import com.mouhin.knowledge.repository.application.provisioning.step.CreateRootDepartmentStep;
@@ -10,8 +12,11 @@ import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.service.ProvisioningStateMachine;
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
+import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -60,7 +65,10 @@ import org.springframework.test.context.DynamicPropertySource;
  *       mustChangePassword=true / passwordHash=null；
  *   <li><b>邀请可用</b>：provision 响应体含 raw code；凭 raw code 走 {@link SetPasswordByInviteCmdExe} 设密成功 →
  *       用户 passwordHash 非空且 BCrypt 可匹配、mustChangePassword=false、邀请 USED；
- *   <li><b>幂等重放</b>：同 requestId 重放不重复建 user/dept/config，邀请被重签（旧邀请 REVOKED）。
+ *   <li><b>幂等重放</b>：同 requestId 重放不重复建 user/dept/config，邀请被重签（旧邀请 REVOKED）；
+ *   <li><b>P3-T7 邀请式设密回访</b>：provision 后先经 {@link InviteStatusQryExe} 预检查 {@code PENDING} → 运维通过
+ *       {@link ReissueInviteCmdExe} 重签 → 旧 code 状态转 {@code REVOKED}、新 code 状态 {@code PENDING} → 用新
+ *       code 设密成功 → 再次预检查该新 code 转 {@code USED}（端到端串起状态查询 + 重签 + 消费三段）。
  * </ol>
  *
  * <p>与 {@code TenantProvisioningIntegrationTest}（P3-T2 编排级）互补：本用例聚焦 P3-T3 三个步骤 + 邀请式引导的 真实持久化语义，刻意用
@@ -108,7 +116,9 @@ class TenantProvisioningInviteIntegrationTest {
         CopyDefaultSystemConfigStep.class,
         CreateRootDepartmentStep.class,
         CreateFirstAdminStep.class,
-        SetPasswordByInviteCmdExe.class
+        SetPasswordByInviteCmdExe.class,
+        InviteStatusQryExe.class,
+        ReissueInviteCmdExe.class
     })
     static class TestConfig {
 
@@ -127,6 +137,8 @@ class TenantProvisioningInviteIntegrationTest {
     @Autowired private UserInviteService userInviteService;
     @Autowired private ProvisioningStateMachine stateMachine;
     @Autowired private SetPasswordByInviteCmdExe setPasswordExe;
+    @Autowired private InviteStatusQryExe inviteStatusQryExe;
+    @Autowired private ReissueInviteCmdExe reissueInviteCmdExe;
     @Autowired private BCryptPasswordEncoder passwordEncoder;
 
     private Tenant newPendingTenant(String key) {
@@ -254,5 +266,77 @@ class TenantProvisioningInviteIntegrationTest {
         Optional<UserInvite> originalInvite = userInviteService.findByRawCode(firstCode);
         assertThat(originalInvite).isPresent();
         assertThat(originalInvite.get().getStatus()).isEqualTo(UserInvite.STATUS_PENDING);
+    }
+
+    @Test
+    @DisplayName("P3-T7 邀请式设密回访：provision PENDING → 重签 (旧 REVOKED / 新 PENDING) → 用新码设密 → 状态转 USED")
+    void inviteReissueFollowUpFullLoop() {
+        String tenantKey = "it-reissue-" + UUID.randomUUID().toString().substring(0, 8);
+        Tenant tenant = newPendingTenant(tenantKey);
+        ProvisioningOutcome outcome =
+                stateMachine.provision(tenant, tenant.getProvisionRequestId(), "op-it", "IT");
+        assertThat(outcome.isSuccess()).isTrue();
+        Tenant reloaded = tenantGateway.findByTenantKey(tenantKey).orElseThrow();
+        Long tenantId = reloaded.getTenantId();
+
+        String originalCode = outcome.invite().code();
+        String adminUsername = tenantKey + "-admin";
+
+        // 1) 落地页预检查：PENDING + expiresAt 非空 + 脱敏 tenantKey/username hint
+        InviteStatusVO pre = inviteStatusQryExe.execute(originalCode);
+        assertThat(pre.getStatus()).isEqualTo(InviteStatusVO.STATUS_PENDING);
+        assertThat(pre.getExpiresAt()).isNotNull();
+        assertThat(pre.getTenantKeyHint()).endsWith("…").startsWith(tenantKey.substring(0, 3));
+        assertThat(pre.getUsernameHint()).isEqualTo(adminUsername.charAt(0) + "***");
+
+        // 2) 平台运维触发重签（模拟旧链接丢失）
+        TenantReissueInviteCmd reissueCmd = new TenantReissueInviteCmd();
+        reissueCmd.setTenantKey(tenantKey);
+        reissueCmd.setUsername(adminUsername);
+        reissueCmd.setTtlHours(48);
+        reissueCmd.setOperatorId("ops-reissue");
+        reissueCmd.setOperatorName("Ops");
+        TenantReissueInviteVO reissued = reissueInviteCmdExe.execute(reissueCmd);
+        assertThat(reissued.getTenantKey()).isEqualTo(tenantKey);
+        assertThat(reissued.getUsername()).isEqualTo(adminUsername);
+        assertThat(reissued.getCode()).isNotBlank().isNotEqualTo(originalCode);
+        assertThat(reissued.getUrl()).startsWith("/set-password.html?code=");
+        assertThat(reissued.getExpiresAt()).isNotNull();
+        assertThat(reissued.getRevokedPrevious()).isEqualTo(1);
+
+        // 3) 旧码状态转 REVOKED；预检查命中 REVOKED 分支且 expiresAt 隐藏
+        InviteStatusVO oldStatus = inviteStatusQryExe.execute(originalCode);
+        assertThat(oldStatus.getStatus()).isEqualTo(InviteStatusVO.STATUS_REVOKED);
+        assertThat(oldStatus.getExpiresAt()).isNull();
+        assertThat(oldStatus.getHint()).contains("已被吊销或重签");
+
+        // 4) 新码 PENDING，可继续设密
+        InviteStatusVO newStatus = inviteStatusQryExe.execute(reissued.getCode());
+        assertThat(newStatus.getStatus()).isEqualTo(InviteStatusVO.STATUS_PENDING);
+        assertThat(newStatus.getExpiresAt()).isNotNull();
+
+        // 5) 用新码设密
+        SetPasswordByInviteCmd setPassword = new SetPasswordByInviteCmd();
+        setPassword.setInviteCode(reissued.getCode());
+        setPassword.setNewPassword("Reissued!Pass1");
+        SetPasswordByInviteVO vo = setPasswordExe.execute(setPassword);
+        assertThat(vo.isSuccess()).isTrue();
+        User afterSet = userGateway.findByUsernameAndTenant(adminUsername, tenantId).orElseThrow();
+        assertThat(afterSet.getPasswordHash()).isNotNull();
+        assertThat(passwordEncoder.matches("Reissued!Pass1", afterSet.getPasswordHash())).isTrue();
+        assertThat(afterSet.getMustChangePassword()).isFalse();
+
+        // 6) 再次预检查新码 → USED + 引导"请使用新密码登录"
+        InviteStatusVO usedStatus = inviteStatusQryExe.execute(reissued.getCode());
+        assertThat(usedStatus.getStatus()).isEqualTo(InviteStatusVO.STATUS_USED);
+        assertThat(usedStatus.getExpiresAt()).isNull();
+        assertThat(usedStatus.getHint()).contains("已完成设密");
+
+        // 7) 未知码走 UNKNOWN 且响应体不携带任何 hint（反枚举侧信道）
+        InviteStatusVO unknown = inviteStatusQryExe.execute("bogus-code-never-issued");
+        assertThat(unknown.getStatus()).isEqualTo(InviteStatusVO.STATUS_UNKNOWN);
+        assertThat(unknown.getTenantKeyHint()).isNull();
+        assertThat(unknown.getUsernameHint()).isNull();
+        assertThat(unknown.getExpiresAt()).isNull();
     }
 }

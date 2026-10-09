@@ -9,6 +9,8 @@ import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
@@ -37,7 +39,9 @@ import org.springframework.web.bind.annotation.RestController;
  * 默认关闭态下 {@code /api/platform/**} 整体不可达。
  *
  * <p>本期交付 create / suspend / resume / get / list 五端点；P3-T5 叠加 archive / deletion-approval / delete
- * / deletion-preview 四端点（S-4=方案 A：归档 + 30 天保留期 + 双人复核 + 硬删，硬删由 reconciler 异步续跑）。
+ * / deletion-preview 四端点（S-4=方案 A：归档 + 30 天保留期 + 双人复核 + 硬删，硬删由 reconciler 异步续跑）； P3-T7
+ * 邀请式设密<b>回访</b>子切片叠加 {@code POST /{tenantKey}/invites/reissue}：运维代位重签 首位 admin 邀请（旧 PENDING 全部吊销 +
+ * 落新邀请 + 一次性可见 raw code）。
  *
  * @author mouhinU
  * @date 2026-10-08
@@ -58,6 +62,7 @@ public class PlatformTenantController {
     private static final String FIELD_PROVISION_REQUEST_ID = "provisionRequestId";
     private static final String FIELD_APPROVAL_TOKEN = "approvalToken";
     private static final String FIELD_TTL_HOURS = "ttlHours";
+    private static final String FIELD_USERNAME = "username";
 
     private final PlatformTenantServiceI platformTenantService;
 
@@ -152,6 +157,29 @@ public class PlatformTenantController {
         cmd.setApprovalToken(body == null ? null : stringOf(body.get(FIELD_APPROVAL_TOKEN)));
         applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
         return ResponseEntity.ok(platformTenantService.confirmDeletion(cmd));
+    }
+
+    /**
+     * 重签首位 admin 邀请（P3-T7 邀请式设密<b>回访</b>）：由平台运维在旧邀请丢失 / 过期 / 已吊销时手动触发。
+     *
+     * <p>请求体：{@code {"username": "...", "ttlHours": 72}}（{@code ttlHours} 可缺省，服务侧回落到 {@code
+     * UserInviteService.DEFAULT_TTL}）。响应体：{@link TenantReissueInviteVO} 含新 raw code、落地
+     * URL、失效时间与本次吊销的旧 PENDING 数量——{@code code} 仅此一次可见，运维须通过安全渠道转交租户管理员。
+     *
+     * <p>语义：定位 (tenantKey, username) → {@code UserInviteService.issue} 内建"同用户 PENDING 全吊销 +
+     * 落新"原子语义。
+     */
+    @PostMapping("/{tenantKey}/invites/reissue")
+    public ResponseEntity<TenantReissueInviteVO> reissueInvite(
+            @PathVariable String tenantKey,
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
+        TenantReissueInviteCmd cmd = new TenantReissueInviteCmd();
+        cmd.setTenantKey(tenantKey);
+        cmd.setUsername(body == null ? null : stringOf(body.get(FIELD_USERNAME)));
+        cmd.setTtlHours(body == null ? null : intOf(body.get(FIELD_TTL_HOURS)));
+        applyOperator(request, cmd::setOperatorId, cmd::setOperatorName);
+        return ResponseEntity.ok(platformTenantService.reissueInvite(cmd));
     }
 
     @GetMapping("/{tenantKey}/deletion-preview")

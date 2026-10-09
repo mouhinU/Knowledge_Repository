@@ -8,6 +8,8 @@ import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import java.util.List;
@@ -20,7 +22,9 @@ import java.util.List;
  *
  * <p>P3-T1 交付 create / suspend / resume / get / list；P3-T2 叠加 provision（开通状态机）。 P3-T5 叠加 archive /
  * issueDeleteApproval / confirmDeletion / previewDeletion（S-4=方案 A 归档 + 30 天保留期 + 双人复核 + 硬删）； 实际硬删由
- * {@code TenantDeletionReconciler} 异步续跑，confirmDeletion 只把租户迁入 DELETING 认领态。
+ * {@code TenantDeletionReconciler} 异步续跑，confirmDeletion 只把租户迁入 DELETING 认领态。 P3-T7
+ * 邀请式设密<b>回访</b>子切片追加 {@link #reissueInvite}：当首位 admin 邀请链接丢失 / 过期 / 已吊销时，由平台运维重新签发（旧 PENDING
+ * 自动作废，返回一次性可见 raw code 与新链接）。
  *
  * @author mouhinU
  * @date 2026-10-08
@@ -58,6 +62,27 @@ public interface PlatformTenantServiceI {
 
     /** 删除预览（dry-run，不删；返回保留期状态与各表待删行数；P3-T5）。 */
     TenantDeletionPreviewVO previewDeletion(String tenantKey);
+
+    /**
+     * 重新签发首位 admin 邀请（P3-T7 邀请式设密<b>回访</b>）。
+     *
+     * <p>用法场景：邀请链接丢失 / 过期 / 已吊销时，由平台运维代位重新签发。语义：
+     *
+     * <ol>
+     *   <li>同 tenantKey + username 定位已存在的 PENDING 邀请 → <b>全部置 REVOKED</b>（复用 {@code
+     *       UserInviteService.issue} 的吊销+落新原子语义，零漂移）；
+     *   <li>落新邀请（默认 TTL = 72h，可由 {@code cmd.ttlHours} 覆写）；
+     *   <li>返回一次性可见 raw code 与 {@code /set-password.html?code=} 落地链接。
+     * </ol>
+     *
+     * <p><b>不</b>改变租户生命周期状态；被邀请的用户必须已经存在（通常由 {@code CreateFirstAdminStep} 在 provision 阶段创建）。 幂等键沿用
+     * {@code UserInviteService.issue} 的"同用户 PENDING 唯一"约定。
+     *
+     * @param cmd 目标租户业务键 + 目标 admin 用户名 + 可选 TTL + 操作者身份（用于审计）
+     * @return 新签发的邀请视图（含 raw code、URL、失效时间、被吊销的旧邀请数量）
+     * @throws IllegalArgumentException 租户不存在 / 用户不存在或不属于该租户 / 入参非法
+     */
+    TenantReissueInviteVO reissueInvite(TenantReissueInviteCmd cmd);
 
     /** 按业务键查询单个租户。 */
     TenantVO getTenant(String tenantKey);

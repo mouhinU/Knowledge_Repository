@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.service;
 import com.mouhin.knowledge.repository.application.executor.platform.ArchiveTenantCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.ConfirmTenantDeletionCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.IssueDeleteApprovalCmdExe;
+import com.mouhin.knowledge.repository.application.executor.platform.ReissueInviteCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantCreateCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantDeletionPreviewQryExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantGetQryExe;
@@ -19,6 +20,8 @@ import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import java.util.List;
@@ -41,6 +44,7 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
     private final IssueDeleteApprovalCmdExe issueDeleteApprovalCmdExe;
     private final ConfirmTenantDeletionCmdExe confirmTenantDeletionCmdExe;
     private final TenantDeletionPreviewQryExe tenantDeletionPreviewQryExe;
+    private final ReissueInviteCmdExe reissueInviteCmdExe;
     private final TenantGetQryExe tenantGetQryExe;
     private final TenantListQryExe tenantListQryExe;
 
@@ -53,6 +57,7 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
             IssueDeleteApprovalCmdExe issueDeleteApprovalCmdExe,
             ConfirmTenantDeletionCmdExe confirmTenantDeletionCmdExe,
             TenantDeletionPreviewQryExe tenantDeletionPreviewQryExe,
+            ReissueInviteCmdExe reissueInviteCmdExe,
             TenantGetQryExe tenantGetQryExe,
             TenantListQryExe tenantListQryExe) {
         this.tenantCreateCmdExe = tenantCreateCmdExe;
@@ -63,6 +68,7 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
         this.issueDeleteApprovalCmdExe = issueDeleteApprovalCmdExe;
         this.confirmTenantDeletionCmdExe = confirmTenantDeletionCmdExe;
         this.tenantDeletionPreviewQryExe = tenantDeletionPreviewQryExe;
+        this.reissueInviteCmdExe = reissueInviteCmdExe;
         this.tenantGetQryExe = tenantGetQryExe;
         this.tenantListQryExe = tenantListQryExe;
     }
@@ -105,6 +111,11 @@ public class PlatformTenantServiceImpl implements PlatformTenantServiceI {
     @Override
     public TenantDeletionPreviewVO previewDeletion(String tenantKey) {
         return tenantDeletionPreviewQryExe.execute(tenantKey);
+    }
+
+    @Override
+    public TenantReissueInviteVO reissueInvite(TenantReissueInviteCmd cmd) {
+        return reissueInviteCmdExe.execute(cmd);
     }
 
     @Override

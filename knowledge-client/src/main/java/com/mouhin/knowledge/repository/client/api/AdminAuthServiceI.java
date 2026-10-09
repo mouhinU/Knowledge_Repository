@@ -6,6 +6,7 @@ import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
 
@@ -18,6 +19,11 @@ import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
  *
  * <p><b>P3-T3 扩展</b>：{@link #setPasswordByInvite} 用于新租户首位 admin 通过一次性邀请码完成首次设密， 无需登录令牌（凭 raw invite
  * code 换设密权限），端点在 {@code AdminTokenAuthFilter.PUBLIC_PREFIXES} 白名单里。
+ *
+ * <p><b>P3-T7 邀请式设密<b>回访</b>扩展</b>：{@link #queryInviteStatus} 供前端邀请落地页在提交新密码前 判定 raw code
+ * 的当前语义状态（{@code PENDING / USED / EXPIRED / REVOKED / UNKNOWN}），以给出"码错 / 已过期 /
+ * 已被使用"的差异化引导，避免用户填完新密码才被 400 拒绝。本方法亦在 PUBLIC_PREFIXES 白名单内，凭 raw code 换查询权限， 响应体做严格脱敏（详见 {@link
+ * InviteStatusVO}）。
  *
  * @author mouhinU
  * @date 2026-09-19
@@ -45,4 +51,14 @@ public interface AdminAuthServiceI {
      * @throws IllegalArgumentException 邀请码无效 / 已过期 / 已使用 / 新密码长度越界
      */
     SingleResponse<SetPasswordByInviteVO> setPasswordByInvite(SetPasswordByInviteCmd cmd);
+
+    /**
+     * 邀请码状态查询（P3-T7 回访）：raw invite code → 语义状态视图（脱敏 hint，反枚举）。
+     *
+     * <p>只读、不写审计、不修改邀请状态。用于前端落地页在提交新密码前的预检；亦可用作运维脚本 / 集成测试的验证锚点。
+     *
+     * @param rawCode 原始邀请码（前端 URL query 值原样传入）
+     * @return 状态视图；{@code rawCode} 为空或未命中时 {@code status=UNKNOWN}，不携带任何 hint 字段
+     */
+    SingleResponse<InviteStatusVO> queryInviteStatus(String rawCode);
 }
