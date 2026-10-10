@@ -16,6 +16,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +72,13 @@ import org.testcontainers.milvus.MilvusContainer;
  * embedAll}； {@code embed(String)} 通过 default 委派 {@code embedAll}。常量向量使每次 {@code search} 相似度恒为 1.0，
  * 断言可以只看 <b>条数</b> 与 <b>document_key 前缀</b>，不涉及排序稳定性。
  *
+ * <p><b>EVENTUAL 一致性等待（2026-10-10 补丁）</b>：{@link #awaitSearchSize} 显式轮询等待 Milvus growing segment 落入
+ * searchable 状态。这是 P2-T5 交付（{@code c702fce}）时留下的潜在 quality gap——本机 Milvus 容器 warm 场景 EVENTUAL 窗口
+ * &lt;100ms 被时序掩盖，CI 冷启动 + 资源受限场景窗口放大到数秒，首次跑（{@code feat/p3-t5-archive-delete} 分支的 {@code
+ * tenant-isolation} job）实测 {@code storeChunks(100)} 立即 {@code search} 只拿到 5/0 条。生产 {@code
+ * MilvusConfig.embeddingStore()} 沿用 LangChain4j 默认 EVENTUAL 语义不变（Phase 3 partition-key
+ * 分支应保持该默认，避免每次 search 加一次 proxy→queryNode guaranteeTimestamp 协商），由测试侧兜底等待。
+ *
  * @author mouhinU
  * @date 2026-09-30
  */
@@ -82,6 +90,16 @@ class MilvusTenantIsolationTest {
 
     /** Milvus standalone 内部 gRPC 端口（容器视角固定），{@code MILVUS.getMappedPort()} 映射到宿主随机端口。 */
     private static final int MILVUS_INTERNAL_PORT = 19530;
+
+    /**
+     * Milvus EVENTUAL 一致性轮询间隔（毫秒）。LangChain4j {@code MilvusEmbeddingStore} 默认 {@code
+     * ConsistencyLevel.EVENTUAL}：{@code addAll} 返回后向量落在 growing segment，QueryNode 需等 timetick
+     * 消息追上才可见。本机一般 &lt;100ms，CI 冷启动 + 资源受限可放大到数秒。 200ms 折中：单次轮询开销足够小， 30s 窗口内最多 150 次不会挤占 CI 时长。
+     */
+    private static final long CONSISTENCY_POLL_INTERVAL_MS = 200L;
+
+    /** EVENTUAL 一致性等待超时（毫秒）。到点仍未达到期望条数即把最后一次结果交给 AssertJ 报错。 */
+    private static final long CONSISTENCY_TIMEOUT_MS = 30_000L;
 
     /** 与生产对齐：Milvus 2.5.4 standalone（内置 etcd + 本地文件存储，无外部依赖）。 */
     @Container
@@ -191,21 +209,46 @@ class MilvusTenantIsolationTest {
         tenantIdResolver.invalidateByKey("beta");
         tenantIdResolver.resolve("acme");
         tenantIdResolver.resolve("beta");
-        // 集合级清场（本 PR 独立集合名 p2t5_knowledge_chunks，与生产 knowledge_chunks 隔离）
-        TenantContext.set("acme");
-        safeDelete("p2t5-a-");
-        TenantContext.set("beta");
-        safeDelete("p2t5-b-");
-        TenantContext.clear();
+        // 集合级清场：本 PR 独立集合名 p2t5_knowledge_chunks，与生产 knowledge_chunks 隔离；
+        // 按数值 tenant_id 谓词 removeAll 后轮询到 search==0 才继续（EVENTUAL 一致性删除也需等待）。
+        clearTenantVectorsAndWait(acmeTenantId, "acme");
+        clearTenantVectorsAndWait(betaTenantId, "beta");
     }
 
     @AfterEach
     void cleanVectorsAndContext() {
-        TenantContext.set("acme");
-        safeDelete("p2t5-a-");
-        TenantContext.set("beta");
-        safeDelete("p2t5-b-");
+        clearTenantVectorsAndWait(acmeTenantId, "acme");
+        clearTenantVectorsAndWait(betaTenantId, "beta");
         TenantContext.clear();
+    }
+
+    /**
+     * 按数值 {@code tenant_id} 谓词清空指定租户在 Milvus 中的全部向量，并轮询等待删除在 EVENTUAL 一致性下对 search 可见。
+     *
+     * <p>走 {@link MilvusVectorStoreService#deleteByTenantId(long)}（内部 {@code removeAll
+     * IsEqualTo("tenant_id", X)}），与写入侧 {@link MilvusVectorStoreService#storeChunks} 的 S-2 方案 b JSON
+     * 谓词路径完全对齐。<b>不</b>依赖 {@code kb_document_chunk} MySQL 表——原 {@code safeDelete} 通过 {@code
+     * document_key LIKE} 反查该表拿 keys 再逐条删，但本测试类只向 Milvus 写、不向 {@code kb_document_chunk}
+     * 写，反查恒为空集，跨测试污染长期无人察觉（{@code unboundContextFallsBackToDefault} 遗留 5 条 acme 会漂到下一次 acme 检索）。
+     *
+     * @param tenantId 数值租户主键
+     * @param tenantKey 用于轮询删除可见性的租户业务键（走 {@link TenantContext#callWithTenant}）
+     */
+    private void clearTenantVectorsAndWait(long tenantId, String tenantKey) {
+        vectorStore.deleteByTenantId(tenantId);
+        Instant deadline = Instant.now().plusMillis(CONSISTENCY_TIMEOUT_MS);
+        while (true) {
+            List<SearchResult> hits =
+                    TenantContext.callWithTenant(
+                            tenantKey, () -> vectorStore.search("anything", 10, 0.0, null, null));
+            if (hits.isEmpty()) {
+                return;
+            }
+            if (Instant.now().isAfter(deadline)) {
+                return;
+            }
+            sleepQuietly(CONSISTENCY_POLL_INTERVAL_MS);
+        }
     }
 
     private long ensureTenant(String key, String name) {
@@ -228,22 +271,6 @@ class MilvusTenantIsolationTest {
                 name);
         return jdbcTemplate.queryForObject(
                 "SELECT tenant_id FROM sys_tenant WHERE tenant_key = ?", Long.class, key);
-    }
-
-    private void safeDelete(String documentKeyPrefix) {
-        // MilvusVectorStoreService.deleteByDocumentKey 是精确匹配；此处按前缀逐条清（数量有限，可接受）。
-        // 集合级 removeAll 在 LangChain4j 1.0.1 API 中要求 Filter；用一个恒真谓词等价"清集合"更简洁，
-        // 但会跨租户误删（本 PR 用两个前缀 + 每次 @BeforeEach 精确删），避免用 Filter 谓词。
-        try {
-            List<String> keys =
-                    jdbcTemplate.queryForList(
-                            "SELECT DISTINCT document_key FROM kb_document_chunk WHERE document_key LIKE ?",
-                            String.class,
-                            documentKeyPrefix + "%");
-            keys.forEach(vectorStore::deleteByDocumentKey);
-        } catch (Exception ignored) {
-            // 集合可能尚未创建（首次运行），delete 失败可忽略
-        }
     }
 
     private static DocumentChunk chunkFor(String documentKey, int index, String tenantKey) {
@@ -275,12 +302,58 @@ class MilvusTenantIsolationTest {
         return chunks;
     }
 
+    /**
+     * 轮询等待 Milvus 检索命中数达到期望值，消解 {@code ConsistencyLevel.EVENTUAL} 造成的 写入→可读窗口。首轮立即发起，之后每 {@value
+     * #CONSISTENCY_POLL_INTERVAL_MS} ms 一次， 最长 {@value #CONSISTENCY_TIMEOUT_MS}
+     * ms。达到即返回；超时仍不等则把最后一次结果交给 上层 AssertJ，让失败消息包含实际条数以便诊断。
+     *
+     * <p><b>为何这样修而不是把生产一致性改成 STRONG</b>：{@code MilvusConfig.embeddingStore()} 沿用 LangChain4j 默认
+     * EVENTUAL，Phase 3 partition-key 分支亦应保持该语义（业务侧考试/搜索可 容忍 &lt;100ms 陈旧度，避免每次 search 都多一次
+     * proxy→queryNode guaranteeTimestamp 协商）。 测试侧兜底等待最合理，不污染生产运行时行为，也不引入测试专用配置开关。
+     *
+     * <p><b>触发根因</b>：CI 首次跑（{@code ubuntu-24.04} runner + Docker Engine 29.x + Milvus standalone
+     * 冷启动）实测 {@code storeChunks(100)} 立即 {@code search} 只拿到 5/0 条，本机 P2-T5 交付时（{@code
+     * c702fce}）未复现——本机 Milvus 容器 warm + 资源充足， EVENTUAL 窗口 &lt;100ms 被时序掩盖。
+     *
+     * @param tenantKey 检索上下文租户，走 {@link TenantContext#callWithTenant}
+     * @param expectedSize 期望至少达到的命中条数
+     * @return 最后一次 {@code search} 的结果（大小 &ge; expectedSize 或超时快照）
+     */
+    private List<SearchResult> awaitSearchSize(String tenantKey, int expectedSize) {
+        // maxResults 至少给到期望值的 3 倍，防止 Milvus 侧过滤/剪枝把上限截到 expectedSize
+        int maxResults = Math.max(expectedSize * 3, 300);
+        Instant deadline = Instant.now().plusMillis(CONSISTENCY_TIMEOUT_MS);
+        List<SearchResult> last = List.of();
+        while (true) {
+            last =
+                    TenantContext.callWithTenant(
+                            tenantKey,
+                            () -> vectorStore.search("anything", maxResults, 0.0, null, null));
+            if (last.size() >= expectedSize) {
+                return last;
+            }
+            if (Instant.now().isAfter(deadline)) {
+                return last;
+            }
+            sleepQuietly(CONSISTENCY_POLL_INTERVAL_MS);
+        }
+    }
+
+    private static void sleepQuietly(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待 Milvus 最终一致性时被中断", ie);
+        }
+    }
+
     // ---------------------------------------------------------------------
     // 1. 单租户召回非空：A 建 100 → A 检索命中 100
     // ---------------------------------------------------------------------
 
     @Test
-    @DisplayName("单租户召回非空：A 建 100 向量后 A 上下文检索命中 100 条")
+    @DisplayName("单租户召回非空：A 建 100 向量后 A 上下文检索命中 100 条（EVENTUAL 一致性等待）")
     void sameTenantRecallIsNonEmpty() {
         TenantContext.callWithTenant(
                 "acme",
@@ -289,12 +362,10 @@ class MilvusTenantIsolationTest {
                     return null;
                 });
 
-        List<SearchResult> hits =
-                TenantContext.callWithTenant(
-                        "acme", () -> vectorStore.search("anything", 200, 0.0, null, null));
+        List<SearchResult> hits = awaitSearchSize("acme", 100);
 
         assertThat(hits)
-                .as("A 上下文应召回全部 100 条 A 建向量，spike §2 已证无剪枝损失")
+                .as("A 上下文应召回全部 100 条 A 建向量，spike §2 已证无剪枝损失；" + "30s EVENTUAL 兜底窗口内仍未达即视为真实回归")
                 .hasSize(100)
                 .allSatisfy(r -> assertThat(r.getDocumentId()).startsWith("p2t5-a-"));
     }
@@ -319,10 +390,8 @@ class MilvusTenantIsolationTest {
                     return null;
                 });
 
-        // B 上下文查 A 建的 document_key 前缀，返回 0 条
-        List<SearchResult> hitsInBeta =
-                TenantContext.callWithTenant(
-                        "beta", () -> vectorStore.search("anything", 300, 0.0, null, null));
+        // B 上下文查 A 建的 document_key 前缀，返回 0 条；先等 beta 自己 100 条完整可见
+        List<SearchResult> hitsInBeta = awaitSearchSize("beta", 100);
 
         assertThat(hitsInBeta)
                 .as("B 上下文最多只能召回 B 自己建的 100 条，绝不含 p2t5-a-*")
@@ -333,10 +402,8 @@ class MilvusTenantIsolationTest {
                                         .startsWith("p2t5-b-")
                                         .doesNotStartWith("p2t5-a-"));
 
-        // 反向亦然：A 上下文看不到 B 建的向量
-        List<SearchResult> hitsInAcme =
-                TenantContext.callWithTenant(
-                        "acme", () -> vectorStore.search("anything", 300, 0.0, null, null));
+        // 反向亦然：A 上下文看不到 B 建的向量；acme 也要等自己 100 条 flush 完毕
+        List<SearchResult> hitsInAcme = awaitSearchSize("acme", 100);
         assertThat(hitsInAcme).hasSize(100);
         assertThat(hitsInAcme)
                 .allSatisfy(
