@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * @author mouhinU
  * @date 2026-10-10
  */
+@Tag("config-isolation")
 @DisplayName("P4-T3 解析缓存跨租户隔离 全链路集成 (H2)")
 @SpringBootTest(classes = ExtractionCacheTenantIsolationIntegrationTest.TestConfig.class)
 class ExtractionCacheTenantIsolationIntegrationTest {

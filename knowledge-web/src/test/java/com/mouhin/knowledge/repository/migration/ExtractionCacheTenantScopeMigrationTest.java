@@ -14,6 +14,7 @@ import java.sql.Statement;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
  * @author mouhinU
  * @date 2026-10-10
  */
+@Tag("config-isolation")
 @DisplayName("kb_extraction_cache 租户内化 (P4-T3 / V30)")
 class ExtractionCacheTenantScopeMigrationTest {
 

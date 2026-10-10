@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test;
  * @author mouhinU
  * @date 2026-10-10
  */
+@Tag("config-isolation")
 @DisplayName("SystemConfigService 租户缓存隔离 (P4-T1)")
 class SystemConfigServiceTenantIsolationTest {
 
