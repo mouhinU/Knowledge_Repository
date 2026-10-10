@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.support;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ConfigCacheKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,13 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 系统配置服务 — 三层获取策略（P3-T3 起按租户隔离缓存）
+ * 系统配置服务 — 三层获取策略（P3-T3 起按租户隔离缓存；P4-T1 起以 {@link ConfigCacheKey} 值对象作缓存 key）
  *
  * <p>优先级：内存缓存（ConcurrentHashMap） → 数据库（sys_config，V28 起含 tenant_id 列） → 系统默认值（{@link
  * SystemConfigDefaults}）。
  *
- * <p><b>租户隔离</b>：缓存 key 为 {@code tenantKey + ":" + configKey}；{@code loadedTenants} 记录哪些租户已全量加载，避免
- * A 租户命中 B 租户遗留缓存。所有读写方法一律以 {@link TenantContext#getOrDefault()} 解析当前租户；写入时同步刷新对应租户缓存。 {@code
+ * <p><b>租户隔离</b>：缓存 key 为 {@link ConfigCacheKey}{@code (tenantKey, configKey)} 值对象（P4-T1 从旧的 {@code
+ * tenantKey + ":" + configKey} 字符串拼接收口而来，去除分隔符与字符串前缀的脆弱性）；{@code loadedTenants} 记录哪些租户已全量加载，避免 A
+ * 租户命中 B 租户遗留缓存。所有读写方法一律以 {@link TenantContext#getOrDefault()} 解析当前租户；写入时同步刷新对应租户缓存。 {@code
  * refreshCache()} 为管理动作，一次性清空所有租户缓存并回落到"下次访问按需重建"。
  *
  * <p>Gateway 层（{@code SystemConfigGatewayImpl}）已按 {@code tenant_id} 显式过滤，本服务的缓存隔离与其保持一致的租户口径。
@@ -30,13 +32,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SystemConfigService {
 
-    /** 缓存 key 分隔符（tenantKey 与 configKey 均不含冒号，安全可逆）。 */
-    private static final String CACHE_KEY_SEP = ":";
-
     private final SystemConfigGateway systemConfigGateway;
 
-    /** 内存缓存：{@code tenantKey:configKey} → SystemConfig */
-    private final Map<String, SystemConfig> cache = new ConcurrentHashMap<>();
+    /** 内存缓存：{@link ConfigCacheKey}{@code (tenantKey, configKey)} → SystemConfig */
+    private final Map<ConfigCacheKey, SystemConfig> cache = new ConcurrentHashMap<>();
 
     /** 已全量加载的租户集合（取代旧的全局 cacheLoaded 布尔位）。 */
     private final Set<String> loadedTenants = ConcurrentHashMap.newKeySet();
@@ -74,7 +73,7 @@ public class SystemConfigService {
     public Optional<SystemConfig> getEntity(String configKey) {
         String tenantKey = TenantContext.getOrDefault();
         ensureCacheLoaded(tenantKey);
-        String cacheKey = cacheKey(tenantKey, configKey);
+        ConfigCacheKey cacheKey = ConfigCacheKey.of(tenantKey, configKey);
         // Tier 1: 内存缓存
         SystemConfig cached = cache.get(cacheKey);
         if (cached != null) {
@@ -94,7 +93,7 @@ public class SystemConfigService {
         ensureCacheLoaded(tenantKey);
         List<SystemConfig> fromDb = systemConfigGateway.findAll();
         for (SystemConfig c : fromDb) {
-            cache.put(cacheKey(tenantKey, c.getConfigKey()), c);
+            cache.put(ConfigCacheKey.of(tenantKey, c.getConfigKey()), c);
         }
         return fromDb;
     }
@@ -113,7 +112,7 @@ public class SystemConfigService {
             }
             config.setConfigValue(newValue);
             systemConfigGateway.saveOrUpdate(config);
-            cache.put(cacheKey(tenantKey, configKey), config);
+            cache.put(ConfigCacheKey.of(tenantKey, configKey), config);
         } else {
             // 数据库中不存在时，仅为已注册的默认配置创建记录（Gateway 会强制打上当前 tenant_id）。
             SystemConfig config = new SystemConfig();
@@ -124,7 +123,7 @@ public class SystemConfigService {
             config.setCategory(SystemConfigDefaults.getCategory(configKey));
             config.setEditable(true);
             systemConfigGateway.saveOrUpdate(config);
-            cache.put(cacheKey(tenantKey, configKey), config);
+            cache.put(ConfigCacheKey.of(tenantKey, configKey), config);
         }
         log.info("[SystemConfig] 配置已更新: tenant={}, key={}", tenantKey, configKey);
     }
@@ -141,8 +140,7 @@ public class SystemConfigService {
         if (tenantKey == null || tenantKey.isBlank()) {
             return;
         }
-        String prefix = tenantKey + CACHE_KEY_SEP;
-        cache.keySet().removeIf(k -> k.startsWith(prefix));
+        cache.keySet().removeIf(k -> k.tenantKey().equals(tenantKey));
         loadedTenants.remove(tenantKey);
         log.info("[SystemConfig] 已清空租户缓存: tenant={}", tenantKey);
     }
@@ -159,14 +157,10 @@ public class SystemConfigService {
             }
             List<SystemConfig> all = systemConfigGateway.findAll();
             for (SystemConfig c : all) {
-                cache.put(cacheKey(tenantKey, c.getConfigKey()), c);
+                cache.put(ConfigCacheKey.of(tenantKey, c.getConfigKey()), c);
             }
             loadedTenants.add(tenantKey);
             log.debug("[SystemConfig] 租户缓存加载完成: tenant={}, entries={}", tenantKey, all.size());
         }
-    }
-
-    private static String cacheKey(String tenantKey, String configKey) {
-        return tenantKey + CACHE_KEY_SEP + configKey;
     }
 }
