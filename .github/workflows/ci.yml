@@ -17,6 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 主干静态检查：spotless:check（validate）+ checkstyle:check（verify）+ 编译。
+  # 不跑测试；由下游 unit-tests / config-isolation / tenant-isolation 各自负责。
   build:
     # ubuntu-latest 于 2026-10-19 起会静默迁移到 Ubuntu 26
     # (https://github.com/actions/runner-images/issues/14748)。
@@ -43,9 +45,86 @@ jobs:
       - name: Build and run checks
         run: mvn -B -V clean verify -DskipTests
 
+  # C-1 · Phase 4 治理编码 · 单元测试全量回归（Phase 4 清单 §5 C-1 d) GitHub Actions matrix 或独立 workflow）
+  # 覆盖：所有不带 @Tag("tenant") 或 @Tag("config-isolation") 的用例
+  #      ≈ 1120 单元 + H2 集成 + Spring context 冒烟，无 Docker/Testcontainers 依赖。
+  # 关键断言（Phase 2 起持续加固）：
+  #   - FlywayMigrationSmokeTest: canonical count 四处同步（EXPECTED_MIGRATION_COUNT +
+  #     @DisplayName 版本区间 + 最终版本断言 + 幂等注释），漏任一处全 reactor 挂。
+  #   - MyBatisPlusConfigTest: 三闸门 saas.enabled=false / platform.enabled=false /
+  #     platform.oidc.enabled=false 关闭态 bean 缺席（ApplicationContextRunner 对照）。
+  #   - ExtractionCacheTenantScopeMigrationTest 已划入 config-isolation tag 单走。
+  # -DfailIfNoTests=false 允许 knowledge-client 等模块零测试通过（红线 #11 · 分层原则）。
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Run unit tests (excl. tenant + config-isolation tagged)
+        run: |
+          mvn -B -V test \
+            -DexcludedGroups=tenant,config-isolation \
+            -Dsurefire.failIfNoSpecifiedTests=false
+
+  # C-1 · Phase 4 治理编码 · SaaS 配置/缓存跨租户隔离专项门禁（Phase 4 清单 §5 C-1 a)
+  # 覆盖：@Tag("config-isolation") 用例集合
+  #   - P4-T1 · SystemConfigServiceTenantIsolationTest（4 例 · ConfigCacheKey 值对象 + evictTenant 兄弟前缀污染修复）
+  #   - P4-T1 · SystemConfigServiceThreeTierReadTest（13 例 · S-1 三级读取顺序方案 A · Tier 1/2/3 ·
+  #     平台锚=default · ensureCacheLoaded 跨租户错位 bug 修复 · saas.enabled=false 关闭态等价）
+  #   - P4-T3 · ExtractionCacheTenantScopeMigrationTest（3 例 · V30 H2 原生 SQL · 唯一键租户内化）
+  #   - P4-T3 · ExtractionCacheTenantIsolationIntegrationTest（1 例 · H2 SpringBootTest G7 端到端闭合）
+  # 独立 job 的意义：把 SaaS 多租户隔离不变式从"淹没在 1120 单测里"提出来单独打钩，
+  # PR diff 里若 config-isolation 转红可一眼归因（不与其他业务测试混淆）。
+  # 后续 b) llm-profile-isolation tag（P4-T4 · gate B-2）与 c) cache-invalidation tag（P4-T2 · gate B-1）
+  # 到位时在此追加对应 job，或改为 matrix 结构。
+  config-isolation:
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Cache Maven local repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Run config-isolation tagged tests (P4-T1 + P4-T3)
+        run: |
+          mvn -B -V test \
+            -Dgroups=config-isolation \
+            -Dsurefire.failIfNoSpecifiedTests=false
+
   # C-1 · SaaS 租户门禁独立 job（Phase 2 清单 §5 C-1）
   # 只跑 @Tag("tenant") 用例（当前包含 P1-T10 MySQL 6 + P2-T5 Milvus 4），
   # 与主 build 分离，避免 Milvus 冷启动 / Testcontainers API 协商类偶发拖慢主干。
+  # EVENTUAL consistency 相关用例已由 MilvusTenantIsolationTest awaitSearchSize helper 消化
+  # （见 commit 6acbea3 修复）。
   tenant-isolation:
     needs: build
     runs-on: ubuntu-24.04
