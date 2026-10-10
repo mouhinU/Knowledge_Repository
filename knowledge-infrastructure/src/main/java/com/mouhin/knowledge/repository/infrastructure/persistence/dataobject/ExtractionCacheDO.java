@@ -26,6 +26,10 @@ public class ExtractionCacheDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 租户归属列（P4-T3 起）：由 {@code TenantLineInnerInterceptor} 自动注入，不参与业务键拼装。 */
+    @TableField("tenant_id")
+    private Long tenantId;
+
     @TableField("checksum")
     private String checksum;
 

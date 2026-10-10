@@ -14,8 +14,13 @@ import org.springframework.stereotype.Repository;
 /**
  * 解析结果持久缓存仓储实现（Phase C）。
  *
- * <p>以 {@code checksum + strategy + model_name + prompt_hash + render_mode} 复合唯一键做 upsert： 命中即还原历史
+ * <p>以 {@code checksum + strategy + model_name + prompt_hash + render_mode} 复合业务键做 upsert： 命中即还原历史
  * {@link ExtractionResult}，未命中或写入冲突时以最新结果覆盖，保证幂等。
+ *
+ * <p><b>租户隔离（P4-T3）</b>：本仓储不在业务键里显式拼 {@code tenant_id}；{@code kb_extraction_cache} 已从 {@code
+ * KnowledgeTenantLineHandler.IGNORE_TABLES} 移除、V30 已为其加 {@code tenant_id} 列，因此 {@code
+ * TenantLineInnerInterceptor} 会自动对 {@link #find}/{@link #save} 的 SELECT / INSERT / UPDATE 追加 {@code
+ * tenant_id} 谓词与列值。效果：A 租户写入的缓存，B 租户以相同业务键查询不再命中（修复 G7 跨租户解析缓存泄漏）。
  *
  * @author mouhinU
  * @date 2026-09-23

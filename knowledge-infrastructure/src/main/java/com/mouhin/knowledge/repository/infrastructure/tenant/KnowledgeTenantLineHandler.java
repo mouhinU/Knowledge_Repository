@@ -17,8 +17,8 @@ import net.sf.jsqlparser.expression.LongValue;
  *       {@link TenantIdResolver} 转成数值主键，最终作为 SQL 谓词字面量注入。
  *   <li>{@link #getTenantIdColumn()}：固定列名 {@code tenant_id}，与 V24 起新增的列名严格对齐。
  *   <li>{@link #ignoreTable(String)}：白名单跳过——平台元数据表本身（sys_tenant / sys_tenant_placement）、 开通 /
- *       邀请业务表（sys_tenant_provision_step / sys_user_invite，其 tenant_id 是业务列非过滤维度）、 Flyway 内部表、以及
- *       Phase 4-T3 才补齐 tenant_id 列的 kb_extraction_cache。
+ *       邀请业务表（sys_tenant_provision_step / sys_user_invite，其 tenant_id 是业务列非过滤维度）、删除审批 /
+ *       审计表（sys_tenant_delete_approval / sys_tenant_deletion_step / sys_audit_log）以及 Flyway 内部表。
  * </ol>
  *
  * <p>不做的事：本类仅在 {@code knowledge.saas.enabled=true} 时被装配；关闭态下 {@code MyBatisPlusConfig} 不注册拦截器，行为与
@@ -43,11 +43,17 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
      *   <li>{@code sys_user_invite}：一次性设密邀请表（P3-T3），其 {@code tenant_id} 是"被邀请加入的租户"业务列， 由 {@code
      *       UserInviteGatewayImpl} 显式追加谓词；同 {@code sys_tenant_provision_step} 逻辑。
      *   <li>{@code flyway_schema_history}：Flyway 内部表，DDL 迁移链与租户无关。
-     *   <li>{@code kb_extraction_cache}：文档解析结果缓存，Phase 4-T3 才补 tenant_id 列，此处暂不参与过滤。
      * </ul>
      *
      * <p><b>P3-T3 变更</b>：{@code sys_config} 已从本白名单移除——V28 迁移已把该表加 tenant_id 列并改 {@code
      * UNIQUE(tenant_id, config_key)}（C-4=方案 A 提前 P4-T1），从此参与租户过滤。
+     *
+     * <p><b>P4-T3 变更</b>：{@code kb_extraction_cache} 已从本白名单移除——V30 迁移已把该表加 tenant_id 列并把唯一键从 {@code
+     * (checksum, strategy, model_name, prompt_hash, render_mode)} 切换为 {@code (tenant_id, checksum,
+     * strategy, model_name, prompt_hash, render_mode)}，修复 G7 跨租户解析缓存泄漏（B 租户不再命中 A 租户的
+     * result_json），从此本表交回 {@link
+     * com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor} 自动注入 {@code
+     * tenant_id} 谓词。
      */
     public static final Set<String> IGNORE_TABLES =
             Set.of(
@@ -58,8 +64,7 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
                     "sys_tenant_deletion_step",
                     "sys_audit_log",
                     "sys_user_invite",
-                    "flyway_schema_history",
-                    "kb_extraction_cache");
+                    "flyway_schema_history");
 
     private final TenantIdResolver tenantIdResolver;
 

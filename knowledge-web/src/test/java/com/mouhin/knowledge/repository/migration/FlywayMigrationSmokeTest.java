@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V29 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V30 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V29）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 29;
+    /** 迁移脚本总数（V1..V30）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 30;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 29")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 30")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -54,10 +54,13 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V29
+        // 二次调用应无待处理迁移（幂等），并停留在 V30
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals("29", current.getVersion().getVersion(), "最终版本应为 V29（P3-T5 租户归档 + 删除生命周期）");
+        assertEquals(
+                "30",
+                current.getVersion().getVersion(),
+                "最终版本应为 V30（P4-T3 kb_extraction_cache 租户内化）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -504,6 +507,57 @@ class FlywayMigrationSmokeTest {
                             && delStepUkCols.contains("attempt_no"),
                     "V29 复合唯一索引 uk_deletion_step 应覆盖 (tenant_id, deletion_request_id, step_name, attempt_no)，实际="
                             + delStepUkCols);
+
+            // 抽查 V30（P4-T3 kb_extraction_cache 租户内化）：新增 tenant_id 列
+            boolean hasCacheTenantCol = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'kb_extraction_cache' "
+                                    + "AND LOWER(column_name) = 'tenant_id'")) {
+                assertTrue(rs.next());
+                hasCacheTenantCol = rs.getInt(1) > 0;
+            }
+            assertTrue(hasCacheTenantCol, "V30 列缺失 (kb_extraction_cache.tenant_id)");
+
+            // 抽查 V30：新复合唯一索引 uk_extraction_cache_tenant_key 应覆盖
+            // (tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)
+            List<String> cacheUkCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.index_columns "
+                                    + "WHERE LOWER(table_name) = 'kb_extraction_cache' "
+                                    + "AND LOWER(index_name) = 'uk_extraction_cache_tenant_key'")) {
+                while (rs.next()) {
+                    cacheUkCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    cacheUkCols.contains("tenant_id")
+                            && cacheUkCols.contains("checksum")
+                            && cacheUkCols.contains("strategy")
+                            && cacheUkCols.contains("model_name")
+                            && cacheUkCols.contains("prompt_hash")
+                            && cacheUkCols.contains("render_mode"),
+                    "V30 复合唯一索引 uk_extraction_cache_tenant_key 应覆盖 (tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)，实际="
+                            + cacheUkCols);
+
+            // 抽查 V30：旧全局唯一索引 uk_extraction_cache_key 应已被删除（无损切换到租户内唯一）
+            int legacyCacheUkColCount = 0;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.index_columns "
+                                    + "WHERE LOWER(table_name) = 'kb_extraction_cache' "
+                                    + "AND LOWER(index_name) = 'uk_extraction_cache_key'")) {
+                assertTrue(rs.next());
+                legacyCacheUkColCount = rs.getInt(1);
+            }
+            assertEquals(
+                    0,
+                    legacyCacheUkColCount,
+                    "V30 切换后旧全局唯一索引 uk_extraction_cache_key 应已不存在（残留列="
+                            + legacyCacheUkColCount
+                            + "）");
         }
     }
 }
