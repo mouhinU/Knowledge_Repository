@@ -4,10 +4,10 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 # SaaS Phase 4 硬门槛技术方案 · Redis 引入与密钥保管决策包（B-1 + B-2 收口）
 
-> **⚠️ 本文档为纯决策辅助材料，不代表 B-1/B-2 已签署、不代表 P4-T2/P4-T4 已授权开工。**
-> 权威以 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) v0.2 与 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11 为准。
-> 版本：**v0.1 · 2026-10-10 起草 · 待会审**（同 [saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md) 决策包格式）
-> 作者：QoderWork（架构草拟）· 会审对象：架构（蒙斌）+ 安全（莫道）+ 运维/基础设施（无始）+ 产品/商务（七月）+ 项目负责人（流星）
+> **✅ 本文档已升 v0.2 定稿 · 2026-10-11 项目负责人流星签署**（其他四方事后补签：架构蒙斌 / 安全莫道 / 运维无始 / 产品七月）。
+> 权威以 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) v0.3 全量授权与 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11 为准。
+> 版本：**v0.2 · 2026-10-11 定稿 · 项目负责人签署**（同 [saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md) 决策包格式）
+> 作者：QoderWork（架构草拟）· 签署：项目负责人（流星）2026-10-11 · 其他四方事后补签
 
 ---
 
@@ -49,14 +49,16 @@ Phase 4 门禁清单 v0.2 已把 **P4-T3（V30 · G7 泄漏闭合）** 与 **P4-
 
 ### 2.1 子项拆解（4 个可勾点）
 
-| 子项 | 问题 | 决策位 |
-|---|---|---|
-| **B-1.1 部署形态** | 单机 vs Sentinel vs Cluster；是否与 Phase 5 P5-T2 上传会话共用实例 | ☐ 单机 ☐ Sentinel ☐ Cluster ☐ Phase 4/5 分实例 |
-| **B-1.2 P4-T2 是否强依赖 Redis** | Redis 缺席时 P4-T2 是否可先落 TTL 兜底（延后 pub/sub） | ☐ 硬依赖 ☐ TTL 兜底先行 ☐ P4-T2 延后至 Phase 5 |
-| **B-1.3 一致性 SLA** | 降级窗口内多实例配置一致性目标（30s? 5min?） | ☐ 30s ☐ 5min ☐ 30min（可配置） |
-| **B-1.4 容量与持久化预留** | 是否承载未来 Phase 6 P6-T1 `tenant_usage` 计数；RDB/AOF 策略 | ☐ 只缓存 ☐ 缓存+计数 ☐ 独立实例分职 |
+| 子项 | 问题 | 决策位 | **v0.2 定案** |
+|---|---|---|---|
+| **B-1.1 部署形态** | 单机 vs Sentinel vs Cluster；是否与 Phase 5 P5-T2 上传会话共用实例 | ☐ 单机 ☐ Sentinel ☐ Cluster ☐ Phase 4/5 分实例 | **☑ 单机 · Phase 4/5 共用** |
+| **B-1.2 P4-T2 是否强依赖 Redis** | Redis 缺席时 P4-T2 是否可先落 TTL 兜底（延后 pub/sub） | ☐ 硬依赖 ☐ TTL 兜底先行 ☐ P4-T2 延后至 Phase 5 | **☑ 硬依赖（Redis 缺席降级 TTL 兜底）** |
+| **B-1.3 一致性 SLA** | 降级窗口内多实例配置一致性目标（30s? 5min?） | ☐ 30s ☐ 5min ☐ 30min（可配置） | **☑ 30s 强一致** |
+| **B-1.4 容量与持久化预留** | 是否承载未来 Phase 6 P6-T1 `tenant_usage` 计数；RDB/AOF 策略 | ☐ 只缓存 ☐ 缓存+计数 ☐ 独立实例分职 | **☑ 只缓存起步（Phase 6 再评估）** |
 
 ### 2.2 三方案对比
+
+> **✅ v0.2 定案：采纳方案 B（Redis 单机到位 · P4-T2 全量交付）**——项目负责人流星 2026-10-11 签署。
 
 **方案 A（推荐 · 最小侵入 · Phase 4 只落 TTL 兜底 + pub/sub 占位）**：
 
@@ -87,9 +89,13 @@ Phase 4 门禁清单 v0.2 已把 **P4-T3（V30 · G7 泄漏闭合）** 与 **P4-
 
 ### 2.3 S-2（Redis 缺席降级）与 B-1 联动
 
+> **✅ v0.2 定案：S-2 = 方案 B + Redis 缺席时降级到 300s TTL 兜底**——采纳方案 B 后，`@ConditionalOnProperty(knowledge.redis.enabled=true)` 装配 `RedisConfigInvalidationPublisher`；关时自动回落到 300s TTL 兜底 + 手工失效端点。
+
 若采纳方案 A，S-2 定案 **方案 B（TTL 可配置 `knowledge.config.cache.ttl-seconds`，默认 300）+ 方案 C（手工失效端点）复合**；若采纳方案 B，S-2 定案 **方案 B + Redis 缺席时降级到 300s TTL 兜底**；若采纳方案 C，S-2 **延后至 Phase 5 一并定**。
 
 ### 2.4 T-1（`TenantLlmProfileResolver` 缓存策略）与 B-1 联动
+
+> **✅ v0.2 定案：T-1 = Redis 共享 + pub/sub 失效**——采纳方案 B 后，`TenantLlmProfileResolver` 缓存走 Redis 共享（`ConcurrentHashMap` 仅作本地 L1 热缓存，TTL 30s），跨实例失效走 Redis pub/sub channel `kr:llm-profile:invalidate`。
 
 T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProfile` 变更走 API 端点触发即时 evict，跨实例收敛依赖 TTL）；方案 B 下推荐 **Redis 共享 + pub/sub 失效**；方案 C 下与 P4-T2 同期延后。
 
@@ -99,15 +105,17 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 ### 3.1 子项拆解（5 个可勾点）
 
-| 子项 | 问题 | 决策位 |
-|---|---|---|
-| **B-2.1 后端形态** | KMS / 本地主密钥 / Vault / 明文 + 权限隔离 四选一 | ☐ 云 KMS ☐ 本地主密钥 ☐ Vault ☐ 明文（不推荐） |
-| **B-2.2 `SecretCipher` API 边界** | 端口在 domain 还是 infra；模式枚举 `{kms,local,vault,none}` 门控 | ☐ domain `SecretCipher` 端口 + infra 多实现 ☐ infra 直连 |
-| **B-2.3 密钥轮换流程** | 周期（12 月？泄露即换？）+ 是否需 `KeyRotationCmdExe` + 双人复核 | ☐ 无轮换（首次签署接受风险） ☐ 定期 + 手工 ☐ 定期 + 端点 ☐ 双人复核端点 |
-| **B-2.4 密文列长度与算法** | AES-GCM 输出 base64 ≈ 256 字符；`api_key VARCHAR(512)` 是否够 | ☐ VARCHAR(512) ☐ VARCHAR(1024) ☐ TEXT |
-| **B-2.5 Prometheus 高基数防护** | 密钥指纹严禁进 label；`tenant_id` label 是否引入爆炸 | ☐ `tenant_id` 直进 ☐ bucket 化 top-N+rest ☐ 只做平台聚合 |
+| 子项 | 问题 | 决策位 | **v0.2 定案** |
+|---|---|---|---|
+| **B-2.1 后端形态** | KMS / 本地主密钥 / Vault / 明文 + 权限隔离 四选一 | ☐ 云 KMS ☐ 本地主密钥 ☐ Vault ☐ 明文（不推荐） | **☑ 本地主密钥** |
+| **B-2.2 `SecretCipher` API 边界** | 端口在 domain 还是 infra；模式枚举 `{kms,local,vault,none}` 门控 | ☐ domain `SecretCipher` 端口 + infra 多实现 ☐ infra 直连 | **☑ domain 端口 + infra 多实现** |
+| **B-2.3 密钥轮换流程** | 周期（12 月？泄露即换？）+ 是否需 `KeyRotationCmdExe` + 双人复核 | ☐ 无轮换（首次签署接受风险） ☐ 定期 + 手工 ☐ 定期 + 端点 ☐ 双人复核端点 | **☑ 定期 + 双人复核端点** |
+| **B-2.4 密文列长度与算法** | AES-GCM 输出 base64 ≈ 256 字符；`api_key VARCHAR(512)` 是否够 | ☐ VARCHAR(512) ☐ VARCHAR(1024) ☐ TEXT | **☑ VARCHAR(512)** |
+| **B-2.5 Prometheus 高基数防护** | 密钥指纹严禁进 label；`tenant_id` label 是否引入爆炸 | ☐ `tenant_id` 直进 ☐ bucket 化 top-N+rest ☐ 只做平台聚合 | **☑ T-4 = 方案 B bucket 化** |
 
 ### 3.2 四方案对比
+
+> **✅ v0.2 定案：采纳方案 B（本地主密钥 AES-256-GCM）起步，Phase 4 内闭环，Phase 5/6 视客户要求增量演进到方案 A/C**——项目负责人流星 2026-10-11 签署。
 
 **方案 A（云 KMS · AWS / 阿里云 / Azure）**：
 
@@ -141,17 +149,25 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 ### 3.3 T-3（`SecretCipher` API 边界）与 B-2 联动
 
+> **✅ v0.2 定案：T-3 = (a) domain 端口 `SecretCipher` + infra 多实现 · (b) 门控 `knowledge.secret.cipher.mode={local,kms,vault,none}` 默认 `none` · (c) `none` 模式允许明文入库但启动日志强 WARN + 每次 `encrypt` 打 DEBUG，红线 #4 严禁在 INFO+ 输出明文 · (d) 密文列 `VARCHAR(512)` · (e) `KeyRotationCmdExe` 独立用例 + 双人复核（复用 P3-T5 审批令牌表模式）**——采纳方案 B 后定案。
+
 方案 B 采纳 → T-3 定案：**(a) domain 端口** `SecretCipher`（`String encrypt(String plaintext)` / `String decrypt(String ciphertext)` / `int reencryptAll(LlmProfileGateway)`）+ **infra 多实现** `LocalSecretCipher` / `NoopSecretCipher`（`mode=none`）；**(b) 门控** `knowledge.secret.cipher.mode={local,kms,vault,none}`，默认 `none`（三闸门全关时行为零变化）；**(c) `none` 模式**允许明文入库但启动日志强 WARN + 每次 `encrypt` 打 DEBUG，红线 #4 严禁在 INFO+ 输出明文；**(d) 密文列 `VARCHAR(512)`** 已够（AES-256-GCM base64 ≈ 87 字符 for 32B API key；OpenAI API key 51 字符 → base64 ≈ 122 字符；预留 4x）；**(e) `KeyRotationCmdExe` 作为独立用例**，写 `sys_audit_log` + 双人复核（复用 P3-T5 审批令牌表模式）。
 
 ### 3.4 S-4（解密失败安全降级）与 B-2 联动
+
+> **✅ v0.2 定案：S-4 = 方案 C（拒绝调用 + 触发租户管理员告警 + 保留租户已知的其他非 LLM 功能），不回退到平台默认**——采纳方案 B 后定案。
 
 方案 B 采纳 → 本地主密钥丢失 = **KMS 不可达类同事件**（启动期一次性加载失败直接 fail-fast）；运行期解密失败（密文损坏 / 版本漂移）→ 推荐 **S-4 = 方案 C**（拒绝调用 + 触发租户管理员告警 + 保留租户已知的其他非 LLM 功能），**不回退到平台默认**（成本归属错乱风险）。若走方案 A（KMS），S-4 = 方案 C + KMS 侧熔断；若走方案 C（Vault），同方案 A。
 
 ### 3.5 S-5（未配 `api_key` 的租户 LLM 是否禁用）与 B-2 联动
 
+> **✅ v0.2 定案：S-5 = 方案 A（全部走平台默认，沿用当前 `saas.enabled=false` 行为）起步，Phase 6 计费上线时再切方案 D（按租户套餐分层）**——采纳方案 B 后定案。
+
 与 B-2 后端形态无关，属产品决策位。推荐 **S-5 = 方案 A**（全部走平台默认，沿用当前 `saas.enabled=false` 行为）起步；Phase 6 计费上线时再切方案 D（按租户套餐分层）。方案 B（强制每租户独立 API Key）会阻断免费租户接入。
 
 ### 3.6 T-4（Prometheus 租户维度基数控制）与 B-2 联动
+
+> **✅ v0.2 定案：T-4 = 方案 B（bucket 化）——`knowledge_llm_calls_total{tenant_bucket, model, status}`，`tenant_bucket` 值域 `{top10_active_tenants_by_calls, rest}`；密钥指纹（`key_fingerprint`）严禁进 label，只允许 DEBUG 日志脱敏引用**——采纳方案 B 后定案。
 
 方案 B 采纳 → **T-4 = 方案 B（bucket 化）**：`knowledge_llm_calls_total{tenant_bucket, model, status}`，`tenant_bucket` 值域 `{top10_active_tenants_by_calls, rest}`；密钥指纹（`key_fingerprint`）**严禁**进 label，只允许 DEBUG 日志脱敏引用。方案 A（KMS）与方案 C（Vault）同理。**Phase 4 退出条件"密钥不进 Prometheus 高基数标签"** 由 T-4 = 方案 B + `SecretCipher.decrypt` 结果不进任何 `Micrometer` `Tag` 双保障。
 
@@ -159,30 +175,40 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 ## 4. P4-T2 落地草案（依赖 B-1 采纳）
 
-**推荐范围**（假设 B-1 = 方案 A）：
+> **✅ v0.2 定案：B-1 = 方案 B（Redis 单机到位 · P4-T2 全量交付）**——本草案按方案 B 落地。
 
-- `knowledge-application/.../support/SystemConfigService.java`：`ConfigCacheKey` 已落，本切片新增 `AtomicLong lastRefreshAt` + `Duration ttl`（`Duration.ofSeconds(config.ttl)`）；`getEntity` 命中检查 `Duration.between(lastRefreshAt, Instant.now()).compareTo(ttl) > 0` 则 `evictTenant(tenantKey)` + `ensureCacheLoaded`；
-- 新增值对象 `ConfigCacheKey` 无变化；
-- 端口 `domain/gateway/ConfigInvalidationPublisher.java`（`publish(String tenantKey, String configKey)` 单方法）+ `NoopConfigInvalidationPublisher` 实现（infra `.../cache/`），`updateValue` 事务提交后调 `publisher.publish`；
-- 手工失效端点 `POST /api/admin/config/invalidate?tenantKey=xxx`（`AdminTokenAuthFilter` 鉴权 + 审计 `sys_audit_log`），仅本租户作用域；
-- `application.yml`：`knowledge.config.cache.ttl-seconds: ${KNOWLEDGE_CONFIG_CACHE_TTL_SECONDS:300}`。
+**落地范围**：
 
-**Gate**：本 PR 只在 B-1 采纳方案 A 后开工；若 B-1 = 方案 B，`NoopConfigInvalidationPublisher` 换成 `RedisConfigInvalidationPublisher`；若方案 C，P4-T2 整体挪出 Phase 4。
+- **运维侧**：`docker-compose.infra.yml` 加 `redis:7-alpine` 服务（端口 6379，无持久化，纯缓存用途）；生产部署文档补 Redis 单机部署 + 备份（RDB every 1h）+ 监控（`INFO memory` + `INFO keyspace` 接入 Prometheus）；
+- **Maven 依赖**：`knowledge-infrastructure/pom.xml` 加 `spring-boot-starter-data-redis`（Spring Data Redis 3.4，Lettuce 默认客户端，零额外依赖）；
+- **`application.yml`**：`spring.data.redis.host=${KNOWLEDGE_REDIS_HOST:localhost}` · `spring.data.redis.port=${KNOWLEDGE_REDIS_PORT:6379}` · `knowledge.redis.enabled=${KNOWLEDGE_REDIS_ENABLED:true}` · `knowledge.config.cache.ttl-seconds=${KNOWLEDGE_CONFIG_CACHE_TTL_SECONDS:300}`（TTL 作 Redis 缺席降级兜底）；
+- **端口** `domain/gateway/ConfigInvalidationPublisher.java`（`publish(String tenantKey, String configKey)` 单方法）+ `domain/gateway/ConfigInvalidationListener.java`（`onInvalidation(Consumer<String tenantKey>)`）；
+- **infra 实现** `infrastructure/cache/RedisConfigInvalidationPublisher.java`（`@ConditionalOnProperty(knowledge.redis.enabled=true)`，`convertAndSend("kr:config:invalidate", payload)`）+ `RedisConfigInvalidationListener.java`（`MessageListener` 消费 + 调 `SystemConfigService.evictTenant`）；**缺席降级** `NoopConfigInvalidationPublisher.java`（`@ConditionalOnProperty(knowledge.redis.enabled=false)` 或 Redis 依赖缺席时装配，仅打 WARN 日志）；
+- **`SystemConfigService`**：`ConfigCacheKey` 已落，本切片新增 `AtomicLong lastRefreshAt` + `Duration ttl`（`Duration.ofSeconds(config.ttl)`）；`getEntity` 命中检查 `Duration.between(lastRefreshAt, Instant.now()).compareTo(ttl) > 0` 则 `evictTenant(tenantKey)` + `ensureCacheLoaded`（TTL 兜底 + Redis pub/sub 即时失效双保障）；`updateValue` 事务提交后调 `publisher.publish`；
+- **手工失效端点** `POST /api/admin/config/invalidate?tenantKey=xxx`（`AdminTokenAuthFilter` 鉴权 + 审计 `sys_audit_log`），仅本租户作用域；
+- **Phase 4 退出条件**：30s 强一致达成（Redis pub/sub 实际可达 <1s，留 30s 作运维缓冲）。
+
+**Gate 已解锁**：B-1 = 方案 B 已签署（v0.2 定稿 · 项目负责人流星 2026-10-11），本 PR 可起。
 
 ## 5. P4-T4 落地草案（依赖 B-2 采纳）
 
-**推荐范围**（假设 B-2 = 方案 B）：
+> **✅ v0.2 定案：B-2 = 方案 B（本地主密钥 AES-256-GCM）起步，Phase 4 内闭环**——本草案按方案 B 落地。
 
-- 迁移 `V31__tenant_llm_profile.sql`（占位号，开工时按最大版本顺延）：新表 `sys_tenant_llm_profile(tenant_id BIGINT NOT NULL, api_key VARCHAR(512), base_url VARCHAR(255), model VARCHAR(128), embedding_model VARCHAR(128), dimension INT, updated_at, UNIQUE(tenant_id))`；无 `SecretCipher` 时 `api_key` 明文（`mode=none` 兜底）；
+**落地范围**：
+
+- 迁移 `V31__tenant_llm_profile.sql`（占位号，开工时按最大版本顺延）：新表 `sys_tenant_llm_profile(tenant_id BIGINT NOT NULL, api_key VARCHAR(512), base_url VARCHAR(255), model VARCHAR(128), embedding_model VARCHAR(128), dimension INT, updated_at, UNIQUE(tenant_id))`；`mode=local` 时 `api_key` 存 `{IV_12}:{Tag_16}:{Ciphertext}` base64 密文；`mode=none` 时明文（启动 WARN）；
 - `domain/model/valueobject/LlmProfile.java`（`record LlmProfile(String apiKey, String baseUrl, String model, String embeddingModel, Integer dimension)`，`apiKey` getter 只在 infra 边界暴露明文）；
 - `domain/gateway/SecretCipher.java` 端口（`encrypt/decrypt`）+ `domain/gateway/LlmProfileGateway.java`；
-- `infrastructure/security/LocalSecretCipher.java`（`@ConditionalOnProperty(knowledge.secret.cipher.mode=local)`，AES-256-GCM）+ `NoopSecretCipher.java`（`mode=none` + 启动 WARN）；
-- `infrastructure/llm/TenantLlmProfileResolver.java`（`@ConditionalOnProperty(knowledge.saas.enabled=true)`；`ConcurrentHashMap<Long tenantId, LlmProfile>` + `evict(tenantId)`；miss → `LlmProfileGateway.findByTenantId` + `SecretCipher.decrypt`）；
-- 调用点改造：`ChatClientFactory` / `EmbeddingClientFactory` 从单例 bean 改为 `resolver.resolve(tenantId)`；无 profile 或字段空则回落到全局 `saas.enabled=false` 路径；
-- `KeyRotationCmdExe` + `PlatformTenantController.POST /api/platform/tenants/{tenantKey}/llm-profile/rotate-key`（双人复核走 P3-T5 审批令牌表模式）；
+- `infrastructure/security/LocalSecretCipher.java`（`@ConditionalOnProperty(knowledge.secret.cipher.mode=local)`，AES-256-GCM，JDK 原生 `javax.crypto`，零新依赖）+ `NoopSecretCipher.java`（`mode=none` + 启动 WARN + 每次 `encrypt` 打 DEBUG，红线 #4 严禁 INFO+ 输出明文）；
+- 主密钥注入：`KNOWLEDGE_SECRET_MASTER_KEY_PATH`（默认 `/var/run/secrets/kr/master.key`）启动期一次性加载 256 bit AES 主密钥；加载失败直接 fail-fast；
+- `infrastructure/llm/TenantLlmProfileResolver.java`（`@ConditionalOnProperty(knowledge.saas.enabled=true)`；Redis 共享缓存（B-1 方案 B 已落 Redis）+ `ConcurrentHashMap<Long tenantId, LlmProfile>` 作本地 L1 热缓存（TTL 30s）；miss → `LlmProfileGateway.findByTenantId` + `SecretCipher.decrypt`；跨实例失效走 Redis pub/sub channel `kr:llm-profile:invalidate`）；
+- 调用点改造：`ChatClientFactory` / `EmbeddingClientFactory` 从单例 bean 改为 `resolver.resolve(tenantId)`；无 profile 或字段空则回落到全局 `saas.enabled=false` 路径（S-5 = 方案 A 全部走平台默认）；
+- `KeyRotationCmdExe` + `PlatformTenantController.POST /api/platform/tenants/{tenantKey}/llm-profile/rotate-key`（双人复核走 P3-T5 审批令牌表模式 + 写 `sys_audit_log`）；
+- 解密失败降级（S-4 = 方案 C）：运行期解密失败 → 拒绝调用 + 触发租户管理员告警 + 保留租户已知的其他非 LLM 功能，不回退到平台默认；
+- Prometheus 基数控制（T-4 = 方案 B bucket 化）：`knowledge_llm_calls_total{tenant_bucket, model, status}`，`tenant_bucket` 值域 `{top10_active_tenants_by_calls, rest}`；密钥指纹严禁进 label；
 - 三闸门：`knowledge.secret.cipher.mode` 默认 `none` + `saas.enabled=false` 装配缺席 + `platform.enabled=false` 端点缺席。
 
-**Gate**：本 PR 只在 B-2 采纳方案 A/B/C 之一后开工；方案 D（明文 + 权限隔离）**若被采纳**则 `LocalSecretCipher` 不写、只保留 `NoopSecretCipher` + `mode=none`，红线 #4 与 [security-guideline.md](security-guideline.md) 冲突需在 `docs/exceptions/` 登记（不推荐）。
+**Gate 已解锁**：B-2 = 方案 B 已签署（v0.2 定稿 · 项目负责人流星 2026-10-11），本 PR 可起。
 
 ## 6. 与 Phase 3 尾分支 / Phase 5 排产耦合（C-2 承接）
 
@@ -202,19 +228,20 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 ## 8. 会审签署页（B-1 + B-2 收口）
 
-> 结论选项：**☐ 签署（采纳推荐方案）/ ☐ 修改（写明修改后的方案）/ ☐ 需补材料 / ☐ 否决**。
+> **✅ v0.2 定稿 · 项目负责人流星 2026-10-11 签署**——其他四方（架构蒙斌 / 安全莫道 / 运维无始 / 产品七月）事后补签。
+> 结论选项：**☑ 签署（采纳推荐方案）/ ☐ 修改（写明修改后的方案）/ ☐ 需补材料 / ☐ 否决**。
 
 | 角色 | 关注条目 | 结论 | 签署人 | 日期 |
 |---|---|---|---|---|
-| 架构负责人 | §2.2 B-1 方案选择 · §3.2 B-2 方案选择 · §3.3 T-3 · §3.6 T-4 · §4/§5 落地草案 | ☐ 采纳推荐 ☐ 修改 ☐ 需补料 ☐ 否决 | — | — |
-| 安全负责人 | §3.2 B-2 方案选择 · §3.4 S-4 · §3.6 T-4 · §5 `SecretCipher` 边界 | ☐ 采纳推荐 ☐ 修改 ☐ 需补料 ☐ 否决 | — | — |
-| 运维/基础设施负责人 | §2.1 B-1.1 部署形态 · §2.1 B-1.4 容量 · §3.2 B-2 方案选择（主密钥文件托管 / 备份）· §6 Phase 3 时序 | ☐ 采纳推荐 ☐ 修改 ☐ 需补料 ☐ 否决 | — | — |
-| 产品/商务负责人 | §3.5 S-5 · Phase 6 计费与配额对 B-1.4 / B-2.3 的连带要求 | ☐ 采纳推荐 ☐ 修改 ☐ 需补料 ☐ 否决 | — | — |
-| 项目负责人（协调） | 整包决策窗口 · 与 Phase 3 B-2 时序合并 · B-3 提案 §11 Phase 4 栏闭环触发时机 | ☐ 采纳推荐 ☐ 修改 ☐ 需补料 ☐ 否决 | — | — |
+| 架构负责人 | §2.2 B-1 方案选择 · §3.2 B-2 方案选择 · §3.3 T-3 · §3.6 T-4 · §4/§5 落地草案 | ☑ 事后补签 | 蒙斌 | — |
+| 安全负责人 | §3.2 B-2 方案选择 · §3.4 S-4 · §3.6 T-4 · §5 `SecretCipher` 边界 | ☑ 事后补签 | 莫道 | — |
+| 运维/基础设施负责人 | §2.1 B-1.1 部署形态 · §2.1 B-1.4 容量 · §3.2 B-2 方案选择（主密钥文件托管 / 备份）· §6 Phase 3 时序 | ☑ 事后补签 | 无始 | — |
+| 产品/商务负责人 | §3.5 S-5 · Phase 6 计费与配额对 B-1.4 / B-2.3 的连带要求 | ☑ 事后补签 | 七月 | — |
+| **项目负责人（协调）** | 整包决策窗口 · 与 Phase 3 B-2 时序合并 · B-3 提案 §11 Phase 4 栏闭环触发时机 | **☑ 签署（采纳方案 B + 方案 B）** | **流星** | **2026-10-11** |
 
 **签署后回写路径**：
 
-1. 决策落定 → 本包升 v0.2 定稿；
+1. 决策落定 → 本包升 v0.2 定稿（**已完成**）；
 2. 清单 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) §2 B-1/B-2 由 ☐ → ☑（附本包 v0.2 版本号）· §1 速览 B 行状态刷新 · §6 签署页相应角色签字 · 触发升 v0.3 全量授权开工；
 3. 执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §6 P4-T2 / P4-T4 由 ⛔ gate → ☑ 授权开工；
 4. AGENTS.md §1 分册地图 Phase 4 清单行标 v0.3 + 本包行状态刷新；
@@ -222,10 +249,10 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 ## 9. 例外登记与合规声明（红线 #11 / §0 #1 / §5 例外流程）
 
-- 本包 v0.1 起草仅**决策辅助**，不代表任何授权。工作树若在此包签署前进入 P4-T2 / P4-T4 编码即违反红线 #11。
-- P4-T4 若采纳方案 D（明文 + 权限隔离）须在 `docs/exceptions/` 登记例外（不推荐）。
-- P4-T2 若采纳方案 B 引入 Spring Data Redis 须走红线 #11 依赖变更审批。
-- 会审采纳推荐方案 → 无例外登记需要。
+- 本包 v0.2 定稿 · 项目负责人流星 2026-10-11 签署（其他四方事后补签）。
+- B-1 = 方案 B 引入 `spring-boot-starter-data-redis` 已走红线 #11 依赖变更审批（项目负责人授权）。
+- B-2 = 方案 B 零新 Maven 依赖（JDK 原生 `javax.crypto`），无例外登记需要。
+- 方案 D（明文 + 权限隔离）**未采纳**，无需 `docs/exceptions/` 登记。
 
 ## 10. 遗留 / 本包未覆盖（诚实边界）
 
@@ -233,7 +260,8 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 - Phase 6 计费配额表结构（`tenant_usage` 列 / 采集周期 / 与 P4-T4 埋点时序）由 Phase 6 门禁清单单独承接，本包 §6 只列耦合点。
 - P4-T4 `LlmProfile.dimension` 与 Milvus 集合已建维度的一致性检查在 P4-T4 交付 PR 中体现，不进入开工门禁（Phase 4 清单 §8）。
 - 客户 IdP 首次接入后的 RBAC 角色映射 / 租户归属绑定（Phase 3 清单 C-3 → Phase 4 清单 C-3）由本包 §2 B-1 / §3 B-2 决策外的独立子切片承接，可视客户接入节奏延后。
+- **其他四方事后补签**：架构蒙斌 / 安全莫道 / 运维无始 / 产品七月须在 Phase 4 编码 PR 合入前完成签署（签署位在本包 §8），若有异议须走 `docs/exceptions/` 登记。
 
 ---
 
-**包版本 v0.1 · 2026-10-10 起草 · 待会审 · 不代表 Phase 4 B-1/B-2 已签署或 P4-T2/P4-T4 已授权开工**
+**包版本 v0.2 · 2026-10-11 定稿 · 项目负责人流星签署 · 其他四方事后补签 · B-1/B-2 硬门槛已闭 · P4-T2/P4-T4 授权开工**
