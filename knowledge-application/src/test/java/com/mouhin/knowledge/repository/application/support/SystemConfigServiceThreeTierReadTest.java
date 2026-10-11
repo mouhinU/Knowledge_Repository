@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import java.util.HashMap;
@@ -79,7 +80,7 @@ class SystemConfigServiceThreeTierReadTest {
     @BeforeEach
     void setUp() {
         gateway = mock(SystemConfigGateway.class);
-        service = new SystemConfigService(gateway);
+        service = new SystemConfigService(gateway, mock(ConfigInvalidationPublisher.class), 300L);
         backend.clear();
         seed("default", PLATFORM_ONLY_KEY, "platform-value");
         seed("default", BOTH_KEY, "platform-both-value");

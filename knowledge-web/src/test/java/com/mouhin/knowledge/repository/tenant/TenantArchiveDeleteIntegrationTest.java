@@ -20,6 +20,7 @@ import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.infrastructure.observability.DbPlatformAuditLog;
@@ -120,6 +121,12 @@ class TenantArchiveDeleteIntegrationTest {
         @Bean
         VectorStoreGateway vectorStoreGateway() {
             return mock(VectorStoreGateway.class);
+        }
+
+        /** P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。 */
+        @Bean
+        ConfigInvalidationPublisher configInvalidationPublisher() {
+            return mock(ConfigInvalidationPublisher.class);
         }
     }
 

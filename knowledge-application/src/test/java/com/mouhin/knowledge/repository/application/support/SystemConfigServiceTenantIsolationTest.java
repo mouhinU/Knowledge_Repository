@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import java.util.List;
@@ -53,7 +54,7 @@ class SystemConfigServiceTenantIsolationTest {
     @BeforeEach
     void setUp() {
         gateway = mock(SystemConfigGateway.class);
-        service = new SystemConfigService(gateway);
+        service = new SystemConfigService(gateway, mock(ConfigInvalidationPublisher.class), 300L);
         backend = new java.util.HashMap<>();
         backend.put("acme", "acme-value");
         backend.put("acme2", "acme2-value");

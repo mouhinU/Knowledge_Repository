@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V30 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V31 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V30）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 30;
+    /** 迁移脚本总数（V1..V31）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 31;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -58,9 +58,9 @@ class FlywayMigrationSmokeTest {
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
         assertEquals(
-                "30",
+                "31",
                 current.getVersion().getVersion(),
-                "最终版本应为 V30（P4-T3 kb_extraction_cache 租户内化）");
+                "最终版本应为 V31（P4-T4 sys_tenant_llm_profile per-tenant LLM 配置）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -558,6 +558,45 @@ class FlywayMigrationSmokeTest {
                     "V30 切换后旧全局唯一索引 uk_extraction_cache_key 应已不存在（残留列="
                             + legacyCacheUkColCount
                             + "）");
+
+            // 抽查 V31（P4-T4 per-tenant LLM 配置）：新表 sys_tenant_llm_profile 存在
+            boolean hasLlmProfile = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_llm_profile'")) {
+                assertTrue(rs.next());
+                hasLlmProfile = rs.getInt(1) > 0;
+            }
+            assertTrue(hasLlmProfile, "V31 表缺失 (sys_tenant_llm_profile)");
+
+            // 抽查 V31 关键列
+            List<String> llmProfileCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'sys_tenant_llm_profile' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('tenant_id','api_key','base_url','model','embedding_model','dimension')")) {
+                while (rs.next()) {
+                    llmProfileCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    llmProfileCols.contains("tenant_id"),
+                    "V31 列缺失 (sys_tenant_llm_profile.tenant_id)");
+            assertTrue(
+                    llmProfileCols.contains("api_key"), "V31 列缺失 (sys_tenant_llm_profile.api_key)");
+            assertTrue(
+                    llmProfileCols.contains("base_url"),
+                    "V31 列缺失 (sys_tenant_llm_profile.base_url)");
+            assertTrue(llmProfileCols.contains("model"), "V31 列缺失 (sys_tenant_llm_profile.model)");
+            assertTrue(
+                    llmProfileCols.contains("embedding_model"),
+                    "V31 列缺失 (sys_tenant_llm_profile.embedding_model)");
+            assertTrue(
+                    llmProfileCols.contains("dimension"),
+                    "V31 列缺失 (sys_tenant_llm_profile.dimension)");
         }
     }
 }

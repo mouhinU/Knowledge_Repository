@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import java.util.Optional;
@@ -32,8 +33,12 @@ class UpdateSystemConfigCmdExeTest {
     private static final String KNOWN_KEY = "exam.quality-score-threshold";
 
     private final SystemConfigGateway systemConfigGateway = mock(SystemConfigGateway.class);
+    private final ConfigInvalidationPublisher configInvalidationPublisher =
+            mock(ConfigInvalidationPublisher.class);
     private final UpdateSystemConfigCmdExe exe =
-            new UpdateSystemConfigCmdExe(new SystemConfigService(systemConfigGateway));
+            new UpdateSystemConfigCmdExe(
+                    new SystemConfigService(
+                            systemConfigGateway, configInvalidationPublisher, 300L));
 
     private SystemConfig existing(String key, String value, Boolean editable) {
         SystemConfig config = new SystemConfig();

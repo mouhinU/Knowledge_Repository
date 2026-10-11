@@ -2,12 +2,14 @@ package com.mouhin.knowledge.repository.tenant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import com.mouhin.knowledge.repository.application.executor.platform.TenantResumeCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantSuspendCmdExe;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
@@ -23,6 +25,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -81,7 +84,14 @@ class TenantSuspendResumeIntegrationTest {
         TenantSuspendCmdExe.class,
         TenantResumeCmdExe.class
     })
-    static class TestConfig {}
+    static class TestConfig {
+
+        /** P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。 */
+        @Bean
+        ConfigInvalidationPublisher configInvalidationPublisher() {
+            return mock(ConfigInvalidationPublisher.class);
+        }
+    }
 
     @Autowired private TenantGateway tenantGateway;
     @Autowired private TenantDirectory tenantDirectory;
