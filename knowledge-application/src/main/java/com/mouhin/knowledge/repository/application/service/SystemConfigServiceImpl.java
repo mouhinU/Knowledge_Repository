@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.application.executor.system.InvalidateConfigCacheCmdExe;
 import com.mouhin.knowledge.repository.application.executor.system.ListSystemConfigsQryExe;
 import com.mouhin.knowledge.repository.application.executor.system.SystemStatusQryExe;
 import com.mouhin.knowledge.repository.application.executor.system.UpdateSystemConfigCmdExe;
@@ -21,14 +22,17 @@ public class SystemConfigServiceImpl implements SystemConfigServiceI {
     private final SystemStatusQryExe systemStatusQryExe;
     private final ListSystemConfigsQryExe listSystemConfigsQryExe;
     private final UpdateSystemConfigCmdExe updateSystemConfigCmdExe;
+    private final InvalidateConfigCacheCmdExe invalidateConfigCacheCmdExe;
 
     public SystemConfigServiceImpl(
             SystemStatusQryExe systemStatusQryExe,
             ListSystemConfigsQryExe listSystemConfigsQryExe,
-            UpdateSystemConfigCmdExe updateSystemConfigCmdExe) {
+            UpdateSystemConfigCmdExe updateSystemConfigCmdExe,
+            InvalidateConfigCacheCmdExe invalidateConfigCacheCmdExe) {
         this.systemStatusQryExe = systemStatusQryExe;
         this.listSystemConfigsQryExe = listSystemConfigsQryExe;
         this.updateSystemConfigCmdExe = updateSystemConfigCmdExe;
+        this.invalidateConfigCacheCmdExe = invalidateConfigCacheCmdExe;
     }
 
     @Override
@@ -44,5 +48,10 @@ public class SystemConfigServiceImpl implements SystemConfigServiceI {
     @Override
     public void updateConfig(String configKey, String configValue) {
         updateSystemConfigCmdExe.execute(configKey, configValue);
+    }
+
+    @Override
+    public void invalidateTenantConfig(String tenantKey) {
+        invalidateConfigCacheCmdExe.execute(tenantKey);
     }
 }

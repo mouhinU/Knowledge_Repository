@@ -20,4 +20,7 @@ public interface SystemConfigServiceI {
 
     /** 更新单个配置值 */
     void updateConfig(String configKey, String configValue);
+
+    /** 手工失效指定租户的配置缓存（P4-T2 · 管理端点，仅本租户作用域） */
+    void invalidateTenantConfig(String tenantKey);
 }

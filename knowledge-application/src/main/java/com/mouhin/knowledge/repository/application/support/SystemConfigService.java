@@ -1,15 +1,21 @@
 package com.mouhin.knowledge.repository.application.support;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
+import com.mouhin.knowledge.repository.domain.event.ConfigCacheInvalidationEvent;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ConfigCacheKey;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
@@ -62,6 +68,7 @@ public class SystemConfigService {
     private static final String PLATFORM_TENANT_KEY = TenantContext.DEFAULT_TENANT_KEY;
 
     private final SystemConfigGateway systemConfigGateway;
+    private final ConfigInvalidationPublisher configInvalidationPublisher;
 
     /** 内存缓存：{@link ConfigCacheKey}{@code (tenantKey, configKey)} → SystemConfig */
     private final Map<ConfigCacheKey, SystemConfig> cache = new ConcurrentHashMap<>();
@@ -69,8 +76,19 @@ public class SystemConfigService {
     /** 已全量加载的租户集合（取代旧的全局 cacheLoaded 布尔位）。 */
     private final Set<String> loadedTenants = ConcurrentHashMap.newKeySet();
 
-    public SystemConfigService(SystemConfigGateway systemConfigGateway) {
+    /** 每个租户缓存最后刷新时间戳（P4-T2 TTL 兜底用）。 */
+    private final Map<String, Instant> lastRefreshAt = new ConcurrentHashMap<>();
+
+    /** TTL 窗口：Redis pub/sub 即时失效的二级兜底，默认 300s（{@code knowledge.config.cache.ttl-seconds}）。 */
+    private final Duration ttl;
+
+    public SystemConfigService(
+            SystemConfigGateway systemConfigGateway,
+            ConfigInvalidationPublisher configInvalidationPublisher,
+            @Value("${knowledge.config.cache.ttl-seconds:300}") long ttlSeconds) {
         this.systemConfigGateway = systemConfigGateway;
+        this.configInvalidationPublisher = configInvalidationPublisher;
+        this.ttl = Duration.ofSeconds(ttlSeconds);
     }
 
     // ---- 读取（三层降级） ----
@@ -135,6 +153,13 @@ public class SystemConfigService {
      * @return 该租户下命中的实体；DB 与缓存均 miss 返回 {@link Optional#empty()}
      */
     private Optional<SystemConfig> lookupUnderTenant(String tenantKey, String configKey) {
+        // P4-T2 TTL 兜底：超过 TTL 窗口的缓存视为过期，强制重新加载
+        Instant refreshed = lastRefreshAt.get(tenantKey);
+        if (refreshed != null && Duration.between(refreshed, Instant.now()).compareTo(ttl) > 0) {
+            log.debug(
+                    "[SystemConfig] TTL 过期，强制刷新: tenant={}, ttl={}s", tenantKey, ttl.getSeconds());
+            evictTenant(tenantKey);
+        }
         ensureCacheLoaded(tenantKey);
         ConfigCacheKey cacheKey = ConfigCacheKey.of(tenantKey, configKey);
         // Tier .a: 内存缓存
@@ -191,12 +216,14 @@ public class SystemConfigService {
             cache.put(ConfigCacheKey.of(tenantKey, configKey), config);
         }
         log.info("[SystemConfig] 配置已更新: tenant={}, key={}", tenantKey, configKey);
+        configInvalidationPublisher.publish(tenantKey, configKey);
     }
 
     /** 手动刷新缓存（管理动作，跨所有租户一次性清空并触发下次按需重建）。 */
     public void refreshCache() {
         cache.clear();
         loadedTenants.clear();
+        lastRefreshAt.clear();
         log.info("[SystemConfig] 全部租户缓存已清空，下次访问按需重建");
     }
 
@@ -207,7 +234,31 @@ public class SystemConfigService {
         }
         cache.keySet().removeIf(k -> k.tenantKey().equals(tenantKey));
         loadedTenants.remove(tenantKey);
+        lastRefreshAt.remove(tenantKey);
         log.info("[SystemConfig] 已清空租户缓存: tenant={}", tenantKey);
+    }
+
+    /**
+     * 手工失效指定租户的配置缓存（P4-T2 · 管理端点调用）。
+     *
+     * <p>先清除本实例进程内缓存，再通过 {@link ConfigInvalidationPublisher} 广播到其他实例； Redis 缺席时 {@code
+     * NoopConfigInvalidationPublisher} 仅打 WARN，其他实例依赖 TTL 兜底。
+     */
+    public void invalidateTenant(String tenantKey) {
+        evictTenant(tenantKey);
+        configInvalidationPublisher.publish(tenantKey, "*");
+        log.info("[SystemConfig] 手工失效已广播: tenant={}", tenantKey);
+    }
+
+    /**
+     * 跨实例配置缓存失效事件监听（P4-T2）。
+     *
+     * <p>由 {@code RedisConfigInvalidationListener} 收到 Redis pub/sub 消息后发布到 Spring 事件总线；
+     * 本方法清除对应租户的进程内缓存，保证多实例写入后 30s 内一致（Redis pub/sub 实际可达 &lt;1s，30s 为运维缓冲）。
+     */
+    @EventListener
+    public void onConfigCacheInvalidation(ConfigCacheInvalidationEvent event) {
+        evictTenant(event.tenantKey());
     }
 
     // ---- 内部 ----
@@ -230,6 +281,7 @@ public class SystemConfigService {
                 cache.put(ConfigCacheKey.of(tenantKey, c.getConfigKey()), c);
             }
             loadedTenants.add(tenantKey);
+            lastRefreshAt.put(tenantKey, Instant.now());
             log.debug("[SystemConfig] 租户缓存加载完成: tenant={}, entries={}", tenantKey, all.size());
         }
     }

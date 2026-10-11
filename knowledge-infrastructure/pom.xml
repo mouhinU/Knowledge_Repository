@@ -27,6 +27,12 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- P4-T2: Spring Data Redis（Lettuce 默认客户端，用于 sys_config 分布式缓存失效 pub/sub） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- LangChain4j Core -->
         <dependency>
             <groupId>dev.langchain4j</groupId>

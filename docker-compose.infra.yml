@@ -100,6 +100,19 @@ services:
     networks:
       - knowledge-net
 
+  # ==================== Redis（P4-T2 · B-1 方案 B）===================
+  # 单机部署，Phase 4/5 共用实例。纯缓存用途，无持久化（RDB/AOF 均关闭）。
+  # 生产部署建议开启 RDB every 1h + 接入 Prometheus（INFO memory + INFO keyspace）。
+  redis:
+    image: redis:7-alpine
+    container_name: knowledge-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - knowledge-net
+
 networks:
   knowledge-net:
     driver: bridge

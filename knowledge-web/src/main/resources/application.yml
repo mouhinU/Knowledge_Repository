@@ -92,6 +92,12 @@ spring:
       name: ${SPRING_SECURITY_USER:admin}
       password: ${SPRING_SECURITY_PASSWORD:admin}
 
+  # ==================== Redis（P4-T2 · B-1 方案 B）====================
+  data:
+    redis:
+      host: ${KNOWLEDGE_REDIS_HOST:localhost}
+      port: ${KNOWLEDGE_REDIS_PORT:6379}
+
 # ==================== MyBatis-Plus ====================
 mybatis-plus:
   configuration:
@@ -137,6 +143,27 @@ knowledge:
       jwks-uri: ${KNOWLEDGE_PLATFORM_OIDC_JWKS_URI:}
       jwks-cache-ttl-seconds: ${KNOWLEDGE_PLATFORM_OIDC_JWKS_CACHE_TTL_SECONDS:300}
       clock-skew-seconds: ${KNOWLEDGE_PLATFORM_OIDC_CLOCK_SKEW_SECONDS:60}
+
+  # ---------- Redis（P4-T2 · B-1 方案 B）----------
+  # 单机部署，Phase 4/5 共用实例。knowledge.redis.enabled=false 时 Redis 相关 bean 不装配，
+  # sys_config 缓存退化到 TTL 300s 兜底 + 手工失效端点（S-2 降级路径）。
+  redis:
+    enabled: ${KNOWLEDGE_REDIS_ENABLED:true}
+
+  # ---------- sys_config 缓存 TTL（P4-T2 · S-2）----------
+  # Redis pub/sub 为主路径（即时失效），TTL 为二级兜底（Redis 缺席 / 消息丢失时最终一致性保障）。
+  config:
+    cache:
+      ttl-seconds: ${KNOWLEDGE_CONFIG_CACHE_TTL_SECONDS:300}
+
+  # ---------- 密钥保管（P4-T4 · B-2 方案 B · 四闸门之一）----------
+  # mode={local,kms,vault,none}，默认 none（明文透传 + 启动 WARN）。
+  # local 模式：AES-256-GCM JDK 原生 javax.crypto，主密钥从 master-key-path 文件一次性加载。
+  # 三闸门全关时（saas=false + platform=false + cipher.mode=none）行为零变化。
+  secret:
+    cipher:
+      mode: ${KNOWLEDGE_SECRET_CIPHER_MODE:none}
+    master-key-path: ${KNOWLEDGE_SECRET_MASTER_KEY_PATH:/var/run/secrets/kr/master.key}
 
   # ---------- Milvus 向量数据库 ----------
   milvus:
