@@ -29,6 +29,11 @@ services:
       # Milvus（共用服务，宿主机端口 19530）
       MILVUS_HOST: host.docker.internal
       MILVUS_PORT: 19530
+      # Redis（P4-T2 · B-1 方案 B，宿主机端口 6379）
+      KNOWLEDGE_REDIS_HOST: host.docker.internal
+      KNOWLEDGE_REDIS_PORT: "6379"
+      KNOWLEDGE_REDIS_ENABLED: "true"
+      KNOWLEDGE_CONFIG_CACHE_TTL_SECONDS: "300"
       # ==================== 多模型 per-role 环境变量（Phase R1）====================
       # 对话角色（DeepSeek 云端，OpenAI 兼容）：密钥由 LLM_CHAT_API_KEY 单独注入，独立轮换
       LLM_CHAT_PROVIDER: deepseek
