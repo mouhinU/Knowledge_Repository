@@ -26,6 +26,29 @@
         try { sessionStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) { /* ignore */ }
     }
 
+    /* 从 JWT payload 解析 tenantKey（X-T5 前端租户解析）。
+       仅做 base64url 解码 + JSON.parse，不验签——签名校验由后端 AdminTokenAuthFilter 负责。
+       解析失败静默返回 null，下游回退到 JWT claim / 子域名解析。 */
+    function resolveTenantFromToken() {
+        var tok = getToken();
+        if (!tok) return null;
+        var parts = tok.split('.');
+        if (parts.length < 2) return null;
+        try {
+            var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            var pad = b64.length % 4;
+            if (pad === 2) b64 += '=='; else if (pad === 3) b64 += '=';
+            var json = decodeURIComponent(
+                atob(b64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join('')
+            );
+            var payload = JSON.parse(json);
+            var tk = payload.tenantKey || payload.tenant_id;
+            return (typeof tk === 'string' && tk.length > 0) ? tk : null;
+        } catch (e) { return null; }
+    }
+
     function isLoginPage() {
         return location.pathname.indexOf(LOGIN_PATH) !== -1;
     }
@@ -80,6 +103,9 @@
                 if (tok) {
                     const headers = mergeHeaders(input, init);
                     headers.set('X-Admin-Token', tok);
+                    // X-T5：显式声明租户，与后端 JWT claim 来源交叉校验（冲突即拒）。
+                    var tenantKey = resolveTenantFromToken();
+                    if (tenantKey) { headers.set('X-Tenant-Id', tenantKey); }
                     init = Object.assign({}, init, { headers: headers });
                 }
             }
@@ -175,7 +201,8 @@
         TOKEN_KEY: AUTH_TOKEN_KEY,
         LOGIN_PATH: LOGIN_PATH,
         getToken: getToken, setToken: setToken, clearToken: clearToken,
-        isLoginPage: isLoginPage, redirectToLogin: redirectToLogin, logout: logout
+        isLoginPage: isLoginPage, redirectToLogin: redirectToLogin, logout: logout,
+        resolveTenantKey: resolveTenantFromToken
     };
 
 

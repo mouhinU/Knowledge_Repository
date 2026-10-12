@@ -25,6 +25,9 @@ management:
 spring:
   application:
     name: knowledge-repository
+  threads:
+    virtual:
+      enabled: true    # R1/R4：Tomcat 请求派发 + @Scheduled 使用虚拟线程（JDK 21 GA）
 
   # ==================== 数据源配置 ====================
   datasource:

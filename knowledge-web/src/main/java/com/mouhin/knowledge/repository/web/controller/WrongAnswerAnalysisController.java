@@ -1,13 +1,16 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
+import com.mouhin.knowledge.repository.application.util.TenantContextPropagatingExecutor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
+import jakarta.annotation.PreDestroy;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -31,7 +34,7 @@ public class WrongAnswerAnalysisController {
 
     private final BlackboardAgent wrongAnswerAnalyzerAgent;
     private final BlackboardProgressStore progressStore;
-    private final ExecutorService analysisExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService analysisExecutor;
 
     public WrongAnswerAnalysisController(
             @Qualifier("wrongAnswerAnalyzerAgent") BlackboardAgent wrongAnswerAnalyzerAgent,
@@ -39,6 +42,22 @@ public class WrongAnswerAnalysisController {
             AgentDecoratorRegistrar registrar) {
         this.wrongAnswerAnalyzerAgent = registrar.wrap(wrongAnswerAnalyzerAgent);
         this.progressStore = progressStore;
+        // R1/R4：虚拟线程 + 租户上下文透传（替代原 newCachedThreadPool 无界平台线程池）。
+        this.analysisExecutor =
+                new TenantContextPropagatingExecutor(Executors.newVirtualThreadPerTaskExecutor());
+    }
+
+    @PreDestroy
+    void shutdown() {
+        analysisExecutor.shutdown();
+        try {
+            if (!analysisExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+                analysisExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            analysisExecutor.shutdownNow();
+        }
     }
 
     /** SSE 进度流（前端先建立连接，再 POST 触发分析） */

@@ -1,12 +1,12 @@
 # Knowledge Repository 项目能力总结
 
-> 最近一次整理：2026-10-09。本文以当前代码（Flyway **V29**，5 模块 537 主 Java / 173 测试 / 20+ 数据表）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、PDF 视觉增强、LLM 韧性护栏、试卷作废级联、管理/学生端鉴权、**SaaS 多租户 Phase 1–3 交付链**（受 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false` + `knowledge.platform.oidc.enabled=false` 三闸门默认关闭门控，生产态零装配）等全部已落地能力。架构流程图见 [docs/architecture-diagram.html](docs/architecture-diagram.html)。
+> 最近一次整理：2026-10-12。本文以当前代码（Flyway **V33**，5 模块 537 主 Java / 173 测试 / 24+ 数据表）为准，覆盖知识库 RAG、AI 出卷、在线考试、评分与错题本、文档配图、PDF 视觉增强、LLM 韧性护栏、试卷作废级联、管理/学生端鉴权、**SaaS 多租户 Phase 1–6 全链交付**（受 `knowledge.saas.enabled=false` + `knowledge.platform.enabled=false` + `knowledge.platform.oidc.enabled=false` + `knowledge.saas.quota.enabled=false` 四闸门默认关闭门控，生产态零装配）等全部已落地能力。架构流程图见 [docs/architecture-diagram.html](docs/architecture-diagram.html)。
 
 ## 项目概述
 
 Knowledge Repository 最初是一个基于 LangChain4j + Milvus 的 RAG 知识库系统，现已演进为面向教育场景的一体化平台：在文档摄入、向量化、语义检索与权限隔离的基础上，扩展出多 Agent 黑板协作的 **AI 出卷流水线**、**出卷即切分落库**、**试卷校对与确定性内容门禁**、**试卷作废级联**、**学生在线考试**、**自动/人工评分**、**错题本**、**看图题配图**、**PDF 混合视觉解析（Phase A2/B/C/D）**、**LLM 三段式角色（chat/embedding/vision）+ Resilience4j 熔断/重试护栏**、**运行时特性开关（sys_config）**、以及管理端与学生端的 **无状态 JWT 鉴权**，并通过 **SSE** 全程实时推送生成/入库/评分进度。
 
-在既有能力之上，正按变更提案 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md) 与执行计划 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) 推进 **SaaS 化改造（混合多租户）**：**Phase 1**（地基 + 迁移波 + 脊柱串联 P1-T1~T10）与 **Phase 2**（向量隔离 P2-T1~T5 · S-2=方案 b LangChain4j 单 store + `metadata.tenant_id` JSON 谓词）**已交付归档**，**Phase 3**（生命周期 + SILO 引入）**部分授权开工、P3-T1~T4 + P3-T5 Archive&Delete 子切片 + P3-T7 OIDC + P3-T7 邀请式设密回访子切片已交付**（详见「SaaS 多租户 · Phase 1–3 交付现状」节）。所有 SaaS 代码在双/三门控下默认**不装配、不触碰数据**，现网行为零变化。
+在既有能力之上，正按变更提案 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md) 与执行计划 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md) 推进 **SaaS 化改造（混合多租户）**：**Phase 1**（地基 + 迁移波 + 脊柱串联 P1-T1~T10）与 **Phase 2**（向量隔离 P2-T1~T5 · S-2=方案 b LangChain4j 单 store + `metadata.tenant_id` JSON 谓词）**已交付归档**，**Phase 3**（生命周期 + SILO 引入）**P3-T1~T4 + P3-T5 Archive&Delete 子切片 + P3-T6 SILO schema 巡检 runner + P3-T7 OIDC + P3-T7 邀请式设密回访子切片已交付**，**Phase 4**（配置隔离与密钥保管）**全量交付**，**Phase 5**（对象存储与水平扩展）**全量交付**，**Phase 6**（配额与计费）**全量交付**（详见「SaaS 多租户 · Phase 1–6 交付现状」节）。所有 SaaS 代码在四闸门门控下默认**不装配、不触碰数据**，现网行为零变化。
 
 **技术栈：** Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3.0.4 / Apache Tika 3.1.0 / Apache POI 5.3.0 / Resilience4j 2.2.0 / H2 + MySQL 8 / Flyway / Lombok 1.18.36 / JDK HmacSHA256 (JWT)。
 
@@ -35,7 +35,7 @@ knowledge-infrastructure  infra 基础设施层   Gateway 实现、Mapper/DO、M
 | knowledge-application | 172 | 99 | 15 特性包 Executor 用例编排（原 14 + **platform** P3-T1/T2/T3/T5：TenantCreate/TenantList/TenantGet/TenantProvision/TenantSuspend/TenantResume/ArchiveTenant/ConfirmTenantDeletion/TenantDeletionPreview 九个 CmdExe/QryExe；**+ P3-T7 邀请式设密回访 2 个** `InviteStatusQryExe`（adminauth 包）/`ReissueInviteCmdExe`（platform 包））+ **`ProvisioningStateMachine`**（P3-T2 状态机）+ **`TenantDeletionReconciler`**（P3-T5 幂等硬删续跑）+ **`TenantContextPropagatingExecutor`**（P1-T7 异步上下文透传）+ `TenantContextHolder`（P1-T5 ThreadLocal 租户上下文）+ 16 `*ServiceImpl` 分发（含 `PlatformTenantServiceImpl`） |
 | knowledge-infrastructure | 156 | 44 | **20 GatewayImpl**（原 15 + `TenantGatewayImpl`/`TenantProvisionStepGatewayImpl`/`TenantDeleteApprovalGatewayImpl`/`TenantDeletionStepGatewayImpl`/`TenantDataPurgeGatewayImpl` + **`PlatformIdpTokenGatewayImpl`** P3-T7）+ 21 DO + 20 Mapper（含 `TenantPurgeMapper` 步骤级幂等硬删）+ 13 黑板 Agent + 11 解析策略 + 6 LLM 韧性封装 + **`security/oidc/` 包 4 类**（`JwkSetProvider`/`HttpJwkSetProvider`/`RsaJwk`/`PlatformIdpTokenGatewayImpl`，JDK `Signature`+`KeyFactory`+`java.net.http.HttpClient`，**零新依赖**）+ **`tenant/KnowledgeTenantLineHandler`+`TenantIdResolver`**（P1-T3/T4 MyBatis-Plus 拦截器）+ Milvus/Embedding/JWT/observability |
 | knowledge-web | 32 | 16 | 19 Controller（含 **`PlatformTenantController`** P3-T1 `/api/platform/tenants/**` **11 端点**（P3-T7 回访追加 `POST /{tenantKey}/invites/reissue`）、**`AdminAuthController`** P3-T7 回访追加 `GET /api/admin/auth/invite-status`）、**`PlatformTokenAuthFilter`**（P3-T4 平台端独立鉴权 · P3-T7 追加 IdP token RS256/JWKS 校验分支）、**`TenantResolverFilter`**（P1-T5 请求头解析租户上下文）、`AdminTokenAuthFilter`（P3-T7 回访 `PUBLIC_PREFIXES` 追加 `invite-status`）、`HtmlCacheBusterFilter`、3 类 SseEmitter Store、WebSecurityConfig、全局异常、静态管理台（含 `set-password.html` P3-T7 四态引导 + 倒计时增强） |
-| **合计** | **537** | **173** | 710 个 Java 文件；另有 Flyway 迁移 **29** 个（V1–V29，含 P3-T5 `V29__tenant_archive_and_deletion.sql`） |
+| **合计** | **537** | **173** | 710 个 Java 文件；另有 Flyway 迁移 **33** 个（V1–V33，含 P4-T3 `V30__tenant_scope_extraction_cache.sql` · P4-T4 `V31__tenant_llm_profile.sql` · P6-T1 `V32__tenant_usage.sql` · P6-T2 `V33__tenant_plan_limit.sql`） |
 
 ---
 
@@ -113,17 +113,18 @@ LLM 连接治理拆成 **chat / embedding / vision 三个独立角色**（`knowl
 
 **韧性护栏（`infrastructure/llm/` · Phase R2）：** `LlmResilience` 集中装配 Resilience4j `CircuitBreaker` + `Retry`；`ResilientChatModel` / `ResilientEmbeddingModel` / `ResilientStreamingChatGateway` 三个装饰器包裹 LangChain4j 原生模型；per-role 熔断窗口独立（一端点抖动不殃及他角色）—— chat `sliding-window=20 / failure-rate=50% / slow-call=60s / wait=30s / half-open-calls=5`；chat **重试 max-attempts=3 指数退避 500ms × 2**；chat-stream **max-attempts=1**（重试会向已吐字的 UI 重复推送增量，仅保留熔断快速失败）；embedding max-attempts=2 / 200ms；vision max-attempts=2 / 300ms。配置项 `knowledge.llm.resilience.{chat|chat-stream|embedding|vision}` 全部 env 可覆盖。
 
-### 13. SaaS 多租户 · Phase 1–3 交付现状（受三闸门默认关闭门控）
+### 13. SaaS 多租户 · Phase 1–6 交付现状（受四闸门默认关闭门控）
 
-> 权威文档：变更提案 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md)（架构决策）· 可执行计划 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md)（Phase 0–6 任务清单）· Phase 2 生效基线 [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md)（v0.3 已交付归档）· Phase 3 开工门禁 [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md)（**v0.3 全量授权开工** · 2026-10-09 五方书面齐签）· 会审决策建议 [docs/saas-phase3-review-brief.md](docs/saas-phase3-review-brief.md)（v0.2 定稿，S-2/S-3/T-2/R1 四条建议已被采纳）· Phase 4 起草 [docs/saas-phase4-go-checklist.md](docs/saas-phase4-go-checklist.md)（v0.1 · 待会审，不代表开工授权）。
+> 权威文档：变更提案 [docs/saas-multi-tenant-proposal.md](docs/saas-multi-tenant-proposal.md)（架构决策）· 可执行计划 [docs/saas-multi-tenant-execution-plan.md](docs/saas-multi-tenant-execution-plan.md)（Phase 0–6 任务清单）· Phase 2 生效基线 [docs/saas-phase2-go-checklist.md](docs/saas-phase2-go-checklist.md)（v0.3 已交付归档）· Phase 3 开工门禁 [docs/saas-phase3-go-checklist.md](docs/saas-phase3-go-checklist.md)（**v0.3 全量授权开工** · 2026-10-09 五方书面齐签）· 会审决策建议 [docs/saas-phase3-review-brief.md](docs/saas-phase3-review-brief.md)（v0.2 定稿，S-2/S-3/T-2/R1 四条建议已被采纳）· Phase 4 门禁 [docs/saas-phase4-go-checklist.md](docs/saas-phase4-go-checklist.md)（**v0.4 全量交付** · 2026-10-12）· Phase 4 B-1/B-2 决策包 [docs/saas-phase4-b1-b2-decision-pack.md](docs/saas-phase4-b1-b2-decision-pack.md)（v0.3 交付回写）· 数据迁移总结 [docs/saas-migration-summary.md](docs/saas-migration-summary.md)（V23–V33 归档）· Phase 5 门禁 [docs/saas-phase5-go-checklist.md](docs/saas-phase5-go-checklist.md)（**v0.4 全量交付** · 2026-10-12）· Phase 6 门禁 [docs/saas-phase6-go-checklist.md](docs/saas-phase6-go-checklist.md)（**v0.2 全量交付** · 2026-10-12）。
 
-**三闸门默认全关（生产态零装配 / 零数据触碰）：**
+**四闸门默认全关（生产态零装配 / 零数据触碰）：**
 
 - `knowledge.saas.enabled=false` — 关闭整个 SaaS 脊柱（`TenantResolverFilter` / `KnowledgeTenantLineHandler` MyBatis-Plus 拦截器 / `PlatformTenantController` / `ProvisioningStateMachine` / `TenantDeletionReconciler` 全部不注册为 Bean，SQL 不注入 `tenant_id`）。
 - `knowledge.platform.enabled=false` — 关闭平台管理员端点（`/api/platform/**` + `PlatformTokenAuthFilter`）。
 - `knowledge.platform.oidc.enabled=false` — 关闭企业 IdP OIDC 校验分支（`PlatformIdpTokenGatewayImpl` / `HttpJwkSetProvider` 不装配；即便平台端点已开仍走本地平台 JWT）。
+- `knowledge.saas.quota.enabled=false` — 关闭配额与计费拦截（`QuotaGuard` / `TenantUsageRecorder` / `PlatformBillingController` / `PlatformLimitController` 不装配；业务 API 无配额检查）。
 
-三闸门独立，任一单独打开都不会绕过其它两道；全关时启动日志、健康端点、静态管理页、考生端与旧单租户业务链路完全等同 Phase 0 基线。
+四闸门独立，任一单独打开都不会绕过其它三道；全关时启动日志、健康端点、静态管理页、考生端与旧单租户业务链路完全等同 Phase 0 基线。
 
 **Phase 1（地基 · 已交付归档）**：`P1-T1` Flyway `V23–V26` 建 `sys_tenant`/`sys_tenant_placement` + 15 张业务表加 `tenant_id NOT NULL DEFAULT 1` + V25 六张复合唯一切换 + V26 回填存量行为 `tenant_id=1`；`P1-T2` 域建模 `Tenant` 实体 + `TenantKey` 值对象 + `TenantContext`；`P1-T3` MyBatis-Plus `KnowledgeTenantLineHandler` + `P1-T4` `TenantIdResolver`；`P1-T5` `TenantContextHolder` ThreadLocal + `TenantResolverFilter`；`P1-T6` `TenantDirectory` domain 端口；`P1-T7` `TenantContextPropagatingExecutor` 异步上下文透传；`P1-T8` `TenantIgnoreHolder`（管理员旁路）；`P1-T9` 单测覆盖；`P1-T10` 规范回写。真实 MySQL 8 生产迁移冒烟全绿。
 
@@ -145,11 +146,39 @@ LLM 连接治理拆成 **chat / embedding / vision 三个独立角色**（`knowl
 - ⛔ **P3-T6 SILO Flyway 逐库 runner**（T-3=方案 A collection-only 语义）：遍历 SILO 集合跑 schema 对齐 —— **依赖 P3-T5 partition-key/SILO 落地的 `SiloCollectionAdmin` 骨架 + B-2 cluster 前置**；现网 `sys_tenant_placement` 恒 POOL 无任何 SILO 集合可枚举，空跑无意义。**用户 2026-10-09 明确选方案 A：严格持 gate 暂缓 P3-T6**。
 - ⏳ **P3-T7 IdP 首登绑定完整闭环**（P3-T3 邀请式设密 → IdP 首次登录绑定）：**落地页预检查 + 平台运维重签 + 前端四态引导子切片已交付**；**IdP 首登绑定 RBAC 角色映射 / 邀请码关联租户归属**未做，作为随客户 IdP 首次接入时按需排产的后续子切片。
 
-**Phase 4 起草中**：门禁清单 v0.1 已起草（17 项 B/S/T/C，覆盖 `sys_config` 读取顺序 + `ConfigCacheKey` / Redis pub/sub 分布式失效 / `kb_extraction_cache` 加租户维 / per-tenant LLM+embedding profile + `SecretCipher`），**待五方会审签署，不代表开工授权**。
+**Phase 4（配置隔离与密钥保管 · 全量交付）**：
 
-**红线遵守**：全程 `saas.enabled=false` + `platform.enabled=false`（+ `oidc.enabled=false`）三闸门默认关闭；生产 MySQL 8 已实跑 V21→V29 schema 校验全绿但业务默认租户 id=1 行为与 Phase 0 完全一致；每切片交付均触发全 reactor `./mvnw test` BUILD SUCCESS（P3-T7 邀请式设密回访子切片交付点 **1142** 用例 0 失败 0 错误 10 跳过），spotless + checkstyle 通过；无新增 Maven 依赖（红线 #11）；跨层依赖遵循 domain 端口 + infra GatewayImpl 反向实现。
+- `P4-T1` **`ConfigCacheKey(tenantKey, configKey)`** record 落 `domain/model/valueobject/`（T-2 定案方案 A）；`SystemConfigService` 三级读取顺序落码——**Tier 1 租户级 → Tier 2 平台级 `default` → Tier 3 `SystemConfigDefaults` 内置默认**；`PLATFORM_TENANT_KEY = TenantContext.DEFAULT_TENANT_KEY = "default"` 复用 V23 种子租户为平台锚；`lookupUnderTenant` helper + `TenantContext.callWithTenant` 作用域保护；`evictTenant` 兄弟前缀污染 bug 修复；`saas.enabled=false` 关闭态行为等价。配套 `SystemConfigServiceTenantIsolationTest` 4 例 + `SystemConfigServiceThreeTierReadTest` 13 例。
+- `P4-T2` **Redis pub/sub 分布式失效**：`ConfigInvalidationPublisher` 端口 + `RedisConfigInvalidationPublisher`/`NoopConfigInvalidationPublisher` 双驱动 + TTL 兜底（`knowledge.config.cache.ttl-seconds` 默认 300）；**AES-256-GCM 本地主密钥**（B-2 方案 B，JDK 原生 `javax.crypto` 零新依赖）。
+- `P4-T3` **V30 `kb_extraction_cache` 加租户维**：唯一键切 `(tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)` + `TenantLineInnerInterceptor` 自动追加，闭提案 G7 跨租户解析缓存泄漏；`IGNORE_TABLES` 移除 `kb_extraction_cache`。配套 `ExtractionCacheTenantScopeMigrationTest` 3 例 + `ExtractionCacheTenantIsolationIntegrationTest` 1 例。
+- `P4-T4` **V31 `sys_tenant_llm_profile`** + `TenantLlmProfileResolver` + `SecretCipher` domain 端口 + `LocalSecretCipher`/`NoopSecretCipher` 双驱动 + `KeyRotationCmdExe` 双人复核（走 P3-T5 审批令牌表模式）。
 
-**治理零漂移**：Phase 3 交付链在四份文档同步回写（AGENTS.md §1 分册地图 Phase 3 行 + §2 决策树 · execution-plan 头部状态戳与 §5 任务表 · phase3-go-checklist §1/§2/§4/§5/§7 · phase3-review-brief v0.2 定稿），版本戳 v0.3 保持（交付记录不 bump）；Phase 4 checklist v0.1 起草时同步扩展 AGENTS.md §1/§2 与 execution-plan §5 关联链接。
+四闸门新增 `knowledge.saas.quota.enabled=false` 默认 false；CI 扩至 4 job（build · unit-tests · config-isolation · tenant-isolation），远端 CI 全绿。
+
+**Phase 5（对象存储与水平扩展 · 全量交付）**：
+
+- `P5-T1` **`ObjectStorageGateway`** 端口 + `LocalObjectStorageGatewayImpl`（默认）/ `MinioObjectStorageGatewayImpl` 双驱动 + MinIO SDK 8.5.17 + `@Configuration + @Bean + @ConditionalOnProperty` 条件装配；对象存储路径含 `{tenantKey}` 前缀实现租户物理隔离。
+- `P5-T2` **`UploadSessionStore`** 端口 + `RedisUploadSessionStore`/`NoopUploadSessionStore` 双驱动，解决多副本部署下上传会话状态共享。
+- `P5-T3` **assetKey 租户校验**：`TenantLineInnerInterceptor` 自动追加 `tenant_id` 条件到 assetKey 查询 SQL，防止跨租户 assetKey 猜测。
+- `P5-T4` **compose 去固定化** + `docker-compose.scale.yml` Caddy 前置反向代理，支撑应用层水平扩展。
+- `P5-T5` **`DistributedLockGateway`** 端口 + `TenantGateway.listActiveByCursor` 租户游标遍历 + `ExamGradingScheduler` 租户感知改造；`saas.enabled=false` 时 `NoopDistributedLockGateway` 占位。
+
+Phase 5 退出条件达成（2 副本无冲突 · `ConcurrentHashMap.*upload` 零命中 · 对象存储路径含 `{tenantKey}` 前缀 · 定时任务分布式锁 + 租户游标分片），全 reactor `./mvnw test` 绿。
+
+**Phase 6（配额与计费 · 全量交付）**：
+
+- `P6-T1` **V32 `tenant_usage`** + `TenantUsageRecorder` 端口 + `TenantUsageRecorderImpl`/`NoopTenantUsageRecorder` 双驱动 + `UsageCapturingChatModelDecorator`/`UsageCapturingEmbeddingModelDecorator` @Primary 装饰器自动采集 + `UsageMetric` 白名单枚举（`CHAT_TOKENS`/`EMBEDDING_TOKENS`/`DOC_COUNT`/`STORAGE_BYTES`）。
+- `P6-T2` **V33 `tenant_plan_limit`** + `TenantPlanLimitGateway` + `TenantPlanLimit` VO + `QuotaPolicy` 枚举（`BLOCK`/`THROTTLE`/`ALERT`）+ `PlatformLimitController` CRUD。
+- `P6-T3` **`QuotaGuard`**（`@ConditionalOnProperty quota.enabled=true`）三策略 `BLOCK > THROTTLE > ALERT` + `QuotaExceededException` → 402 / `ThrottleRequiredException` → 429 + `GlobalExceptionHandler` 适配 + 6 CmdExe 集成（upload×3 + exam×2 + article×1）。
+- `P6-T4` **`PlatformBillingController`** CSV/JSON 导出 + `PlatformLimitController` GET/POST/DELETE。
+
+`knowledge.saas.quota.enabled` 默认 false，全 reactor BUILD SUCCESS，16 项 B/S/T/C 全项已落地。
+
+**X-T5 前端租户透传（已交付）**：`common.js` fetch 拦截器自动附加 `X-Tenant-Id` 请求头，前端根据当前登录上下文解析租户标识并透传至后端，配合 `TenantResolverFilter` 完成多租户请求链路闭环；`saas.enabled=false` 时拦截器不附加头，行为等同单租户基线。
+
+**红线遵守**：全程 `saas.enabled=false` + `platform.enabled=false`（+ `oidc.enabled=false` + `quota.enabled=false`）四闸门默认关闭；生产 MySQL 8 已实跑 V21→V33 schema 校验全绿但业务默认租户 id=1 行为与 Phase 0 完全一致；每切片交付均触发全 reactor `./mvnw test` BUILD SUCCESS（Phase 4-6 交付点全 reactor绿，CI 4 job 全绿），spotless + checkstyle 通过；无新增 Maven 依赖（红线 #11）；跨层依赖遵循 domain 端口 + infra GatewayImpl 反向实现。
+
+**治理零漂移**：Phase 3–6 交付链在多份文档同步回写（AGENTS.md §1 分册地图 Phase 3–6 行 + §2 决策树 · execution-plan 头部状态戳与 §5–§8 任务表 · 各 Phase go-checklist 状态升版），版本戳随交付升版（Phase 4 v0.4 · Phase 5 v0.4 · Phase 6 v0.2）。
 
 ---
 
@@ -180,13 +209,16 @@ LLM 连接治理拆成 **chat / embedding / vision 三个独立角色**（`knowl
 | SystemConfigController | `/api/admin/system` | 3 | **V21 新增**：`GET /status` 系统状态 + `GET /configs` 特性开关/参数列表 + `PUT /configs` 运行时热更新（三层：内存缓存→DB→系统默认） |
 | ArticleAgentController | `/api/agent` | 4 | 文章生成/进度 SSE/写作历史 |
 | WrongAnswerAnalysisController | `/api/admin/wrong-answers/analysis` | 2 | 错题分析聚合（题型分布 / 知识点分布） |
-| **PlatformTenantController** | `/api/platform/tenants` | **10** | **SaaS Phase 3 · P3-T1 新增**：list / get / create / provision / suspend / resume / archive / delete / deletion-approval / deletion-preview（三闸门全关时不注册） |
+| **PlatformTenantController** | `/api/platform/tenants` | **10** | **SaaS Phase 3 · P3-T1 新增**：list / get / create / provision / suspend / resume / archive / delete / deletion-approval / deletion-preview（四闸门全关时不注册） |
+| **PlatformSchemaHealthController** | `/api/platform/schema-health` | **2** | **SaaS Phase 3 · P3-T6 新增**：`GET` / `POST` schema 健康巡检（IDLE/HEALTHY/DEGRADED，四闸门全关时不注册） |
+| **PlatformBillingController** | `/api/platform/billing` | **2** | **SaaS Phase 6 · P6-T4 新增**：用量 CSV/JSON 导出（`quota.enabled=true` 时可用） |
+| **PlatformLimitController** | `/api/platform/limits` | **4** | **SaaS Phase 6 · P6-T2/T4 新增**：套餐限额 CRUD（GET/POST/DELETE，`quota.enabled=true` 时可用） |
 
-共 **19 个业务 Controller + 3 个安全/上下文过滤器（`AdminTokenAuthFilter` + `PlatformTokenAuthFilter` P3-T4/T7 + `TenantResolverFilter` P1-T5）+ 3 个 SSE 进度 Store + 全局异常处理**。
+共 **22 个业务 Controller + 3 个安全/上下文过滤器（`AdminTokenAuthFilter` + `PlatformTokenAuthFilter` P3-T4/T7 + `TenantResolverFilter` P1-T5）+ 3 个 SSE 进度 Store + 全局异常处理**。
 
 ---
 
-## 数据库设计（Flyway V1–V29 · 20+ 表）
+## 数据库设计（Flyway V1–V33 · 24+ 表）
 
 H2（开发）+ MySQL 8（生产，容器 `knowledge-mysql`，宿主机端口 3307，库 `knowledge_repository`）。必备字段 `id`/`create_time`/`update_time`，索引命名 `pk_/uk_/idx_`。迁移演进：
 
@@ -221,6 +253,10 @@ H2（开发）+ MySQL 8（生产，容器 `knowledge-mysql`，宿主机端口 33
 | **V27** | **provision_state_machine** | **SaaS Phase 3 · P3-T2**：新表 **sys_tenant_provision_step**（`provision_request_id` + `step_name` + `status ∈ {PENDING,RUNNING,DONE,FAILED,SKIPPED}` + `error_detail` + `started_at`/`completed_at`）+ `sys_tenant` 加 `provision_request_id VARCHAR(64)` 追踪列；S-5=方案 A（UUID v4 幂等键 + Flyway 版本号天然幂等 + `hasCollection` 前置查 + upsert + FAILED 可查 error_detail），支撑开通从单事务写入拆成可幂等重放的多步编排 |
 | **V28** | **tenant_scope_sys_config_and_invite** | **SaaS Phase 3 · P3-T3**（C-4=方案 A 提前 P4-T1）：三件事——① `sys_config` 加 `tenant_id NOT NULL DEFAULT 1` 并把唯一键从 `(config_key)` 切 `(tenant_id, config_key)`，V21 存量 6 行 + 运行期新增由 DEFAULT 1 落 default 租户与既有单租户读路径等价；② 新表 **sys_user_invite**（一次性设密邀请，`invite_code_hash` SHA-256 存 64 hex，raw code 仅在 provision 响应体一次性返回不落库/不落日志）；③ `sys_user` 加首登强制改密标记列。`sys_user_invite` 进 P1-T7 `IGNORE_TABLES` 白名单避免自引用悖论 |
 | **V29** | **tenant_archive_and_deletion** | **SaaS Phase 3 · P3-T5**（S-4=方案 A）：`sys_tenant` 加 `archived_at`（保留期起点）/ `deleted_at`（终态时间）/ `deletion_request_id`（删除幂等键 UUID）三列，`status` 取值扩展新增 **DELETING**（ARCHIVED→DELETING→DELETED 中间态，reconciler 认领标记）；新表 **sys_tenant_delete_approval**（一次性删除审批令牌，双人复核载体，SHA-256 存 hash，raw token 不入库）/ **sys_tenant_deletion_step**（步骤级幂等硬删账本，镜像 provision_step，重启可续跑）/ **sys_audit_log**（平台端高敏操作 DB 持久化审计，Phase 4 合规替换 SLF4J 审计）；文件层物理清理受 P5-T1 MinIO 约束延后。双闸门下仅 schema 演进，运行期行为不变 |
+| **V30** | **tenant_scope_extraction_cache** | **SaaS Phase 4 · P4-T3**：`kb_extraction_cache` 加 `tenant_id NOT NULL DEFAULT 1` + 唯一键切 `(tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)`，`TenantLineInnerInterceptor` 自动追加 `tenant_id`；闭 G7 跨租户解析缓存泄漏；`IGNORE_TABLES` 白名单移除 `kb_extraction_cache`（当前 8 张） |
+| **V31** | **tenant_llm_profile** | **SaaS Phase 4 · P4-T4**：新表 **sys_tenant_llm_profile**（per-tenant LLM/embedding profile，`api_key_encrypted` AES-256-GCM 密文 + `model_name` + `base_url` + `temperature` + `max_tokens` + `enabled`），配套 `SecretCipher` 端口 + `LocalSecretCipher`/`NoopSecretCipher` 双驱动 + `KeyRotationCmdExe` 双人复核 |
+| **V32** | **tenant_usage** | **SaaS Phase 6 · P6-T1**：新表 **tenant_usage**（租户用量计量，`usage_metric` + `counter_value` + `period_start`/`period_end` + `tenant_id`），配套 `TenantUsageRecorder` 端口 + `TenantUsageRecorderImpl`/`NoopTenantUsageRecorder` 双驱动 + `UsageCapturingChatModelDecorator`/`UsageCapturingEmbeddingModelDecorator` @Primary 装饰器自动采集 + `UsageMetric` 白名单枚举（`CHAT_TOKENS`/`EMBEDDING_TOKENS`/`DOC_COUNT`/`STORAGE_BYTES`） |
+| **V33** | **tenant_plan_limit** | **SaaS Phase 6 · P6-T2**：新表 **tenant_plan_limit**（租户套餐限额，`plan_tier` + `usage_metric` + `limit_value` + `policy` ∈ {`BLOCK`,`THROTTLE`,`ALERT`} + `tenant_id`），配套 `TenantPlanLimitGateway` + `QuotaGuard` 三策略前置拦截 |
 
 关系：`kb_exam_history(session_id) ↔ kb_exam_question(session_key)`；`kb_exam_session(exam_history_id) ↔ kb_exam_answer(session_id)`；错题本派生自 `kb_exam_answer.is_correct=false`。`knowledge_document` 外键 = `base_id`。运维脚本 `.buckups/data/clean-exam-data.sh`（本地运维脚本，未纳入版本控制）备份后 TRUNCATE 4 张考试表、保留 `kb_student`（`--dry-run` / `--yes` / `--with-students` / `--no-backup`）。
 

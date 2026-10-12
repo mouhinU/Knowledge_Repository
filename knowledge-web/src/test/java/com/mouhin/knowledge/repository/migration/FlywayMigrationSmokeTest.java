@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V33 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V34 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V33）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 33;
+    /** 迁移脚本总数（V1..V34）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 34;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 33")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 34")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -57,10 +57,7 @@ class FlywayMigrationSmokeTest {
         // 二次调用应无待处理迁移（幂等），并停留在 V30
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
-        assertEquals(
-                "33",
-                current.getVersion().getVersion(),
-                "最终版本应为 V33（P6-T2 tenant_plan_limit 套餐限额表）");
+        assertEquals("34", current.getVersion().getVersion(), "最终版本应为 V34（R3 核心表外键约束）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -658,6 +655,32 @@ class FlywayMigrationSmokeTest {
             assertTrue(tenantPlanLimitCols.contains("quota"), "V33 列缺失 (tenant_plan_limit.quota)");
             assertTrue(
                     tenantPlanLimitCols.contains("policy"), "V33 列缺失 (tenant_plan_limit.policy)");
+
+            // 抽查 V34（R3 核心表外键约束）：kb_document_chunk 应存在外键 fk_chunk_document
+            boolean hasFkChunkDoc = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.table_constraints "
+                                    + "WHERE LOWER(table_name) = 'kb_document_chunk' "
+                                    + "AND LOWER(constraint_name) = 'fk_chunk_document' "
+                                    + "AND UPPER(constraint_type) = 'FOREIGN KEY'")) {
+                assertTrue(rs.next());
+                hasFkChunkDoc = rs.getInt(1) > 0;
+            }
+            assertTrue(hasFkChunkDoc, "V34 外键缺失 (kb_document_chunk.fk_chunk_document)");
+
+            // 抽查 V34：sys_department 应存在自引用外键 fk_department_parent（RESTRICT）
+            boolean hasFkDeptParent = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.table_constraints "
+                                    + "WHERE LOWER(table_name) = 'sys_department' "
+                                    + "AND LOWER(constraint_name) = 'fk_department_parent' "
+                                    + "AND UPPER(constraint_type) = 'FOREIGN KEY'")) {
+                assertTrue(rs.next());
+                hasFkDeptParent = rs.getInt(1) > 0;
+            }
+            assertTrue(hasFkDeptParent, "V34 外键缺失 (sys_department.fk_department_parent)");
         }
     }
 }

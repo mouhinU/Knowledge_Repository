@@ -106,6 +106,20 @@ class AssetKeyTenantIsolationIntegrationTest {
         tenantIdResolver.resolve("globex");
 
         jdbc.update("DELETE FROM kb_document_image WHERE asset_key = ?", ASSET_KEY);
+
+        // V34 FK: kb_document_image.document_id → kb_document(id)，须先建父文档。
+        TenantContext.set("acme");
+        Integer docExists =
+                jdbc.queryForObject("SELECT COUNT(*) FROM kb_document WHERE id = 1", Integer.class);
+        if (docExists == null || docExists == 0) {
+            jdbc.update(
+                    "INSERT INTO kb_document (id, document_key, file_name, file_type, file_size, "
+                            + "storage_path, status, owner_id, department_id, tenant_id) "
+                            + "VALUES (1, 'doc-acme-001', 'test.pdf', 'application/pdf', 0, "
+                            + "'/dev/null', 'INDEXED', 'admin', 'dept-root', "
+                            + "(SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'acme'))");
+        }
+        TenantContext.clear();
     }
 
     @AfterEach
