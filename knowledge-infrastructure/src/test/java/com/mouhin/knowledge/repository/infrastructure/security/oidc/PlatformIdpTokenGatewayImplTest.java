@@ -108,10 +108,13 @@ class PlatformIdpTokenGatewayImplTest {
     @DisplayName("签名被篡改 → 拒")
     void tamperedSignatureRejected() throws Exception {
         String token = sign(header(), basePayload());
-        // 翻转签名段最后一个字符
-        char last = token.charAt(token.length() - 1);
-        char flipped = last == 'A' ? 'B' : 'A';
-        String tampered = token.substring(0, token.length() - 1) + flipped;
+        // 翻转签名段中间字符（末尾字符可能位于 base64 填充位，翻转不影响解码字节）
+        int dot2 = token.lastIndexOf('.');
+        int sigLen = token.length() - dot2 - 1;
+        int mid = dot2 + 1 + sigLen / 2;
+        char orig = token.charAt(mid);
+        char flipped = orig == 'A' ? 'B' : 'A';
+        String tampered = token.substring(0, mid) + flipped + token.substring(mid + 1);
 
         assertThat(gateway(providerWithTestKey()).verify(tampered)).isEmpty();
     }
