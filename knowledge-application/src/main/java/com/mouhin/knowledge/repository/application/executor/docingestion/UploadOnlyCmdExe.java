@@ -1,7 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
 import com.mouhin.knowledge.repository.application.converter.DocumentConverter;
+import com.mouhin.knowledge.repository.application.support.QuotaGuard;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.event.DocumentCreatedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
@@ -13,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class UploadOnlyCmdExe {
 
+    private final QuotaGuard quotaGuard;
     private final DocumentIngestionSupport support;
     private final DocumentGateway documentGateway;
     private final DocumentExtractionGateway documentExtractionService;
@@ -39,11 +43,13 @@ public class UploadOnlyCmdExe {
     private final DocumentImageSupport documentImageSupport;
 
     public UploadOnlyCmdExe(
+            @Autowired(required = false) QuotaGuard quotaGuard,
             DocumentIngestionSupport support,
             DocumentGateway documentGateway,
             DocumentExtractionGateway documentExtractionService,
             ApplicationEventPublisher eventPublisher,
             DocumentImageSupport documentImageSupport) {
+        this.quotaGuard = quotaGuard;
         this.support = support;
         this.documentGateway = documentGateway;
         this.documentExtractionService = documentExtractionService;
@@ -59,6 +65,9 @@ public class UploadOnlyCmdExe {
             String allowedRoles,
             String tags,
             String category) {
+        if (quotaGuard != null) {
+            quotaGuard.check(TenantContext.getOrDefault());
+        }
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be empty");
         }

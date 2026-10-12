@@ -50,6 +50,7 @@ class UploadOnlyCmdExeTest {
     private final DocumentImageSupport documentImageSupport = mock(DocumentImageSupport.class);
     private final UploadOnlyCmdExe exe =
             new UploadOnlyCmdExe(
+                    null,
                     support,
                     documentGateway,
                     documentExtractionService,

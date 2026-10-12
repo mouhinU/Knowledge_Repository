@@ -47,6 +47,7 @@ class UploadFromFileCmdExeTest {
     private final DocumentImageSupport documentImageSupport = mock(DocumentImageSupport.class);
     private final UploadFromFileCmdExe exe =
             new UploadFromFileCmdExe(
+                    null,
                     support,
                     documentGateway,
                     documentExtractionService,

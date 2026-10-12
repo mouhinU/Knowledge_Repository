@@ -1,7 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
+import com.mouhin.knowledge.repository.application.support.QuotaGuard;
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,9 +19,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class GenerateArticleAsyncCmdExe {
 
+    private final QuotaGuard quotaGuard;
     private final ArticleGenerationSupport support;
 
-    public GenerateArticleAsyncCmdExe(ArticleGenerationSupport support) {
+    public GenerateArticleAsyncCmdExe(
+            @Autowired(required = false) QuotaGuard quotaGuard, ArticleGenerationSupport support) {
+        this.quotaGuard = quotaGuard;
         this.support = support;
     }
 
@@ -28,6 +34,9 @@ public class GenerateArticleAsyncCmdExe {
             BlackboardProgressCallback progressCallback,
             String sessionId,
             String category) {
+        if (quotaGuard != null) {
+            quotaGuard.check(TenantContext.getOrDefault());
+        }
         support.generateArticleAsync(question, permission, progressCallback, sessionId, category);
     }
 }

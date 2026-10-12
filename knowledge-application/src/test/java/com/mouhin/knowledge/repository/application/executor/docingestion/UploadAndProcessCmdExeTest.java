@@ -52,7 +52,7 @@ class UploadAndProcessCmdExeTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final UploadAndProcessCmdExe exe =
             new UploadAndProcessCmdExe(
-                    support, documentGateway, documentExtractionService, eventPublisher);
+                    null, support, documentGateway, documentExtractionService, eventPublisher);
 
     private MultipartFile stubFile() {
         MultipartFile file = mock(MultipartFile.class);

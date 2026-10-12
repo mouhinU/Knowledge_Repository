@@ -1,9 +1,14 @@
 package com.mouhin.knowledge.repository.web.config;
 
+import com.mouhin.knowledge.repository.domain.exception.QuotaExceededException;
+import com.mouhin.knowledge.repository.domain.exception.ThrottleRequiredException;
+import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaCheckResult;
 import com.mouhin.knowledge.repository.web.security.AdminAuthRequiredException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -87,6 +92,42 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleNotFound(HttpServletRequest request) {
         log.warn("404 {} {}", request.getMethod(), request.getRequestURI());
         return error(HttpStatus.NOT_FOUND, "NOT_FOUND", MSG_NOT_FOUND);
+    }
+
+    /**
+     * 配额超限（P6-T3 · BLOCK 策略）→ HTTP 402 Payment Required。
+     *
+     * <p>响应体含指标 code、限额、当前用量，供前端展示与自动化重试逻辑判定。
+     */
+    @ExceptionHandler(QuotaExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleQuotaExceeded(QuotaExceededException ex) {
+        QuotaCheckResult r = ex.result();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(FIELD_ERROR_CODE, "QUOTA_EXCEEDED");
+        body.put(FIELD_ERROR_MESSAGE, "配额已用尽：" + r.metric().code());
+        body.put("metric", r.metric().code());
+        body.put("quota", r.quota());
+        body.put("currentUsage", r.currentUsage());
+        body.put(FIELD_TIMESTAMP, java.time.Instant.now().toString());
+        return ResponseEntity.status(402).body(body);
+    }
+
+    /**
+     * 限流（P6-T3 · THROTTLE 策略）→ HTTP 429 Too Many Requests + {@code Retry-After} 头。
+     *
+     * <p>固定 {@code Retry-After: 60} 秒，客户端据此退避重试。
+     */
+    @ExceptionHandler(ThrottleRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handleThrottle(
+            ThrottleRequiredException ex, HttpServletResponse response) {
+        response.setHeader("Retry-After", "60");
+        QuotaCheckResult r = ex.result();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(FIELD_ERROR_CODE, "THROTTLE_REQUIRED");
+        body.put(FIELD_ERROR_MESSAGE, "请求过于频繁，请稍后重试");
+        body.put("metric", r.metric().code());
+        body.put(FIELD_TIMESTAMP, java.time.Instant.now().toString());
+        return ResponseEntity.status(429).body(body);
     }
 
     @ExceptionHandler(Exception.class)

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class GenerateExamAsyncCmdExeTest {
 
     private final ExamGenerationSupport support = mock(ExamGenerationSupport.class);
-    private final GenerateExamAsyncCmdExe exe = new GenerateExamAsyncCmdExe(support);
+    private final GenerateExamAsyncCmdExe exe = new GenerateExamAsyncCmdExe(null, support);
 
     @Test
     @DisplayName("全部入参原样透传给 support.generateExamAsync")

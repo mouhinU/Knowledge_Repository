@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class GenerateArticleAsyncCmdExeTest {
 
     private final ArticleGenerationSupport support = mock(ArticleGenerationSupport.class);
-    private final GenerateArticleAsyncCmdExe exe = new GenerateArticleAsyncCmdExe(support);
+    private final GenerateArticleAsyncCmdExe exe = new GenerateArticleAsyncCmdExe(null, support);
 
     @Test
     @DisplayName("全部入参原样透传给 support.generateArticleAsync")

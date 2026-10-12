@@ -117,6 +117,8 @@ knowledge:
   # 行为与单租户版本等价——这是 Phase 1+ 的回退闸门（提案 §9）。开启须经三方签署 + P1-T10 跨租户负向用例全绿。
   saas:
     enabled: ${KNOWLEDGE_SAAS_ENABLED:false}
+    quota:
+      enabled: ${KNOWLEDGE_SAAS_QUOTA_ENABLED:false}
 
   # ---------- 平台端管理总开关（P3-T1 / T-4 方案 B）----------
   # 默认 false：PlatformTokenAuthFilter 与 PlatformTenantController 均不注册（@ConditionalOnProperty），

@@ -34,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
  * @author mouhinU
  * @date 2026-10-12
  */
-@org.springframework.stereotype.Component
 @Slf4j
 public class LocalObjectStorageGatewayImpl implements ObjectStorageGateway {
 

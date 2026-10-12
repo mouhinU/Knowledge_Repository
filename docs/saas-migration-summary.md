@@ -1,4 +1,4 @@
-# SaaS 化改造 · 数据迁移总结（V23 → V31）
+# SaaS 化改造 · 数据迁移总结（V23 → V33）
 
 > 汇总 Knowledge_Repository SaaS 多租户改造迄今落地的所有 Flyway 迁移：版本、任务锚点、动作、方言注意点、验证方式与残余项。
 > 权威决策以 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 为准，逐 Phase 门禁以对应 go-checklist 为准。
@@ -8,10 +8,10 @@
 
 ## 0. 适用范围与口径
 
-本总结只覆盖 **租户脊柱 + 生命周期** 相关的 DDL/种子迁移（V23 起），V1–V22 属单租户基线，不在本文档（全量 V1–V31 速览见 [database-migrations.md](database-migrations.md)）。截至 v0.2：
+本总结只覆盖 **租户脊柱 + 生命周期** 相关的 DDL/种子迁移（V23 起），V1–V22 属单租户基线，不在本文档（全量 V1–V33 速览见 [database-migrations.md](database-migrations.md)）。截至 v0.4：
 
-- 已交付迁移版本：`V23`–`V31`（9 个版本）+ **P5-T1 对象存储层（无 DDL 迁移，2026-10-12 交付）**
-- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3/T4 + **P5-T1（对象存储层，无迁移）**
+- 已交付迁移版本：`V23`–`V33`（11 个版本）+ **P5-T1 对象存储层（无 DDL 迁移，2026-10-12 交付）**
+- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3/T4 + **P5-T1（对象存储层，无迁移）** + **P6-T1/T2（V32/V33 计量与限额表）**
 - 兼容方言：**H2 `MODE=MySQL;DATABASE_TO_LOWER=TRUE`** 与 **MySQL 8** 双跑；每次迁移落地必须 `FlywayMigrationSmokeTest`（H2）与 `TenantIsolationIntegrationTest`（Testcontainers MySQL 8）同时通过
 - 三闸门（saas/platform/oidc）默认全 `false`，本目录所有迁移在闸门关闭时也必须能无损应用（红线 #11 回退）
 
@@ -91,6 +91,26 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 
 **决策锚点**：Phase 4 清单 §2 **B-2 = 方案 B**（本地主密钥 AES-256-GCM + JDK 原生零新依赖）+ **S-4 = 方案 C**（解密失败抛 `LlmProfileDecryptionException`，不静默降级）。
 
+### V32 — `create_tenant_usage.sql`（P6-T1，计量表）
+
+新建 `tenant_usage` 表，支持按租户按月聚合计量数据。表结构 `(tenant_id, metric, period, usage_value)`，唯一键 `(tenant_id, metric, period)` 三元组。`metric` 为 `VARCHAR(32)` 白名单约束（`CHAT_TOKENS`/`EMBEDDING_TOKENS`/`DOC_COUNT`/`STORAGE_BYTES`，`UsageMetric` 枚举在 domain 层定义）。`usage_value BIGINT` 原子递增（`UPDATE ... SET usage_value = usage_value + ?`），天然幂等。
+
+**列名决策**：原设计列名 `value`，因 `VALUE` 为 H2 保留字导致建表失败，改为 `usage_value` 规避。MySQL 侧无影响（`value` 非 MySQL 保留字，但统一口径避免混淆）。
+
+**采集链路**：`TenantUsageRecorder` domain 端口 + `TenantUsageRecorderImpl`（DB 原子递增）/ `NoopTenantUsageRecorder`（`quota.enabled=false` 降级）双驱动。`UsageCapturingChatModelDecorator`/`UsageCapturingEmbeddingModelDecorator` 以 `@Primary` 装饰器模式自动采集 LLM/embedding token 消耗，采集失败仅记 WARN 不阻塞业务。
+
+**租户维度**：`tenant_id` 在此表是过滤维度（非业务列），不进 IGNORE_TABLES，由 `TenantLineInnerInterceptor` 自动注入租户谓词。
+
+### V33 — `create_tenant_plan_limit.sql`（P6-T2，套餐限额表）
+
+新建 `tenant_plan_limit` 表，支持每租户每 metric 独立配置限额与策略。表结构 `(tenant_id, metric, quota, policy)`，唯一键 `(tenant_id, metric)` 每租户每 metric 一条限额。`quota BIGINT` 绝对值（如 `1000000` tokens），`policy VARCHAR(16)` 枚举 `BLOCK`/`THROTTLE`/`ALERT`（`QuotaPolicy` 枚举在 domain 层定义）。无记录 = 无约束。
+
+**关联代码**：`TenantPlanLimitGateway` domain 端口 → `TenantPlanLimitGatewayImpl` infra 实现 → `QuotaGuard`（app 层，`@ConditionalOnProperty(name="knowledge.saas.quota.enabled", havingValue="true")` 装配）在写入类 CmdExe 前置检查，多 metric 同时超额取最严策略（BLOCK > THROTTLE > ALERT）。超额异常：`QuotaExceededException`→402 / `ThrottleRequiredException`→429，`GlobalExceptionHandler` 统一适配。
+
+**租户维度**：`tenant_id` 在此表是过滤维度（非业务列），不进 IGNORE_TABLES，由 `TenantLineInnerInterceptor` 自动注入租户谓词。
+
+**平台端 CRUD**：`PlatformLimitController`（`/api/platform/limits`）GET/POST/DELETE，走 `PlatformTokenAuthFilter` 权限。
+
 ### P5-T1 — 对象存储层交付（Phase 5，无 DDL 迁移）
 
 P5-T1 引入 domain 端口 `ObjectStorageGateway` + 本地/MinIO 双驱动实现，**不产生 Flyway 迁移版本**（无新表、无新列、无索引变更），故不在 V1–V31 迁移时间线内。关键交付物：
@@ -105,7 +125,7 @@ P5-T1 引入 domain 端口 `ObjectStorageGateway` + 本地/MinIO 双驱动实现
 
 **与存量数据的关系**：本地模式下 `storageKey` = 绝对路径，与 P5 之前 `Document.storagePath` 格式完全一致，**存量上传记录无需迁移即可继续读取**。MinIO 模式切换后的存量本地文件迁移策略见 Phase 5 清单 §5 C-2（待指派）。
 
-**后续迁移占位**：若 Phase 5 后续任务（P5-T2 上传会话 Redis / P5-T3 assetKey 校验）需要新表或新列，将从 V32 起编号。
+**后续迁移占位**：若后续任务需要新表或新列，将从 V34 起编号。
 
 ## 2. 双方言与四段式惯用法
 
@@ -153,7 +173,7 @@ P5-T1 引入 domain 端口 `ObjectStorageGateway` + 本地/MinIO 双驱动实现
 - `TenantProvisioningIntegrationTest` / `TenantProvisioningInviteIntegrationTest` / `TenantSuspendResumeIntegrationTest` / `TenantArchiveDeleteIntegrationTest` — Phase 3 生命周期端到端
 - 全 reactor `./mvnw -B test checkstyle:check spotless:check` EXIT 0，`BUILD SUCCESS`
 
-**新增迁移的 canonical 计数**：`FlywayMigrationSmokeTest.EXPECTED_MIGRATION_COUNT` 常量 + `@DisplayName` 版本区间 + 最终版本断言 + 幂等注释四处必须同步更新。V31 落地即从 30 → 31。
+**新增迁移的 canonical 计数**：`FlywayMigrationSmokeTest.EXPECTED_MIGRATION_COUNT` 常量 + `@DisplayName` 版本区间 + 最终版本断言 + 幂等注释四处必须同步更新。V33 落地即从 32 → 33。
 
 ## 5. 已闭合的数据出口泄漏与残余项
 
@@ -170,26 +190,26 @@ P5-T1 引入 domain 端口 `ObjectStorageGateway` + 本地/MinIO 双驱动实现
 - `sys_tenant_llm_profile.api_key` 密钥轮换端点（KeyRotationCmdExe，双人复核走 P3-T5 审批令牌表模式）— P4-T4 遗留，核心链路已通
 - Prometheus bucket 化指标（T-4）— 需等 LLM 调用点改造时一并接入
 
-## 6. 未来迁移占位（V32+ 候选场景）
+## 6. 未来迁移占位（V34+ 候选场景）
 
-按当前 Phase 5 排产，可能出现的新迁移：
+按当前排产，可能出现的新迁移：
 
-- **V32（候选，Phase 5）**：MinIO 对象存储元数据表 + `kb_document_image.storage_backend` 列（承接 P5-T1；P5-T1 本身无 DDL，已以 Gateway 模式落地，元数据表为后续增强）
-- **V33+**：SILO placement 相关元数据（承接 Phase 3 尾分支 P3-T6，视 B-2 决策可能落在独立命名段）
+- **V34+（候选，Phase 3 尾分支）**：SILO placement 相关元数据（承接 Phase 3 尾分支 P3-T6，视 B-2 决策可能落在独立命名段）
+- **V35+（候选，Phase 3 尾分支）**：`knowledge_chunks_pk` partition-key 集合相关（若需 DB 侧元数据跟踪）
 
 新增迁移必须继续遵守 §2 四段式与 §4 验证清单，且同步更新 `EXPECTED_MIGRATION_COUNT`。
 
 ## 7. 相关文档
 
 - 权威决策：[saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)
-- Phase 门禁：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) · [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) · [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) · [saas-phase5-go-checklist.md](saas-phase5-go-checklist.md)
+- Phase 门禁：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) · [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) · [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) · [saas-phase5-go-checklist.md](saas-phase5-go-checklist.md) · [saas-phase6-go-checklist.md](saas-phase6-go-checklist.md)
 - Phase 3 尾分支决策包：[saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md)
 - 会审决策建议一页纸：[saas-phase3-review-brief.md](saas-phase3-review-brief.md)
 - 排产：[saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)
 - 数据库与迁移细则：[data-and-migration-guideline.md](data-and-migration-guideline.md)
-- 全量迁移速览（V1–V31）：[database-migrations.md](database-migrations.md)
+- 全量迁移速览（V1–V33）：[database-migrations.md](database-migrations.md)
 - 安全红线：[security-guideline.md](security-guideline.md)
 
 ---
 
-*v0.3 · 2026-10-12 · 归档 V23–V31 全部迁移（+V31 sys_tenant_llm_profile）+ P5-T1 对象存储层交付记录（无 DDL）；更新 §0 口径（+P5-T1）；§5 残余项（B-1/B-2 已闭）；§6 V32 占位更新（P5-T1 无 DDL 已落地）；§7 新增 Phase 5 清单引用。随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*
+*v0.4 · 2026-10-12 · 归档 V23–V33 全部迁移（+V32 `tenant_usage` 计量表 · +V33 `tenant_plan_limit` 套餐限额表）；§0 口径更新（+P6-T1/T2）；§1 新增 V32/V33 逐版本条目（含列名 `value`→`usage_value` H2 保留字规避记录）；§4 canonical count 四处同步 32→33；§6 未来占位移至 V34+；§7 新增 Phase 6 清单引用。`tenant_usage`/`tenant_plan_limit` 均为租户过滤维度（非 IGNORE_TABLES），由 `TenantLineInnerInterceptor` 自动注入谓词。随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*

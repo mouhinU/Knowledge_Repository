@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 public class ChatModelConfig {
 
     /** Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端，并套 {@code chat} 角色熔断/重试。 */
-    @Bean
+    @Bean("delegateChatModel")
     public ChatModel chatModel(
             LlmChatProperties chat,
             LlmResilience resilience,

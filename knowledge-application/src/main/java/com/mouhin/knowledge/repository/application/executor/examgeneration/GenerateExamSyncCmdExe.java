@@ -1,7 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
+import com.mouhin.knowledge.repository.application.support.QuotaGuard;
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,9 +18,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class GenerateExamSyncCmdExe {
 
+    private final QuotaGuard quotaGuard;
     private final ExamGenerationSupport support;
 
-    public GenerateExamSyncCmdExe(ExamGenerationSupport support) {
+    public GenerateExamSyncCmdExe(
+            @Autowired(required = false) QuotaGuard quotaGuard, ExamGenerationSupport support) {
+        this.quotaGuard = quotaGuard;
         this.support = support;
     }
 
@@ -28,6 +34,9 @@ public class GenerateExamSyncCmdExe {
             ExamPlan plan,
             Permission permission,
             String category) {
+        if (quotaGuard != null) {
+            quotaGuard.check(TenantContext.getOrDefault());
+        }
         return support.generateExam(topic, difficulty, schoolLevel, plan, permission, category);
     }
 
@@ -43,6 +52,9 @@ public class GenerateExamSyncCmdExe {
             int essay,
             Permission permission,
             String category) {
+        if (quotaGuard != null) {
+            quotaGuard.check(TenantContext.getOrDefault());
+        }
         return support.generateExam(
                 topic,
                 difficulty,

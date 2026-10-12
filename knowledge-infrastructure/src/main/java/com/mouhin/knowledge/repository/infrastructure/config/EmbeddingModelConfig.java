@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration;
 public class EmbeddingModelConfig {
 
     /** Embedding 模型，注入 embedding 角色独立 HTTP 客户端，并套 {@code embedding} 角色熔断/重试。 */
-    @Bean
+    @Bean("delegateEmbeddingModel")
     public EmbeddingModel embeddingModel(
             LlmEmbeddingProperties embedding,
             LlmResilience resilience,

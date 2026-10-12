@@ -29,11 +29,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author mouhinU
  * @date 2026-09-19
  */
-@DisplayName("Flyway V1-V31 迁移冒烟（H2/MySQL 模式）")
+@DisplayName("Flyway V1-V33 迁移冒烟（H2/MySQL 模式）")
 class FlywayMigrationSmokeTest {
 
-    /** 迁移脚本总数（V1..V31）。新增迁移时需同步此常量。 */
-    private static final int EXPECTED_MIGRATION_COUNT = 31;
+    /** 迁移脚本总数（V1..V33）。新增迁移时需同步此常量。 */
+    private static final int EXPECTED_MIGRATION_COUNT = 33;
 
     private static final String JDBC_URL =
             "jdbc:h2:mem:kr-smoke;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
@@ -41,7 +41,7 @@ class FlywayMigrationSmokeTest {
     private static final String PASSWORD = "";
 
     @Test
-    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 30")
+    @DisplayName("全部迁移脚本在 H2 上成功应用，最终版本为 33")
     void allMigrationsApplyOnH2() throws Exception {
         Flyway flyway =
                 Flyway.configure()
@@ -58,9 +58,9 @@ class FlywayMigrationSmokeTest {
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
         assertEquals(
-                "31",
+                "33",
                 current.getVersion().getVersion(),
-                "最终版本应为 V31（P4-T4 sys_tenant_llm_profile per-tenant LLM 配置）");
+                "最终版本应为 V33（P6-T2 tenant_plan_limit 套餐限额表）");
 
         // 迁移历史表自身记录数 == 脚本数
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
@@ -597,6 +597,67 @@ class FlywayMigrationSmokeTest {
             assertTrue(
                     llmProfileCols.contains("dimension"),
                     "V31 列缺失 (sys_tenant_llm_profile.dimension)");
+
+            // 抽查 V32（P6-T1 租户用量计量）：新表 tenant_usage 存在
+            boolean hasTenantUsage = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'tenant_usage'")) {
+                assertTrue(rs.next());
+                hasTenantUsage = rs.getInt(1) > 0;
+            }
+            assertTrue(hasTenantUsage, "V32 表缺失 (tenant_usage)");
+
+            // 抽查 V32 关键列
+            List<String> tenantUsageCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'tenant_usage' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('tenant_id','metric','period','usage_value')")) {
+                while (rs.next()) {
+                    tenantUsageCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(tenantUsageCols.contains("tenant_id"), "V32 列缺失 (tenant_usage.tenant_id)");
+            assertTrue(tenantUsageCols.contains("metric"), "V32 列缺失 (tenant_usage.metric)");
+            assertTrue(tenantUsageCols.contains("period"), "V32 列缺失 (tenant_usage.period)");
+            assertTrue(
+                    tenantUsageCols.contains("usage_value"), "V32 列缺失 (tenant_usage.usage_value)");
+
+            // 抽查 V33（P6-T2 套餐限额）：新表 tenant_plan_limit 存在
+            boolean hasTenantPlanLimit = false;
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables "
+                                    + "WHERE LOWER(table_name) = 'tenant_plan_limit'")) {
+                assertTrue(rs.next());
+                hasTenantPlanLimit = rs.getInt(1) > 0;
+            }
+            assertTrue(hasTenantPlanLimit, "V33 表缺失 (tenant_plan_limit)");
+
+            // 抽查 V33 关键列
+            List<String> tenantPlanLimitCols = new ArrayList<>();
+            try (ResultSet rs =
+                    st.executeQuery(
+                            "SELECT LOWER(column_name) FROM information_schema.columns "
+                                    + "WHERE LOWER(table_name) = 'tenant_plan_limit' "
+                                    + "AND LOWER(column_name) IN "
+                                    + "('tenant_id','metric','quota','policy')")) {
+                while (rs.next()) {
+                    tenantPlanLimitCols.add(rs.getString(1));
+                }
+            }
+            assertTrue(
+                    tenantPlanLimitCols.contains("tenant_id"),
+                    "V33 列缺失 (tenant_plan_limit.tenant_id)");
+            assertTrue(
+                    tenantPlanLimitCols.contains("metric"), "V33 列缺失 (tenant_plan_limit.metric)");
+            assertTrue(tenantPlanLimitCols.contains("quota"), "V33 列缺失 (tenant_plan_limit.quota)");
+            assertTrue(
+                    tenantPlanLimitCols.contains("policy"), "V33 列缺失 (tenant_plan_limit.policy)");
         }
     }
 }

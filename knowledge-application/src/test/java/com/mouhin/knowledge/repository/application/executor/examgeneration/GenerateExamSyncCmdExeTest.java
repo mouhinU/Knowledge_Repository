@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class GenerateExamSyncCmdExeTest {
 
     private final ExamGenerationSupport support = mock(ExamGenerationSupport.class);
-    private final GenerateExamSyncCmdExe exe = new GenerateExamSyncCmdExe(support);
+    private final GenerateExamSyncCmdExe exe = new GenerateExamSyncCmdExe(null, support);
 
     @Test
     @DisplayName("executeWithPlan → 命中 plan 重载并透传全部参数，返回 support 结果")
