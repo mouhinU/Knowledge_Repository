@@ -49,6 +49,8 @@
         <lombok.version>1.18.36</lombok.version>
         <!-- Resilience4j（Phase R2：LLM 调用熔断 / 重试 / 指标） -->
         <resilience4j.version>2.2.0</resilience4j.version>
+        <!-- MinIO SDK（P5-T1：对象存储双驱动，本地磁盘 / MinIO 配置切换） -->
+        <minio.version>8.5.17</minio.version>
     </properties>
 
     <dependencyManagement>
@@ -144,6 +146,13 @@
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
                 <version>${h2.version}</version>
+            </dependency>
+
+            <!-- MinIO SDK（P5-T1：对象存储双驱动，仅 infrastructure 层引入，domain 端口不依赖具体 SDK） -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

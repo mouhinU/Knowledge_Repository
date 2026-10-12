@@ -20,6 +20,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -148,7 +150,10 @@ class UploadAndProcessCmdExeTest {
         when(documentExtractionService.extractText(any(), anyLong(), anyString()))
                 .thenReturn(new ExtractionResult(List.of("text"), 1, false, "md5-new", "pdf"));
         when(documentGateway.findByFileChecksum("md5-new")).thenReturn(Optional.empty());
-        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(permanentFile);
+        StoredObject storedObject =
+                new StoredObject(
+                        permanentFile.toString(), "default", StorageCategory.DOCUMENT, "test.pdf");
+        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(storedObject);
         when(support.newDocumentKey()).thenReturn("key-1");
         when(support.buildDocument(
                         eq("key-1"),
@@ -221,7 +226,10 @@ class UploadAndProcessCmdExeTest {
         when(documentExtractionService.extractText(any(), anyLong(), anyString()))
                 .thenReturn(new ExtractionResult(List.of("text"), 1, false, "md5-x", "pdf"));
         when(documentGateway.findByFileChecksum("md5-x")).thenReturn(Optional.empty());
-        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(permanentFile);
+        StoredObject storedObject =
+                new StoredObject(
+                        permanentFile.toString(), "default", StorageCategory.DOCUMENT, "test.pdf");
+        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(storedObject);
         when(support.newDocumentKey()).thenReturn("key-2");
         Document invalid = stubbedDocument("key-2");
         invalid.setOwnerId(" ");

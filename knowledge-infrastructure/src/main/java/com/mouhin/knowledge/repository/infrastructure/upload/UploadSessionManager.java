@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.upload;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.util.PathGuard;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.util.Map;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>管理大文件的分片上传会话，支持断点续传。 每个会话对应一个临时目录，分片按序号存储，全部到齐后组装为完整文件。
  *
+ * <p>P5-T2：会话存储委托给 {@link UploadSessionStore}（Redis 或进程内降级）， 支持多副本共享会话状态。
+ *
  * @author mouhinU
  * @date 2026-09-13
  */
@@ -27,14 +30,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class UploadSessionManager {
 
-    /** 会话超时时间：2 小时 */
-    private static final long SESSION_TIMEOUT_MS = 7_200_000L;
-
-    /** 活跃会话 */
-    private final Map<String, UploadSession> sessions = new ConcurrentHashMap<>();
+    private final UploadSessionStore sessionStore;
 
     @Value("${knowledge.storage.path:./data/documents}")
     private String storagePath;
+
+    public UploadSessionManager(UploadSessionStore sessionStore) {
+        this.sessionStore = sessionStore;
+    }
 
     /**
      * 创建上传会话
@@ -50,12 +53,12 @@ public class UploadSessionManager {
         Path sessionDir = getSessionDir(uploadId);
         Files.createDirectories(sessionDir);
 
+        String tenantKey = TenantContext.getOrDefault();
         UploadSession session =
-                new UploadSession(uploadId, fileName, fileSize, totalChunks, sessionDir);
-        sessions.put(uploadId, session);
+                new UploadSession(uploadId, fileName, fileSize, totalChunks, sessionDir, tenantKey);
+        sessionStore.put(uploadId, session);
 
         log.info("创建上传会话 [uploadId={}, fileName={}, chunks={}]", uploadId, fileName, totalChunks);
-        cleanupExpiredSessions();
         return uploadId;
     }
 
@@ -66,7 +69,7 @@ public class UploadSessionManager {
      * @return 会话对象，不存在返回 null
      */
     public UploadSession getSession(String uploadId) {
-        return sessions.get(uploadId);
+        return sessionStore.get(uploadId).orElse(null);
     }
 
     /**
@@ -76,11 +79,7 @@ public class UploadSessionManager {
      * @return 已上传的分片序号集合
      */
     public Set<Integer> getUploadedChunks(String uploadId) {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            return Set.of();
-        }
-        return session.getReceivedChunks();
+        return sessionStore.getReceivedChunks(uploadId);
     }
 
     /**
@@ -92,22 +91,23 @@ public class UploadSessionManager {
      * @return 是否为最后一个分片（全部到齐）
      */
     public boolean saveChunk(String uploadId, int chunkIndex, InputStream data) throws IOException {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            throw new IllegalArgumentException("上传会话不存在: " + uploadId);
-        }
+        UploadSession session =
+                sessionStore
+                        .get(uploadId)
+                        .orElseThrow(() -> new IllegalArgumentException("上传会话不存在: " + uploadId));
 
         Path chunkFile = session.getSessionDir().resolve("chunk_" + chunkIndex);
         Files.copy(data, chunkFile, StandardCopyOption.REPLACE_EXISTING);
-        session.markChunkReceived(chunkIndex);
+        sessionStore.addReceivedChunk(uploadId, chunkIndex);
 
+        int received = sessionStore.getReceivedChunks(uploadId).size();
         log.debug(
                 "保存分片 [uploadId={}, chunk={}/{}]",
                 uploadId,
                 chunkIndex + 1,
                 session.getTotalChunks());
 
-        return session.isComplete();
+        return received >= session.getTotalChunks();
     }
 
     /**
@@ -117,17 +117,17 @@ public class UploadSessionManager {
      * @return 组装后的文件路径
      */
     public Path assembleChunks(String uploadId) throws IOException {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            throw new IllegalArgumentException("上传会话不存在: " + uploadId);
-        }
-        if (!session.isComplete()) {
+        UploadSession session =
+                sessionStore
+                        .get(uploadId)
+                        .orElseThrow(() -> new IllegalArgumentException("上传会话不存在: " + uploadId));
+
+        Set<Integer> receivedChunks = sessionStore.getReceivedChunks(uploadId);
+        if (receivedChunks.size() < session.getTotalChunks()) {
             throw new IllegalStateException(
                     String.format(
                             "分片不完整 [uploadId=%s, received=%d/%d]",
-                            uploadId,
-                            session.getReceivedChunks().size(),
-                            session.getTotalChunks()));
+                            uploadId, receivedChunks.size(), session.getTotalChunks()));
         }
 
         // 确定文件扩展名（P0-T4：白名单截，防止 fileName 尾部注入穿越段）
@@ -151,8 +151,9 @@ public class UploadSessionManager {
             }
         }
 
-        // 清理会话临时目录
+        // 清理会话临时目录 + 删除存储记录
         cleanupSession(session);
+        sessionStore.delete(uploadId);
 
         log.info("分片组装完成 [uploadId={}, size={}]", uploadId, Files.size(targetFile));
         return targetFile;
@@ -160,11 +161,14 @@ public class UploadSessionManager {
 
     /** 取消上传会话 */
     public void cancelSession(String uploadId) {
-        UploadSession session = sessions.remove(uploadId);
-        if (session != null) {
-            cleanupSession(session);
-            log.info("取消上传会话 [uploadId={}]", uploadId);
-        }
+        sessionStore
+                .get(uploadId)
+                .ifPresent(
+                        session -> {
+                            cleanupSession(session);
+                            log.info("取消上传会话 [uploadId={}]", uploadId);
+                        });
+        sessionStore.delete(uploadId);
     }
 
     private Path getSessionDir(String uploadId) {
@@ -176,7 +180,7 @@ public class UploadSessionManager {
             Path dir = session.getSessionDir();
             if (Files.exists(dir)) {
                 try (var stream = Files.walk(dir)) {
-                    stream.sorted(java.util.Comparator.reverseOrder())
+                    stream.sorted(Comparator.reverseOrder())
                             .forEach(
                                     path -> {
                                         try {
@@ -192,21 +196,11 @@ public class UploadSessionManager {
         }
     }
 
-    private void cleanupExpiredSessions() {
-        Instant cutoff = Instant.now().minusMillis(SESSION_TIMEOUT_MS);
-        sessions.entrySet()
-                .removeIf(
-                        entry -> {
-                            if (entry.getValue().getCreatedAt().isBefore(cutoff)) {
-                                log.info("清理过期上传会话 [uploadId={}]", entry.getKey());
-                                cleanupSession(entry.getValue());
-                                return true;
-                            }
-                            return false;
-                        });
-    }
-
-    /** 上传会话 */
+    /**
+     * 上传会话
+     *
+     * <p>P5-T2：新增 {@code tenantKey} 字段，支持多副本下租户归属识别。
+     */
     public static class UploadSession {
         private final String uploadId;
         private final String fileName;
@@ -214,16 +208,42 @@ public class UploadSessionManager {
         private final int totalChunks;
         private final Path sessionDir;
         private final Instant createdAt;
+        private final String tenantKey;
         private final Set<Integer> receivedChunks = ConcurrentHashMap.newKeySet();
 
+        /** 新建会话（创建时调用） */
         public UploadSession(
-                String uploadId, String fileName, long fileSize, int totalChunks, Path sessionDir) {
+                String uploadId,
+                String fileName,
+                long fileSize,
+                int totalChunks,
+                Path sessionDir,
+                String tenantKey) {
             this.uploadId = uploadId;
             this.fileName = fileName;
             this.fileSize = fileSize;
             this.totalChunks = totalChunks;
             this.sessionDir = sessionDir;
             this.createdAt = Instant.now();
+            this.tenantKey = tenantKey;
+        }
+
+        /** 从存储重建（Redis / 降级 Map 反序列化时调用） */
+        public UploadSession(
+                String uploadId,
+                String fileName,
+                long fileSize,
+                int totalChunks,
+                Path sessionDir,
+                Instant createdAt,
+                String tenantKey) {
+            this.uploadId = uploadId;
+            this.fileName = fileName;
+            this.fileSize = fileSize;
+            this.totalChunks = totalChunks;
+            this.sessionDir = sessionDir;
+            this.createdAt = createdAt;
+            this.tenantKey = tenantKey;
         }
 
         public void markChunkReceived(int chunkIndex) {
@@ -256,6 +276,10 @@ public class UploadSessionManager {
 
         public Instant getCreatedAt() {
             return createdAt;
+        }
+
+        public String getTenantKey() {
+            return tenantKey;
         }
 
         public Set<Integer> getReceivedChunks() {

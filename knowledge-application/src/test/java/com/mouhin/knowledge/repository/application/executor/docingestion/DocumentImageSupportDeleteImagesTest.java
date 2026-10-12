@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import java.io.IOException;
@@ -39,6 +40,7 @@ class DocumentImageSupportDeleteImagesTest {
     private final DocumentImageExtractorGateway extractor =
             mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
+    private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
     private DocumentImageSupport support;
 
     @BeforeEach
@@ -47,6 +49,7 @@ class DocumentImageSupportDeleteImagesTest {
                 new DocumentImageSupport(
                         extractor,
                         imageGateway,
+                        objectStorageGateway,
                         assetRoot.toString(),
                         assetRoot.toString()); // storageRoot 未在本用例路径中使用，复用 assetRoot 即可
     }

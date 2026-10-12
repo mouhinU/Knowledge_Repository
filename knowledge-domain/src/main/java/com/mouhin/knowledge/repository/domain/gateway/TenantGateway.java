@@ -47,6 +47,22 @@ public interface TenantGateway {
      */
     List<Tenant> listArchivedBefore(LocalDateTime cutoff, int limit);
 
+    /**
+     * 按 keyset pagination 扫描 ACTIVE 状态租户（P5-T5 定时任务分片遍历用）。
+     *
+     * <p>游标语义：{@code lastId=0} 表示从头开始；返回 {@code tenantId > lastId} 的前 {@code batchSize} 条 ACTIVE
+     * 租户， 按 {@code tenantId} 升序。调用方以返回列表最后一条的 {@code tenantId} 作为下一轮 {@code lastId}， 直到返回列表 {@code
+     * size < batchSize} 表示已扫完。
+     *
+     * <p>只扫描 {@code ACTIVE} 状态——跳过 {@code ARCHIVED} / {@code DELETING} / {@code PENDING} 等非活跃态，
+     * 避免对归档/删除中的租户执行无效业务操作。
+     *
+     * @param lastId 上一轮最后一条的 tenantId（首轮传 0）
+     * @param batchSize 单轮批量上限（&le;0 视为 100）
+     * @return 命中租户列表，按 tenantId 升序；无命中返回空列表
+     */
+    List<Tenant> listActiveByCursor(long lastId, int batchSize);
+
     /** 新增租户，回填自增主键到入参实体。 */
     void save(Tenant tenant);
 

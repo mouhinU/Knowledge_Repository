@@ -18,6 +18,8 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,7 +70,10 @@ class UploadOnlyCmdExeTest {
         when(support.saveToTemp(file)).thenReturn(tempFile);
         when(documentExtractionService.calculateChecksum(tempFile)).thenReturn("md5-abc");
         when(documentGateway.findByFileChecksum("md5-abc")).thenReturn(Optional.empty());
-        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(permanentFile);
+        StoredObject storedObject =
+                new StoredObject(
+                        permanentFile.toString(), "default", StorageCategory.DOCUMENT, "test.pdf");
+        when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(storedObject);
         when(support.newDocumentKey()).thenReturn("key-9");
         Document doc = new Document();
         doc.setId(3L);

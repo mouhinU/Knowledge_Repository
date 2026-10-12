@@ -1,11 +1,16 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,23 +38,26 @@ public class DocumentImageSupport {
 
     private final DocumentImageExtractorGateway extractor;
     private final DocumentImageGateway imageGateway;
+    private final ObjectStorageGateway objectStorageGateway;
     private final Path assetRoot;
     private final Path storageRoot;
 
     public DocumentImageSupport(
             DocumentImageExtractorGateway extractor,
             DocumentImageGateway imageGateway,
-            @Value("${knowledge.exam.asset-path:./data/exam-assets}") String assetDir,
-            @Value("${knowledge.storage.path:./data/documents}") String storageDir) {
+            ObjectStorageGateway objectStorageGateway,
+            @org.springframework.beans.factory.annotation.Value(
+                            "${knowledge.storage.exam-asset-path:./data/exam-assets}")
+                    String assetDir,
+            @org.springframework.beans.factory.annotation.Value(
+                            "${knowledge.storage.path:./data/documents}")
+                    String storageDir) {
         this.extractor = extractor;
         this.imageGateway = imageGateway;
+        this.objectStorageGateway = objectStorageGateway;
+        // 本地模式下 readBytes/deleteImages 仍需直接访问文件系统（向后兼容存量数据）
         this.assetRoot = Path.of(assetDir).toAbsolutePath().normalize();
         this.storageRoot = Path.of(storageDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(this.assetRoot);
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot create exam asset directory: " + assetDir, e);
-        }
     }
 
     /**
@@ -74,6 +81,7 @@ public class DocumentImageSupport {
             return 0;
         }
         int added = 0;
+        String tenantKey = TenantContext.getOrDefault();
         for (ExtractedImage img : images) {
             try {
                 String sha = sha256(img.bytes());
@@ -81,16 +89,25 @@ public class DocumentImageSupport {
                     continue;
                 }
                 String assetKey = UUID.randomUUID().toString().replace("-", "");
-                Path dir = assetRoot.resolve(doc.getDocumentKey());
-                Files.createDirectories(dir);
-                Path file = dir.resolve(assetKey + extFromMime(img.mimeType()));
-                Files.write(file, img.bytes());
+                String fileName = assetKey + extFromMime(img.mimeType());
+
+                // P5-T1：通过 ObjectStorageGateway 写入，支持本地磁盘 / MinIO 双驱动
+                StoredObject stored;
+                try (var bis = new ByteArrayInputStream(img.bytes())) {
+                    stored =
+                            objectStorageGateway.store(
+                                    bis,
+                                    tenantKey,
+                                    StorageCategory.EXAM_ASSET,
+                                    doc.getDocumentKey(),
+                                    fileName);
+                }
 
                 DocumentImage entity = new DocumentImage();
                 entity.setAssetKey(assetKey);
                 entity.setDocumentId(doc.getId());
                 entity.setDocumentKey(doc.getDocumentKey());
-                entity.setStoragePath(file.toString());
+                entity.setStoragePath(stored.storageKey());
                 entity.setSha256(sha);
                 entity.setMimeType(img.mimeType());
                 entity.setPageNo(img.pageOrSeq());
@@ -101,9 +118,13 @@ public class DocumentImageSupport {
                 try {
                     imageGateway.save(entity);
                 } catch (Exception dup) {
-                    // 唯一键冲突等：清理刚落盘的孤儿文件后继续
-                    Files.deleteIfExists(file);
-                    log.debug("图片落库冲突，跳过并清理: {}", file);
+                    // 唯一键冲突等：清理刚落盘的存储对象后继续
+                    try {
+                        objectStorageGateway.delete(stored.storageKey());
+                    } catch (IOException cleanupEx) {
+                        log.debug("清理孤儿存储对象失败: {}", stored.storageKey(), cleanupEx);
+                    }
+                    log.debug("图片落库冲突，跳过并清理: {}", stored.storageKey());
                     continue;
                 }
                 added++;

@@ -141,7 +141,7 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 - `api_key` 明文入库，只靠 DB 权限隔离 + 应用日志脱敏；`SecretCipher` 落 `none` 模式，yml 强 warn；
 - **优点**：最快落地；
-- **缺点**：**违反安全侧默认**（红线 #4 + [security-guideline.md](security-guideline.md) §5 认证令牌）；一旦 DB 备份泄露全部租户 `api_key` 明文裸奔；Phase 4 退出条件"密钥保管边界"完全没达成；**会审应一票否决**。
+- **缺点**：**违反安全侧默认**（红线 #4 + [security-guideline.md](security-guideline.md) §6 认证令牌）；一旦 DB 备份泄露全部租户 `api_key` 明文裸奔；Phase 4 退出条件"密钥保管边界"完全没达成；**会审应一票否决**。
 
 **推荐**：**方案 B（本地主密钥 + AES-256-GCM）起步，Phase 4 内闭环，Phase 5/6 视客户要求增量演进到方案 A/C**。理由：(i) 与项目"零新依赖"红线（P3-T7 OIDC 用 JDK 原生 `Signature` 而非 nimbus）与"三闸门默认关闭可回退"红线一致；(ii) 现有 `KNOWLEDGE_ADMIN_JWT_SECRET` 已经是环境变量注入，主密钥文件与之路径同构；(iii) 若客户后期要求云 KMS 合规，`SecretCipher` 端口不变，只加 `KmsSecretCipher` 实现 + `KeyRotationCmdExe` 一次性重加密即可切换；(iv) `SecretCipher` 单元测试可用固定测试主密钥，无外部依赖阻塞 CI。
 

@@ -22,7 +22,30 @@
 - 临时文件必须在 `finally` 中清理，避免磁盘残留与跨请求泄漏。
 - 解析第三方文档（PDF/Office）须在受控资源限制内进行，警惕压缩炸弹 / XML 外部实体（XXE），POI / Tika 保持依赖版本更新（版本见 [tech-stack.md](tech-stack.md)）。
 
-## 3. 认证与令牌
+## 3. 对象存储路径穿越防护（P5-T1 · Phase 5）
+
+> 文件通过上传校验（§2）进入存储后，`ObjectStorageGateway` 在路径构造与解析阶段提供第二层防御。本地磁盘与 MinIO 对象键均须防穿越。
+
+**本地磁盘（`LocalObjectStorageGatewayImpl`）**：
+
+- 所有路径操作经 `PathGuard.resolveWithin(root, userInput)` 校验：解析后绝对路径必须在 `root` 目录之内，否则抛 `SecurityException`。
+- `tenantKey`、`originalName`、`subDirectory`、`fileName` 等用户可控输入一律走 `PathGuard`，防止 `../`、绝对路径、符号链接逃逸。
+- `storageKey`（绝对路径）作为不透明句柄传给 `retrieve`/`delete`/`exists` 时，同样先经 `PathGuard` 校验再操作文件系统。
+
+**MinIO 对象键（`MinioObjectStorageGatewayImpl`）**：
+
+- 对象键由服务端拼接（`{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}`），不接受调用方传入完整键。
+- `retrieve`/`delete`/`exists` 接收 `storageKey` 时校验：拒绝含 `../`、`..\\`、以 `/` 开头的绝对路径、空字符串。
+- `tenantKey` 部分须与当前 `TenantContext.get()` 一致（MinIO 模式下防止跨租户键构造）。
+
+**通用规则**：
+
+- 路径穿越防护校验规则变更（允许字符集、最大路径深度、MinIO 键模式）属高风险改动，修改前须向用户确认（见 §8）。
+- `storageKey` 不得在日志中完整回显（含绝对路径或对象键，可能泄漏存储拓扑），日志只记 `storageKey` 哈希或截断前缀。
+
+---
+
+## 4. 认证与令牌
 
 - **口令存储**：一律 `BCryptPasswordEncoder` 哈希落库（`sys_user.password_hash`、`kb_student.password_hash`），迁移种子账号亦以 BCrypt 哈希写入，**严禁明文**。
 - **管理员侧**：`X-Admin-Token` 请求头，JWT 自包含身份与过期时间，由 `AdminTokenAuthFilter` 校验，**不落库 session_token**；`/api/admin/auth/login`、`/logout` 在放行清单内。
@@ -30,7 +53,7 @@
 - 受保护接口按角色区分：学生读卷用 `X-Student-Token`，管理端校对 / 作废用 `X-Admin-Token`；令牌无效时接口须**明确拒绝或安全降级**（如可用卷列表在无有效令牌时回退为不泄露敏感范围的结果）。
 - 前端令牌统一在 `common.js` 拦截器注入，禁止在各页面散落硬编码。
 
-## 4. 权限与数据隔离（RBAC + 文档级 ACL）
+## 5. 权限与数据隔离（RBAC + 文档级 ACL）
 
 - 权限模型：RBAC + 文档级 ACL（原 §12.3）。
 - 文档可见性枚举：`PUBLIC` / `INTERNAL` / `RESTRICTED` / `PRIVATE`。
@@ -38,25 +61,26 @@
 - **超级管理员不受权限限制**；其余主体默认最小权限，越权即拒绝。
 - 考试链路：一份卷仅允许考试一次、试卷作废后不可再开考 / 不再出现在可用列表——这些为**服务端硬门禁**（`ExamStartFromHistoryCmdExe`），不得只在 UI 层隐藏入口。
 
-## 5. 日志与敏感信息
+## 6. 日志与敏感信息
 
 - 禁止记录口令、令牌、个人敏感信息（身份证 / 手机号等）；日志统一用 Lombok `@Slf4j`，用法见 [coding-guideline.md](coding-guideline.md) §九。
 - 异常日志可含堆栈，但对外响应只回 `errorMessage` 摘要，不泄漏内部结构 / SQL / 文件绝对路径。
 
-## 6. 错误处理对外的信息面
+## 7. 错误处理对外的信息面
 
 - 业务态冲突统一经 `GlobalExceptionHandler` 映射：`IllegalStateException → 409 CONFLICT`、`IllegalArgumentException → 400`、越权 / 未认证 `→ 401`；泛化异常 `→ 500` 且**不回显内部信息**（`"An unexpected error occurred"`）。
 
-## 7. 高风险改动确认
+## 8. 高风险改动确认
 
 以下改动一旦触碰，**执行前必须向用户复述影响面并取得确认**，禁止擅自进行：
 
-- 鉴权 / 令牌 / 口令 / 权限模型的任何变更（§3、§4）；
+- 鉴权 / 令牌 / 口令 / 权限模型的任何变更（§4、§5）；
 - 触及 SQL 拼接面，或新增动态列名 / 排序逻辑（§1）；
 - Flyway 迁移链改动，**尤其修改已发布的历史脚本**——迁移只增不改历史，新列遵循向前兼容（见 [data-and-migration-guideline.md](data-and-migration-guideline.md) §4）；
 - 文件上传 / 解析扩展：引入新格式或放开大小 / 类型限制（§2）；
-- `GlobalExceptionHandler` 对外信息面变更（§6）；
-- Milvus 权限过滤 `buildFilterExpression()` 逻辑改动（§4）；
+- 对象存储路径穿越防护规则变更（§3）；
+- `GlobalExceptionHandler` 对外信息面变更（§7）；
+- Milvus 权限过滤 `buildFilterExpression()` 逻辑改动（§5）；
 - `deploy.sh` / `docker-compose*.yml` / 镜像与数据卷清理。
 
 处置纪律：

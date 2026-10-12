@@ -15,9 +15,9 @@ services:
       args:
         APP_VERSION: ${APP_VERSION}
     image: ${IMAGE_NAME}:${APP_VERSION}
-    container_name: knowledge-app
+    # P5-T4：去掉 container_name，允许 Docker 自动生成容器名，便于多副本部署
     ports:
-      - "8091:8091"
+      - "${KNOWLEDGE_APP_PORT:-8091}:8091"
     environment:
       # 时区
       TZ: Asia/Shanghai

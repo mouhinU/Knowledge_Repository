@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
@@ -15,6 +16,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategy
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import com.mouhin.knowledge.repository.domain.util.PathGuard;
@@ -28,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,7 +53,7 @@ public class DocumentIngestionSupport {
     private final VectorStoreGateway vectorStoreService;
     private final DocumentIngestionDomainService ingestionDomainService;
     private final ApplicationEventPublisher eventPublisher;
-    private final Path storagePath;
+    private final ObjectStorageGateway objectStorageGateway;
 
     public DocumentIngestionSupport(
             DocumentGateway documentGateway,
@@ -59,18 +61,13 @@ public class DocumentIngestionSupport {
             VectorStoreGateway vectorStoreService,
             DocumentIngestionDomainService ingestionDomainService,
             ApplicationEventPublisher eventPublisher,
-            @Value("${knowledge.storage.path:./data/documents}") String storageDir) {
+            ObjectStorageGateway objectStorageGateway) {
         this.documentGateway = documentGateway;
         this.chunkGateway = chunkGateway;
         this.vectorStoreService = vectorStoreService;
         this.ingestionDomainService = ingestionDomainService;
         this.eventPublisher = eventPublisher;
-        this.storagePath = Path.of(storageDir).toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(this.storagePath);
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot create storage directory: " + storageDir, e);
-        }
+        this.objectStorageGateway = objectStorageGateway;
     }
 
     /** 解析分块策略枚举，无效值回退为 FIXED_SIZE（原适配层 resolveStrategy 逻辑下沉至 app 层）。 */
@@ -250,12 +247,23 @@ public class DocumentIngestionSupport {
         }
     }
 
-    public Path copyToStorage(Path sourceFile, String originalName) throws IOException {
-        String ext = PathGuard.sanitizeExtension(originalName);
-        String storedName = UUID.randomUUID() + ext;
-        Path target = PathGuard.resolveWithin(storagePath, storedName);
-        Files.copy(sourceFile, target, StandardCopyOption.REPLACE_EXISTING);
-        return target;
+    /**
+     * 将临时文件存入持久存储（通过 {@link ObjectStorageGateway}）。
+     *
+     * <p>P5-T1 重构：原先直接 {@code Files.copy} 到本地磁盘，现委托给对象存储端口， 支持本地磁盘 / MinIO 双驱动配置切换。返回 {@link
+     * StoredObject}，调用方取 {@link StoredObject#storageKey()} 存入 DB {@code storage_path} 列。
+     *
+     * @param sourceFile 临时文件路径（上传后暂存位置）
+     * @param originalName 原始文件名
+     * @return 存储句柄
+     * @throws IOException 存储失败
+     */
+    public StoredObject copyToStorage(Path sourceFile, String originalName) throws IOException {
+        String tenantKey = TenantContext.getOrDefault();
+        try (InputStream is = Files.newInputStream(sourceFile)) {
+            return objectStorageGateway.store(
+                    is, tenantKey, StorageCategory.DOCUMENT, originalName);
+        }
     }
 
     public void deleteTempFile(Path tempFile) {

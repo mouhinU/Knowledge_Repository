@@ -150,6 +150,12 @@ knowledge:
   redis:
     enabled: ${KNOWLEDGE_REDIS_ENABLED:true}
 
+  # ---------- 上传会话（P5-T2 · S-3）----------
+  # Redis 可用时会话存 Redis Hash + Set（共享 TTL）；不可用时降级进程内 Map（惰性过期清理）。
+  upload:
+    session:
+      session-ttl-seconds: ${KNOWLEDGE_UPLOAD_SESSION_TTL_SECONDS:7200}
+
   # ---------- sys_config 缓存 TTL（P4-T2 · S-2）----------
   # Redis pub/sub 为主路径（即时失效），TTL 为二级兜底（Redis 缺席 / 消息丢失时最终一致性保障）。
   config:
@@ -289,9 +295,22 @@ knowledge:
       # 上调到 0.65 砍掉低质量匹配，减少 LLM 上下文中的无关 chunk。
       min-score: 0.65
 
-  # ---------- 文件存储 ----------
+  # ---------- 文件存储（P5-T1 双驱动：local / minio） ----------
   storage:
+    # 存储后端选择：local（默认，本地磁盘，向后兼容）/ minio（MinIO 对象存储）
+    backend: ${STORAGE_BACKEND:local}
+    # 本地磁盘模式下的文档存储根目录
     path: ${STORAGE_PATH:./data/documents}
+    # 本地磁盘模式下的考试配图存储根目录
+    exam-asset-path: ${EXAM_ASSET_PATH:./data/exam-assets}
+    # MinIO 子配置（backend=minio 时生效）
+    minio:
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      bucket: ${MINIO_BUCKET:knowledge}
+      region: ${MINIO_REGION:}
+      auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
 
   # ---------- 管理端登录鉴权（无状态 JWT，HS256）----------
   # 密钥必须由 KNOWLEDGE_ADMIN_JWT_SECRET 注入，缺失时应用启动失败。
@@ -306,8 +325,7 @@ knowledge:
     # 试卷校对关口：true=所有试卷须人工校对通过后方可发布开考；
     # false=校验通过且质量分达阈可自动发布，但校验不过 / 低分仍强制人工校对（不可绕过）。
     review-required: ${EXAM_REVIEW_REQUIRED:true}
-    # 看图题 / 看图写话 配图二进制存放目录（由文档图片提取器写入，浏览器经 /api/exam/assets/{assetKey} 拉取）
-    asset-path: ${EXAM_ASSET_PATH:./data/exam-assets}
+    # 配图存放目录已迁移至 knowledge.storage.exam-asset-path（P5-T1 统一存储配置）
 
 # ==================== 日志 ====================
 logging:

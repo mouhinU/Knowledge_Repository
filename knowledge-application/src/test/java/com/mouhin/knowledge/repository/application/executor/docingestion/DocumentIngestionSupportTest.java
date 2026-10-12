@@ -20,6 +20,7 @@ import com.mouhin.knowledge.repository.client.dto.PageDetail;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
@@ -28,6 +29,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategy
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import java.io.IOException;
@@ -35,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,6 +63,7 @@ class DocumentIngestionSupportTest {
     private final DocumentIngestionDomainService domainService =
             mock(DocumentIngestionDomainService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
 
     @TempDir Path storageDir;
 
@@ -73,7 +78,7 @@ class DocumentIngestionSupportTest {
                         vectorStoreService,
                         domainService,
                         eventPublisher,
-                        storageDir.toString());
+                        objectStorageGateway);
     }
 
     private Document uploadedDocument() {
@@ -220,9 +225,14 @@ class DocumentIngestionSupportTest {
         assertTrue(temp.getFileName().toString().equals("upload.PDF"), "临时名保留原扩展名");
         assertEquals("pdf-bytes", new String(Files.readAllBytes(temp), StandardCharsets.UTF_8));
 
-        Path stored = support.copyToStorage(temp, "原文件.pdf");
-        assertTrue(stored.startsWith(storageDir));
-        assertTrue(stored.getFileName().toString().endsWith(".pdf"));
+        String expectedKey = storageDir.resolve("some-uuid.pdf").toString();
+        StoredObject storedObj =
+                new StoredObject(expectedKey, "default", StorageCategory.DOCUMENT, "原文件.pdf");
+        when(objectStorageGateway.store(any(), any(), any(), any())).thenReturn(storedObj);
+
+        StoredObject stored = support.copyToStorage(temp, "原文件.pdf");
+        assertTrue(stored.storageKey().startsWith(storageDir.toString()));
+        assertTrue(stored.storageKey().endsWith(".pdf"));
 
         support.deleteTempFile(temp);
         assertFalse(Files.exists(temp));
@@ -244,13 +254,25 @@ class DocumentIngestionSupportTest {
                 "shell.pdf$(rm -rf /)",
             };
             for (String originalName : malicious) {
-                Path stored = support.copyToStorage(source, originalName);
+                String safeKey =
+                        storageDir.toAbsolutePath().resolve(UUID.randomUUID() + ".bin").toString();
+                StoredObject storedObj =
+                        new StoredObject(
+                                safeKey, "default", StorageCategory.DOCUMENT, originalName);
+                when(objectStorageGateway.store(any(), any(), any(), eq(originalName)))
+                        .thenReturn(storedObj);
+
+                StoredObject stored = support.copyToStorage(source, originalName);
                 Path absRoot = storageDir.toAbsolutePath().normalize();
+                Path storedPath = Path.of(stored.storageKey());
                 assertTrue(
-                        stored.startsWith(absRoot),
-                        "存储路径必须留在 root 内 [originalName=" + originalName + "]: " + stored);
+                        storedPath.startsWith(absRoot),
+                        "存储路径必须留在 root 内 [originalName="
+                                + originalName
+                                + "]: "
+                                + stored.storageKey());
                 // 名称只允许 UUID（36 位）或 UUID+合法 ext（长度 ≤ 47），且无路径分隔符
-                String fileName = stored.getFileName().toString();
+                String fileName = storedPath.getFileName().toString();
                 assertFalse(
                         fileName.contains("/") || fileName.contains("\\"),
                         "落盘文件名不允许携带分隔符：" + fileName);

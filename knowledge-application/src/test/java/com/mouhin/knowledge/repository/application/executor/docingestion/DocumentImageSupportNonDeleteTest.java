@@ -16,10 +16,13 @@ import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -49,6 +52,7 @@ class DocumentImageSupportNonDeleteTest {
     private final DocumentImageExtractorGateway extractor =
             mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
+    private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
 
     private Path assetRoot;
     private Path storageRoot;
@@ -62,7 +66,42 @@ class DocumentImageSupportNonDeleteTest {
         Files.createDirectories(storageRoot);
         support =
                 new DocumentImageSupport(
-                        extractor, imageGateway, assetRoot.toString(), storageRoot.toString());
+                        extractor,
+                        imageGateway,
+                        objectStorageGateway,
+                        assetRoot.toString(),
+                        storageRoot.toString());
+
+        // Mock objectStorageGateway.store() to write bytes to assetRoot/{subDirectory}/{fileName}
+        org.mockito.Mockito.when(
+                        objectStorageGateway.store(
+                                any(),
+                                anyString(),
+                                any(StorageCategory.class),
+                                anyString(),
+                                anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            java.io.InputStream is = invocation.getArgument(0);
+                            String tenantKey = invocation.getArgument(1);
+                            StorageCategory category = invocation.getArgument(2);
+                            String subDir = invocation.getArgument(3);
+                            String fileName = invocation.getArgument(4);
+                            Path dir = assetRoot.resolve(subDir);
+                            Files.createDirectories(dir);
+                            Path target = dir.resolve(fileName);
+                            Files.write(target, is.readAllBytes());
+                            return new StoredObject(
+                                    target.toString(), tenantKey, category, fileName);
+                        });
+
+        // Mock objectStorageGateway.delete() to actually delete the file on disk
+        org.mockito.Mockito.when(objectStorageGateway.delete(anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            String key = invocation.getArgument(0);
+                            return Files.deleteIfExists(Path.of(key));
+                        });
     }
 
     private Document doc() {

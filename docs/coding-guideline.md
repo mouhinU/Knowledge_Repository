@@ -184,7 +184,7 @@ public class XxxService {
 - 日志输出使用占位符 `{}`，**禁止 `+` 字符串拼接**：`log.debug("Processing document with key: {}", documentKey)`。
 - 一般无需手工判级；仅当参数需要昂贵计算时才用 `log.isXxxEnabled()` 守卫。
 - 异常日志把异常对象作为**最后一个参数**传入以保留堆栈：`log.error("处理文档失败, key={}", documentKey, e)`（勿 `+ e.getMessage()` 而丢栈）。
-- **禁止记录敏感信息**（口令、令牌、身份证等），安全日志约束见 [security-guideline.md](security-guideline.md) §5。
+- **禁止记录敏感信息**（口令、令牌、身份证等），安全日志约束见 [security-guideline.md](security-guideline.md) §6。
 - **存量迁移**：仓库现有类多为手写 `LoggerFactory`（约 100 个），不强制一次性重构；但**新增 / 重点改动的类一律改用 `@Slf4j`**，随迭代收敛到统一口径。
 
 ---

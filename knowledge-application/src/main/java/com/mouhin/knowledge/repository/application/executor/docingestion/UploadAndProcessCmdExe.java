@@ -9,6 +9,7 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -87,7 +88,8 @@ public class UploadAndProcessCmdExe {
 
             Path permanentFile;
             try {
-                permanentFile = support.copyToStorage(tempFile, file.getOriginalFilename());
+                StoredObject stored = support.copyToStorage(tempFile, file.getOriginalFilename());
+                permanentFile = Path.of(stored.storageKey());
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to store uploaded file", e);
             }

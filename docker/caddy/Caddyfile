@@ -1,0 +1,46 @@
+# Caddy 反向代理配置（P5-T4 多副本负载均衡）
+#
+# 本文件由 docker-compose.scale.yml 挂载到 Caddy 容器 /etc/caddy/Caddyfile。
+# Caddy 自动基于 Docker DNS 服务发现，将请求轮询分发到 knowledge-app 的所有副本。
+#
+# 自定义：
+#   - 如需绑定域名，将 :80 替换为 your-domain.com
+#   - 如需 HTTPS，Caddy 会自动申请 Let's Encrypt 证书（需公网可达 443 端口）
+#   - 如需自定义 upstream，修改 KNOWLEDGE_APP_UPSTREAM 环境变量
+
+:80 {
+    # 反向代理到 knowledge-app 服务（Docker Compose 内部 DNS 自动解析为所有副本）
+    reverse_proxy {$KNOWLEDGE_APP_UPSTREAM} {
+        # 负载均衡策略：round_robin（默认）
+        lb_policy round_robin
+
+        # 健康检查：Caddy 主动探测后端存活
+        health_uri /actuator/health
+        health_interval 15s
+        health_timeout 5s
+
+        # 传输层配置
+        transport http {
+            # 与 Spring Boot 默认最大请求头大小对齐
+            max_request_header_size 8192
+            # 读超时：覆盖长轮询 / SSE 场景
+            read_timeout 120s
+        }
+    }
+
+    # 日志格式
+    log {
+        output stdout
+        format console
+    }
+
+    # 安全头
+    header {
+        # 防止点击劫持
+        X-Frame-Options "DENY"
+        # 防止 MIME 类型嗅探
+        X-Content-Type-Options "nosniff"
+        # HSTS（如启用 HTTPS）
+        # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+}

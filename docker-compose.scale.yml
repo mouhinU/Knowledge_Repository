@@ -1,0 +1,46 @@
+# ============================================================
+# Knowledge Repository - 多副本扩展 overlay（P5-T4）
+# ============================================================
+# 用法：docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+#
+# 本 overlay 在主 compose 之上引入 Caddy 前置网关，实现：
+#   1. knowledge-app 多副本（KNOWLEDGE_APP_REPLICAS 控制副本数，默认 2）
+#   2. Caddy 自动负载均衡到所有副本（基于 Docker DNS 服务发现）
+#   3. 外部只暴露 Caddy 端口（默认 80），应用端口绑定到 127.0.0.1 不再直接对外
+#
+# 前提：主 compose 已去掉 container_name，端口外部化为 KNOWLEDGE_APP_PORT。
+# 注意：多副本下上传会话由 Redis 共享（P5-T2），定时任务由分布式锁防重（P5-T5）。
+# ============================================================
+
+services:
+
+  # 覆盖主 compose 的 knowledge-app 服务：端口绑定到 localhost（仅 Caddy 可达），加副本数
+  knowledge-app:
+    # 覆盖主 compose 的端口映射：绑定到 127.0.0.1，外部无法直接访问应用端口
+    # Caddy 通过 Docker 内部网络 knowledge-app:8091 访问所有副本
+    ports:
+      - "127.0.0.1:${KNOWLEDGE_APP_PORT:-8091}:8091"
+    deploy:
+      replicas: ${KNOWLEDGE_APP_REPLICAS:-2}
+
+  # Caddy 前置网关：自动负载均衡 + 可选 HTTPS
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "${KNOWLEDGE_CADDY_PORT:-80}:80"
+      - "${KNOWLEDGE_CADDY_TLS_PORT:-443}:443"
+    environment:
+      # Caddy 环境变量，供 Caddyfile 模板引用
+      KNOWLEDGE_APP_UPSTREAM: "knowledge-app:8091"
+    volumes:
+      # Caddyfile 配置
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddy 证书与数据持久化
+      - ./docker/caddy/data:/data
+      - ./docker/caddy/config:/config
+    depends_on:
+      knowledge-app:
+        condition: service_healthy
+    restart: unless-stopped
+    # Caddy 内存开销较小，硬上限 256m 足够
+    mem_limit: 256m

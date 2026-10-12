@@ -112,14 +112,44 @@ public class DocumentServiceImpl implements DocumentServiceI {
 
 ---
 
-## 7. 依赖注入
+## 7. 对象存储层（P5-T1 · Phase 5）
+
+> 本节规定文档/考试素材等二进制资产的存储端口与实现分层。Phase 5 引入 MinIO 对象存储后，本地磁盘与 MinIO 通过配置切换，domain 层保持纯净。
+
+**端口（domain 层）**：
+
+- `ObjectStorageGateway` 接口定义在 `domain.gateway` 包，方法集：`store(InputStream, tenantKey, category, originalName) → StoredObject`、`store(InputStream, tenantKey, category, subDirectory, fileName) → StoredObject`、`retrieve(storageKey) → InputStream`、`delete(storageKey) → boolean`、`exists(storageKey) → boolean`、`getMetadata(storageKey) → Optional<StoredObject>`。
+- `StoredObject` 为 domain 值对象（`record`，不可变），字段：`storageKey`（不透明存储句柄，本地模式=绝对路径，MinIO 模式=对象键）、`originalName`、`contentType`、`size`、`tenantKey`、`category`、`createdAt`。
+- `StorageCategory` 为 domain 枚举：`DOCUMENT("documents")` / `EXAM_ASSET("exam-assets")`，控制路径一级分类段。
+
+**实现（infrastructure 层）**：
+
+- `LocalObjectStorageGatewayImpl`：本地磁盘实现，`storageKey` = 绝对路径字符串（与 P5 之前 `Document.storagePath` 格式一致，向后兼容存量数据）。文档根目录与考试素材根目录分别可配（`knowledge.storage.path` / `knowledge.storage.exam-asset-path`）。
+- `MinioObjectStorageGatewayImpl`：MinIO Java SDK 实现，对象键格式 `{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}`（exam-assets 变体 `{tenantKey}/exam-assets/{subDirectory}/{fileName}`）。`@PostConstruct` 执行 `MakeBucketIfNotExists`。
+- `StorageConfig`（`@Configuration`）通过 `@ConditionalOnProperty(name="knowledge.storage.backend")` 装配唯一 Bean：`havingValue="local", matchIfMissing=true` → 本地实现；`havingValue="minio"` → MinIO 实现。默认 `local` 保持 `saas.enabled=false` 关闭态行为等价。
+
+**路径规约**：
+
+- MinIO 侧：`{tenantKey}/{category.pathSegment()}/{yyyy}/{mm}/{uuid}.{ext}`，租户隔离由路径前缀天然保证。
+- 本地侧：`{documentRoot}/{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}` 或 `{examAssetRoot}/{tenantKey}/exam-assets/{documentKey}/{fileName}`。
+- `storageKey` 对调用方不透明——adapter/app 层不得解析或拼接 `storageKey` 内部结构，只通过 `ObjectStorageGateway` 端口操作。
+
+**COLA 合规**：
+
+- domain 层零 infra 依赖（`ObjectStorageGateway`/`StoredObject`/`StorageCategory` 均不引用 MinIO SDK 类型），符合红线 #7。
+- app 层通过构造器注入 `ObjectStorageGateway`（domain 端口），不感知 `StorageProperties` 等 infra 配置细节，符合红线 #8。
+- 仅 infra 层依赖 MinIO SDK（`io.minio:minio`），版本由根 `pom.xml` `<dependencyManagement>` 统一管理，符合红线 #11。
+
+---
+
+## 8. 依赖注入
 
 - 所有 Spring Bean 一律构造器注入、面向接口，禁止字段 `@Autowired`。
 - 领域层保持纯净：**允许** Spring 刻板注解（如 DomainService 的 `@Service`），**禁止**依赖 infrastructure / app / adapter。
 
 ---
 
-## 8. 前端实时通信协议选择
+## 9. 前端实时通信协议选择
 
 - 对于“服务端主动推送、进度刷新、任务状态回流”这类场景，**优先采用 SSE（Server-Sent Events）**，其适合一对多单向流式更新，兼容 HTTP 代理和浏览器原生 EventSource，便于与当前 `knowledge-web` 的 `SseEmitter` 方案对齐。
 - **WebSocket** 仅在明确需要**双向实时消息交互、低延迟命令回传、长连接双工通信**时才选择，例如前端发起命令、服务端实时回放、客户端还需发送控制帧。其使用必须说明双向语义、心跳、断线重连和鉴权方案。
@@ -128,7 +158,7 @@ public class DocumentServiceImpl implements DocumentServiceI {
 
 ---
 
-## 9. COLA 组件复用约定
+## 10. COLA 组件复用约定
 
 > 仅遵循其规范与对象约定；如需引入组件依赖须经确认，**不得改动 Spring Boot / Java 版本**（版本基线见 [tech-stack.md](tech-stack.md)）。
 

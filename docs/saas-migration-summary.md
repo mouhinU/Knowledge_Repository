@@ -10,8 +10,8 @@
 
 本总结只覆盖 **租户脊柱 + 生命周期** 相关的 DDL/种子迁移（V23 起），V1–V22 属单租户基线，不在本文档（全量 V1–V31 速览见 [database-migrations.md](database-migrations.md)）。截至 v0.2：
 
-- 已交付迁移版本：`V23`–`V31`（9 个版本）
-- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3/T4（本轮）
+- 已交付迁移版本：`V23`–`V31`（9 个版本）+ **P5-T1 对象存储层（无 DDL 迁移，2026-10-12 交付）**
+- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3/T4 + **P5-T1（对象存储层，无迁移）**
 - 兼容方言：**H2 `MODE=MySQL;DATABASE_TO_LOWER=TRUE`** 与 **MySQL 8** 双跑；每次迁移落地必须 `FlywayMigrationSmokeTest`（H2）与 `TenantIsolationIntegrationTest`（Testcontainers MySQL 8）同时通过
 - 三闸门（saas/platform/oidc）默认全 `false`，本目录所有迁移在闸门关闭时也必须能无损应用（红线 #11 回退）
 
@@ -91,6 +91,22 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 
 **决策锚点**：Phase 4 清单 §2 **B-2 = 方案 B**（本地主密钥 AES-256-GCM + JDK 原生零新依赖）+ **S-4 = 方案 C**（解密失败抛 `LlmProfileDecryptionException`，不静默降级）。
 
+### P5-T1 — 对象存储层交付（Phase 5，无 DDL 迁移）
+
+P5-T1 引入 domain 端口 `ObjectStorageGateway` + 本地/MinIO 双驱动实现，**不产生 Flyway 迁移版本**（无新表、无新列、无索引变更），故不在 V1–V31 迁移时间线内。关键交付物：
+
+- **domain 层**：`ObjectStorageGateway` 接口（6 方法）、`StoredObject` 值对象（record，7 字段）、`StorageCategory` 枚举（DOCUMENT/EXAM_ASSET）。零 infra 依赖，符合红线 #7。
+- **infrastructure 层**：`LocalObjectStorageGatewayImpl`（`storageKey`=绝对路径，向后兼容存量 `Document.storagePath`）、`MinioObjectStorageGatewayImpl`（MinIO SDK 8.5.17，对象键 `{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}`）、`StorageConfig`（`@ConditionalOnProperty` 双驱动装配）、`StorageProperties`（`knowledge.storage.*` 配置绑定）。
+- **app 层适配**：`DocumentIngestionSupport.copyToStorage()` 返回 `StoredObject`；`DocumentImageSupport` 通过 `ObjectStorageGateway` 写入考试素材。
+- **依赖管理**：根 `pom.xml` 新增 `<minio.version>8.5.17</minio.version>` + `<dependencyManagement>`；`knowledge-infrastructure/pom.xml` 引入 `io.minio:minio`。
+- **配置**：`application.yml` 新增 `knowledge.storage.backend/path/exam-asset-path/minio.*`，默认 `local`，`saas.enabled=false` 关闭态行为等价。
+- **路径安全**：`PathGuard` 本地 + MinIO 双侧路径穿越校验（见 [security-guideline.md](security-guideline.md) §3）。
+- **全 reactor `./mvnw test` 绿**，零新 Maven 依赖（MinIO SDK 已在 dependencyManagement 声明）。
+
+**与存量数据的关系**：本地模式下 `storageKey` = 绝对路径，与 P5 之前 `Document.storagePath` 格式完全一致，**存量上传记录无需迁移即可继续读取**。MinIO 模式切换后的存量本地文件迁移策略见 Phase 5 清单 §5 C-2（待指派）。
+
+**后续迁移占位**：若 Phase 5 后续任务（P5-T2 上传会话 Redis / P5-T3 assetKey 校验）需要新表或新列，将从 V32 起编号。
+
 ## 2. 双方言与四段式惯用法
 
 所有租户化迁移均遵循同一模式，未来加租户维（如 Phase 4 潜在新增表）应保持口径：
@@ -158,7 +174,7 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 
 按当前 Phase 5 排产，可能出现的新迁移：
 
-- **V32（候选，Phase 5）**：MinIO 对象存储元数据表 + `kb_document_image.storage_backend` 列（承接 P5-T1）
+- **V32（候选，Phase 5）**：MinIO 对象存储元数据表 + `kb_document_image.storage_backend` 列（承接 P5-T1；P5-T1 本身无 DDL，已以 Gateway 模式落地，元数据表为后续增强）
 - **V33+**：SILO placement 相关元数据（承接 Phase 3 尾分支 P3-T6，视 B-2 决策可能落在独立命名段）
 
 新增迁移必须继续遵守 §2 四段式与 §4 验证清单，且同步更新 `EXPECTED_MIGRATION_COUNT`。
@@ -166,7 +182,7 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 ## 7. 相关文档
 
 - 权威决策：[saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md)
-- Phase 门禁：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) · [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) · [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md)
+- Phase 门禁：[saas-phase2-go-checklist.md](saas-phase2-go-checklist.md) · [saas-phase3-go-checklist.md](saas-phase3-go-checklist.md) · [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) · [saas-phase5-go-checklist.md](saas-phase5-go-checklist.md)
 - Phase 3 尾分支决策包：[saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md)
 - 会审决策建议一页纸：[saas-phase3-review-brief.md](saas-phase3-review-brief.md)
 - 排产：[saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)
@@ -176,4 +192,4 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 
 ---
 
-*v0.2 · 2026-10-12 · 归档 V23–V31 全部迁移（+V31 sys_tenant_llm_profile）；更新 §5 残余项（B-1/B-2 已闭）；§6 占位从 V32 起。随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*
+*v0.3 · 2026-10-12 · 归档 V23–V31 全部迁移（+V31 sys_tenant_llm_profile）+ P5-T1 对象存储层交付记录（无 DDL）；更新 §0 口径（+P5-T1）；§5 残余项（B-1/B-2 已闭）；§6 V32 占位更新（P5-T1 无 DDL 已落地）；§7 新增 Phase 5 清单引用。随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*

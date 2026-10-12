@@ -32,6 +32,7 @@
 | 数据库迁移          | Flyway        | 由 Spring Boot BOM 统一管理 |
 | 样板代码            | Lombok        | 1.18.36                     |
 | LLM 韧性护栏        | Resilience4j  | 2.2.0（per-role 熔断/重试/滑窗统计） |
+| 对象存储            | MinIO Java SDK | 8.5.17（P5-T1 双驱动：本地磁盘 / MinIO 配置切换，仅 infra 层引入） |
 | 指标可观测          | Micrometer + Prometheus registry | 由 Spring Boot BOM 统一管理（`micrometer-core` in infra；`micrometer-registry-prometheus` in web，暴露 `/actuator/prometheus`） |
 
 ## 3. Maven 多模块（现状）

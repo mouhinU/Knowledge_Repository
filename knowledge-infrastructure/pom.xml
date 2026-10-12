@@ -129,6 +129,12 @@
             <artifactId>resilience4j-micrometer</artifactId>
         </dependency>
 
+        <!-- P5-T1：MinIO SDK（对象存储双驱动之一，仅 infra 层依赖，domain 端口 ObjectStorageGateway 不引入） -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

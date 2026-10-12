@@ -87,6 +87,17 @@ public class TenantGatewayImpl implements TenantGateway {
     }
 
     @Override
+    public List<Tenant> listActiveByCursor(long lastId, int batchSize) {
+        int safeBatchSize = batchSize > 0 ? batchSize : 100;
+        LambdaQueryWrapper<TenantDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TenantDO::getStatus, Tenant.STATUS_ACTIVE)
+                .gt(TenantDO::getTenantId, lastId)
+                .orderByAsc(TenantDO::getTenantId)
+                .last("LIMIT " + safeBatchSize);
+        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+    }
+
+    @Override
     public void save(Tenant tenant) {
         java.util.Objects.requireNonNull(tenant, "Tenant must not be null on save");
         TenantDO doObj = TenantConverter.toDO(tenant);

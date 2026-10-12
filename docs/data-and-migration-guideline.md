@@ -29,5 +29,5 @@
 - 迁移脚本置于 `knowledge-web/src/main/resources/db/migration/`，命名 `V{n}__{snake_case_描述}.sql`，严格递增不跳号、不复用旧版本号。
 - 新增列的布尔标记统一用 `BOOLEAN DEFAULT FALSE`（而非 `TINYINT(1)`），与既有 V6 `is_correct BOOLEAN` 保持一致，确保 H2 + MySQL 双兼容。
 - 每引入一版迁移，须同步更新 `FlywayMigrationSmokeTest` 的 `EXPECTED_MIGRATION_COUNT` 常量、最终版本断言，并抽查本版新增代表性对象（表 / 列）存在。
-- 迁移内**不得硬编码明文密钥 / 口令**；种子管理员口令以 BCrypt 哈希写入（见 [security-guideline.md](security-guideline.md) §3）。
+- 迁移内**不得硬编码明文密钥 / 口令**；种子管理员口令以 BCrypt 哈希写入（见 [security-guideline.md](security-guideline.md) §4）。
 - 加索引 / 改列以「向前兼容」为原则：新列给默认值，避免直接破坏既有读路径。
