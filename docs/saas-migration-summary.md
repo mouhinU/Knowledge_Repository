@@ -1,4 +1,4 @@
-# SaaS 化改造 · 数据迁移总结（V23 → V30）
+# SaaS 化改造 · 数据迁移总结（V23 → V31）
 
 > 汇总 Knowledge_Repository SaaS 多租户改造迄今落地的所有 Flyway 迁移：版本、任务锚点、动作、方言注意点、验证方式与残余项。
 > 权威决策以 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 为准，逐 Phase 门禁以对应 go-checklist 为准。
@@ -8,10 +8,10 @@
 
 ## 0. 适用范围与口径
 
-本总结只覆盖 **租户脊柱 + 生命周期** 相关的 DDL/种子迁移（V23 起），V1–V22 属单租户基线，不在本文档。截至 v0.1：
+本总结只覆盖 **租户脊柱 + 生命周期** 相关的 DDL/种子迁移（V23 起），V1–V22 属单租户基线，不在本文档（全量 V1–V31 速览见 [database-migrations.md](database-migrations.md)）。截至 v0.2：
 
-- 已交付迁移版本：`V23`–`V30`（8 个版本）
-- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3（本轮）
+- 已交付迁移版本：`V23`–`V31`（9 个版本）
+- 关联任务：P1-T1~T10（租户脊柱）+ P3-T1~T5（生命周期）+ P3-T7（OIDC，无迁移）+ P4-T1/T3/T4（本轮）
 - 兼容方言：**H2 `MODE=MySQL;DATABASE_TO_LOWER=TRUE`** 与 **MySQL 8** 双跑；每次迁移落地必须 `FlywayMigrationSmokeTest`（H2）与 `TenantIsolationIntegrationTest`（Testcontainers MySQL 8）同时通过
 - 三闸门（saas/platform/oidc）默认全 `false`，本目录所有迁移在闸门关闭时也必须能无损应用（红线 #11 回退）
 
@@ -83,6 +83,14 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 
 **刻意保留**：`idx_extraction_cache_checksum`（普通索引，非约束，不构成读泄漏）不删，避免扩大 scope。
 
+### V31 — `tenant_llm_profile.sql`（P4-T4，B-2 方案 B）
+
+新建 `sys_tenant_llm_profile` 表，支持每个租户独立配置 LLM API Key / base_url / model / embedding_model / dimension。`UNIQUE(tenant_id)` 保证每租户最多一行。`api_key VARCHAR(512)` 预留 4x 密文余量——`knowledge.secret.cipher.mode=local` 时存 AES-256-GCM 密文（base64），`mode=none` 时存明文（启动 WARN）。本表 `tenant_id` 是过滤维度（非业务列），不进 IGNORE_TABLES，由 `TenantLineInnerInterceptor` 自动注入租户谓词。
+
+**关联代码**：`SecretCipher` 端口（domain）→ `LocalSecretCipher`（AES-256-GCM，JDK 原生 `javax.crypto` 零新依赖）/ `NoopSecretCipher`（mode=none 缺席降级）→ `LlmProfileGatewayImpl` 在 DO↔Entity 边界加解密 → `TenantLlmProfileResolver`（L1 ConcurrentHashMap 30s TTL 热缓存 + DB 回源）。
+
+**决策锚点**：Phase 4 清单 §2 **B-2 = 方案 B**（本地主密钥 AES-256-GCM + JDK 原生零新依赖）+ **S-4 = 方案 C**（解密失败抛 `LlmProfileDecryptionException`，不静默降级）。
+
 ## 2. 双方言与四段式惯用法
 
 所有租户化迁移均遵循同一模式，未来加租户维（如 Phase 4 潜在新增表）应保持口径：
@@ -129,7 +137,7 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 - `TenantProvisioningIntegrationTest` / `TenantProvisioningInviteIntegrationTest` / `TenantSuspendResumeIntegrationTest` / `TenantArchiveDeleteIntegrationTest` — Phase 3 生命周期端到端
 - 全 reactor `./mvnw -B test checkstyle:check spotless:check` EXIT 0，`BUILD SUCCESS`
 
-**新增迁移的 canonical 计数**：`FlywayMigrationSmokeTest.EXPECTED_MIGRATION_COUNT` 常量 + `@DisplayName` 版本区间 + 最终版本断言 + 幂等注释四处必须同步更新。V30 落地即从 29 → 30。
+**新增迁移的 canonical 计数**：`FlywayMigrationSmokeTest.EXPECTED_MIGRATION_COUNT` 常量 + `@DisplayName` 版本区间 + 最终版本断言 + 幂等注释四处必须同步更新。V31 落地即从 30 → 31。
 
 ## 5. 已闭合的数据出口泄漏与残余项
 
@@ -140,17 +148,16 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 - 生命周期审计与硬删幂等基座 — V27/V29 已就位
 - `sys_config` 读取按租户作用域 — V28 已加列并切唯一键
 
-**残余（受 Phase 4 门禁未启）**：
+**残余（受 Phase 3 尾分支 / Phase 5 约束）**：
 
-- `sys_user.password_hash` 密钥保管（B-2，P4-T4 per-tenant LLM profile 加密字段依赖）— 待 KMS/主密钥决策签署
-- 配置缓存跨节点失效广播（B-1 Redis pub/sub，P4-T2）— 待 Redis 引入方案签署
 - Milvus partition-key 切换 / SILO 逐库 runner（Phase 3 尾分支，B-2 cluster 扩容 + 备份硬前置）— 见 [saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md)
+- `sys_tenant_llm_profile.api_key` 密钥轮换端点（KeyRotationCmdExe，双人复核走 P3-T5 审批令牌表模式）— P4-T4 遗留，核心链路已通
+- Prometheus bucket 化指标（T-4）— 需等 LLM 调用点改造时一并接入
 
-## 6. 未来迁移占位（V31+ 候选场景）
+## 6. 未来迁移占位（V32+ 候选场景）
 
-按当前 Phase 4/5 排产，可能出现的新迁移：
+按当前 Phase 5 排产，可能出现的新迁移：
 
-- **V31（候选，P4-T4）**：per-tenant LLM / embedding profile 表 + `SecretCipher` 密文列 + checksum 加盐字段
 - **V32（候选，Phase 5）**：MinIO 对象存储元数据表 + `kb_document_image.storage_backend` 列（承接 P5-T1）
 - **V33+**：SILO placement 相关元数据（承接 Phase 3 尾分支 P3-T6，视 B-2 决策可能落在独立命名段）
 
@@ -164,8 +171,9 @@ UPDATE <table> SET tenant_id = (SELECT tenant_id FROM sys_tenant WHERE tenant_ke
 - 会审决策建议一页纸：[saas-phase3-review-brief.md](saas-phase3-review-brief.md)
 - 排产：[saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md)
 - 数据库与迁移细则：[data-and-migration-guideline.md](data-and-migration-guideline.md)
+- 全量迁移速览（V1–V31）：[database-migrations.md](database-migrations.md)
 - 安全红线：[security-guideline.md](security-guideline.md)
 
 ---
 
-*v0.1 · 2026-10-10 · 归档 V23–V30 全部迁移；随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*
+*v0.2 · 2026-10-12 · 归档 V23–V31 全部迁移（+V31 sys_tenant_llm_profile）；更新 §5 残余项（B-1/B-2 已闭）；§6 占位从 V32 起。随每次新增迁移递增版本并回读 §3 白名单表 + §4 计数四处同步纪律。*

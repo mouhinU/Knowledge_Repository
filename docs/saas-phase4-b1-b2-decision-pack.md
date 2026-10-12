@@ -4,9 +4,9 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 #11（重大变更须先提案→审批
 
 # SaaS Phase 4 硬门槛技术方案 · Redis 引入与密钥保管决策包（B-1 + B-2 收口）
 
-> **✅ 本文档已升 v0.2 定稿 · 2026-10-11 项目负责人流星签署**（其他四方事后补签：架构蒙斌 / 安全莫道 / 运维无始 / 产品七月）。
-> 权威以 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) v0.3 全量授权与 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11 为准。
-> 版本：**v0.2 · 2026-10-11 定稿 · 项目负责人签署**（同 [saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md) 决策包格式）
+> **✅ 本文档已升 v0.3 交付回写 · 2026-10-12 · P4-T2/P4-T4 ✅ 已交付**（V31 `sys_tenant_llm_profile` 落地 · Redis pub/sub + AES-256-GCM 全链路通 · 远端 CI 4 job 全绿）。
+> 权威以 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) v0.4 全量授权与 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11 为准。
+> 版本：**v0.3 · 2026-10-12 交付回写 · P4-T2/P4-T4 ✅ 已交付**
 > 作者：QoderWork（架构草拟）· 签署：项目负责人（流星）2026-10-11 · 其他四方事后补签
 
 ---
@@ -20,7 +20,7 @@ Phase 4 门禁清单 v0.2 已把 **P4-T3（V30 · G7 泄漏闭合）** 与 **P4-
 
 本包不重复清单已列的 5 项 S/T 决策位（S-2/S-4/S-5/T-1/T-3/T-4），而是把 **B-1/B-2 拆成可勾点子项 + 给出推荐方案 + 说明连带影响**，供会审直接采纳或修改。**红线 #11 严禁绕过 B-1/B-2 起 P4-T2/P4-T4 代码 PR**——本包签署前，工作树中除 P4-T1 余量的读取顺序调整（不涉 Redis）之外不得新增任何 Phase 4 生产代码。
 
-**读者对象与决策窗口**：Phase 4 起前 2 周。会审采纳 → 清单升 v0.3 全量授权开工。
+**读者对象与决策窗口**：Phase 4 起前 2 周。会审采纳 → 清单升 v0.4（P4-T2/P4-T4 ✅ 已交付）。
 
 ---
 
@@ -188,7 +188,7 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 - **手工失效端点** `POST /api/admin/config/invalidate?tenantKey=xxx`（`AdminTokenAuthFilter` 鉴权 + 审计 `sys_audit_log`），仅本租户作用域；
 - **Phase 4 退出条件**：30s 强一致达成（Redis pub/sub 实际可达 <1s，留 30s 作运维缓冲）。
 
-**Gate 已解锁**：B-1 = 方案 B 已签署（v0.2 定稿 · 项目负责人流星 2026-10-11），本 PR 可起。
+**✅ 已交付**：B-1 = 方案 B 已落地（P4-T2 · 2026-10-12 · Redis pub/sub `kr:config:invalidate` + `@EventListener` + TTL 300s 兜底 + 手工失效端点 + compose `redis:7-alpine`）。
 
 ## 5. P4-T4 落地草案（依赖 B-2 采纳）
 
@@ -208,7 +208,7 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 - Prometheus 基数控制（T-4 = 方案 B bucket 化）：`knowledge_llm_calls_total{tenant_bucket, model, status}`，`tenant_bucket` 值域 `{top10_active_tenants_by_calls, rest}`；密钥指纹严禁进 label；
 - 三闸门：`knowledge.secret.cipher.mode` 默认 `none` + `saas.enabled=false` 装配缺席 + `platform.enabled=false` 端点缺席。
 
-**Gate 已解锁**：B-2 = 方案 B 已签署（v0.2 定稿 · 项目负责人流星 2026-10-11），本 PR 可起。
+**✅ 已交付**：B-2 = 方案 B 已落地（P4-T4 · 2026-10-12 · `V31__tenant_llm_profile.sql` + `LocalSecretCipher` AES-256-GCM + `TenantLlmProfileResolver` L1 30s TTL + S-4 方案 C 解密失败拒绝调用）。
 
 ## 6. 与 Phase 3 尾分支 / Phase 5 排产耦合（C-2 承接）
 
@@ -242,9 +242,9 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 **签署后回写路径**：
 
 1. 决策落定 → 本包升 v0.2 定稿（**已完成**）；
-2. 清单 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) §2 B-1/B-2 由 ☐ → ☑（附本包 v0.2 版本号）· §1 速览 B 行状态刷新 · §6 签署页相应角色签字 · 触发升 v0.3 全量授权开工；
-3. 执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §6 P4-T2 / P4-T4 由 ⛔ gate → ☑ 授权开工；
-4. AGENTS.md §1 分册地图 Phase 4 清单行标 v0.3 + 本包行状态刷新；
+2. ✅ 清单 [saas-phase4-go-checklist.md](saas-phase4-go-checklist.md) 已升 v0.4（P4-T2/P4-T4 ✅ 已交付 · V31 落地 · FlywayMigrationSmokeTest 30→31）；
+3. ✅ 执行计划 [saas-multi-tenant-execution-plan.md](saas-multi-tenant-execution-plan.md) §6 P4-T2 / P4-T4 已更新为 ✅ 已交付 · P6-T1 占位号顺延至 V32；
+4. ✅ AGENTS.md §1 分册地图 Phase 4 清单行已标 v0.4 + 本包行标 v0.3 交付回写；
 5. 提案 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §11 Phase 4 栏 ☐ → ☑（B-3 闭环）。
 
 ## 9. 例外登记与合规声明（红线 #11 / §0 #1 / §5 例外流程）
@@ -258,10 +258,10 @@ T-1 缓存形态在方案 A 下推荐 **Caffeine LRU + 本地 evict**（`LlmProf
 
 - Phase 3 尾分支 B-2 cluster 决策仍悬置（见 [saas-phase3-b2-cluster-backup-plan.md](saas-phase3-b2-cluster-backup-plan.md)）；本包不代替 Phase 3 B-2 收口。
 - Phase 6 计费配额表结构（`tenant_usage` 列 / 采集周期 / 与 P4-T4 埋点时序）由 Phase 6 门禁清单单独承接，本包 §6 只列耦合点。
-- P4-T4 `LlmProfile.dimension` 与 Milvus 集合已建维度的一致性检查在 P4-T4 交付 PR 中体现，不进入开工门禁（Phase 4 清单 §8）。
+- P4-T4 `LlmProfile.dimension` 与 Milvus 集合已建维度的一致性检查已在 P4-T4 交付中体现，不进入开工门禁（Phase 4 清单 §8）。
 - 客户 IdP 首次接入后的 RBAC 角色映射 / 租户归属绑定（Phase 3 清单 C-3 → Phase 4 清单 C-3）由本包 §2 B-1 / §3 B-2 决策外的独立子切片承接，可视客户接入节奏延后。
 - **其他四方事后补签**：架构蒙斌 / 安全莫道 / 运维无始 / 产品七月须在 Phase 4 编码 PR 合入前完成签署（签署位在本包 §8），若有异议须走 `docs/exceptions/` 登记。
 
 ---
 
-**包版本 v0.2 · 2026-10-11 定稿 · 项目负责人流星签署 · 其他四方事后补签 · B-1/B-2 硬门槛已闭 · P4-T2/P4-T4 授权开工**
+**包版本 v0.3 · 2026-10-12 交付回写 · P4-T2/P4-T4 ✅ 已交付（V31 `sys_tenant_llm_profile` · Redis pub/sub + AES-256-GCM 全链路通 · 远端 CI 4 job 全绿）· B-1/B-2 硬门槛已闭 · §8 回写路径已执行**
