@@ -19,23 +19,15 @@ import lombok.Setter;
 @Setter
 public class TenantDeleteCmd {
 
-    /**
-     * 目标租户业务键。
-     */
+    /** 目标租户业务键。 */
     private String tenantKey;
 
-    /**
-     * 一次性删除审批令牌（raw，第二操作者持有）；敏感，不落日志。
-     */
+    /** 一次性删除审批令牌（raw，第二操作者持有）；敏感，不落日志。 */
     private String approvalToken;
 
-    /**
-     * 确认者标识（第二操作者，来自平台令牌 claim）。
-     */
+    /** 确认者标识（第二操作者，来自平台令牌 claim）。 */
     private String operatorId;
 
-    /**
-     * 确认者展示名（来自平台令牌 claim）。
-     */
+    /** 确认者展示名（来自平台令牌 claim）。 */
     private String operatorName;
 }

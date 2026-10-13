@@ -6,11 +6,6 @@ import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublishe
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ConfigCacheKey;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +13,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 /**
  * 系统配置服务 — 三级读取顺序 + 进程内缓存分片（P4-T1 · S-1 定案方案 A）。
@@ -71,24 +70,16 @@ public class SystemConfigService {
     private final SystemConfigGateway systemConfigGateway;
     private final ConfigInvalidationPublisher configInvalidationPublisher;
 
-    /**
-     * 内存缓存：{@link ConfigCacheKey}{@code (tenantKey, configKey)} → SystemConfig
-     */
+    /** 内存缓存：{@link ConfigCacheKey}{@code (tenantKey, configKey)} → SystemConfig */
     private final Map<ConfigCacheKey, SystemConfig> cache = new ConcurrentHashMap<>();
 
-    /**
-     * 已全量加载的租户集合（取代旧的全局 cacheLoaded 布尔位）。
-     */
+    /** 已全量加载的租户集合（取代旧的全局 cacheLoaded 布尔位）。 */
     private final Set<String> loadedTenants = ConcurrentHashMap.newKeySet();
 
-    /**
-     * 每个租户缓存最后刷新时间戳（P4-T2 TTL 兜底用）。
-     */
+    /** 每个租户缓存最后刷新时间戳（P4-T2 TTL 兜底用）。 */
     private final Map<String, Instant> lastRefreshAt = new ConcurrentHashMap<>();
 
-    /**
-     * TTL 窗口：Redis pub/sub 即时失效的二级兜底，默认 300s（{@code knowledge.config.cache.ttl-seconds}）。
-     */
+    /** TTL 窗口：Redis pub/sub 即时失效的二级兜底，默认 300s（{@code knowledge.config.cache.ttl-seconds}）。 */
     private final Duration ttl;
 
     public SystemConfigService(
@@ -102,26 +93,20 @@ public class SystemConfigService {
 
     // ---- 读取（三层降级） ----
 
-    /**
-     * 获取配置值字符串，三级降级：缓存 → DB → 默认值
-     */
+    /** 获取配置值字符串，三级降级：缓存 → DB → 默认值 */
     public String getString(String configKey) {
         return getEntity(configKey)
                 .map(SystemConfig::getConfigValue)
                 .orElse(SystemConfigDefaults.getDefault(configKey));
     }
 
-    /**
-     * 获取 boolean 配置
-     */
+    /** 获取 boolean 配置 */
     public boolean getBoolean(String configKey) {
         String val = getString(configKey);
         return Boolean.parseBoolean(val);
     }
 
-    /**
-     * 获取 int 配置
-     */
+    /** 获取 int 配置 */
     public int getInt(String configKey) {
         String val = getString(configKey);
         try {
@@ -131,9 +116,7 @@ public class SystemConfigService {
         }
     }
 
-    /**
-     * 获取 double 配置
-     */
+    /** 获取 double 配置 */
     public double getDouble(String configKey) {
         String val = getString(configKey);
         try {
@@ -204,9 +187,7 @@ public class SystemConfigService {
 
     // ---- 管理页面用 ----
 
-    /**
-     * 查询当前租户全部配置（列表页）
-     */
+    /** 查询当前租户全部配置（列表页） */
     public List<SystemConfig> listAll() {
         String tenantKey = TenantContext.getOrDefault();
         ensureCacheLoaded(tenantKey);
@@ -217,9 +198,7 @@ public class SystemConfigService {
         return fromDb;
     }
 
-    /**
-     * 更新当前租户配置值（管理页面保存）
-     */
+    /** 更新当前租户配置值（管理页面保存） */
     public void updateValue(String configKey, String newValue) {
         if (!SystemConfigDefaults.getAllDefaults().containsKey(configKey)) {
             throw new IllegalArgumentException("Unknown system config key");
@@ -250,9 +229,7 @@ public class SystemConfigService {
         configInvalidationPublisher.publish(tenantKey, configKey);
     }
 
-    /**
-     * 手动刷新缓存（管理动作，跨所有租户一次性清空并触发下次按需重建）。
-     */
+    /** 手动刷新缓存（管理动作，跨所有租户一次性清空并触发下次按需重建）。 */
     public void refreshCache() {
         cache.clear();
         loadedTenants.clear();
@@ -260,9 +237,7 @@ public class SystemConfigService {
         log.info("[SystemConfig] 全部租户缓存已清空，下次访问按需重建");
     }
 
-    /**
-     * 清空指定租户的缓存（供租户 SUSPEND/RESUME/DELETE 生命周期钩子调用，P3-T4 起接入）。
-     */
+    /** 清空指定租户的缓存（供租户 SUSPEND/RESUME/DELETE 生命周期钩子调用，P3-T4 起接入）。 */
     public void evictTenant(String tenantKey) {
         if (tenantKey == null || tenantKey.isBlank()) {
             return;

@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,16 +16,15 @@ import java.util.stream.Collectors;
  */
 public final class ExtractionStrategyStackParser {
 
-    /**
-     * 表示"交由配置默认路由"的取值。
-     */
+    /** 表示"交由配置默认路由"的取值。 */
     public static final String AUTO = "auto";
 
-    private static final Set<String> KNOWN = Arrays.stream(ExtractionStrategyEnum.values())
-            .map(Enum::name).collect(Collectors.toUnmodifiableSet());
+    private static final Set<String> KNOWN =
+            Arrays.stream(ExtractionStrategyEnum.values())
+                    .map(Enum::name)
+                    .collect(Collectors.toUnmodifiableSet());
 
-    private ExtractionStrategyStackParser() {
-    }
+    private ExtractionStrategyStackParser() {}
 
     /**
      * 解析策略名 CSV 为合法强制栈（保序去重）。

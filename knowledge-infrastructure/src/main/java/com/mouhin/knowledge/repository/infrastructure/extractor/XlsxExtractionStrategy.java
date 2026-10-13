@@ -5,13 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandid
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -19,6 +12,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Component;
 
 /**
  * Excel 解析策略（XLSX / XLS）。
@@ -32,9 +31,7 @@ import java.util.Set;
 @Slf4j
 public class XlsxExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 本策略命中的 MIME 类型。
-     */
+    /** 本策略命中的 MIME 类型。 */
     private static final Set<String> SUPPORTED_MIME_TYPES =
             Set.of(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -59,7 +56,7 @@ public class XlsxExtractionStrategy implements ContentExtractor {
     public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
         Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath);
-             XSSFWorkbook workbook = new XSSFWorkbook(is)) {
+                XSSFWorkbook workbook = new XSSFWorkbook(is)) {
 
             List<String> sheetTexts = new ArrayList<>();
             int totalSheets = workbook.getNumberOfSheets();

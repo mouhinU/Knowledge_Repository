@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
-
 import java.util.Optional;
 
 /**

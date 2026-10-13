@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 客观题判分特征测试（golden-file 回归基线，改造计划 0-A）。
@@ -27,9 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("客观题判分回归基线 (0-A)")
 class ExamGradingCharacterizationTest {
 
-    /**
-     * gradeObjective 不使用任何注入依赖，直接以 null 构造被测对象即可。
-     */
+    /** gradeObjective 不使用任何注入依赖，直接以 null 构造被测对象即可。 */
     private final ExamGradingSupport support =
             new ExamGradingSupport(null, null, null, null, null, null, null);
 
@@ -112,7 +109,7 @@ class ExamGradingCharacterizationTest {
                     Arguments.of("AC", "AB", 4, 0, false, "含错选（选择了不在正确答案中的选项）"), // 含错选
                     Arguments.of("AC", "", 4, 0, false, "未选择任何选项"), // 未选(空串)
                     Arguments.of("AC", "   ", 4, 0, false, "未选择任何选项") // 未选(纯空白)
-            );
+                    );
         }
 
         @ParameterizedTest(name = "标准[{0}] 学生[{1}] 满分{2} → {3}分")

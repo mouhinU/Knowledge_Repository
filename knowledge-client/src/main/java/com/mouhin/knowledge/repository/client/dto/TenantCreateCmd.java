@@ -17,33 +17,21 @@ import lombok.Setter;
 @Setter
 public class TenantCreateCmd {
 
-    /**
-     * 租户业务键（全局唯一，小写字母开头，[a-z0-9_]，2–63 字符）。
-     */
+    /** 租户业务键（全局唯一，小写字母开头，[a-z0-9_]，2–63 字符）。 */
     private String tenantKey;
 
-    /**
-     * 租户展示名。
-     */
+    /** 租户展示名。 */
     private String name;
 
-    /**
-     * 套餐标识（如 FREE / STANDARD / ENTERPRISE），可空由 app 层落默认。
-     */
+    /** 套餐标识（如 FREE / STANDARD / ENTERPRISE），可空由 app 层落默认。 */
     private String plan;
 
-    /**
-     * 数据驻留区（如 cn-hangzhou），可空。
-     */
+    /** 数据驻留区（如 cn-hangzhou），可空。 */
     private String dataRegion;
 
-    /**
-     * 操作者标识（来自平台令牌 claim，非请求体）。
-     */
+    /** 操作者标识（来自平台令牌 claim，非请求体）。 */
     private String operatorId;
 
-    /**
-     * 操作者展示名（来自平台令牌 claim，非请求体）。
-     */
+    /** 操作者展示名（来自平台令牌 claim，非请求体）。 */
     private String operatorName;
 }

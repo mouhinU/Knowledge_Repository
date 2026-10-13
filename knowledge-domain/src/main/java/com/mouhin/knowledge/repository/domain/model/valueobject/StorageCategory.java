@@ -17,14 +17,10 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public enum StorageCategory {
 
-    /**
-     * 用户上传的源文档。
-     */
+    /** 用户上传的源文档。 */
     DOCUMENT("documents"),
 
-    /**
-     * 文档配图二进制（考试看图题等）。
-     */
+    /** 文档配图二进制（考试看图题等）。 */
     EXAM_ASSET("exam-assets");
 
     private final String pathSegment;
@@ -33,9 +29,7 @@ public enum StorageCategory {
         this.pathSegment = pathSegment;
     }
 
-    /**
-     * 返回该分类在存储路径中的段名（如 {@code "documents"} / {@code "exam-assets"}）。
-     */
+    /** 返回该分类在存储路径中的段名（如 {@code "documents"} / {@code "exam-assets"}）。 */
     public String pathSegment() {
         return pathSegment;
     }

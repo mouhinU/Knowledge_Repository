@@ -15,8 +15,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
  */
 public final class DocumentConverter {
 
-    private DocumentConverter() {
-    }
+    private DocumentConverter() {}
 
     public static Document toDomain(DocumentDO doObj) {
         if (doObj == null) {

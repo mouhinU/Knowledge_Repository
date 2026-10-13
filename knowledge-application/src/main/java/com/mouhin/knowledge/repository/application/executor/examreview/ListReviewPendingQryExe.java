@@ -4,9 +4,8 @@ import com.mouhin.knowledge.repository.application.converter.ExamGenerationConve
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 查询待校对试卷列表执行器（app 层用例，阶段 1-D）
@@ -28,32 +27,24 @@ public class ListReviewPendingQryExe {
         this.examHistoryGateway = examHistoryGateway;
     }
 
-    /**
-     * 兼容旧签名：全局视图。
-     */
+    /** 兼容旧签名：全局视图。 */
     public List<ExamHistoryDTO> execute(int limit, int offset) {
         return execute(limit, offset, null);
     }
 
-    /**
-     * P0-T3 作用域版：controller 传入 {@code AdminPrincipalSupport.toPermission(request)}。
-     */
+    /** P0-T3 作用域版：controller 传入 {@code AdminPrincipalSupport.toPermission(request)}。 */
     public List<ExamHistoryDTO> execute(int limit, int offset, Permission permission) {
         return examHistoryGateway.listReviewPendingScoped(limit, offset, permission).stream()
                 .map(ExamGenerationConverter::toHistoryDTO)
                 .toList();
     }
 
-    /**
-     * 兼容旧签名：全局视图。
-     */
+    /** 兼容旧签名：全局视图。 */
     public long count() {
         return count(null);
     }
 
-    /**
-     * P0-T3 作用域版统计。
-     */
+    /** P0-T3 作用域版统计。 */
     public long count(Permission permission) {
         return examHistoryGateway.countReviewPendingScoped(permission);
     }

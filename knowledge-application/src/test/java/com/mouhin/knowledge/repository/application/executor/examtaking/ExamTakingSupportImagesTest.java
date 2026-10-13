@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 看图题配图注入开考快照单测（阶段 3）。
@@ -26,9 +25,7 @@ class ExamTakingSupportImagesTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /**
-     * 不触网关注入逻辑，六个协作对象传 null 即可。
-     */
+    /** 不触网关注入逻辑，六个协作对象传 null 即可。 */
     private final ExamTakingSupport support =
             new ExamTakingSupport(null, null, null, null, null, null);
 
@@ -40,8 +37,7 @@ class ExamTakingSupportImagesTest {
     }
 
     private static List<Map<String, Object>> parse(String json) throws Exception {
-        return MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {
-        });
+        return MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
     }
 
     @Test

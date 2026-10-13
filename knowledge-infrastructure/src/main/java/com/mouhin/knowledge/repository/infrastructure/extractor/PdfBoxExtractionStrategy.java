@@ -6,13 +6,12 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import com.mouhin.knowledge.repository.infrastructure.pdf.EnhancedPdfTextExtractor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * PDF 解析策略（PDFBox 实现）。
@@ -27,9 +26,7 @@ import java.util.Set;
 @Slf4j
 public class PdfBoxExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 本策略命中的 MIME 类型。
-     */
+    /** 本策略命中的 MIME 类型。 */
     private static final Set<String> SUPPORTED_MIME_TYPES = Set.of("application/pdf");
 
     @Override

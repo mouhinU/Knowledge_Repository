@@ -9,14 +9,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
-import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * 租户解析过滤器（P1-T3，SaaS 脊柱请求入口）。
@@ -44,44 +43,28 @@ import java.util.regex.Pattern;
 @Slf4j
 public class TenantResolverFilter extends OncePerRequestFilter {
 
-    /**
-     * 租户解析请求头。
-     */
+    /** 租户解析请求头。 */
     public static final String TENANT_HEADER = "X-Tenant-Id";
 
-    /**
-     * JWT claim {@code tenantId} 落到请求属性的键（P1-T8 由鉴权过滤器填充）。
-     */
+    /** JWT claim {@code tenantId} 落到请求属性的键（P1-T8 由鉴权过滤器填充）。 */
     public static final String TENANT_CLAIM_ATTRIBUTE = "knowledge.tenant.claim";
 
-    /**
-     * 错误码：跨租户冲突。
-     */
+    /** 错误码：跨租户冲突。 */
     public static final String ERROR_CODE_CONFLICT = "TENANT_CONFLICT";
 
-    /**
-     * 错误码：非法租户标识格式。
-     */
+    /** 错误码：非法租户标识格式。 */
     public static final String ERROR_CODE_INVALID = "INVALID_TENANT_KEY";
 
-    /**
-     * 错误码：租户已软停（P3-T4，{@code sys_tenant.status=SUSPENDED} 时租户侧请求返 403）。
-     */
+    /** 错误码：租户已软停（P3-T4，{@code sys_tenant.status=SUSPENDED} 时租户侧请求返 403）。 */
     public static final String ERROR_CODE_SUSPENDED = "TENANT_SUSPENDED";
 
-    /**
-     * 平台端路径前缀：走独立平台令牌，<b>不</b>受租户软停影响，故软拦跳过此前缀。
-     */
+    /** 平台端路径前缀：走独立平台令牌，<b>不</b>受租户软停影响，故软拦跳过此前缀。 */
     private static final String PLATFORM_PREFIX = "/api/platform/";
 
-    /**
-     * 合法租户键：1~64 位字母 / 数字 / 下划线 / 连字符（对齐 {@code sys_tenant.tenant_key} 语义）。
-     */
+    /** 合法租户键：1~64 位字母 / 数字 / 下划线 / 连字符（对齐 {@code sys_tenant.tenant_key} 语义）。 */
     private static final Pattern VALID_TENANT_KEY = Pattern.compile("^[A-Za-z0-9_-]{1,64}$");
 
-    /**
-     * 仅这些路径前缀参与租户解析。
-     */
+    /** 仅这些路径前缀参与租户解析。 */
     private static final String API_PREFIX = "/api/";
 
     private final SaasProperties saasProperties;
@@ -93,9 +76,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
         this.tenantDirectory = tenantDirectory;
     }
 
-    /**
-     * 是否平台端路径（{@code /api/platform/} 前缀）；平台端走独立平台令牌，不受租户软停影响。
-     */
+    /** 是否平台端路径（{@code /api/platform/} 前缀）；平台端走独立平台令牌，不受租户软停影响。 */
     private static boolean isPlatformPath(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path != null && path.startsWith(PLATFORM_PREFIX);
@@ -130,7 +111,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
         String fromSubdomain = resolveFromSubdomain(request);
         String fromClaim = trimToNull(stringAttribute(request, TENANT_CLAIM_ATTRIBUTE));
 
-        for (String candidate : new String[]{fromHeader, fromSubdomain, fromClaim}) {
+        for (String candidate : new String[] {fromHeader, fromSubdomain, fromClaim}) {
             if (candidate != null && !VALID_TENANT_KEY.matcher(candidate).matches()) {
                 writeError(
                         response, HttpServletResponse.SC_BAD_REQUEST, ERROR_CODE_INVALID, "非法租户标识");
@@ -181,7 +162,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
      */
     private String reconcile(String header, String subdomain, String claim) {
         Set<String> distinct = new LinkedHashSet<>();
-        for (String candidate : new String[]{header, subdomain, claim}) {
+        for (String candidate : new String[] {header, subdomain, claim}) {
             if (candidate != null) {
                 distinct.add(candidate);
             }
@@ -192,9 +173,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
         return distinct.isEmpty() ? null : distinct.iterator().next();
     }
 
-    /**
-     * 从 Host 反解子域名租户键：仅当 {@code apexDomain} 非空、Host 恰为 {@code {key}.{apex}} 单级子域时返回 key。
-     */
+    /** 从 Host 反解子域名租户键：仅当 {@code apexDomain} 非空、Host 恰为 {@code {key}.{apex}} 单级子域时返回 key。 */
     private String resolveFromSubdomain(HttpServletRequest request) {
         String apex = trimToNull(saasProperties.getApexDomain());
         if (apex == null) {
@@ -236,9 +215,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
                 java.util.Map.of("error", message, "errorCode", errorCode, "code", status));
     }
 
-    /**
-     * 内部信号异常：三来源给出互不相同的租户值。
-     */
+    /** 内部信号异常：三来源给出互不相同的租户值。 */
     private static final class TenantConflictException extends RuntimeException {
         private final Set<String> candidates;
 

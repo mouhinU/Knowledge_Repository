@@ -6,8 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -15,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OpenAI 兼容端点的视觉对话网关实现（Phase B）。
@@ -46,13 +45,13 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
     private final Duration requestTimeout;
 
     /**
-     * @param baseUrl     OpenAI 兼容 base-url（已含 /v1 等前缀）
-     * @param apiKey      访问密钥（本地端点可留空）
-     * @param modelName   模型名
+     * @param baseUrl OpenAI 兼容 base-url（已含 /v1 等前缀）
+     * @param apiKey 访问密钥（本地端点可留空）
+     * @param modelName 模型名
      * @param temperature 采样温度
-     * @param maxTokens   最大生成 token 数
-     * @param timeout     单次请求超时
-     * @param httpClient  视觉角色专属 HTTP 客户端（连接隔离，由配置装配）
+     * @param maxTokens 最大生成 token 数
+     * @param timeout 单次请求超时
+     * @param httpClient 视觉角色专属 HTTP 客户端（连接隔离，由配置装配）
      */
     public OpenAiCompatibleVisionChatGateway(
             String baseUrl,

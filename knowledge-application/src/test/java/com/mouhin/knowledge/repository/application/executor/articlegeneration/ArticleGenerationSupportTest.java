@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
@@ -16,22 +20,17 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 文章生成支撑（黑板编排）单测：锁定「INIT 事件同步先行 → 检索 → 无召回回退大模型补充 → 研究 / 写手 / 审核三 Agent 顺序执行 → 历史落库 COMPLETED /
@@ -88,7 +87,7 @@ class ArticleGenerationSupportTest {
     @DisplayName("启动即刻同步推送 INIT 阶段事件（异步流水线尚未展开）")
     void initEventEmittedSynchronously() {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
         Recorder recorder = new Recorder();
 
@@ -104,7 +103,7 @@ class ArticleGenerationSupportTest {
     @DisplayName("主干：检索命中 → 三 Agent 顺序执行 → 历史落库 COMPLETED + completed 事件")
     void happyPathPersistsCompletedHistory() throws Exception {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of(new SearchResult("知识片段", "d-1", "教材", 1, 0, 0.9)));
         Recorder recorder = new Recorder();
 
@@ -133,7 +132,7 @@ class ArticleGenerationSupportTest {
     @DisplayName("知识库零召回 → 大模型补充资料进入黑板（来源标注「大模型补充」）")
     void emptyRecallFallsBackToLlmSupplement() throws Exception {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
         when(chatModel.chat(any(ChatRequest.class)))
                 .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from("补充知识正文")).build());
@@ -154,7 +153,7 @@ class ArticleGenerationSupportTest {
     @DisplayName("Agent 中途失败 → 历史落库 FAILED（含错误消息）并推送 ERROR 事件")
     void agentFailurePersistsFailedHistory() throws Exception {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of(new SearchResult("片段", "d-1", "教材", 1, 0, 0.8)));
         doThrow(new RuntimeException("写手崩溃"))
                 .when(writerAgent)
@@ -195,7 +194,7 @@ class ArticleGenerationSupportTest {
     @DisplayName("回调为 null（前端未订阅 SSE）→ 全流程静默不抛 NPE")
     void nullCallbackIsTolerated() throws Exception {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of(new SearchResult("片段", "d-1", "教材", 1, 0, 0.8)));
 
         support.generateArticleAsync("主题", permission, null, "s-6", null);
@@ -205,9 +204,7 @@ class ArticleGenerationSupportTest {
         assertEquals("COMPLETED", cap.getValue().getStatus());
     }
 
-    /**
-     * 记录全部进度事件并在终态（COMPLETED / ERROR）放行 latch 的测试回调。
-     */
+    /** 记录全部进度事件并在终态（COMPLETED / ERROR）放行 latch 的测试回调。 */
     private static final class Recorder implements BlackboardProgressCallback {
         final List<BlackboardProgressEvent> events =
                 Collections.synchronizedList(new ArrayList<>());

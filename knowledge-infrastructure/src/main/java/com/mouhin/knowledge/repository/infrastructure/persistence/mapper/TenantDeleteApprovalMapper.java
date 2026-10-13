@@ -11,5 +11,4 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-09
  */
 @Mapper
-public interface TenantDeleteApprovalMapper extends BaseMapper<TenantDeleteApprovalDO> {
-}
+public interface TenantDeleteApprovalMapper extends BaseMapper<TenantDeleteApprovalDO> {}

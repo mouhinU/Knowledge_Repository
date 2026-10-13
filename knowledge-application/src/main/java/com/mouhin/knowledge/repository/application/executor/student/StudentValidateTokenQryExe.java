@@ -6,9 +6,8 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
-import org.springframework.stereotype.Component;
-
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 /**
  * 令牌校验查询执行器（app 层用例）
@@ -22,9 +21,7 @@ import java.util.Optional;
 @Component
 public class StudentValidateTokenQryExe {
 
-    /**
-     * 有效账号状态
-     */
+    /** 有效账号状态 */
     private static final String STATUS_ACTIVE = "ACTIVE";
 
     private final StudentGateway studentGateway;
@@ -54,9 +51,7 @@ public class StudentValidateTokenQryExe {
         return Optional.of(StudentConverter.toVO(student));
     }
 
-    /**
-     * 会话表命中 → 直接按 studentId 反查；否则回退到 legacy findBySessionToken。
-     */
+    /** 会话表命中 → 直接按 studentId 反查；否则回退到 legacy findBySessionToken。 */
     private Optional<Student> resolveStudent(String token) {
         Optional<StudentSession> sessionOpt = studentSessionGateway.findActiveByToken(token);
         if (sessionOpt.isPresent()) {

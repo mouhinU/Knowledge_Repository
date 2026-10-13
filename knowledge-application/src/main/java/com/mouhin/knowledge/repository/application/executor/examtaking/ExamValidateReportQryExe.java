@@ -1,8 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 题目 JSON 校验报告查询执行器（app 层用例，返回可序列化的报告 Map）

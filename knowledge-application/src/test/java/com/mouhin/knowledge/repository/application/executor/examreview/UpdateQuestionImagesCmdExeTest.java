@@ -1,18 +1,17 @@
 package com.mouhin.knowledge.repository.application.executor.examreview;
 
-import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Arrays;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 校对页配图绑定执行器单测（阶段 2）。

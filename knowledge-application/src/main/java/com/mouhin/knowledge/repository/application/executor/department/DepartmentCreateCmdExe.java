@@ -5,11 +5,10 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * 新增部门命令执行器（app 层用例，事务边界）

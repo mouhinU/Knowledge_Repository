@@ -13,11 +13,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +20,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 异步重新入库用例执行器（app 层，SSE 进度回调）。
@@ -43,9 +42,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class ReindexAsyncCmdExe {
 
-    /**
-     * 允许重新入库的起始状态：已入库、入库失败、已归档。
-     */
+    /** 允许重新入库的起始状态：已入库、入库失败、已归档。 */
     private static final Set<DocumentStatusEnum> REINDEXABLE_STATUSES =
             Set.of(
                     DocumentStatusEnum.INDEXED,
@@ -86,12 +83,12 @@ public class ReindexAsyncCmdExe {
     /**
      * 异步重新入库。
      *
-     * @param documentKey  文档标识
-     * @param chunkSize    分块大小（未手动改分块时生效）
-     * @param overlap      分块重叠
-     * @param strategy     分块策略
+     * @param documentKey 文档标识
+     * @param chunkSize 分块大小（未手动改分块时生效）
+     * @param overlap 分块重叠
+     * @param strategy 分块策略
      * @param customChunks 前端手动调整后的分块；非空则以其为准，忽略上面的自动分块参数
-     * @param callback     SSE 进度回调
+     * @param callback SSE 进度回调
      */
     public void execute(
             String documentKey,
@@ -134,9 +131,7 @@ public class ReindexAsyncCmdExe {
                         }));
     }
 
-    /**
-     * 前置清理：校验状态 → 删除旧向量 → 短事务删旧分块并重置状态 → 删除旧配图（记录 + 文件）→ 失效提取缓存。
-     */
+    /** 前置清理：校验状态 → 删除旧向量 → 短事务删旧分块并重置状态 → 删除旧配图（记录 + 文件）→ 失效提取缓存。 */
     private Document prepareForReindex(String documentKey) {
         Document document =
                 documentGateway
@@ -178,9 +173,7 @@ public class ReindexAsyncCmdExe {
         return document;
     }
 
-    /**
-     * 慢 IO（文件重解析）：在事务之外重新提取文本并回填缓存。
-     */
+    /** 慢 IO（文件重解析）：在事务之外重新提取文本并回填缓存。 */
     private ExtractionResult reextract(Document document) {
         Path storagePath = Path.of(document.getStoragePath());
         try {

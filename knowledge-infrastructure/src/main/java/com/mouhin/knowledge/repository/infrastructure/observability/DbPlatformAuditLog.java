@@ -3,11 +3,10 @@ package com.mouhin.knowledge.repository.infrastructure.observability;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.AuditLogDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.AuditLogMapper;
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 /**
  * DB 持久化的平台端审计日志实现（infrastructure 层，P3-T5，S-4=方案 A "审计落 {@code sys_audit_log}"）。
@@ -31,14 +30,10 @@ public class DbPlatformAuditLog implements PlatformAuditLog {
 
     private static final String LOG_PREFIX = "[PlatformAudit]";
 
-    /**
-     * {@code detail} 列宽 VARCHAR(500)，与 V29 DDL 对齐；先截断再转义避免转义后膨胀溢出。
-     */
+    /** {@code detail} 列宽 VARCHAR(500)，与 V29 DDL 对齐；先截断再转义避免转义后膨胀溢出。 */
     private static final int DETAIL_MAX_LENGTH = 500;
 
-    /**
-     * 短字段（operator / action / tenantKey / outcome）列宽 VARCHAR(64) 的保守截断上限。
-     */
+    /** 短字段（operator / action / tenantKey / outcome）列宽 VARCHAR(64) 的保守截断上限。 */
     private static final int SHORT_FIELD_MAX_LENGTH = 64;
 
     private final AuditLogMapper auditLogMapper;
@@ -91,9 +86,7 @@ public class DbPlatformAuditLog implements PlatformAuditLog {
         }
     }
 
-    /**
-     * 清理内容：先截断至 {@code maxLength} 再转义换行 / 引号，防止日志注入与列宽溢出。
-     */
+    /** 清理内容：先截断至 {@code maxLength} 再转义换行 / 引号，防止日志注入与列宽溢出。 */
     private String sanitize(String text, int maxLength) {
         if (text == null) {
             return "";

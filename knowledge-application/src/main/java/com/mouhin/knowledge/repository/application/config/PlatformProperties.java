@@ -24,8 +24,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.platform")
 public class PlatformProperties {
 
-    /**
-     * 平台端管理总开关，默认关闭（端点不注册）。
-     */
+    /** 平台端管理总开关，默认关闭（端点不注册）。 */
     private boolean enabled = false;
 }

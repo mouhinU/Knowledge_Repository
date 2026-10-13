@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.platform;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.provisioning.step.CreateFirstAdminStep;
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
 import com.mouhin.knowledge.repository.application.support.UserInviteService.InviteIssueResult;
@@ -12,20 +17,14 @@ import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * {@link ReissueInviteCmdExe} 单元测试（P3-T7 邀请式设密<b>回访</b>）。

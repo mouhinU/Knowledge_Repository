@@ -30,8 +30,7 @@ public record VisionChatRequest(String prompt, List<ImagePayload> images) {
      * 送入视觉模型的单张图像载荷。
      *
      * @param base64Data 图像二进制的 base64 编码（不含 data 前缀）
-     * @param mimeType   图像 MIME 类型（如 image/png、image/jpeg）
+     * @param mimeType 图像 MIME 类型（如 image/png、image/jpeg）
      */
-    public record ImagePayload(String base64Data, String mimeType) {
-    }
+    public record ImagePayload(String base64Data, String mimeType) {}
 }

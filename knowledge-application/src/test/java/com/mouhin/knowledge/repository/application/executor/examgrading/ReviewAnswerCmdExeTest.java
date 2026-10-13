@@ -1,21 +1,20 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
-import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 人工复核执行器回归测试（体检 P4 遗留 · HIGH H1）。
@@ -64,9 +63,7 @@ class ReviewAnswerCmdExeTest {
         when(sessionGateway.findById(SESSION_ID)).thenReturn(Optional.of(s));
     }
 
-    /**
-     * reviewScore=null → 必须调用 clearReviewOverride 显式清空，绝不走会跳过 null 列的 update。
-     */
+    /** reviewScore=null → 必须调用 clearReviewOverride 显式清空，绝不走会跳过 null 列的 update。 */
     @Test
     @DisplayName("清除改分：null 分数触发 clearReviewOverride，不调用 update")
     void nullClearRoutesToExplicitClear() {
@@ -79,9 +76,7 @@ class ReviewAnswerCmdExeTest {
         verify(answerGateway, never()).update(any(ExamAnswer.class));
     }
 
-    /**
-     * 非空分数 → 正常 update 覆盖，不走清除通道。
-     */
+    /** 非空分数 → 正常 update 覆盖，不走清除通道。 */
     @Test
     @DisplayName("正常改分：非空分数走 update，不调用 clearReviewOverride")
     void nonNullScoreUsesUpdate() {
@@ -94,9 +89,7 @@ class ReviewAnswerCmdExeTest {
         verify(answerGateway, never()).clearReviewOverride(anyLong());
     }
 
-    /**
-     * 越界分数（> 满分）→ 拒绝，不落任何写。
-     */
+    /** 越界分数（> 满分）→ 拒绝，不落任何写。 */
     @Test
     @DisplayName("越界分数：抛非法参数，不落任何写")
     void outOfRangeRejected() {
@@ -111,9 +104,7 @@ class ReviewAnswerCmdExeTest {
         verify(answerGateway, never()).clearReviewOverride(anyLong());
     }
 
-    /**
-     * 场次状态非 AI_GRADED/REVIEWED（如进行中）→ 拒绝复核。
-     */
+    /** 场次状态非 AI_GRADED/REVIEWED（如进行中）→ 拒绝复核。 */
     @Test
     @DisplayName("非法状态：进行中场次不允许复核")
     void illegalStatusRejected() {
@@ -129,9 +120,7 @@ class ReviewAnswerCmdExeTest {
         verify(sessionGateway, never()).update(any(ExamSession.class));
     }
 
-    /**
-     * DATA-2：改分后须按全场有效分之和回刷场次 final_score 并转入 REVIEWED。
-     */
+    /** DATA-2：改分后须按全场有效分之和回刷场次 final_score 并转入 REVIEWED。 */
     @Test
     @DisplayName("DATA-2：非空改分后回刷场次聚合 (final_score=Σ有效分, status=REVIEWED)")
     void nonNullReviewRecomputesSessionAggregate() {
@@ -154,9 +143,7 @@ class ReviewAnswerCmdExeTest {
         assertEquals("REVIEWED", updated.getStatus(), "复核后场次应进入 REVIEWED 态");
     }
 
-    /**
-     * DATA-2：清除改分（回落 AI 分）同样须触发聚合回刷，避免聚合停留在旧人工合计。
-     */
+    /** DATA-2：清除改分（回落 AI 分）同样须触发聚合回刷，避免聚合停留在旧人工合计。 */
     @Test
     @DisplayName("DATA-2：清除改分后仍回刷场次聚合")
     void clearOverrideAlsoRecomputesAggregate() {

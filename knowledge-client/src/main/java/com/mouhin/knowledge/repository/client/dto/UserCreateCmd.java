@@ -17,8 +17,6 @@ public class UserCreateCmd {
     private String departmentId;
     private Boolean admin;
 
-    /**
-     * 可选：初始登录密码（明文，app 层 BCrypt 后落库）；为空表示该账号暂不可密码登录。
-     */
+    /** 可选：初始登录密码（明文，app 层 BCrypt 后落库）；为空表示该账号暂不可密码登录。 */
     private String password;
 }

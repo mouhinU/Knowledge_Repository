@@ -1,20 +1,19 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageSearchRowDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentImageMapper;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link DocumentImageGatewayImpl} 契约单测：锁定字段映射、去重计数与联表检索命中装配。

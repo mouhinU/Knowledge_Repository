@@ -6,10 +6,9 @@ import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.WritingHistoryConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.WritingHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.WritingHistoryMapper;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * AI 写作历史仓储实现

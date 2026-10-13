@@ -4,10 +4,9 @@ import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 全局配图检索查询执行器（app 层，看图题配图 · 阶段 2）。
@@ -22,9 +21,7 @@ import java.util.List;
 @Slf4j
 public class SearchImagesQryExe {
 
-    /**
-     * 单页上限，防止前端误传超大 limit 拖垮查询。
-     */
+    /** 单页上限，防止前端误传超大 limit 拖垮查询。 */
     private static final int MAX_LIMIT = 200;
 
     private final DocumentImageSupport documentImageSupport;
@@ -86,8 +83,7 @@ public class SearchImagesQryExe {
      * 检索结果分页封装。
      *
      * @param records 当前页配图列表
-     * @param total   同条件命中总数
+     * @param total 同条件命中总数
      */
-    public record SearchResult(List<ExamDocumentImageVO> records, long total) {
-    }
+    public record SearchResult(List<ExamDocumentImageVO> records, long total) {}
 }

@@ -1,12 +1,11 @@
 package com.mouhin.knowledge.repository.domain.model.entity;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.LocalDateTime;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link Tenant} 领域实体状态流转单测（P3-T1）。
@@ -255,7 +254,7 @@ class TenantTest {
             "非 DELETING 态 markDeleted() 抛 IllegalStateException；null 戳抛 IllegalArgumentException")
     void markDeletedFromNonDeletingRejected() {
         assertThatThrownBy(
-                () -> withStatus(Tenant.STATUS_ARCHIVED).markDeleted(LocalDateTime.now()))
+                        () -> withStatus(Tenant.STATUS_ARCHIVED).markDeleted(LocalDateTime.now()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cannot complete deletion");
         Tenant deleting = withStatus(Tenant.STATUS_ACTIVE);

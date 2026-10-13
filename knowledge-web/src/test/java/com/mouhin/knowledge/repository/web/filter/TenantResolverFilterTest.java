@@ -1,19 +1,18 @@
 package com.mouhin.knowledge.repository.web.filter;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import jakarta.servlet.FilterChain;
-import org.junit.jupiter.api.*;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.*;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * {@link TenantResolverFilter} 单元测试（P1-T3）。
@@ -44,9 +43,7 @@ class TenantResolverFilterTest {
         TenantContext.clear();
     }
 
-    /**
-     * 记录链执行时上下文里生效的租户（用于断言"确实在下游可见"）。
-     */
+    /** 记录链执行时上下文里生效的租户（用于断言"确实在下游可见"）。 */
     private String runCapturing(MockHttpServletRequest request, MockHttpServletResponse response) {
         String[] captured = {SENTINEL};
         FilterChain recording = (rq, rs) -> captured[0] = String.valueOf(TenantContext.get());
@@ -70,9 +67,7 @@ class TenantResolverFilterTest {
      */
     static class StubTenantDirectory implements TenantDirectory {
 
-        /**
-         * 哨兵：令 {@link #findStatusByKey} 返回 {@link Optional#empty()}（模拟未知租户）。
-         */
+        /** 哨兵：令 {@link #findStatusByKey} 返回 {@link Optional#empty()}（模拟未知租户）。 */
         static final String UNKNOWN = "<<UNKNOWN>>";
 
         private final Map<String, String> statuses = new HashMap<>();

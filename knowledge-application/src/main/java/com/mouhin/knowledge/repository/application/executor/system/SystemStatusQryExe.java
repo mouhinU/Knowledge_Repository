@@ -75,9 +75,7 @@ public class SystemStatusQryExe {
         return status;
     }
 
-    /**
-     * 检查 Milvus 连接状态（轻量向量检索探测）
-     */
+    /** 检查 Milvus 连接状态（轻量向量检索探测） */
     private String checkMilvusConnection() {
         try {
             vectorStoreGateway.search("health_check", 1, 0.0, null);

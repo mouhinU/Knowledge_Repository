@@ -5,17 +5,17 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  *
  * <p>携带租户键、指标、限额、当前用量，供异常响应体与日志使用。
  *
- * @param action       处置动作
- * @param tenantKey    归一化租户键
- * @param metric       指标枚举
- * @param quota        限额（-1 = 无限）
+ * @param action 处置动作
+ * @param tenantKey 归一化租户键
+ * @param metric 指标枚举
+ * @param quota 限额（-1 = 无限）
  * @param currentUsage 当前用量
  */
 public record QuotaCheckResult(
         QuotaAction action, String tenantKey, UsageMetric metric, long quota, long currentUsage) {
 
     private static final QuotaAction[] SEVERITY = {
-            QuotaAction.PASS, QuotaAction.ALERT, QuotaAction.THROTTLE, QuotaAction.BLOCK
+        QuotaAction.PASS, QuotaAction.ALERT, QuotaAction.THROTTLE, QuotaAction.BLOCK
     };
 
     /**
@@ -35,9 +35,7 @@ public record QuotaCheckResult(
         return severityOf(a.action) >= severityOf(b.action) ? a : b;
     }
 
-    /**
-     * 将 {@link QuotaPolicy} 映射为 {@link QuotaAction}。
-     */
+    /** 将 {@link QuotaPolicy} 映射为 {@link QuotaAction}。 */
     public static QuotaAction actionFromPolicy(QuotaPolicy policy) {
         return switch (policy) {
             case BLOCK -> QuotaAction.BLOCK;

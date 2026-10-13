@@ -13,64 +13,40 @@ public class WritingHistory {
 
     private Long id;
 
-    /**
-     * 会话 ID
-     */
+    /** 会话 ID */
     private String sessionId;
 
-    /**
-     * 用户提问
-     */
+    /** 用户提问 */
     private String question;
 
-    /**
-     * 最终文章
-     */
+    /** 最终文章 */
     private String finalArticle;
 
-    /**
-     * 草稿文章（审核前）
-     */
+    /** 草稿文章（审核前） */
     private String draftArticle;
 
-    /**
-     * 质量评分
-     */
+    /** 质量评分 */
     private Integer qualityScore;
 
-    /**
-     * 检索到的知识块数量
-     */
+    /** 检索到的知识块数量 */
     private Integer retrievedChunks;
 
-    /**
-     * 关键发现
-     */
+    /** 关键发现 */
     private String keyFindings;
 
-    /**
-     * 审核反馈
-     */
+    /** 审核反馈 */
     private String reviewFeedback;
 
-    /**
-     * 用户 ID
-     */
+    /** 用户 ID */
     private String userId;
 
-    /**
-     * 部门 ID
-     */
+    /** 部门 ID */
     private String departmentId;
 
-    /**
-     * 状态：COMPLETED / FAILED
-     */
+    /** 状态：COMPLETED / FAILED */
     private String status;
 
-    /**
-     * 错误信息
-     */
+    /** 错误信息 */
     private String errorMessage;
 
     private LocalDateTime createTime;

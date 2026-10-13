@@ -20,12 +20,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  */
 public final class WrongAnswerConverter {
 
-    private WrongAnswerConverter() {
-    }
+    private WrongAnswerConverter() {}
 
     /**
      * @param studentName 已解析的考生显示名（缺省 "未知考生"）
-     * @param question    该题的结构化题目行（标准答案 / 解析 / 评分标准，可为 null）
+     * @param question 该题的结构化题目行（标准答案 / 解析 / 评分标准，可为 null）
      */
     public static WrongAnswerVO toVO(
             ExamAnswer answer, ExamSession session, String studentName, ExamQuestion question) {

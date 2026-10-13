@@ -1,5 +1,11 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
@@ -11,19 +17,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * 考试评分支撑单测：锁定 {@code gradeExamInternal} 编排主干 —— 场次缺失 / 认领失败 / 心跳接管 / 认领后异常回退 等并发围栏分支，结构化标准答案回填与
@@ -101,7 +100,7 @@ class ExamGradingSupportTest {
         when(sessionGateway.claimForGrading(SESSION_ID)).thenReturn(TOKEN);
         when(sessionGateway.touchGradingHeartbeat(SESSION_ID, TOKEN)).thenReturn(true);
         when(sessionGateway.completeGrading(
-                eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
+                        eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
                 .thenReturn(true);
     }
 

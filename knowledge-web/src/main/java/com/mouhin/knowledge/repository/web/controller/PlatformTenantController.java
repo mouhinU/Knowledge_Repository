@@ -5,13 +5,12 @@ import com.mouhin.knowledge.repository.client.dto.*;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 平台端租户生命周期控制器（adapter 层，P3-T1 / T-4 方案 B）。
@@ -37,9 +36,7 @@ import java.util.Map;
 @Slf4j
 public class PlatformTenantController {
 
-    /**
-     * 请求体字段名（抽常量防多处漂移，java:S1192）。
-     */
+    /** 请求体字段名（抽常量防多处漂移，java:S1192）。 */
     private static final String FIELD_TENANT_KEY = "tenantKey";
 
     private static final String FIELD_NAME = "name";
@@ -61,9 +58,7 @@ public class PlatformTenantController {
         return value == null ? null : String.valueOf(value);
     }
 
-    /**
-     * 防御性解析整型请求体字段：非数值 / 缺省返回 {@code null}，由服务层回落默认值（不因脏输入 400）。
-     */
+    /** 防御性解析整型请求体字段：非数值 / 缺省返回 {@code null}，由服务层回落默认值（不因脏输入 400）。 */
     private static Integer intOf(Object value) {
         if (value == null) {
             return null;
@@ -204,9 +199,7 @@ public class PlatformTenantController {
         return cmd;
     }
 
-    /**
-     * 从过滤器落下的平台令牌载荷读取操作者身份，注入命令（缺载荷时留空，由审计侧记为未知）。
-     */
+    /** 从过滤器落下的平台令牌载荷读取操作者身份，注入命令（缺载荷时留空，由审计侧记为未知）。 */
     private void applyOperator(
             HttpServletRequest request,
             java.util.function.Consumer<String> idSetter,

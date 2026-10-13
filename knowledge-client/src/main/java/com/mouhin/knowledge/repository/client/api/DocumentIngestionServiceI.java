@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.client.api;
 
 import com.mouhin.knowledge.repository.client.dto.*;
-
 import java.util.List;
 
 /**
@@ -21,23 +20,15 @@ import java.util.List;
  */
 public interface DocumentIngestionServiceI {
 
-    /**
-     * 基于已上传文档解析预览（不入库）
-     */
+    /** 基于已上传文档解析预览（不入库） */
     PreviewResult previewFromDocument(PreviewDocumentQuery query);
 
-    /**
-     * 重新入库已有文档
-     */
+    /** 重新入库已有文档 */
     DocumentVO reindex(String documentKey);
 
-    /**
-     * 确认入库（同步，分块 → 向量化 → 存储）
-     */
+    /** 确认入库（同步，分块 → 向量化 → 存储） */
     DocumentVO index(IndexDocumentCmd cmd);
 
-    /**
-     * 使用用户自定义分块入库（同步）
-     */
+    /** 使用用户自定义分块入库（同步） */
     DocumentVO indexWithCustomChunks(String documentKey, List<CustomChunkInput> customChunks);
 }

@@ -29,9 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TenantResumeCmdExe {
 
-    /**
-     * 审计动作名。
-     */
+    /** 审计动作名。 */
     public static final String ACTION = "TENANT_RESUME";
 
     private final TenantGateway tenantGateway;

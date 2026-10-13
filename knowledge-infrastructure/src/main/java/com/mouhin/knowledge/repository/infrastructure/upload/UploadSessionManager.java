@@ -2,10 +2,6 @@ package com.mouhin.knowledge.repository.infrastructure.upload;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.util.PathGuard;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,6 +12,9 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * 分片上传会话管理器
@@ -43,8 +42,8 @@ public class UploadSessionManager {
     /**
      * 创建上传会话
      *
-     * @param fileName    原始文件名
-     * @param fileSize    文件总大小
+     * @param fileName 原始文件名
+     * @param fileSize 文件总大小
      * @param totalChunks 总分片数
      * @return 会话 ID
      */
@@ -86,9 +85,9 @@ public class UploadSessionManager {
     /**
      * 保存分片
      *
-     * @param uploadId   会话 ID
+     * @param uploadId 会话 ID
      * @param chunkIndex 分片序号
-     * @param data       分片数据流
+     * @param data 分片数据流
      * @return 是否为最后一个分片（全部到齐）
      */
     public boolean saveChunk(String uploadId, int chunkIndex, InputStream data) throws IOException {
@@ -160,9 +159,7 @@ public class UploadSessionManager {
         return targetFile;
     }
 
-    /**
-     * 取消上传会话
-     */
+    /** 取消上传会话 */
     public void cancelSession(String uploadId) {
         sessionStore
                 .get(uploadId)
@@ -214,9 +211,7 @@ public class UploadSessionManager {
         private final String tenantKey;
         private final Set<Integer> receivedChunks = ConcurrentHashMap.newKeySet();
 
-        /**
-         * 新建会话（创建时调用）
-         */
+        /** 新建会话（创建时调用） */
         public UploadSession(
                 String uploadId,
                 String fileName,
@@ -233,9 +228,7 @@ public class UploadSessionManager {
             this.tenantKey = tenantKey;
         }
 
-        /**
-         * 从存储重建（Redis / 降级 Map 反序列化时调用）
-         */
+        /** 从存储重建（Redis / 降级 Map 反序列化时调用） */
         public UploadSession(
                 String uploadId,
                 String fileName,

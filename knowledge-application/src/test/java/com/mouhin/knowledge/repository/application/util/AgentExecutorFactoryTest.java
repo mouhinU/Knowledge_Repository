@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 智能体线程池工厂饱和策略回归测试（定向审计 CONC-2）。
@@ -25,9 +24,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @DisplayName("智能体线程池：饱和时快速失败抛 RejectedExecutionException，不回退到调用线程执行")
 class AgentExecutorFactoryTest {
 
-    /**
-     * 探针任务上限：足够越过工厂的 MAX_POOL_SIZE(32) 触发拒绝，又不无限循环。
-     */
+    /** 探针任务上限：足够越过工厂的 MAX_POOL_SIZE(32) 触发拒绝，又不无限循环。 */
     private static final int MAX_PROBE_TASKS = 512;
 
     /**

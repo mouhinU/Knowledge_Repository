@@ -1,18 +1,17 @@
 package com.mouhin.knowledge.repository.application.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
-import org.junit.jupiter.api.*;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.*;
 
 /**
  * {@link SystemConfigService} 三级读取顺序单测（P4-T1 · S-1 定案方案 A）。
@@ -51,29 +50,19 @@ import static org.mockito.Mockito.*;
 @DisplayName("SystemConfigService 三级读取顺序 (P4-T1 · S-1)")
 class SystemConfigServiceThreeTierReadTest {
 
-    /**
-     * 只在 default 有行的 key：验证 Tier 2 平台级回退。
-     */
+    /** 只在 default 有行的 key：验证 Tier 2 平台级回退。 */
     private static final String PLATFORM_ONLY_KEY = "app.feature.platform-only";
 
-    /**
-     * 只在 acme 有行的 key：验证 Tier 1 命中。
-     */
+    /** 只在 acme 有行的 key：验证 Tier 1 命中。 */
     private static final String TENANT_ONLY_KEY = "app.feature.tenant-only";
 
-    /**
-     * 两级都有行的 key：验证 Tier 1 覆盖 Tier 2。
-     */
+    /** 两级都有行的 key：验证 Tier 1 覆盖 Tier 2。 */
     private static final String BOTH_KEY = "app.feature.both";
 
-    /**
-     * 两级都缺的 key：验证 Tier 3 兜底（复用 SystemConfigDefaults 已注册项，无需真实 DB）。
-     */
+    /** 两级都缺的 key：验证 Tier 3 兜底（复用 SystemConfigDefaults 已注册项，无需真实 DB）。 */
     private static final String NEITHER_KEY = "exam.grading-delay-minutes";
 
-    /**
-     * 桩后端：(tenantKey, configKey) → configValue。
-     */
+    /** 桩后端：(tenantKey, configKey) → configValue。 */
     private final Map<String, Map<String, String>> backend = new HashMap<>();
 
     private SystemConfigGateway gateway;

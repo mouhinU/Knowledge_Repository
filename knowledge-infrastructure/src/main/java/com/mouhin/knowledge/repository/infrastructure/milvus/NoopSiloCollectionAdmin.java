@@ -2,11 +2,10 @@ package com.mouhin.knowledge.repository.infrastructure.milvus;
 
 import com.mouhin.knowledge.repository.domain.gateway.SiloCollectionAdmin;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SiloCollectionSchema;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * SILO 集合管理空实现（P3-T6 门控兜底）。

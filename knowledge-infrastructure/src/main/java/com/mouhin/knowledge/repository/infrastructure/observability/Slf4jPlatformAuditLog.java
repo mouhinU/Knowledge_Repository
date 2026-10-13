@@ -34,9 +34,7 @@ public class Slf4jPlatformAuditLog implements PlatformAuditLog {
                 sanitize(detail));
     }
 
-    /**
-     * 清理日志内容，防止日志注入：先截断再转义，避免转义后长度膨胀导致截断错位。
-     */
+    /** 清理日志内容，防止日志注入：先截断再转义，避免转义后长度膨胀导致截断错位。 */
     private String sanitize(String text) {
         if (text == null) {
             return "";

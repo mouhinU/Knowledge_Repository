@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -8,18 +12,13 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.StudentSessionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.StudentSessionMapper;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link StudentSessionGatewayImpl} 契约单测（P0-T5，多会话支持）。

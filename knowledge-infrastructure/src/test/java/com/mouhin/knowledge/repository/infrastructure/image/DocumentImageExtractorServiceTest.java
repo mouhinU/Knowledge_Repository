@@ -1,14 +1,8 @@
 package com.mouhin.knowledge.repository.infrastructure.image;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.imageio.ImageIO;
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -16,8 +10,13 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.imageio.ImageIO;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 文档图片提取服务回归测试。
@@ -50,7 +49,7 @@ class DocumentImageExtractorServiceTest {
         byte[] png = makePng(300, 200, Color.BLUE);
         Path docx = tmp.resolve("with-image.docx");
         try (XWPFDocument doc = new XWPFDocument();
-             OutputStream os = Files.newOutputStream(docx)) {
+                OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
             XWPFRun run = p.createRun();
             run.setText("看图写话");
@@ -79,7 +78,7 @@ class DocumentImageExtractorServiceTest {
         byte[] tiny = makePng(20, 20, Color.RED);
         Path docx = tmp.resolve("only-tiny.docx");
         try (XWPFDocument doc = new XWPFDocument();
-             OutputStream os = Files.newOutputStream(docx)) {
+                OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
             p.createRun()
                     .addPicture(

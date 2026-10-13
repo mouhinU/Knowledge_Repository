@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.wronganswer;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
@@ -9,18 +14,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 错题列表查询执行器单测：锁定无场次短路、错题口径（得分<满分 含部分得分）、题型过滤、 主题小写包含过滤、考生名解析与'未知考生'兜底、提交时间倒序与结构化题目行回填。

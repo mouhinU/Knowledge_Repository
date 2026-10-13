@@ -30,16 +30,12 @@ public class TenantContextHolder {
         this.saasProperties = saasProperties;
     }
 
-    /**
-     * 多租户是否启用。
-     */
+    /** 多租户是否启用。 */
     public boolean isEnabled() {
         return saasProperties.isEnabled();
     }
 
-    /**
-     * 当前生效的租户键：关闭多租户时恒为 default；开启时取上下文（未绑定回落 default）。
-     */
+    /** 当前生效的租户键：关闭多租户时恒为 default；开启时取上下文（未绑定回落 default）。 */
     public String getTenantId() {
         if (!saasProperties.isEnabled()) {
             return TenantContext.DEFAULT_TENANT_KEY;
@@ -47,18 +43,14 @@ public class TenantContextHolder {
         return TenantContext.getOrDefault();
     }
 
-    /**
-     * 绑定当前线程租户（仅多租户启用时有效）。
-     */
+    /** 绑定当前线程租户（仅多租户启用时有效）。 */
     public void bind(String tenantKey) {
         if (saasProperties.isEnabled()) {
             TenantContext.set(tenantKey);
         }
     }
 
-    /**
-     * 清除当前线程租户绑定（须在 {@code finally} 调用）。
-     */
+    /** 清除当前线程租户绑定（须在 {@code finally} 调用）。 */
     public void clear() {
         TenantContext.clear();
     }

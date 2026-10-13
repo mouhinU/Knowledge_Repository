@@ -1,14 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 异步文章生成命令执行器单测：薄分派层——锁定 question / permission / callback / sessionId / category 完整透传给 {@link
@@ -54,13 +54,13 @@ class GenerateArticleAsyncCmdExeTest {
                 .generateArticleAsync(any(), any(), any(), any(), any());
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                " ",
-                                new Permission("u", null, null, false),
-                                null,
-                                "s3",
-                                null))
+                        () ->
+                                exe.execute(
+                                        " ",
+                                        new Permission("u", null, null, false),
+                                        null,
+                                        "s3",
+                                        null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("question must not be blank");
     }

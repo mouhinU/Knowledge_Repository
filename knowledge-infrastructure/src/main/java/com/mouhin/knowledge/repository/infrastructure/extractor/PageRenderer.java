@@ -1,17 +1,16 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.springframework.stereotype.Component;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.file.Path;
 
 /**
  * PDF 页面栅格化工具（Phase B）。
@@ -33,9 +32,9 @@ public class PageRenderer {
     /**
      * 渲染指定页为 PNG 字节。
      *
-     * @param pdfPath   PDF 文件路径
+     * @param pdfPath PDF 文件路径
      * @param pageIndex 页索引（0 起始）
-     * @param dpi       分辨率（&lt;=0 时回退 150）
+     * @param dpi 分辨率（&lt;=0 时回退 150）
      * @return PNG 图像字节
      * @throws IOException 读取或渲染失败
      */

@@ -1,14 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * 解析策略路由配置（{@code knowledge.extractor.*}）。
@@ -32,18 +31,12 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "knowledge.extractor")
 public class ExtractorRoutingProperties {
 
-    /**
-     * 启用的策略名白名单（对应 {@code ExtractionStrategyEnum}）；为空表示全部启用。
-     */
+    /** 启用的策略名白名单（对应 {@code ExtractionStrategyEnum}）；为空表示全部启用。 */
     private List<String> enabledStrategies = new ArrayList<>();
 
-    /**
-     * MIME 类型 → 有序策略名栈；为空则使用 Composite 内置映射。
-     */
+    /** MIME 类型 → 有序策略名栈；为空则使用 Composite 内置映射。 */
     private Map<String, List<String>> routing = new LinkedHashMap<>();
 
-    /**
-     * 未命中任何映射时的兜底策略栈。
-     */
+    /** 未命中任何映射时的兜底策略栈。 */
     private List<String> defaultStack = new ArrayList<>(List.of("TIKA_FALLBACK"));
 }

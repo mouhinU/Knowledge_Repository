@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.LlmProfile;
-
 import java.util.Optional;
 
 /**
@@ -27,7 +26,7 @@ public interface LlmProfileGateway {
      * 保存或更新租户 LLM 配置。
      *
      * @param tenantId 租户数字 ID
-     * @param profile  LLM 配置（apiKey 为明文，由 infra 层加密后入库）
+     * @param profile LLM 配置（apiKey 为明文，由 infra 层加密后入库）
      */
     void saveOrUpdate(long tenantId, LlmProfile profile);
 }

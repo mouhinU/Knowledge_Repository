@@ -7,14 +7,13 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import dev.langchain4j.model.scoring.ScoringModel;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * 授权检索支持组件（app 层，SEC-1 修复：把权限过滤真正落到检索出口）。
@@ -38,38 +37,26 @@ import java.util.Map;
 @Slf4j
 public class AuthorizedSearchSupport {
 
-    /**
-     * over-fetch 倍率：受限文档密集时给足过滤后仍能凑够 maxResults 的空间。
-     */
+    /** over-fetch 倍率：受限文档密集时给足过滤后仍能凑够 maxResults 的空间。 */
     private static final int OVERFETCH_FACTOR = 3;
 
-    /**
-     * over-fetch 绝对加量：小结果集下避免被倍率拉得太紧。
-     */
+    /** over-fetch 绝对加量：小结果集下避免被倍率拉得太紧。 */
     private static final int OVERFETCH_EXTRA = 10;
 
-    /**
-     * over-fetch 硬上限：保护 Milvus 侧 IO 与内存。
-     */
+    /** over-fetch 硬上限：保护 Milvus 侧 IO 与内存。 */
     private static final int MAX_OVERFETCH = 500;
 
-    /**
-     * reranker 重排后保留的 top-N 数量（可通过配置覆盖）。
-     */
+    /** reranker 重排后保留的 top-N 数量（可通过配置覆盖）。 */
     private static final int DEFAULT_RERANK_TOP_N = 10;
 
     private final VectorStoreGateway vectorStoreGateway;
     private final DocumentGateway documentGateway;
     private final PermissionDomainService permissionDomainService;
 
-    /**
-     * 可选的 reranker 模型（cross-encoder），用于检索后重排。
-     */
+    /** 可选的 reranker 模型（cross-encoder），用于检索后重排。 */
     private final ScoringModel scoringModel;
 
-    /**
-     * reranker 重排后保留的 top-N 数量。
-     */
+    /** reranker 重排后保留的 top-N 数量。 */
     private final int rerankTopN;
 
     @Autowired
@@ -79,9 +66,9 @@ public class AuthorizedSearchSupport {
             PermissionDomainService permissionDomainService,
             @Autowired(required = false) ScoringModel scoringModel,
             @Autowired(required = false)
-            @org.springframework.beans.factory.annotation.Value(
-                    "${knowledge.llm.reranker.top-n:10}")
-            int rerankTopN) {
+                    @org.springframework.beans.factory.annotation.Value(
+                            "${knowledge.llm.reranker.top-n:10}")
+                    int rerankTopN) {
         this.vectorStoreGateway = vectorStoreGateway;
         this.documentGateway = documentGateway;
         this.permissionDomainService = permissionDomainService;
@@ -92,9 +79,7 @@ public class AuthorizedSearchSupport {
         }
     }
 
-    /**
-     * over-fetch 计算：{@code min(max × factor + extra, MAX_OVERFETCH)}，且不低于 max。
-     */
+    /** over-fetch 计算：{@code min(max × factor + extra, MAX_OVERFETCH)}，且不低于 max。 */
     static int overFetchSize(int maxResults) {
         int w = Math.max(1, maxResults);
         long raw = (long) w * OVERFETCH_FACTOR + OVERFETCH_EXTRA;
@@ -104,11 +89,11 @@ public class AuthorizedSearchSupport {
     /**
      * 带权限过滤的语义检索。app 层所有检索入口统一走此方法。
      *
-     * @param query      查询串
+     * @param query 查询串
      * @param maxResults 最终返回上限（过滤后截断）
-     * @param minScore   最小相似度阈值
+     * @param minScore 最小相似度阈值
      * @param filterExpr 领域层构造的 Milvus 过滤表达式（当前 buildFilter 未下推，保留兼容签名）
-     * @param category   分类过滤（应用层二次过滤，与本组件正交）
+     * @param category 分类过滤（应用层二次过滤，与本组件正交）
      * @param permission 调用者权限上下文
      * @return 已按 ACL 过滤且不超过 maxResults 的结果列表
      */
@@ -229,9 +214,7 @@ public class AuthorizedSearchSupport {
         }
     }
 
-    /**
-     * 对已有检索结果做后置权限过滤（当调用方需要更细粒度控制 fetch/trim 时可单独使用）。
-     */
+    /** 对已有检索结果做后置权限过滤（当调用方需要更细粒度控制 fetch/trim 时可单独使用）。 */
     public List<SearchResult> filterAccessible(List<SearchResult> raw, Permission permission) {
         if (raw == null || raw.isEmpty()) {
             return List.of();

@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * 考试场次视图对象
@@ -34,9 +33,7 @@ public class ExamSessionDTO {
     private Integer finalScore;
     private String status;
 
-    /**
-     * 对应 AI 试卷是否已被教师作废；true 时前端标注「试卷已作废」。
-     */
+    /** 对应 AI 试卷是否已被教师作废；true 时前端标注「试卷已作废」。 */
     private boolean voided;
 
     private LocalDateTime startTime;

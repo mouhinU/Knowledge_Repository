@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -24,16 +23,14 @@ public interface DepartmentGateway {
      * 按 (departmentKey, tenantId) 精确查找（P3-T3 幂等前置查重）。
      *
      * @param departmentKey 部门业务键
-     * @param tenantId      目标租户 id
+     * @param tenantId 目标租户 id
      * @return 命中的部门；不存在时 {@link Optional#empty()}
      */
     Optional<Department> findByDepartmentKeyAndTenant(String departmentKey, long tenantId);
 
     List<Department> listAll();
 
-    /**
-     * 查找指定部门及其所有祖先部门的 ID 列表（含自身）
-     */
+    /** 查找指定部门及其所有祖先部门的 ID 列表（含自身） */
     List<Long> findSelfAndAncestorIds(Long departmentId);
 
     void save(Department department);
@@ -45,7 +42,7 @@ public interface DepartmentGateway {
      * MyBatis-Plus 拦截器；主键回填 {@code department.id}。
      *
      * @param department 部门实体
-     * @param tenantId   目标租户 id
+     * @param tenantId 目标租户 id
      */
     void saveWithTenant(Department department, long tenantId);
 

@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link ScorePlanValidator} 确定性校验单测。
@@ -25,9 +24,7 @@ class ScorePlanValidatorTest {
 
     // ==================== 辅助构建 ====================
 
-    /**
-     * 构建一个分值对齐的合法方案（Σ=满分），用于正向测试
-     */
+    /** 构建一个分值对齐的合法方案（Σ=满分），用于正向测试 */
     private static ExamPlan validPlan(int fullMark, List<TypePlan> types) {
         ExamPlan plan = new ExamPlan();
         plan.setTotalFullMark(fullMark);
@@ -40,9 +37,7 @@ class ScorePlanValidatorTest {
         return new TypePlan(key, label, count, perQuestion);
     }
 
-    /**
-     * 生成长度为 count、每题 val 分的 perQuestion 列表
-     */
+    /** 生成长度为 count、每题 val 分的 perQuestion 列表 */
     private static List<Integer> uniform(int count, int val) {
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -235,7 +230,7 @@ class ScorePlanValidatorTest {
                             List.of(
                                     type("SINGLE_CHOICE", "单选题", 40, uniform(40, 2)),
                                     type("TRUE_FALSE", "判断题", 40, uniform(40, 1)) // 80+40=120≠100
-                            ));
+                                    ));
             // 调整使分值对齐：40×1 + 40×1.5 = 100 → 用 20×2 + 60×1 = 100
             ExamPlan plan2 =
                     validPlan(

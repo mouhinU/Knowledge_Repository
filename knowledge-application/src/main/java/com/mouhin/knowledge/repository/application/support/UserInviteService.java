@@ -2,11 +2,6 @@ package com.mouhin.knowledge.repository.application.support;
 
 import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -17,6 +12,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * 用户邀请服务（P3-T3，app/support 层）。
@@ -44,34 +43,27 @@ import java.util.Optional;
 @Component
 public class UserInviteService {
 
-    /**
-     * 默认邀请 TTL：72 小时。可被 {@link #issue} 参数覆盖。
-     */
+    /** 默认邀请 TTL：72 小时。可被 {@link #issue} 参数覆盖。 */
     public static final Duration DEFAULT_TTL = Duration.ofHours(72);
+
     private static final Logger log = LoggerFactory.getLogger(UserInviteService.class);
-    /**
-     * raw code 熵源字节数；32 字节经 Base64URL 无填充编码后为 43 字符，抗暴力枚举足够。
-     */
+
+    /** raw code 熵源字节数；32 字节经 Base64URL 无填充编码后为 43 字符，抗暴力枚举足够。 */
     private static final int RAW_CODE_BYTES = 32;
-    /**
-     * 日志脱敏：hash 前缀可见长度，用于问题排查又不泄漏完整 hash。
-     */
+
+    /** 日志脱敏：hash 前缀可见长度，用于问题排查又不泄漏完整 hash。 */
     private static final int HASH_LOG_PREFIX = 8;
 
     private final UserInviteGateway userInviteGateway;
     private final SecureRandom secureRandom;
 
-    /**
-     * 生产注入路径：由 Spring 选定此构造器（存在两个构造器时须显式标注，否则回退到不存在的无参构造器）。
-     */
+    /** 生产注入路径：由 Spring 选定此构造器（存在两个构造器时须显式标注，否则回退到不存在的无参构造器）。 */
     @Autowired
     public UserInviteService(UserInviteGateway userInviteGateway) {
         this(userInviteGateway, new SecureRandom());
     }
 
-    /**
-     * 测试可注入自定义 {@link SecureRandom}（如固定种子的伪随机源）以断言 raw code 生成路径。
-     */
+    /** 测试可注入自定义 {@link SecureRandom}（如固定种子的伪随机源）以断言 raw code 生成路径。 */
     public UserInviteService(UserInviteGateway userInviteGateway, SecureRandom secureRandom) {
         this.userInviteGateway = Objects.requireNonNull(userInviteGateway);
         this.secureRandom = Objects.requireNonNull(secureRandom);
@@ -105,8 +97,8 @@ public class UserInviteService {
      * <p>流程：吊销同用户旧 PENDING 邀请 → 生成 raw code → SHA-256 → 落库 PENDING 行 → 返回 (rawCode, entity)。
      *
      * @param tenantId 目标租户 id
-     * @param userId   目标用户 id
-     * @param ttl      有效期；{@code null} 或 ≤ 0 时用 {@link #DEFAULT_TTL}
+     * @param userId 目标用户 id
+     * @param ttl 有效期；{@code null} 或 ≤ 0 时用 {@link #DEFAULT_TTL}
      * @return 签发结果，包含仅本次可见的 raw code 与已落库的邀请实体
      */
     public InviteIssueResult issue(Long tenantId, Long userId, Duration ttl) {
@@ -165,9 +157,8 @@ public class UserInviteService {
     /**
      * 邀请签发结果。
      *
-     * @param invite  已落库的邀请实体（含 hash / expiresAt，不含 raw code）
+     * @param invite 已落库的邀请实体（含 hash / expiresAt，不含 raw code）
      * @param rawCode 原始邀请码，<b>仅此一次可见</b>，caller 应立即返回给平台运维并放弃本地引用
      */
-    public record InviteIssueResult(UserInvite invite, String rawCode) {
-    }
+    public record InviteIssueResult(UserInvite invite, String rawCode) {}
 }

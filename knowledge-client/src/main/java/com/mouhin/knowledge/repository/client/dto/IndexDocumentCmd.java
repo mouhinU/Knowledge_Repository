@@ -16,23 +16,15 @@ import lombok.Setter;
 @Setter
 public class IndexDocumentCmd {
 
-    /**
-     * 目标文档 Key
-     */
+    /** 目标文档 Key */
     private String documentKey;
 
-    /**
-     * 分块大小（字符数），默认 500
-     */
+    /** 分块大小（字符数），默认 500 */
     private Integer chunkSize = 500;
 
-    /**
-     * 重叠字符数，默认 50
-     */
+    /** 重叠字符数，默认 50 */
     private Integer overlap = 50;
 
-    /**
-     * 分块策略，默认 FIXED_SIZE
-     */
+    /** 分块策略，默认 FIXED_SIZE */
     private String strategy = "FIXED_SIZE";
 }

@@ -1,13 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import static org.assertj.core.api.Assertions.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * {@link SiloCollectionNaming} 静态工具测试（P2-T4）。
@@ -27,11 +27,11 @@ class SiloCollectionNamingTest {
 
         @ParameterizedTest(name = "tenantKey={0} → {1}")
         @CsvSource({
-                "default, kc_default",
-                "acme, kc_acme",
-                "edu_bj_01, kc_edu_bj_01",
-                "a1, kc_a1",
-                "ab, kc_ab",
+            "default, kc_default",
+            "acme, kc_acme",
+            "edu_bj_01, kc_edu_bj_01",
+            "a1, kc_a1",
+            "ab, kc_ab",
         })
         void convertsToPrefixedName(String tenantKey, String expected) {
             assertThat(SiloCollectionNaming.toCollectionName(tenantKey)).isEqualTo(expected);
@@ -65,18 +65,18 @@ class SiloCollectionNamingTest {
         @ParameterizedTest(name = "非法 tenantKey={0}")
         @ValueSource(
                 strings = {
-                        "Acme", // 大写开头
-                        "ACME", // 全大写
-                        "1acme", // 数字开头
-                        "_acme", // 下划线开头（正则首字符仅允许字母）
-                        "ac-me", // 中划线
-                        "ac me", // 中间空格
-                        "ac.me", // 点
-                        "acme!", // 特殊字符
-                        "kc_acme", // 已经带前缀（防二次拼接）
-                        "", // 空串
-                        "   ", // 全空白
-                        "a", // 长度 1（正则要求至少 2）
+                    "Acme", // 大写开头
+                    "ACME", // 全大写
+                    "1acme", // 数字开头
+                    "_acme", // 下划线开头（正则首字符仅允许字母）
+                    "ac-me", // 中划线
+                    "ac me", // 中间空格
+                    "ac.me", // 点
+                    "acme!", // 特殊字符
+                    "kc_acme", // 已经带前缀（防二次拼接）
+                    "", // 空串
+                    "   ", // 全空白
+                    "a", // 长度 1（正则要求至少 2）
                 })
         void rejectsInvalid(String tenantKey) {
             assertThatThrownBy(() -> SiloCollectionNaming.toCollectionName(tenantKey))
@@ -172,13 +172,13 @@ class SiloCollectionNamingTest {
         @ParameterizedTest(name = "非 SILO={0}")
         @ValueSource(
                 strings = {
-                        "knowledge_chunks", // POOL 主集合
-                        "kc_", // 前缀+空
-                        "kc_Acme", // tail 大写
-                        "kc_1acme", // tail 数字开头
-                        "kckc_acme", // 前缀重复
-                        "other_collection", // 无前缀
-                        "",
+                    "knowledge_chunks", // POOL 主集合
+                    "kc_", // 前缀+空
+                    "kc_Acme", // tail 大写
+                    "kc_1acme", // tail 数字开头
+                    "kckc_acme", // 前缀重复
+                    "other_collection", // 无前缀
+                    "",
                 })
         void nonSiloRejected(String name) {
             assertThat(SiloCollectionNaming.isSiloCollectionName(name)).isFalse();
@@ -205,7 +205,7 @@ class SiloCollectionNamingTest {
         @Test
         @DisplayName("toCollectionName ↔ fromCollectionName 双向一致（多组）")
         void roundTripBidirectional() {
-            for (String key : new String[]{"default", "acme", "edu_bj_01", "a1"}) {
+            for (String key : new String[] {"default", "acme", "edu_bj_01", "a1"}) {
                 String name = SiloCollectionNaming.toCollectionName(key);
                 assertThat(SiloCollectionNaming.fromCollectionName(name)).isEqualTo(key);
             }

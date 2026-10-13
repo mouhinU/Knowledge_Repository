@@ -11,5 +11,4 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-09-13
  */
 @Mapper
-public interface WritingHistoryMapper extends BaseMapper<WritingHistoryDO> {
-}
+public interface WritingHistoryMapper extends BaseMapper<WritingHistoryDO> {}

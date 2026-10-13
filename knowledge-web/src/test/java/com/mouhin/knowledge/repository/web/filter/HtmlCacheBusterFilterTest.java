@@ -1,19 +1,18 @@
 package com.mouhin.knowledge.repository.web.filter;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * {@link HtmlCacheBusterFilter} 单元测试。
@@ -39,9 +38,7 @@ class HtmlCacheBusterFilterTest {
         return r;
     }
 
-    /**
-     * 用给定的响应 content-type 与 body 走一次 filter，返回响应快照。
-     */
+    /** 用给定的响应 content-type 与 body 走一次 filter，返回响应快照。 */
     private MockHttpServletResponse run(
             String uri, String contentType, String body, HtmlCacheBusterFilter filter)
             throws ServletException, IOException {

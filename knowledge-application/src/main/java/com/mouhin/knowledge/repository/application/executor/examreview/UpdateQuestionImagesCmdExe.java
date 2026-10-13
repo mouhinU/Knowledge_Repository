@@ -4,12 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 校对页绑定配图命令执行器（app 层用例，事务边界，阶段 2）
@@ -27,9 +26,7 @@ public class UpdateQuestionImagesCmdExe {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /**
-     * 单题配图数量上限，防止异常入参撑爆展示。
-     */
+    /** 单题配图数量上限，防止异常入参撑爆展示。 */
     private static final int MAX_IMAGES = 20;
 
     private final PaperReviewSupport support;
@@ -44,9 +41,9 @@ public class UpdateQuestionImagesCmdExe {
     /**
      * 保存某题的配图绑定。
      *
-     * @param sessionKey     试卷标识
+     * @param sessionKey 试卷标识
      * @param questionNumber 印刷题号
-     * @param assetKeys      有序 assetKey 列表（可空 / 空集合表示清除绑定）
+     * @param assetKeys 有序 assetKey 列表（可空 / 空集合表示清除绑定）
      * @return 实际持久化的 assetKey 列表（清洗后）
      */
     @Transactional

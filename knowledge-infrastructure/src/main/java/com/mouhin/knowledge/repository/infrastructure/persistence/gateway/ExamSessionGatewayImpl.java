@@ -7,12 +7,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamSessionConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamSessionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamSessionMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.stereotype.Repository;
 
 /**
  * 考试场次仓储实现
@@ -23,14 +22,10 @@ import java.util.UUID;
 @Repository
 public class ExamSessionGatewayImpl implements ExamSessionGateway {
 
-    /**
-     * 场次状态：已交卷，待评分。
-     */
+    /** 场次状态：已交卷，待评分。 */
     private static final String STATUS_SUBMITTED = "SUBMITTED";
 
-    /**
-     * 场次状态：评分中（并发认领态）。
-     */
+    /** 场次状态：评分中（并发认领态）。 */
     private static final String STATUS_GRADING = "GRADING";
 
     private final ExamSessionMapper examSessionMapper;

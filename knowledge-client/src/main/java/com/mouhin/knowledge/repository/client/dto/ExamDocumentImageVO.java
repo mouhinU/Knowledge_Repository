@@ -15,58 +15,36 @@ import lombok.Setter;
 @Setter
 public class ExamDocumentImageVO {
 
-    /**
-     * 对外访问句柄
-     */
+    /** 对外访问句柄 */
     private String assetKey;
 
-    /**
-     * 所属文档 ID
-     */
+    /** 所属文档 ID */
     private Long documentId;
 
-    /**
-     * 所属文档 Key
-     */
+    /** 所属文档 Key */
     private String documentKey;
 
-    /**
-     * 来源文档文件名（全局检索展示用，可为空）
-     */
+    /** 来源文档文件名（全局检索展示用，可为空） */
     private String sourceDocumentName;
 
-    /**
-     * 直接可访问的图片 URL 路径
-     */
+    /** 直接可访问的图片 URL 路径 */
     private String url;
 
-    /**
-     * 来源页码 / 工作表序号 / 幻灯片序号（1 起始）
-     */
+    /** 来源页码 / 工作表序号 / 幻灯片序号（1 起始） */
     private Integer pageNo;
 
-    /**
-     * 同页内序号
-     */
+    /** 同页内序号 */
     private Integer seqOnPage;
 
-    /**
-     * MIME 类型
-     */
+    /** MIME 类型 */
     private String mimeType;
 
-    /**
-     * 像素宽
-     */
+    /** 像素宽 */
     private Integer width;
 
-    /**
-     * 像素高
-     */
+    /** 像素高 */
     private Integer height;
 
-    /**
-     * 字节数
-     */
+    /** 字节数 */
     private Long byteSize;
 }

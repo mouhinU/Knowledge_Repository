@@ -12,10 +12,10 @@ import java.util.List;
  * TenantContext.DEFAULT_TENANT_KEY} 字符串约定对齐；缺失或 blank 归一为 {@code "default"}， 保证升级前签发的旧令牌在校验端仍可解析。纯
  * JDK 类型，不依赖任何基础设施。
  *
- * @param userKey   用户唯一标识（UUID）
- * @param username  用户名
- * @param admin     是否超级管理员
- * @param roles     用户角色 key 列表；{@code null} 归一为空列表
+ * @param userKey 用户唯一标识（UUID）
+ * @param username 用户名
+ * @param admin 是否超级管理员
+ * @param roles 用户角色 key 列表；{@code null} 归一为空列表
  * @param tenantKey 所属租户 key；{@code null}/blank 归一为 {@code default}
  * @param expiresAt 令牌过期时刻
  * @author mouhinU
@@ -29,9 +29,7 @@ public record AdminTokenPayload(
         String tenantKey,
         Instant expiresAt) {
 
-    /**
-     * 与 {@code TenantContext.DEFAULT_TENANT_KEY} 保持一致的 domain 端硬编码兜底。
-     */
+    /** 与 {@code TenantContext.DEFAULT_TENANT_KEY} 保持一致的 domain 端硬编码兜底。 */
     private static final String DEFAULT_TENANT_KEY_LITERAL = "default";
 
     public AdminTokenPayload {
@@ -40,17 +38,13 @@ public record AdminTokenPayload(
                 tenantKey == null || tenantKey.isBlank() ? DEFAULT_TENANT_KEY_LITERAL : tenantKey;
     }
 
-    /**
-     * 兼容旧签名：不带 tenantKey 的载荷按 {@code default} 处理（P1-T8 之前的调用点/旧令牌）。
-     */
+    /** 兼容旧签名：不带 tenantKey 的载荷按 {@code default} 处理（P1-T8 之前的调用点/旧令牌）。 */
     public AdminTokenPayload(
             String userKey, String username, boolean admin, List<String> roles, Instant expiresAt) {
         this(userKey, username, admin, roles, DEFAULT_TENANT_KEY_LITERAL, expiresAt);
     }
 
-    /**
-     * 兼容旧签名：不带 roles 与 tenantKey 的载荷按 {@code roles:[], tenantKey:default} 处理。
-     */
+    /** 兼容旧签名：不带 roles 与 tenantKey 的载荷按 {@code roles:[], tenantKey:default} 处理。 */
     public AdminTokenPayload(String userKey, String username, boolean admin, Instant expiresAt) {
         this(userKey, username, admin, List.of(), DEFAULT_TENANT_KEY_LITERAL, expiresAt);
     }

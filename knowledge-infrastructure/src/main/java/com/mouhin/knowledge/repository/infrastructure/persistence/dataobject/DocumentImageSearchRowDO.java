@@ -16,8 +16,6 @@ import lombok.Setter;
 @Setter
 public class DocumentImageSearchRowDO extends DocumentImageDO {
 
-    /**
-     * 来源文档文件名（联表 kb_document 带出，可空）
-     */
+    /** 来源文档文件名（联表 kb_document 带出，可空） */
     private String sourceDocumentName;
 }

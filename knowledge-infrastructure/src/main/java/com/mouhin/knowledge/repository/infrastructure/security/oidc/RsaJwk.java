@@ -8,11 +8,10 @@ package com.mouhin.knowledge.repository.infrastructure.security.oidc;
  * KeyType}）。解析由 {@link HttpJwkSetProvider#parseJwks(String)} 从远程 JWKS 文档的 {@code keys[]} 中提取，构建
  * {@code java.security.PublicKey} 的动作收敛在校验网关内。
  *
- * @param keyId             {@code kid} 成员，可能为 {@code null}（部分 IdP 不返回；此时按单密钥回退选取）
- * @param modulusBase64Url  {@code n} 成员（base64url 无填充）
+ * @param keyId {@code kid} 成员，可能为 {@code null}（部分 IdP 不返回；此时按单密钥回退选取）
+ * @param modulusBase64Url {@code n} 成员（base64url 无填充）
  * @param exponentBase64Url {@code e} 成员（base64url 无填充）
  * @author mouhinU
  * @date 2026-10-09
  */
-public record RsaJwk(String keyId, String modulusBase64Url, String exponentBase64Url) {
-}
+public record RsaJwk(String keyId, String modulusBase64Url, String exponentBase64Url) {}

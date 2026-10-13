@@ -13,12 +13,9 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Use
  */
 public final class UserInviteConverter {
 
-    private UserInviteConverter() {
-    }
+    private UserInviteConverter() {}
 
-    /**
-     * DO → Entity。
-     */
+    /** DO → Entity。 */
     public static UserInvite toDomain(UserInviteDO doObj) {
         if (doObj == null) {
             return null;
@@ -37,9 +34,7 @@ public final class UserInviteConverter {
         return entity;
     }
 
-    /**
-     * Entity → DO。
-     */
+    /** Entity → DO。 */
     public static UserInviteDO toDO(UserInvite entity) {
         if (entity == null) {
             return null;

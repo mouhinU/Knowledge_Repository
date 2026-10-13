@@ -6,14 +6,13 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 保存 / 更新答题命令执行器（app 层用例，事务边界，支持断点续答）
@@ -71,9 +70,7 @@ public class ExamSaveAnswersCmdExe {
         log.debug("保存答题 [session={}, rows={}]", sessionKey, answerEntities.size());
     }
 
-    /**
-     * 以结构化题目行为权威源构建答题行：每道题必落一行，未答则 studentAnswer 置空。
-     */
+    /** 以结构化题目行为权威源构建答题行：每道题必落一行，未答则 studentAnswer 置空。 */
     private List<ExamAnswer> buildFromStructured(
             ExamSession session,
             List<ExamQuestion> paperQuestions,
@@ -118,9 +115,7 @@ public class ExamSaveAnswersCmdExe {
         return entities;
     }
 
-    /**
-     * 回退路径：结构化行缺失时按投影 questionsJson 匹配（保持改造前行为）。
-     */
+    /** 回退路径：结构化行缺失时按投影 questionsJson 匹配（保持改造前行为）。 */
     private List<ExamAnswer> buildFromProjection(
             ExamSession session, List<Map<String, String>> answers) {
         List<Map<String, Object>> questions = support.parseQuestions(session.getQuestionsJson());

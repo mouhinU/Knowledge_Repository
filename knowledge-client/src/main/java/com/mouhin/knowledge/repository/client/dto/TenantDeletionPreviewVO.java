@@ -1,10 +1,9 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 租户删除预览视图对象（client 层出参，P3-T5 dry-run，不执行任何删除）。
@@ -24,28 +23,18 @@ public class TenantDeletionPreviewVO {
     private String status;
     private LocalDateTime archivedAt;
 
-    /**
-     * 保留期截止点（{@code archivedAt + retentionDays}）；未归档为 {@code null}。
-     */
+    /** 保留期截止点（{@code archivedAt + retentionDays}）；未归档为 {@code null}。 */
     private LocalDateTime eligibleAt;
 
-    /**
-     * 保留期是否已过（{@code eligibleAt} 非空且不晚于当前时间）。
-     */
+    /** 保留期是否已过（{@code eligibleAt} 非空且不晚于当前时间）。 */
     private boolean retentionElapsed;
 
-    /**
-     * 保留期天数（S-4=方案 A，默认 30）。
-     */
+    /** 保留期天数（S-4=方案 A，默认 30）。 */
     private int retentionDays;
 
-    /**
-     * 各业务表待删行数（表名 → 行数，稳定序）；未归档或不可预览时为空 Map。
-     */
+    /** 各业务表待删行数（表名 → 行数，稳定序）；未归档或不可预览时为空 Map。 */
     private Map<String, Long> rowsByTable;
 
-    /**
-     * 待删行数合计。
-     */
+    /** 待删行数合计。 */
     private long totalRows;
 }

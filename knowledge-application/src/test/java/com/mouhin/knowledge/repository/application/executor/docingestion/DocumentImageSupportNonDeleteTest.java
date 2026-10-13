@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
@@ -9,12 +13,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,10 +20,11 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 文档配图支撑非删除路径单测：锁定「抽取 → SHA-256 去重 → 落盘 → 持久化」主干（含按文档去重、 抽取异常吞断、源路径越界拒绝）、回填前置校验、按句柄回读二进制的 assetRoot
@@ -42,8 +41,7 @@ class DocumentImageSupportNonDeleteTest {
             mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
     private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
-    @TempDir
-    Path root;
+    @TempDir Path root;
     private Path assetRoot;
     private Path storageRoot;
     private DocumentImageSupport support;

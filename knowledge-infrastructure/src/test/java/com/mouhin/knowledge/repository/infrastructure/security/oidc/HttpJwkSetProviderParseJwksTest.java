@@ -1,11 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link HttpJwkSetProvider#parseJwks(String)} 单元测试（P3-T7 / C-3=方案 B）。

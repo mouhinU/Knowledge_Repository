@@ -22,61 +22,46 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.extractor.vision")
 public class HybridExtractionProperties {
 
-    /**
-     * 触发条件常量：仅疑似扫描页。
-     */
+    /** 触发条件常量：仅疑似扫描页。 */
     public static final String TRIGGER_SCANNED_ONLY = "scanned_only";
-    /**
-     * 触发条件常量：低文本页（图片占比高）。
-     */
+
+    /** 触发条件常量：低文本页（图片占比高）。 */
     public static final String TRIGGER_IMAGE_HEAVY = "image_heavy";
-    /**
-     * 触发条件常量：全页过视觉。
-     */
+
+    /** 触发条件常量：全页过视觉。 */
     public static final String TRIGGER_ALWAYS = "always";
-    /**
-     * 是否启用 PDF 混合策略（默认关，仅在配置路由栈显式引入 PDF_HYBRID 且本开关置 true 时生效）。
-     */
+
+    /** 是否启用 PDF 混合策略（默认关，仅在配置路由栈显式引入 PDF_HYBRID 且本开关置 true 时生效）。 */
     private boolean enabled = false;
-    /**
-     * 视觉增强触发条件：scanned_only（仅疑似扫描页）| image_heavy（低文本页）| always（全页）。
-     */
+
+    /** 视觉增强触发条件：scanned_only（仅疑似扫描页）| image_heavy（低文本页）| always（全页）。 */
     private String trigger = "scanned_only";
-    /**
-     * 优先使用文档嵌入图（否则由 PageRenderer 栅格化页面）。
-     */
+
+    /** 优先使用文档嵌入图（否则由 PageRenderer 栅格化页面）。 */
     private boolean preferEmbeddedImages = true;
-    /**
-     * 无嵌入图时页面栅格化分辨率（DPI）。
-     */
+
+    /** 无嵌入图时页面栅格化分辨率（DPI）。 */
     private int renderFallbackDpi = 150;
-    /**
-     * 判定"文本层稀疏页"（可能需要视觉补全）的每页最小字符数。
-     */
+
+    /** 判定"文本层稀疏页"（可能需要视觉补全）的每页最小字符数。 */
     private int minTextLenPerPage = 200;
-    /**
-     * 单文档最多补全的页数，防止超大文档耗尽视觉预算。
-     */
+
+    /** 单文档最多补全的页数，防止超大文档耗尽视觉预算。 */
     private int maxPagesPerDoc = 20;
-    /**
-     * 单张图片送入视觉模型的字节上限（默认 4MB）。
-     */
+
+    /** 单张图片送入视觉模型的字节上限（默认 4MB）。 */
     private int maxBytesPerImage = 4 * 1024 * 1024;
-    /**
-     * 视觉结果与文本层合并方式：replace_lowtext | append | replace_all。
-     */
+
+    /** 视觉结果与文本层合并方式：replace_lowtext | append | replace_all。 */
     private String merge = "replace_lowtext";
-    /**
-     * 单次视觉调用超时（秒）。
-     */
+
+    /** 单次视觉调用超时（秒）。 */
     private int timeoutSeconds = 60;
-    /**
-     * 单文档视觉增强总时长上限（秒）。
-     */
+
+    /** 单文档视觉增强总时长上限（秒）。 */
     private int maxTotalSecondsPerDoc = 300;
-    /**
-     * 视觉成本护栏（Phase D）。
-     */
+
+    /** 视觉成本护栏（Phase D）。 */
     private Budget budget = new Budget();
 
     /**
@@ -92,21 +77,16 @@ public class HybridExtractionProperties {
     @Setter
     public static class Budget {
 
-        /**
-         * 仅告警不拦截。
-         */
+        /** 仅告警不拦截。 */
         public static final String ENFORCEMENT_LOG_ONLY = "log-only";
-        /**
-         * 超限拦截（跳过视觉、保留文本层）。
-         */
+
+        /** 超限拦截（跳过视觉、保留文本层）。 */
         public static final String ENFORCEMENT_ENFORCE = "enforce";
-        /**
-         * 全局每日视觉处理页数上限（默认极大 = 实质不限流）。
-         */
+
+        /** 全局每日视觉处理页数上限（默认极大 = 实质不限流）。 */
         private int dailyPagesGlobal = Integer.MAX_VALUE;
-        /**
-         * 执行模式：log-only（仅告警，默认）| enforce（超限拦截）。
-         */
+
+        /** 执行模式：log-only（仅告警，默认）| enforce（超限拦截）。 */
         private String enforcement = ENFORCEMENT_LOG_ONLY;
     }
 }

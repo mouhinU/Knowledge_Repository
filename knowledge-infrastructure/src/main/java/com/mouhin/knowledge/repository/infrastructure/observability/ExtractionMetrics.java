@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.infrastructure.observability;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
+import org.springframework.stereotype.Component;
 
 /**
  * 文档解析可观测埋点（Phase D）。
@@ -43,9 +42,7 @@ public class ExtractionMetrics {
         this.registry = registry;
     }
 
-    /**
-     * 记录一次策略调用：strategy × mime × outcome（ok / fallback / error / empty）。
-     */
+    /** 记录一次策略调用：strategy × mime × outcome（ok / fallback / error / empty）。 */
     public void recordInvocation(String strategy, String mime, String outcome) {
         registry.counter(
                         M_INVOCATIONS,
@@ -58,37 +55,27 @@ public class ExtractionMetrics {
                 .increment();
     }
 
-    /**
-     * 记录一次成功解析耗时（按策略维度）。
-     */
+    /** 记录一次成功解析耗时（按策略维度）。 */
     public void recordLatency(String strategy, Duration duration) {
         registry.timer(M_LATENCY, TAG_STRATEGY, nullToNone(strategy)).record(duration);
     }
 
-    /**
-     * 解析缓存命中。
-     */
+    /** 解析缓存命中。 */
     public void recordCacheHit(String strategy) {
         registry.counter(M_CACHE_HIT, TAG_STRATEGY, nullToNone(strategy)).increment();
     }
 
-    /**
-     * 解析缓存未命中。
-     */
+    /** 解析缓存未命中。 */
     public void recordCacheMiss(String strategy) {
         registry.counter(M_CACHE_MISS, TAG_STRATEGY, nullToNone(strategy)).increment();
     }
 
-    /**
-     * 视觉模型一次调用（成本代理，按 model 维度）。
-     */
+    /** 视觉模型一次调用（成本代理，按 model 维度）。 */
     public void recordVisionInvocation(String model) {
         registry.counter(M_VISION_INVOCATIONS, TAG_MODEL, nullToUnknown(model)).increment();
     }
 
-    /**
-     * 视觉模型一次失败（按 reason 维度：timeout / 429 / 5xx / schema / error）。
-     */
+    /** 视觉模型一次失败（按 reason 维度：timeout / 429 / 5xx / schema / error）。 */
     public void recordVisionFailure(String reason) {
         registry.counter(M_VISION_FAILURES, TAG_REASON, nullToNone(reason)).increment();
     }

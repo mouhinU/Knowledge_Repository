@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.application.util;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
@@ -63,7 +62,7 @@ public final class TenantContextPropagatingExecutor implements ExecutorService {
      * {@link Runnable} 版的有返回值对应物，供 {@code CompletableFuture.supplyAsync} 落点使用（P1-T9 同语义）。
      *
      * @param task 原始供应任务，非空
-     * @param <T>  返回类型
+     * @param <T> 返回类型
      * @return 带租户快照传播的包装供应任务
      */
     public static <T> Supplier<T> wrapCurrent(Supplier<T> task) {

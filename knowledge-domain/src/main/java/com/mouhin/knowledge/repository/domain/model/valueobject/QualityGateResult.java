@@ -10,29 +10,19 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public final class QualityGateResult {
 
-    /**
-     * 是否通过
-     */
+    /** 是否通过 */
     private final boolean passed;
 
-    /**
-     * 门禁名称（如 "research-min-chunks"）
-     */
+    /** 门禁名称（如 "research-min-chunks"） */
     private final String gateName;
 
-    /**
-     * 判定原因
-     */
+    /** 判定原因 */
     private final String reason;
 
-    /**
-     * 建议动作
-     */
+    /** 建议动作 */
     private final Action suggestedAction;
 
-    /**
-     * 关联的置信度（可空）
-     */
+    /** 关联的置信度（可空） */
     private final AgentConfidence confidence;
 
     public QualityGateResult(
@@ -94,21 +84,13 @@ public final class QualityGateResult {
     }
 
     public enum Action {
-        /**
-         * 继续下一阶段
-         */
+        /** 继续下一阶段 */
         CONTINUE,
-        /**
-         * 重试当前阶段（如检索结果不足，重新检索）
-         */
+        /** 重试当前阶段（如检索结果不足，重新检索） */
         RETRY_CURRENT,
-        /**
-         * 跳过当前阶段（如非关键门禁未通过）
-         */
+        /** 跳过当前阶段（如非关键门禁未通过） */
         SKIP,
-        /**
-         * 终止流水线（如关键数据缺失）
-         */
+        /** 终止流水线（如关键数据缺失） */
         TERMINATE
     }
 }

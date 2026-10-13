@@ -5,9 +5,6 @@ import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 视觉模型解析策略（Phase B，默认关闭）。
@@ -33,9 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class VisionModelExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 路由优先级：视觉是增强型兜底，排在原生文本族（10~60）之后。
-     */
+    /** 路由优先级：视觉是增强型兜底，排在原生文本族（10~60）之后。 */
     private static final int PRIORITY = 70;
 
     private static final String PDF_MIME = "application/pdf";

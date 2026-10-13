@@ -25,7 +25,7 @@ public interface QualityGate {
     /**
      * 执行质量门禁检查
      *
-     * @param phase      当前阶段
+     * @param phase 当前阶段
      * @param blackboard 当前黑板状态
      * @return 门禁结果（通过/不通过 + 建议动作）
      */

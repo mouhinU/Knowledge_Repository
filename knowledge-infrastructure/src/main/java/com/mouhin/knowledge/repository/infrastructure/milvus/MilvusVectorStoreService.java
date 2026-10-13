@@ -15,11 +15,10 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * Milvus 向量存储服务
@@ -36,9 +35,7 @@ import java.util.List;
 @Slf4j
 public class MilvusVectorStoreService implements VectorStoreGateway {
 
-    /**
-     * 每批向量化处理的分块数量
-     */
+    /** 每批向量化处理的分块数量 */
     private static final int EMBEDDING_BATCH_SIZE = 20;
 
     private final EmbeddingStoreProvider storeProvider;
@@ -80,7 +77,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     /**
      * 批量向量化并存储文档分块，带进度回调
      *
-     * @param chunks   文档分块列表
+     * @param chunks 文档分块列表
      * @param callback 进度回调（可为 null）
      */
     @Override
@@ -153,11 +150,11 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
     /**
      * 语义检索，支持权限过滤和分类过滤
      *
-     * @param query      查询文本
+     * @param query 查询文本
      * @param maxResults 最大返回数量
-     * @param minScore   最低相似度阈值
+     * @param minScore 最低相似度阈值
      * @param filterExpr Milvus 过滤表达式（权限），null 表示不过滤
-     * @param category   文档分类过滤，null 或空表示不过滤
+     * @param category 文档分类过滤，null 或空表示不过滤
      * @return 检索结果列表
      */
     @Override
@@ -199,9 +196,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
         return searchResults;
     }
 
-    /**
-     * 语义检索（无分类过滤，向后兼容）
-     */
+    /** 语义检索（无分类过滤，向后兼容） */
     @Override
     public List<SearchResult> search(
             String query, int maxResults, double minScore, String filterExpr) {
@@ -225,7 +220,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
      * <p>注意：本方法**总是返回非 null**（tenant_id 谓词强制）。旧的"category 空则不过滤"分支已在 P2-T3 移除。
      *
      * @param currentTenantId 已由 {@link TenantIdResolver#resolve(String)} 解析出的数值租户 id
-     * @param category        文档分类过滤字面量；{@code null} 或空白视为不带
+     * @param category 文档分类过滤字面量；{@code null} 或空白视为不带
      * @return 至少含 {@code IsEqualTo("tenant_id", currentTenantId)} 的 {@link Filter}
      */
     private Filter buildFilter(long currentTenantId, String category) {

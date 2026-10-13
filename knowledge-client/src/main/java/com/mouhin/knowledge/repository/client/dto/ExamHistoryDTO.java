@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * AI 出卷历史记录视图对象

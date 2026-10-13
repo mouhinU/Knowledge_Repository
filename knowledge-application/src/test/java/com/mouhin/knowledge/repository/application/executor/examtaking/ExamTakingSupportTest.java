@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.mouhin.knowledge.repository.application.agent.ExamContentRenderAgent;
 import com.mouhin.knowledge.repository.application.agent.ExamContentValidatorAgent;
 import com.mouhin.knowledge.repository.application.agent.PaperValidationReport;
@@ -10,18 +15,12 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 在线做题共享支撑单测：锁定考生令牌鉴权（缺失 / 过期均回「登录已过期」，不区分原因防探测）、 场次归属校验、试卷题号键解析（历史卷 vs 即时卷）、卷面总分累加兜底

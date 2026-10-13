@@ -7,15 +7,14 @@ import com.mouhin.knowledge.repository.client.dto.DocumentUploadRequest;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.infrastructure.upload.UploadSessionManager;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * 文档上传控制器
@@ -30,9 +29,7 @@ import java.util.Set;
 @Slf4j
 public class DocumentUploadController {
 
-    /**
-     * 统一响应 map 的 error message 字段名（java:S1192：抽公共 key 防字面量漂移）。
-     */
+    /** 统一响应 map 的 error message 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
     private static final String FIELD_ERROR_MESSAGE = "errorMessage";
 
     private final UploadOnlyCmdExe uploadOnlyCmdExe;
@@ -48,23 +45,17 @@ public class DocumentUploadController {
         this.uploadSessionManager = uploadSessionManager;
     }
 
-    /**
-     * 400 统一错误响应体。{@code {errorCode, errorMessage}} 与改造前内联 {@code Map.of} 完全一致，仅收敛重复构造骨架。
-     */
+    /** 400 统一错误响应体。{@code {errorCode, errorMessage}} 与改造前内联 {@code Map.of} 完全一致，仅收敛重复构造骨架。 */
     private static ResponseEntity<Map<String, Object>> badRequest(String code, String message) {
         return ResponseEntity.badRequest().body(errorBody(code, message));
     }
 
-    /**
-     * 500 统一错误响应体（同上，字段/状态码不变）。
-     */
+    /** 500 统一错误响应体（同上，字段/状态码不变）。 */
     private static ResponseEntity<Map<String, Object>> serverError(String code, String message) {
         return ResponseEntity.internalServerError().body(errorBody(code, message));
     }
 
-    /**
-     * 错误响应 map：{@code errorCode} + {@code errorMessage}（java:DuplicatedBlocks 收敛）。
-     */
+    /** 错误响应 map：{@code errorCode} + {@code errorMessage}（java:DuplicatedBlocks 收敛）。 */
     private static Map<String, Object> errorBody(String code, String message) {
         return Map.of("errorCode", code, FIELD_ERROR_MESSAGE, message);
     }
@@ -74,27 +65,27 @@ public class DocumentUploadController {
      *
      * <p>上传成功后文档状态为 UPLOADED，用户可在管理端预览解析效果并确认入库。
      *
-     * @param file         文档文件（支持 PDF/Word/Excel/PPT/TXT/CSV/HTML）
-     * @param ownerId      所有者用户 ID
+     * @param file 文档文件（支持 PDF/Word/Excel/PPT/TXT/CSV/HTML）
+     * @param ownerId 所有者用户 ID
      * @param departmentId 所属部门 ID
-     * @param visibility   可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE）
+     * @param visibility 可见性（PUBLIC / INTERNAL / RESTRICTED / PRIVATE）
      * @param allowedRoles 允许访问的角色（逗号分隔）
-     * @param tags         标签（逗号分隔）
+     * @param tags 标签（逗号分隔）
      */
     @PostMapping(
             value = "/upload",
             consumes = {
-                    MediaType.MULTIPART_FORM_DATA_VALUE,
-                    MediaType.APPLICATION_PDF_VALUE,
-                    "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "application/vnd.ms-excel",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "application/vnd.ms-powerpoint",
-                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    MediaType.TEXT_PLAIN_VALUE,
-                    "text/csv",
-                    MediaType.TEXT_HTML_VALUE
+                MediaType.MULTIPART_FORM_DATA_VALUE,
+                MediaType.APPLICATION_PDF_VALUE,
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                MediaType.TEXT_PLAIN_VALUE,
+                "text/csv",
+                MediaType.TEXT_HTML_VALUE
             })
     public ResponseEntity<Map<String, Object>> upload(
             @RequestParam("file") MultipartFile file, DocumentUploadRequest request) {
@@ -143,9 +134,7 @@ public class DocumentUploadController {
 
     // ==================== 分片上传（断点续传） ====================
 
-    /**
-     * 初始化分片上传会话
-     */
+    /** 初始化分片上传会话 */
     @PostMapping("/upload/init")
     public ResponseEntity<Map<String, Object>> initChunkedUpload(
             @RequestBody ChunkUploadRequest request) {
@@ -167,9 +156,7 @@ public class DocumentUploadController {
         }
     }
 
-    /**
-     * 上传单个分片
-     */
+    /** 上传单个分片 */
     @PostMapping(value = "/upload/chunk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadChunk(
             @RequestParam("file") MultipartFile chunk,
@@ -192,9 +179,7 @@ public class DocumentUploadController {
         }
     }
 
-    /**
-     * 完成分片上传，组装文件并创建文档
-     */
+    /** 完成分片上传，组装文件并创建文档 */
     @PostMapping("/upload/complete")
     public ResponseEntity<Map<String, Object>> completeChunkedUpload(
             @RequestParam("uploadId") String uploadId, DocumentUploadRequest request) {
@@ -245,9 +230,7 @@ public class DocumentUploadController {
         }
     }
 
-    /**
-     * 查询上传会话状态（已上传的分片列表，用于断点续传）
-     */
+    /** 查询上传会话状态（已上传的分片列表，用于断点续传） */
     @GetMapping("/upload/status/{uploadId}")
     public ResponseEntity<Map<String, Object>> getUploadStatus(@PathVariable String uploadId) {
         Set<Integer> uploadedChunks = uploadSessionManager.getUploadedChunks(uploadId);
@@ -264,9 +247,7 @@ public class DocumentUploadController {
                         "uploadedChunks", uploadedChunks));
     }
 
-    /**
-     * 取消上传会话
-     */
+    /** 取消上传会话 */
     @PostMapping("/upload/cancel/{uploadId}")
     public ResponseEntity<Map<String, String>> cancelUpload(@PathVariable String uploadId) {
         uploadSessionManager.cancelSession(uploadId);
@@ -277,13 +258,13 @@ public class DocumentUploadController {
         return contentType.equals("application/pdf")
                 || contentType.equals("application/msword")
                 || contentType.equals(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 || contentType.equals("application/vnd.ms-excel")
                 || contentType.equals(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 || contentType.equals("application/vnd.ms-powerpoint")
                 || contentType.equals(
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation")
                 || contentType.equals("text/plain")
                 || contentType.equals("text/csv")
                 || contentType.equals("text/html");

@@ -1,20 +1,19 @@
 package com.mouhin.knowledge.repository.application.executor.system;
 
-import com.mouhin.knowledge.repository.application.support.SystemConfigService;
-import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
-import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
+import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 系统配置更新执行器单测：以真实 {@link SystemConfigService}（仅 mock 其 Gateway）锁定执行器透传的完整写链路—— （1）DB 已有可编辑记录 → 改值后走

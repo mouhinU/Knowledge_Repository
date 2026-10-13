@@ -15,18 +15,12 @@ import lombok.Setter;
 @Setter
 public class DepartmentUpdateCmd {
 
-    /**
-     * 部门业务标识（路径参数注入）
-     */
+    /** 部门业务标识（路径参数注入） */
     private String departmentKey;
 
-    /**
-     * 新部门名称（可空=不改）
-     */
+    /** 新部门名称（可空=不改） */
     private String departmentName;
 
-    /**
-     * 新上级部门 ID（可空=不改）
-     */
+    /** 新上级部门 ID（可空=不改） */
     private Long parentId;
 }

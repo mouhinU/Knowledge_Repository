@@ -16,34 +16,22 @@ public class StudentSession {
 
     private Long id;
 
-    /**
-     * 会话令牌：UUID 去横线（32 位十六进制）
-     */
+    /** 会话令牌：UUID 去横线（32 位十六进制） */
     private String sessionToken;
 
-    /**
-     * 关联考生主键
-     */
+    /** 关联考生主键 */
     private Long studentId;
 
-    /**
-     * 过期时间：登录时刻 + 令牌 TTL
-     */
+    /** 过期时间：登录时刻 + 令牌 TTL */
     private LocalDateTime expiresAt;
 
-    /**
-     * 撤销时间；{@code null} = 未撤销
-     */
+    /** 撤销时间；{@code null} = 未撤销 */
     private LocalDateTime revokedAt;
 
-    /**
-     * 登录时 User-Agent（可选，用于审计）
-     */
+    /** 登录时 User-Agent（可选，用于审计） */
     private String userAgent;
 
-    /**
-     * 登录时 IP（可选，用于审计）
-     */
+    /** 登录时 IP（可选，用于审计） */
     private String ipAddress;
 
     private LocalDateTime createTime;
@@ -126,9 +114,7 @@ public class StudentSession {
 
     // ==================== 业务方法 ====================
 
-    /**
-     * 会话是否有效：未撤销且未过期。
-     */
+    /** 会话是否有效：未撤销且未过期。 */
     public boolean isActive() {
         return revokedAt == null && expiresAt != null && expiresAt.isAfter(LocalDateTime.now());
     }

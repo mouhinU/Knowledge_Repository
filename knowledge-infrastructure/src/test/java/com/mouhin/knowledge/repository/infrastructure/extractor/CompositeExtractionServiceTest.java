@@ -1,14 +1,12 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.infrastructure.config.ExtractorRoutingProperties;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,9 +15,10 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * {@link CompositeExtractionService} 路由逻辑单测：内置映射、配置覆盖、顺序回退、启用白名单、空结果与文件校验。
@@ -32,8 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class CompositeExtractionServiceTest {
 
-    @TempDir
-    Path tempDir;
+    @TempDir Path tempDir;
 
     private static Stub returns() {
         return name -> new ExtractionResult(List.of("from:" + name), 1, false, "ck-" + name, name);
@@ -56,9 +54,7 @@ class CompositeExtractionServiceTest {
         ExtractionResult apply(String strategyName) throws IOException;
     }
 
-    /**
-     * 可配置桩策略：命中 supports 谓词后按注入行为返回哨兵结果或抛异常。
-     */
+    /** 可配置桩策略：命中 supports 谓词后按注入行为返回哨兵结果或抛异常。 */
     private static final class StubExtractor implements ContentExtractor {
         private final String name;
         private final int priority;
@@ -244,9 +240,7 @@ class CompositeExtractionServiceTest {
     @DisplayName("validateFile 与 checksum")
     class ValidationAndChecksum {
 
-        /**
-         * 通过 4 参 Spring 构造器装配 CompositeExtractionService，触发 base-dir 白名单。
-         */
+        /** 通过 4 参 Spring 构造器装配 CompositeExtractionService，触发 base-dir 白名单。 */
         private CompositeExtractionService withAllowedRoot(String storageDir) {
             return new CompositeExtractionService(
                     List.of(), new ExtractorRoutingProperties(), null, storageDir);
@@ -258,9 +252,9 @@ class CompositeExtractionServiceTest {
             CompositeExtractionService composite =
                     new CompositeExtractionService(List.of(), new ExtractorRoutingProperties());
             assertThatThrownBy(
-                    () ->
-                            composite.validateFile(
-                                    tempDir.resolve("nope.txt"), 10, "nope.txt"))
+                            () ->
+                                    composite.validateFile(
+                                            tempDir.resolve("nope.txt"), 10, "nope.txt"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Invalid file reference");
         }

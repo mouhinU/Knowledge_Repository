@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * 租户放置策略数据对象（P1-T1，SaaS 平台元数据）。
@@ -23,14 +22,10 @@ import java.time.LocalDateTime;
 @TableName("sys_tenant_placement")
 public class TenantPlacementDO {
 
-    /**
-     * 放置类型：共享库（列级隔离）。
-     */
+    /** 放置类型：共享库（列级隔离）。 */
     public static final String PLACEMENT_POOL = "POOL";
 
-    /**
-     * 放置类型：独立库（物理隔离）。
-     */
+    /** 放置类型：独立库（物理隔离）。 */
     public static final String PLACEMENT_SILO = "SILO";
 
     @TableId(type = IdType.AUTO)

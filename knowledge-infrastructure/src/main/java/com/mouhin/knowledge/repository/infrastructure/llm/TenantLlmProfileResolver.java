@@ -3,14 +3,13 @@ package com.mouhin.knowledge.repository.infrastructure.llm;
 import com.mouhin.knowledge.repository.domain.gateway.LlmProfileGateway;
 import com.mouhin.knowledge.repository.domain.gateway.SecretCipher;
 import com.mouhin.knowledge.repository.domain.model.valueobject.LlmProfile;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * 租户 LLM 配置解析器（P4-T4 · T-1 定案）。
@@ -43,9 +42,7 @@ public class TenantLlmProfileResolver {
     private final LlmProfileGateway llmProfileGateway;
     private final SecretCipher secretCipher;
 
-    /**
-     * L1 本地热缓存：tenantId → 解密后的 LlmProfile。
-     */
+    /** L1 本地热缓存：tenantId → 解密后的 LlmProfile。 */
     private final ConcurrentHashMap<Long, CachedProfile> l1Cache = new ConcurrentHashMap<>();
 
     public TenantLlmProfileResolver(
@@ -85,34 +82,26 @@ public class TenantLlmProfileResolver {
         return Optional.of(profile);
     }
 
-    /**
-     * 清除指定租户的 L1 缓存（供密钥轮换 / 配置变更时调用）。
-     */
+    /** 清除指定租户的 L1 缓存（供密钥轮换 / 配置变更时调用）。 */
     public void evict(long tenantId) {
         l1Cache.remove(tenantId);
         log.debug("[LlmProfile] L1 缓存已清除: tenantId={}", tenantId);
     }
 
-    /**
-     * 清除全部 L1 缓存。
-     */
+    /** 清除全部 L1 缓存。 */
     public void evictAll() {
         l1Cache.clear();
         log.info("[LlmProfile] L1 缓存已全部清除");
     }
 
-    /**
-     * L1 缓存条目。
-     */
+    /** L1 缓存条目。 */
     private record CachedProfile(LlmProfile profile, Instant loadedAt) {
         boolean isExpired() {
             return Duration.between(loadedAt, Instant.now()).compareTo(L1_TTL) > 0;
         }
     }
 
-    /**
-     * LLM 配置解密失败异常（S-4 方案 C：拒绝调用 + 告警）。
-     */
+    /** LLM 配置解密失败异常（S-4 方案 C：拒绝调用 + 告警）。 */
     public static class LlmProfileDecryptionException extends RuntimeException {
         public LlmProfileDecryptionException(long tenantId, String message) {
             super("LLM profile decryption failed for tenant " + tenantId + ": " + message);

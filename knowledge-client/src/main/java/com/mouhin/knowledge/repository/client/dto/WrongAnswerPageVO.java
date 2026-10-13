@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 /**
  * 错题分页结果视图对象

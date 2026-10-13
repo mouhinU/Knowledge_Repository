@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.wronganswer;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerStatsVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
-import org.springframework.stereotype.Component;
-
 import java.util.*;
+import org.springframework.stereotype.Component;
 
 /**
  * 错题分页查询执行器（app 层用例）
@@ -20,9 +19,7 @@ public class WrongAnswerPageQryExe {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
-    /**
-     * 平均得分率显示保留 4 位小数的放大倍数。
-     */
+    /** 平均得分率显示保留 4 位小数的放大倍数。 */
     private static final double RATE_SCALE_4DP = 10000.0;
 
     private final WrongAnswerListQryExe wrongAnswerListQryExe;
@@ -49,9 +46,7 @@ public class WrongAnswerPageQryExe {
         return vo;
     }
 
-    /**
-     * 基于全量错题构建统计概览（错题总数 / 涉及主题 / 涉及考生 / 最多错题题型 / 平均得分率）
-     */
+    /** 基于全量错题构建统计概览（错题总数 / 涉及主题 / 涉及考生 / 最多错题题型 / 平均得分率） */
     private WrongAnswerStatsVO buildStats(List<WrongAnswerVO> all) {
         WrongAnswerStatsVO stats = new WrongAnswerStatsVO();
         stats.setTotalCount(all.size());

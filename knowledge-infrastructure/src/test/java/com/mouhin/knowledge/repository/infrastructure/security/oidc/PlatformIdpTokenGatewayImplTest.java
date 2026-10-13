@@ -1,12 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -18,8 +16,9 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link PlatformIdpTokenGatewayImpl} RS256/JWKS 验签单元测试（P3-T7 / C-3=方案 B）。
@@ -71,9 +70,7 @@ class PlatformIdpTokenGatewayImplTest {
 
     // ==================== 正向 ====================
 
-    /**
-     * 提供已知 KID 的公钥；其它 kid 返回空。
-     */
+    /** 提供已知 KID 的公钥；其它 kid 返回空。 */
     private JwkSetProvider providerWithTestKey() {
         return kid ->
                 KID.equals(kid)
@@ -209,9 +206,7 @@ class PlatformIdpTokenGatewayImplTest {
         return header;
     }
 
-    /**
-     * 一份默认合法载荷（iss/aud/sub/exp 均满足），供各反向用例逐字段改坏。
-     */
+    /** 一份默认合法载荷（iss/aud/sub/exp 均满足），供各反向用例逐字段改坏。 */
     private ObjectNode basePayload() {
         ObjectNode payload = mapper.createObjectNode();
         payload.put("iss", ISSUER);
@@ -222,9 +217,7 @@ class PlatformIdpTokenGatewayImplTest {
         return payload;
     }
 
-    /**
-     * 用测试私钥对 {@code header.payload} 做 SHA256withRSA 签名，拼出三段 JWT。
-     */
+    /** 用测试私钥对 {@code header.payload} 做 SHA256withRSA 签名，拼出三段 JWT。 */
     private String sign(ObjectNode header, ObjectNode payload) throws Exception {
         String signingInput =
                 b64.encodeToString(mapper.writeValueAsBytes(header))

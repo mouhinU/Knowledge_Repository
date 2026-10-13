@@ -8,10 +8,9 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 查询某场考试答题记录（含评分详情）执行器
@@ -53,7 +52,7 @@ public class ListAnswersWithGradingQryExe {
                             ExamQuestion question = lookup(questionMap, answer);
                             if (question != null) {
                                 if ((dto.getCorrectAnswer() == null
-                                        || dto.getCorrectAnswer().isBlank())
+                                                || dto.getCorrectAnswer().isBlank())
                                         && question.getCorrectAnswer() != null
                                         && !question.getCorrectAnswer().isBlank()) {
                                     dto.setCorrectAnswer(question.getCorrectAnswer());
@@ -65,9 +64,7 @@ public class ListAnswersWithGradingQryExe {
                 .toList();
     }
 
-    /**
-     * 按权威题号定位结构化题目行：优先印刷题号（{@code question_number}）， 缺失时回退全局位置序号（与答案键题序一致）。
-     */
+    /** 按权威题号定位结构化题目行：优先印刷题号（{@code question_number}）， 缺失时回退全局位置序号（与答案键题序一致）。 */
     private ExamQuestion lookup(Map<Integer, ExamQuestion> questionMap, ExamAnswer answer) {
         Integer number =
                 answer.getQuestionNumber() != null

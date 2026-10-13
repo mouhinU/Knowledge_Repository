@@ -16,23 +16,15 @@ import lombok.Setter;
 @Setter
 public class SetPasswordByInviteVO {
 
-    /**
-     * 是否成功。
-     */
+    /** 是否成功。 */
     private boolean success;
 
-    /**
-     * 完成设密的用户名（如 {@code acme-admin}），供前端在成功页展示。
-     */
+    /** 完成设密的用户名（如 {@code acme-admin}），供前端在成功页展示。 */
     private String username;
 
-    /**
-     * 用户所属租户 key，供前端跳转到对应租户的登录页。
-     */
+    /** 用户所属租户 key，供前端跳转到对应租户的登录页。 */
     private String tenantKey;
 
-    /**
-     * 提示消息，如"密码已设置，请使用新密码登录"。
-     */
+    /** 提示消息，如"密码已设置，请使用新密码登录"。 */
     private String message;
 }

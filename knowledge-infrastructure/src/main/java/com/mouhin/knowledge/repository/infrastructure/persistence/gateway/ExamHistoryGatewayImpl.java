@@ -7,10 +7,9 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamHistoryConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamHistoryMapper;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * AI 出卷历史仓储实现
@@ -25,14 +24,10 @@ import java.util.Optional;
 @Repository
 public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
-    /**
-     * MyBatis-Plus .last() 前缀（java:S1192 抽常量防 4 处 SQL_LIMIT_PREFIX 漂移）。
-     */
+    /** MyBatis-Plus .last() 前缀（java:S1192 抽常量防 4 处 SQL_LIMIT_PREFIX 漂移）。 */
     private static final String SQL_LIMIT_PREFIX = "LIMIT ";
 
-    /**
-     * 作用域两侧皆空时的兜底谓词：永假条件，避免跨租户全表命中。
-     */
+    /** 作用域两侧皆空时的兜底谓词：永假条件，避免跨租户全表命中。 */
     private static final String SQL_NEVER_TRUE = "1 = 0";
 
     private final ExamHistoryMapper examHistoryMapper;

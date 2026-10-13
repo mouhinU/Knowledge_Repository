@@ -16,58 +16,38 @@ import java.util.Objects;
  */
 public class TenantProvisionStep {
 
-    /**
-     * 步骤状态：执行中。
-     */
+    /** 步骤状态：执行中。 */
     public static final String STATUS_RUNNING = "RUNNING";
 
-    /**
-     * 步骤状态：成功。
-     */
+    /** 步骤状态：成功。 */
     public static final String STATUS_SUCCESS = "SUCCESS";
 
-    /**
-     * 步骤状态：失败（可通过 {@code attemptNo+1} 重放）。
-     */
+    /** 步骤状态：失败（可通过 {@code attemptNo+1} 重放）。 */
     public static final String STATUS_FAILED = "FAILED";
 
-    /**
-     * 步骤状态：跳过（本次重放前次已 SUCCESS）。
-     */
+    /** 步骤状态：跳过（本次重放前次已 SUCCESS）。 */
     public static final String STATUS_SKIPPED = "SKIPPED";
 
-    /**
-     * {@code errorDetail} 截断上限，与 DDL VARCHAR(2000) 对齐。
-     */
+    /** {@code errorDetail} 截断上限，与 DDL VARCHAR(2000) 对齐。 */
     public static final int ERROR_DETAIL_MAX_LENGTH = 2000;
 
     private Long stepId;
 
     private Long tenantId;
 
-    /**
-     * 开通请求 UUID v4（S-5=方案 A 幂等键）。
-     */
+    /** 开通请求 UUID v4（S-5=方案 A 幂等键）。 */
     private String provisionRequestId;
 
-    /**
-     * 步骤名（如 {@code VALIDATE_TENANT} / {@code ACTIVATE_TENANT}）。
-     */
+    /** 步骤名（如 {@code VALIDATE_TENANT} / {@code ACTIVATE_TENANT}）。 */
     private String stepName;
 
-    /**
-     * 第几次尝试，从 1 起；FAILED 重放时 +1。
-     */
+    /** 第几次尝试，从 1 起；FAILED 重放时 +1。 */
     private Integer attemptNo;
 
-    /**
-     * 步骤状态，见本类 {@code STATUS_*} 常量。
-     */
+    /** 步骤状态，见本类 {@code STATUS_*} 常量。 */
     private String status;
 
-    /**
-     * 失败原因，截断至 {@link #ERROR_DETAIL_MAX_LENGTH}。
-     */
+    /** 失败原因，截断至 {@link #ERROR_DETAIL_MAX_LENGTH}。 */
     private String errorDetail;
 
     private LocalDateTime startedAt;
@@ -93,16 +73,12 @@ public class TenantProvisionStep {
                 : raw.substring(0, ERROR_DETAIL_MAX_LENGTH);
     }
 
-    /**
-     * 是否已成功（重放时的跳过判定）。
-     */
+    /** 是否已成功（重放时的跳过判定）。 */
     public boolean isSuccess() {
         return STATUS_SUCCESS.equals(status);
     }
 
-    /**
-     * 是否已失败。
-     */
+    /** 是否已失败。 */
     public boolean isFailed() {
         return STATUS_FAILED.equals(status);
     }

@@ -5,14 +5,13 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantPlanLimitGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaPolicy;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantPlanLimit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 平台端套餐限额管理控制器（adapter 层，P6-T2）。
@@ -53,9 +52,7 @@ public class PlatformLimitController {
         return value == null ? null : String.valueOf(value);
     }
 
-    /**
-     * 防御性解析整型/长整型请求体字段：非数值返回 {@code null}。
-     */
+    /** 防御性解析整型/长整型请求体字段：非数值返回 {@code null}。 */
     private static Long longOf(Object value) {
         if (value == null) {
             return null;
@@ -70,9 +67,7 @@ public class PlatformLimitController {
         }
     }
 
-    /**
-     * 查询指定租户的全部限额配置。
-     */
+    /** 查询指定租户的全部限额配置。 */
     @GetMapping
     public ResponseEntity<List<TenantPlanLimitVO>> list(@RequestParam("tenant") String tenantKey) {
         List<TenantPlanLimit> limits = tenantPlanLimitGateway.findByTenantKey(tenantKey);
@@ -81,9 +76,7 @@ public class PlatformLimitController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 新增或更新限额（upsert 语义）。
-     */
+    /** 新增或更新限额（upsert 语义）。 */
     @PostMapping
     public ResponseEntity<TenantPlanLimitVO> create(@RequestBody Map<String, Object> body) {
         String tenantKey = stringOf(body.get(FIELD_TENANT_KEY));
@@ -99,9 +92,7 @@ public class PlatformLimitController {
         return ResponseEntity.ok(toVO(tenantKey, limit));
     }
 
-    /**
-     * 删除指定租户指定 metric 的限额。
-     */
+    /** 删除指定租户指定 metric 的限额。 */
     @DeleteMapping("/{tenantKey}/{metric}")
     public ResponseEntity<Map<String, String>> delete(
             @PathVariable String tenantKey, @PathVariable String metric) {

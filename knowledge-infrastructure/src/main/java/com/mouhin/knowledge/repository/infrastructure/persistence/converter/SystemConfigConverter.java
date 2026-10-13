@@ -11,8 +11,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Sys
  */
 public final class SystemConfigConverter {
 
-    private SystemConfigConverter() {
-    }
+    private SystemConfigConverter() {}
 
     public static SystemConfig toDomain(SystemConfigDO doObj) {
         if (doObj == null) {

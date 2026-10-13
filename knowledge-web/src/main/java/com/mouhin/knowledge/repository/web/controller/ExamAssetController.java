@@ -2,6 +2,9 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.executor.docingestion.DocumentImageSupport;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -13,10 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.Duration;
-import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * 看图题配图对外访问接口（adapter 层）。
@@ -34,9 +33,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ExamAssetController {
 
-    /**
-     * 只接受 32 位十六进制字符（UUID.randomUUID().toString().replace("-","")）
-     */
+    /** 只接受 32 位十六进制字符（UUID.randomUUID().toString().replace("-","")） */
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[a-f0-9]{32}$");
 
     private final DocumentImageSupport documentImageSupport;
@@ -45,9 +42,7 @@ public class ExamAssetController {
         this.documentImageSupport = documentImageSupport;
     }
 
-    /**
-     * 拉取图片二进制内容。句柄非法 / 未命中 / 文件缺失一律 404，不泄露任何内部信息。
-     */
+    /** 拉取图片二进制内容。句柄非法 / 未命中 / 文件缺失一律 404，不泄露任何内部信息。 */
     @GetMapping("/{assetKey}")
     public ResponseEntity<Resource> get(@PathVariable String assetKey) {
         if (assetKey == null || !ASSET_KEY_PATTERN.matcher(assetKey).matches()) {

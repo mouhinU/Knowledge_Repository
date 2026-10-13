@@ -1,20 +1,19 @@
 package com.mouhin.knowledge.repository.application.executor.user;
 
-import com.mouhin.knowledge.repository.client.dto.UserUpdateCmd;
-import com.mouhin.knowledge.repository.client.dto.UserVO;
-import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.client.dto.UserUpdateCmd;
+import com.mouhin.knowledge.repository.client.dto.UserVO;
+import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * 修改用户命令执行器单测：锁定"null 保持原值"的语义、非法 status 拒绝、 password 空串保持原 hash（不 encode）、大小写归一化，以及用户不存在的错误传播。

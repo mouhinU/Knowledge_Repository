@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.infrastructure.tenant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
@@ -7,10 +11,6 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
 
 /**
  * {@link KnowledgeTenantLineHandler} 单元测试（P1-T7）。
@@ -27,8 +27,7 @@ import static org.mockito.Mockito.when;
 @DisplayName("KnowledgeTenantLineHandler 契约")
 class KnowledgeTenantLineHandlerTest {
 
-    @Mock
-    private TenantIdResolver resolver;
+    @Mock private TenantIdResolver resolver;
 
     private KnowledgeTenantLineHandler handler;
 
@@ -100,12 +99,12 @@ class KnowledgeTenantLineHandlerTest {
         @DisplayName("平台/Flyway/邀请/审批审计表命中白名单（P3-T3 sys_config、P4-T3 kb_extraction_cache 均已移出）")
         void ignoresPlatformTables() {
             for (String t :
-                    new String[]{
-                            "sys_tenant",
-                            "sys_tenant_placement",
-                            "sys_tenant_provision_step",
-                            "sys_user_invite",
-                            "flyway_schema_history"
+                    new String[] {
+                        "sys_tenant",
+                        "sys_tenant_placement",
+                        "sys_tenant_provision_step",
+                        "sys_user_invite",
+                        "flyway_schema_history"
                     }) {
                 assertThat(handler.ignoreTable(t))
                         .as("ignore " + t)
@@ -118,24 +117,24 @@ class KnowledgeTenantLineHandlerTest {
         @DisplayName("业务表均不在白名单内（P3-T3 sys_config、P4-T3 kb_extraction_cache 参与租户过滤）")
         void doesNotIgnoreBusinessTables() {
             for (String t :
-                    new String[]{
-                            "kb_document",
-                            "kb_document_chunk",
-                            "kb_document_image",
-                            "kb_category",
-                            "kb_exam_history",
-                            "kb_exam_session",
-                            "kb_exam_question",
-                            "kb_exam_answer",
-                            "kb_student",
-                            "kb_student_session",
-                            "kb_writing_history",
-                            "kb_extraction_cache",
-                            "sys_user",
-                            "sys_role",
-                            "sys_user_role",
-                            "sys_department",
-                            "sys_config"
+                    new String[] {
+                        "kb_document",
+                        "kb_document_chunk",
+                        "kb_document_image",
+                        "kb_category",
+                        "kb_exam_history",
+                        "kb_exam_session",
+                        "kb_exam_question",
+                        "kb_exam_answer",
+                        "kb_student",
+                        "kb_student_session",
+                        "kb_writing_history",
+                        "kb_extraction_cache",
+                        "sys_user",
+                        "sys_role",
+                        "sys_user_role",
+                        "sys_department",
+                        "sys_config"
                     }) {
                 assertThat(handler.ignoreTable(t)).as("参与过滤 " + t).isFalse();
             }

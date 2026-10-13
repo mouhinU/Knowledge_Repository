@@ -14,53 +14,35 @@ import java.util.List;
  */
 public class ExamPlan {
 
-    /**
-     * 学段：PRIMARY / JUNIOR / SENIOR / UNKNOWN
-     */
+    /** 学段：PRIMARY / JUNIOR / SENIOR / UNKNOWN */
     private String schoolLevel;
 
-    /**
-     * 本卷目标满分（依据学段与科目满分规则）
-     */
+    /** 本卷目标满分（依据学段与科目满分规则） */
     private int totalFullMark;
 
-    /**
-     * 是否合卷
-     */
+    /** 是否合卷 */
     private boolean combined;
 
-    /**
-     * 识别到的科目（合卷时可有多个，用于说明）
-     */
+    /** 识别到的科目（合卷时可有多个，用于说明） */
     private List<String> subjects = new ArrayList<>();
 
-    /**
-     * 各题型计划
-     */
+    /** 各题型计划 */
     private List<TypePlan> types = new ArrayList<>();
 
-    /**
-     * 合理性评估建议（第④阶段产出，仅提示不自动改写）
-     */
+    /** 合理性评估建议（第④阶段产出，仅提示不自动改写） */
     private List<String> evaluationNotes = new ArrayList<>();
 
-    /**
-     * 结构化评估总判定（PASS / FAIL），由第④阶段固定维度评估产出
-     */
+    /** 结构化评估总判定（PASS / FAIL），由第④阶段固定维度评估产出 */
     private String overallVerdict;
 
-    /**
-     * 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定）
-     */
+    /** 用户是否在生成方案后手动调整过题型/题量/分值（用于流水线的收敛早停判定） */
     private boolean manualAdjusted;
 
     public ExamPlan() {
         // java:S1186：显式声明供 Jackson / MyBatis 反射反序列化使用；字段初始化在类顶完成。
     }
 
-    /**
-     * 当前所有小题分值之和
-     */
+    /** 当前所有小题分值之和 */
     public int allocatedTotal() {
         int sum = 0;
         if (types != null) {
@@ -71,9 +53,7 @@ public class ExamPlan {
         return sum;
     }
 
-    /**
-     * 总题量
-     */
+    /** 总题量 */
     public int totalQuestions() {
         int n = 0;
         if (types != null) {

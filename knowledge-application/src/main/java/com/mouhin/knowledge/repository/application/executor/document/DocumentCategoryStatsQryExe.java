@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.application.executor.document;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 各分类文档数量统计执行器（app 层用例）

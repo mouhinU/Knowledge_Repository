@@ -7,9 +7,8 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 试卷校对支撑（app 层，阶段 1-D 校对关口共用逻辑）
@@ -47,23 +46,17 @@ public class PaperReviewSupport {
                 .orElseThrow(() -> new IllegalArgumentException("试卷不存在: " + sessionKey));
     }
 
-    /**
-     * 解析历史中的题型分布方案（缺省返回 null，校验器据此跳过题数 / 分值对齐）。
-     */
+    /** 解析历史中的题型分布方案（缺省返回 null，校验器据此跳过题数 / 分值对齐）。 */
     public ExamPlan planOf(ExamHistory history) {
         return ExamPaperParser.readPlan(history.getExamPlan());
     }
 
-    /**
-     * 读取某份试卷的结构化题目行（按印刷题号升序）。
-     */
+    /** 读取某份试卷的结构化题目行（按印刷题号升序）。 */
     public List<ExamQuestion> listQuestions(String sessionKey) {
         return examQuestionGateway.listBySessionKey(sessionKey);
     }
 
-    /**
-     * 复跑契约校验（不依赖大模型的确定性门禁）。
-     */
+    /** 复跑契约校验（不依赖大模型的确定性门禁）。 */
     public ExamContractValidator.Result validate(List<ExamQuestion> questions, ExamPlan plan) {
         return ExamContractValidator.validate(questions, plan);
     }

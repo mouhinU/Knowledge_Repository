@@ -9,14 +9,13 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
 import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 试卷校对控制器（管理端，阶段 1-D 校对关口）
@@ -32,9 +31,7 @@ import java.util.Map;
 @Slf4j
 public class PaperReviewController {
 
-    /**
-     * 统一响应 map 的 error 字段名（java:S1192：抽公共 key 防字面量漂移）。
-     */
+    /** 统一响应 map 的 error 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
     private static final String ERR_FIELD = "error";
 
     private final ListReviewPendingQryExe listReviewPendingQryExe;
@@ -97,9 +94,7 @@ public class PaperReviewController {
         }
     }
 
-    /**
-     * 待校对试卷列表（REVIEWABLE / VALIDATION_FAILED）
-     */
+    /** 待校对试卷列表（REVIEWABLE / VALIDATION_FAILED） */
     @GetMapping("/pending")
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
@@ -127,9 +122,7 @@ public class PaperReviewController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 某份试卷的结构化逐题校对视图（含实时契约校验结果与发布门槛）
-     */
+    /** 某份试卷的结构化逐题校对视图（含实时契约校验结果与发布门槛） */
     @GetMapping("/{sessionId}/questions")
     public ResponseEntity<Map<String, Object>> getQuestions(@PathVariable String sessionId) {
         PaperQuestionsView view = getPaperQuestionsQryExe.execute(sessionId);
@@ -154,9 +147,7 @@ public class PaperReviewController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 就地编辑单题（标准答案 / 解析 / 分值），回写后返回最新校验结果
-     */
+    /** 就地编辑单题（标准答案 / 解析 / 分值），回写后返回最新校验结果 */
     @PutMapping("/{sessionId}/question/{questionNumber}")
     public ResponseEntity<Map<String, Object>> updateQuestion(
             @PathVariable String sessionId,
@@ -180,9 +171,7 @@ public class PaperReviewController {
         }
     }
 
-    /**
-     * 校对页绑定配图：就地保存某题的有序 assetKey 列表（空列表清除绑定），回写 images_json。
-     */
+    /** 校对页绑定配图：就地保存某题的有序 assetKey 列表（空列表清除绑定），回写 images_json。 */
     @PutMapping("/{sessionId}/question/{questionNumber}/images")
     public ResponseEntity<Map<String, Object>> updateQuestionImages(
             @PathVariable String sessionId,
@@ -208,9 +197,7 @@ public class PaperReviewController {
 
     // ==================== 内部装配 ====================
 
-    /**
-     * 校对通过并发布（契约校验不过则拒绝，不可绕过）
-     */
+    /** 校对通过并发布（契约校验不过则拒绝，不可绕过） */
     @PostMapping("/{sessionId}/approve")
     public ResponseEntity<Map<String, Object>> approve(
             @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String reviewer) {
@@ -228,9 +215,7 @@ public class PaperReviewController {
         }
     }
 
-    /**
-     * 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」， 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。
-     */
+    /** 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」， 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。 */
     @PostMapping("/{sessionId}/void")
     public ResponseEntity<Map<String, Object>> voidPaper(
             @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String operator) {
@@ -243,9 +228,7 @@ public class PaperReviewController {
         }
     }
 
-    /**
-     * 按试卷原文重新切分回灌（修正原文 / 老数据首次结构化）
-     */
+    /** 按试卷原文重新切分回灌（修正原文 / 老数据首次结构化） */
     @PostMapping("/{sessionId}/resplit")
     public ResponseEntity<Map<String, Object>> resplit(@PathVariable String sessionId) {
         try {

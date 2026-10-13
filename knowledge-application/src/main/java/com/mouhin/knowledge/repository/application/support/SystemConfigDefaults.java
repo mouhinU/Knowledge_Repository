@@ -13,21 +13,16 @@ import java.util.Map;
  */
 public final class SystemConfigDefaults {
 
-    /**
-     * 默认值注册表：configKey → defaultValue
-     */
+    /** 默认值注册表：configKey → defaultValue */
     private static final Map<String, String> DEFAULTS = new LinkedHashMap<>();
-    /**
-     * 值类型注册表：configKey → valueType
-     */
+
+    /** 值类型注册表：configKey → valueType */
     private static final Map<String, String> VALUE_TYPES = new LinkedHashMap<>();
-    /**
-     * 说明注册表：configKey → description
-     */
+
+    /** 说明注册表：configKey → description */
     private static final Map<String, String> DESCRIPTIONS = new LinkedHashMap<>();
-    /**
-     * 分组注册表：configKey → category
-     */
+
+    /** 分组注册表：configKey → category */
     private static final Map<String, String> CATEGORIES = new LinkedHashMap<>();
 
     static {
@@ -118,8 +113,7 @@ public final class SystemConfigDefaults {
                 "extraction");
     }
 
-    private SystemConfigDefaults() {
-    }
+    private SystemConfigDefaults() {}
 
     private static void register(
             String key,
@@ -133,16 +127,12 @@ public final class SystemConfigDefaults {
         CATEGORIES.put(key, category);
     }
 
-    /**
-     * 获取默认值字符串
-     */
+    /** 获取默认值字符串 */
     public static String getDefault(String configKey) {
         return DEFAULTS.getOrDefault(configKey, "");
     }
 
-    /**
-     * 获取默认 int 值
-     */
+    /** 获取默认 int 值 */
     public static int getDefaultInt(String configKey) {
         String val = DEFAULTS.get(configKey);
         if (val == null) return 0;
@@ -153,37 +143,27 @@ public final class SystemConfigDefaults {
         }
     }
 
-    /**
-     * 获取默认 boolean 值
-     */
+    /** 获取默认 boolean 值 */
     public static boolean getDefaultBoolean(String configKey) {
         return Boolean.parseBoolean(DEFAULTS.getOrDefault(configKey, "false"));
     }
 
-    /**
-     * 获取值类型
-     */
+    /** 获取值类型 */
     public static String getValueType(String configKey) {
         return VALUE_TYPES.getOrDefault(configKey, "STRING");
     }
 
-    /**
-     * 获取说明
-     */
+    /** 获取说明 */
     public static String getDescription(String configKey) {
         return DESCRIPTIONS.getOrDefault(configKey, "");
     }
 
-    /**
-     * 获取分组
-     */
+    /** 获取分组 */
     public static String getCategory(String configKey) {
         return CATEGORIES.getOrDefault(configKey, "general");
     }
 
-    /**
-     * 获取全部已注册的默认配置键（供管理页面初始化展示）
-     */
+    /** 获取全部已注册的默认配置键（供管理页面初始化展示） */
     public static Map<String, String> getAllDefaults() {
         return Map.copyOf(DEFAULTS);
     }

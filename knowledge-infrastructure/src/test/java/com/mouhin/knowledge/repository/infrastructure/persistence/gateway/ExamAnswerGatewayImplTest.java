@@ -1,18 +1,17 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
-import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamAnswerDO;
-import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamAnswerMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
+import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamAnswerDO;
+import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamAnswerMapper;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * {@link ExamAnswerGatewayImpl} 契约单测：锁定 CRUD 转换、批量落库与待复核计数。

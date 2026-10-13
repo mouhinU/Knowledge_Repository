@@ -14,13 +14,11 @@ public interface IndexProgressCallback {
      * 报告向量化进度
      *
      * @param completedChunks 已完成的分块数
-     * @param totalChunks     总分块数
+     * @param totalChunks 总分块数
      */
     void onProgress(int completedChunks, int totalChunks);
 
-    /**
-     * 索引完成
-     */
+    /** 索引完成 */
     void onComplete();
 
     /**

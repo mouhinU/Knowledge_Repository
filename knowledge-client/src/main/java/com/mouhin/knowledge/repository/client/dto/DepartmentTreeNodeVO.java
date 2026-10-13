@@ -1,10 +1,9 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 部门树节点视图对象

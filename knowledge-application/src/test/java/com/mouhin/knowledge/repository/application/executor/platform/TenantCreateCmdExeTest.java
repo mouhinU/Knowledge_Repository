@@ -1,21 +1,20 @@
 package com.mouhin.knowledge.repository.application.executor.platform;
 
-import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantVO;
-import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
-import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
+import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
+import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * {@link TenantCreateCmdExe} 平台端开通租户执行器单测（P3-T1）。

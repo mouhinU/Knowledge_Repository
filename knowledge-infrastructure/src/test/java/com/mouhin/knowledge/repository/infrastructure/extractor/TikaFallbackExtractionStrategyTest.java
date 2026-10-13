@@ -1,17 +1,16 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * {@link TikaFallbackExtractionStrategy} 测试：兜底谓词恒真 + 真实 Tika 解析。
@@ -24,8 +23,7 @@ class TikaFallbackExtractionStrategyTest {
 
     private final TikaFallbackExtractionStrategy strategy = new TikaFallbackExtractionStrategy();
 
-    @TempDir
-    Path tempDir;
+    @TempDir Path tempDir;
 
     private static ExtractionCandidate withMime(String mime) {
         return ExtractionCandidate.basic(Path.of("dummy"), 10L, "dummy", mime);

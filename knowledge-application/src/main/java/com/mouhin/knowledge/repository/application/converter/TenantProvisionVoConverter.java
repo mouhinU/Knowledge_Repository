@@ -4,7 +4,6 @@ import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.StepOutcome;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -19,19 +18,16 @@ import java.util.List;
  */
 public final class TenantProvisionVoConverter {
 
-    /**
-     * ISO-8601 无时区（LocalDateTime）格式化器，与 V28 迁移 DATETIME 列语义一致。
-     */
+    /** ISO-8601 无时区（LocalDateTime）格式化器，与 V28 迁移 DATETIME 列语义一致。 */
     private static final DateTimeFormatter ISO_LOCAL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    private TenantProvisionVoConverter() {
-    }
+    private TenantProvisionVoConverter() {}
 
     /**
      * 转换开通结果。
      *
      * @param tenantKey 目标租户业务键
-     * @param outcome   状态机编排结果，不可为 {@code null}
+     * @param outcome 状态机编排结果，不可为 {@code null}
      * @return 开通结果 VO
      */
     public static TenantProvisionVO toVO(String tenantKey, ProvisioningOutcome outcome) {

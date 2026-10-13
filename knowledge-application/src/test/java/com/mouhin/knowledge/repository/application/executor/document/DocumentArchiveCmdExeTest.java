@@ -1,22 +1,21 @@
 package com.mouhin.knowledge.repository.application.executor.document;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
+import java.util.Optional;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * 归档文档执行器单测：锁定「DB 先、慢 IO 后」的状态迁移—— （1）INDEXED 文档 → 短事务内置为 ARCHIVED 并落库，事务提交后删 Milvus 向量；（2）非
@@ -43,11 +42,11 @@ class DocumentArchiveCmdExeTest {
     void runTransactionCallbackInline() {
         // 手工 mock 无 Spring：让 executeWithoutResult 直接内联执行回调，模拟事务提交
         doAnswer(
-                invocation -> {
-                    Consumer<TransactionStatus> action = invocation.getArgument(0);
-                    action.accept(mock(TransactionStatus.class));
-                    return null;
-                })
+                        invocation -> {
+                            Consumer<TransactionStatus> action = invocation.getArgument(0);
+                            action.accept(mock(TransactionStatus.class));
+                            return null;
+                        })
                 .when(transactionTemplate)
                 .executeWithoutResult(any());
     }

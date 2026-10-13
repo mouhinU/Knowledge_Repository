@@ -27,7 +27,7 @@ public interface TenantPurgeMapper {
      * 统计某租户在指定表的行数（dry-run 预览，不删）。
      *
      * @param tableName 白名单校验后的表名
-     * @param tenantId  数值租户主键
+     * @param tenantId 数值租户主键
      * @return 行数
      */
     @InterceptorIgnore(tenantLine = "true")
@@ -38,7 +38,7 @@ public interface TenantPurgeMapper {
      * 硬删某租户在指定表的全部行（不可逆）。
      *
      * @param tableName 白名单校验后的表名
-     * @param tenantId  数值租户主键
+     * @param tenantId 数值租户主键
      * @return 实际删除行数
      */
     @InterceptorIgnore(tenantLine = "true")

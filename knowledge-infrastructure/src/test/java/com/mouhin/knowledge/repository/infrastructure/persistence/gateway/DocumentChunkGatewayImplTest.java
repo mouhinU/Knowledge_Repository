@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
-import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentChunkDO;
-import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentChunkMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
+import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentChunkDO;
+import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentChunkMapper;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link DocumentChunkGatewayImpl} 契约单测：锁定批量落库主键回填、条件查询与删除/计数委托。

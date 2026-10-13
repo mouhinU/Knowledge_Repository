@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -7,17 +11,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamHistoryMapper;
+import java.util.List;
+import java.util.Optional;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link ExamHistoryGatewayImpl} 契约单测：锁定 CRUD 转换、按 sessionId 查询与计数透传，以及 P0-T3 owner/dept 作用域谓词。

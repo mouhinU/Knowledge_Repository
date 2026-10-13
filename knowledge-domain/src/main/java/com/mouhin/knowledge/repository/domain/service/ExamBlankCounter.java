@@ -15,17 +15,12 @@ import java.util.regex.Pattern;
  */
 public final class ExamBlankCounter {
 
-    /**
-     * 空位识别：半角 / 全角连续下划线，或中英文空括号。
-     */
+    /** 空位识别：半角 / 全角连续下划线，或中英文空括号。 */
     private static final Pattern BLANK = Pattern.compile("_{2,}|＿{2,}|\\(\\s*\\)|（\\s*）");
 
-    private ExamBlankCounter() {
-    }
+    private ExamBlankCounter() {}
 
-    /**
-     * 供前后端保持一致的空位切分正则字符串（用于把题干按空位切段、内联生成输入框）。
-     */
+    /** 供前后端保持一致的空位切分正则字符串（用于把题干按空位切段、内联生成输入框）。 */
     public static String blankSplitRegex() {
         return "(_{2,}|＿{2,}|\\(\\s*\\)|（\\s*）)";
     }

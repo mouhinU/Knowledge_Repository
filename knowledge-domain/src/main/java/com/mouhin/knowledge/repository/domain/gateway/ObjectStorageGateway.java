@@ -2,7 +2,6 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -34,9 +33,9 @@ public interface ObjectStorageGateway {
     /**
      * 存储文件。
      *
-     * @param content      文件内容流，调用方负责关闭（实现不得持有引用）
-     * @param tenantKey    租户键，用于路径隔离
-     * @param category     存储分类（决定路径前缀）
+     * @param content 文件内容流，调用方负责关闭（实现不得持有引用）
+     * @param tenantKey 租户键，用于路径隔离
+     * @param category 存储分类（决定路径前缀）
      * @param originalName 原始文件名，用于扩展名截取与路径穿越防护
      * @return 存储句柄，含 opaque {@code storageKey}
      * @throws IOException 存储失败（磁盘满 / MinIO 不可达等）
@@ -48,11 +47,11 @@ public interface ObjectStorageGateway {
     /**
      * 存储文件到指定子目录下（考试配图场景需要 {@code {documentKey}/} 子目录层级）。
      *
-     * @param content      文件内容流
-     * @param tenantKey    租户键
-     * @param category     存储分类
+     * @param content 文件内容流
+     * @param tenantKey 租户键
+     * @param category 存储分类
      * @param subDirectory 子目录段（如 documentKey）
-     * @param fileName     目标文件名（如 {@code {assetKey}.png}）
+     * @param fileName 目标文件名（如 {@code {assetKey}.png}）
      * @return 存储句柄
      * @throws IOException 存储失败
      */

@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 /**
  * 知识库语义检索响应（adapter 响应体）
@@ -23,9 +22,7 @@ public class SearchResponseVO {
     private int totalResults;
     private List<ItemVO> results;
 
-    /**
-     * 单条检索命中
-     */
+    /** 单条检索命中 */
     @Getter
     @Setter
     public static class ItemVO {

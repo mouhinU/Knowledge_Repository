@@ -1,13 +1,12 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 试卷 Markdown 解析器切分单测（锁定「题型分布方案 label 带括注」场景的类型识别与选项抽取）。
@@ -25,35 +24,35 @@ class ExamPaperParserTest {
     private static final String PAPER =
             """
                     # 一年级语文期末试卷
-                    
+
                     **考试时间：60分钟**
-                    
+
                     **满分：100分**
-                    
+
                     ## 一、我会选（单选题）（共2题，每题2分，共4分）
-                    
+
                     **1.** 下列哪个是单韵母？（2分）
                     A. b
                     B. a
                     C. m
                     D. f
-                    
+
                     **2.** 下列哪个是声母？（2分）
                     A. o
                     B. i
                     C. d
                     D. ü
-                    
+
                     ## 二、我会判（判断题）（共1题，每题2分，共2分）
-                    
+
                     **3.** “a”是单韵母。（2分）
-                    
+
                     ## 三、我会填（填空题）（共1题，每题3分，共3分）
-                    
+
                     **4.** “口”有（ ）画。（3分）
-                    
+
                     ## 四、看图写话与写句子（简答题）（共1题，每题7分，共7分）
-                    
+
                     **5.** 看图写话：图上画着蓝天、白云、小鸟。请写一句话。（7分）
                     """;
 
@@ -120,7 +119,7 @@ class ExamPaperParserTest {
         String paper =
                 """
                         ## 一、我会选（单选题）（共1题，每题2分，共2分）
-                        
+
                         **1.** 选出正确的一项。（2分）
                         A. 苹果（1分） B. 香蕉 C. 橘子 D. 葡萄
                         """;

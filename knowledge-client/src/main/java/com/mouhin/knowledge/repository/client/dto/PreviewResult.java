@@ -20,5 +20,4 @@ public record PreviewResult(
         String checksum,
         int totalChunks,
         List<PageDetail> pages,
-        List<ChunkDetail> chunks) {
-}
+        List<ChunkDetail> chunks) {}

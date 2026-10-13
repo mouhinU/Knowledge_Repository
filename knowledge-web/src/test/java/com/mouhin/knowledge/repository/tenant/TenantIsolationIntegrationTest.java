@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.tenant;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.infrastructure.config.MyBatisPlusConfig;
@@ -7,6 +9,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Dep
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +26,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * P1-T10 · 跨租户负向端到端（Testcontainers MySQL）。
@@ -62,9 +61,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = TenantIsolationIntegrationTest.TestConfig.class)
 class TenantIsolationIntegrationTest {
 
-    /**
-     * 与生产对齐：MySQL 8 镜像；utf8mb4 通过容器启动参数确保中文 name 列不截断。
-     */
+    /** 与生产对齐：MySQL 8 镜像；utf8mb4 通过容器启动参数确保中文 name 列不截断。 */
     @Container
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.0")
@@ -74,14 +71,11 @@ class TenantIsolationIntegrationTest {
                     .withCommand(
                             "--character-set-server=utf8mb4",
                             "--collation-server=utf8mb4_unicode_ci");
-    @Autowired
-    private DepartmentMapper departmentMapper;
-    @Autowired
-    private TenantMapper tenantMapper;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private TenantIdResolver tenantIdResolver;
+
+    @Autowired private DepartmentMapper departmentMapper;
+    @Autowired private TenantMapper tenantMapper;
+    @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private TenantIdResolver tenantIdResolver;
     private long defaultId;
     private long acmeId;
 
@@ -303,9 +297,7 @@ class TenantIsolationIntegrationTest {
     // helpers
     // ---------------------------------------------------------------------
 
-    /**
-     * 用 raw JDBC 落一行 sys_department，绕开 MP 拦截器，可控指定 tenant_id。
-     */
+    /** 用 raw JDBC 落一行 sys_department，绕开 MP 拦截器，可控指定 tenant_id。 */
     private long seedDepartmentRaw(String deptKey, String name, long tenantId) {
         jdbcTemplate.update(
                 "INSERT INTO sys_department (department_key, department_name, parent_id, tenant_id) "
@@ -328,6 +320,5 @@ class TenantIsolationIntegrationTest {
     @EnableAutoConfiguration
     @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
     @Import({MyBatisPlusConfig.class, TenantIdResolver.class})
-    static class TestConfig {
-    }
+    static class TestConfig {}
 }

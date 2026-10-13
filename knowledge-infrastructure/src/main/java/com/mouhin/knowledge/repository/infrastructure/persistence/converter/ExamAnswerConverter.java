@@ -11,8 +11,7 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
  */
 public final class ExamAnswerConverter {
 
-    private ExamAnswerConverter() {
-    }
+    private ExamAnswerConverter() {}
 
     public static ExamAnswer toDomain(ExamAnswerDO doObj) {
         if (doObj == null) {

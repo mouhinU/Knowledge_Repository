@@ -50,11 +50,11 @@ public class ResearchQualityGate implements QualityGate {
                     chunkCount >= lowConfidenceThreshold
                             ? AgentConfidence.high("检索到 " + chunkCount + " 条知识片段")
                             : AgentConfidence.medium(
-                            "检索到 "
-                                    + chunkCount
-                                    + " 条知识片段（低于理想阈值 "
-                                    + lowConfidenceThreshold
-                                    + "）");
+                                    "检索到 "
+                                            + chunkCount
+                                            + " 条知识片段（低于理想阈值 "
+                                            + lowConfidenceThreshold
+                                            + "）");
             return QualityGateResult.pass(
                     GATE_NAME, "检索到 " + chunkCount + " 条知识片段（≥ " + minChunks + "）", confidence);
         }

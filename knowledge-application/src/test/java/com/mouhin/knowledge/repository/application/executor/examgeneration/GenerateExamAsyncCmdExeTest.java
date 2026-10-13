@@ -1,14 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
 /**
  * 异步出卷命令执行器单测：执行器是薄分派层——锁定入参完整透传给 {@link ExamGenerationSupport#generateExamAsync}， 且 support
@@ -87,18 +87,18 @@ class GenerateExamAsyncCmdExeTest {
                         org.mockito.ArgumentMatchers.anyBoolean());
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                "t",
-                                "EASY",
-                                "5",
-                                permission,
-                                null,
-                                "s3",
-                                null,
-                                null,
-                                null,
-                                false))
+                        () ->
+                                exe.execute(
+                                        "t",
+                                        "EASY",
+                                        "5",
+                                        permission,
+                                        null,
+                                        "s3",
+                                        null,
+                                        null,
+                                        null,
+                                        false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("agent pool exhausted");
     }

@@ -2,11 +2,10 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
 
 /**
  * 用量计量空实现（P6-T1 · 门控关闭时装配）。

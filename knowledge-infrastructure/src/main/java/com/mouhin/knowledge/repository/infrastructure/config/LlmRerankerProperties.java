@@ -23,48 +23,30 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.llm.reranker")
 public class LlmRerankerProperties {
 
-    /**
-     * 是否启用 reranker。
-     */
+    /** 是否启用 reranker。 */
     private boolean enabled = false;
 
-    /**
-     * 供应商标识（仅用于日志）。
-     */
+    /** 供应商标识（仅用于日志）。 */
     private String provider = "cohere-compatible";
 
-    /**
-     * Cohere 兼容 reranker base-url（端口 6006）。
-     */
+    /** Cohere 兼容 reranker base-url（端口 6006）。 */
     private String baseUrl = "http://localhost:6006";
 
-    /**
-     * 访问密钥（需与 reranker 服务的 API_KEYS 配置一致）。
-     */
+    /** 访问密钥（需与 reranker 服务的 API_KEYS 配置一致）。 */
     private String apiKey = "sk-reranker";
 
-    /**
-     * 模型名（如 bge-reranker-v2-m3）。
-     */
+    /** 模型名（如 bge-reranker-v2-m3）。 */
     private String modelName = "bge-reranker-v2-m3";
 
-    /**
-     * TCP 建连超时（秒）。
-     */
+    /** TCP 建连超时（秒）。 */
     private int connectTimeoutSeconds = 2;
 
-    /**
-     * 单次读超时（秒）。
-     */
+    /** 单次读超时（秒）。 */
     private int readTimeoutSeconds = 10;
 
-    /**
-     * 整次调用超时（秒）—— CPU 推理较慢，默认 120 秒。
-     */
+    /** 整次调用超时（秒）—— CPU 推理较慢，默认 120 秒。 */
     private int callTimeoutSeconds = 120;
 
-    /**
-     * 重排后保留的 top-N 数量（传给 LLM 的最终结果数）。
-     */
+    /** 重排后保留的 top-N 数量（传给 LLM 的最终结果数）。 */
     private int topN = 10;
 }

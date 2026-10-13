@@ -1,5 +1,11 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantPlacementDO;
 import dev.langchain4j.data.segment.TextSegment;
@@ -11,12 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link EmbeddingStoreProvider} 单元测试（P2-T1）。
@@ -38,10 +38,8 @@ import static org.mockito.Mockito.*;
 @DisplayName("EmbeddingStoreProvider Phase 2 单 store 契约")
 class EmbeddingStoreProviderTest {
 
-    @Mock
-    private EmbeddingStore<TextSegment> poolStore;
-    @Mock
-    private EmbeddingStoreRouter router;
+    @Mock private EmbeddingStore<TextSegment> poolStore;
+    @Mock private EmbeddingStoreRouter router;
 
     private EmbeddingStoreProvider provider;
 

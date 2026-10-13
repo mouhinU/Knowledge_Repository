@@ -17,23 +17,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class AgentExecutorFactory {
 
-    /**
-     * 空闲核心线程数：任务全部完成后不保留常驻线程。
-     */
+    /** 空闲核心线程数：任务全部完成后不保留常驻线程。 */
     private static final int CORE_POOL_SIZE = 0;
 
-    /**
-     * 最大并发线程数上限：约束同时在途的 LLM / 出卷 / 评分任务数量， 防止瞬时扇出压垮模型服务与数据库连接池。
-     */
+    /** 最大并发线程数上限：约束同时在途的 LLM / 出卷 / 评分任务数量， 防止瞬时扇出压垮模型服务与数据库连接池。 */
     private static final int MAX_POOL_SIZE = 32;
 
-    /**
-     * 空闲线程存活时间（秒）：超过上限的空闲线程在此时长后回收。
-     */
+    /** 空闲线程存活时间（秒）：超过上限的空闲线程在此时长后回收。 */
     private static final long KEEP_ALIVE_SECONDS = 60L;
 
-    private AgentExecutorFactory() {
-    }
+    private AgentExecutorFactory() {}
 
     /**
      * 构建一个有界、空闲回收、溢出走 {@code AbortPolicy}（快速失败）的线程池。

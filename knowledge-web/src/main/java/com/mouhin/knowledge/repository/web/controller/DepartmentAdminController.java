@@ -5,12 +5,11 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
 import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 部门管理控制器（adapter 层）
@@ -26,9 +25,7 @@ import java.util.Map;
 @Slf4j
 public class DepartmentAdminController {
 
-    /**
-     * 请求体 map 的父部门字段名（java:S1192 抽常量防 4 处漂移）。
-     */
+    /** 请求体 map 的父部门字段名（java:S1192 抽常量防 4 处漂移）。 */
     private static final String FIELD_PARENT_ID = "parentId";
 
     private final DepartmentServiceI departmentService;

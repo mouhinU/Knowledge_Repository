@@ -7,11 +7,10 @@ import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * 平台端开通租户命令执行器（app 层用例，事务边界，P3-T1）。
@@ -30,14 +29,10 @@ import java.util.UUID;
 @Slf4j
 public class TenantCreateCmdExe {
 
-    /**
-     * 审计动作名。
-     */
+    /** 审计动作名。 */
     public static final String ACTION = "TENANT_CREATE";
 
-    /**
-     * 未指定套餐时的默认值。
-     */
+    /** 未指定套餐时的默认值。 */
     private static final String DEFAULT_PLAN = "FREE";
 
     private final TenantGateway tenantGateway;

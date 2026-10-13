@@ -15,7 +15,7 @@ public interface BlackboardAgent {
     /**
      * 执行 Agent 逻辑，读写黑板状态，并通过回调推送进度
      *
-     * @param blackboard       共享黑板
+     * @param blackboard 共享黑板
      * @param progressCallback 进度回调（可为 null）
      */
     void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback);

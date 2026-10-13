@@ -13,8 +13,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
  */
 public final class ArticleConverter {
 
-    private ArticleConverter() {
-    }
+    private ArticleConverter() {}
 
     public static WritingHistoryDTO toHistoryDTO(WritingHistory history) {
         if (history == null) {

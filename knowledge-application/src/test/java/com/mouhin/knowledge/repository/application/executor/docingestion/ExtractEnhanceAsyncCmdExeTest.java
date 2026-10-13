@@ -1,23 +1,22 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 视觉异步增强执行器单测（{@link ExtractEnhanceAsyncCmdExe}，Phase C）。
@@ -40,12 +39,11 @@ class ExtractEnhanceAsyncCmdExeTest {
     private final ExtractEnhanceAsyncCmdExe exe =
             new ExtractEnhanceAsyncCmdExe(
                     documentGateway, documentExtractionService, extractionCache, directExecutor);
-    @TempDir
-    Path tmp;
+    @TempDir Path tmp;
 
     private Document stubDocumentWithFile() throws IOException {
         Path file = tmp.resolve("stored.pdf");
-        Files.write(file, new byte[]{1, 2, 3});
+        Files.write(file, new byte[] {1, 2, 3});
         Document doc = new Document();
         doc.setDocumentKey(KEY);
         doc.setFileName("stored.pdf");

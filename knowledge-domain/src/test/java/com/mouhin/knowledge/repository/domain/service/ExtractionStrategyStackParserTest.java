@@ -1,13 +1,11 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-/**
- * {@link ExtractionStrategyStackParser} 单元测试（Phase D）。
- */
+/** {@link ExtractionStrategyStackParser} 单元测试（Phase D）。 */
 @DisplayName("D 解析策略栈解析器")
 class ExtractionStrategyStackParserTest {
 

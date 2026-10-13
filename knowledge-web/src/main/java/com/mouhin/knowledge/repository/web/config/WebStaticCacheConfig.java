@@ -39,7 +39,7 @@ public class WebStaticCacheConfig {
      * 目录索引页判断是否改写。
      */
     private static final String[] HTML_URL_PATTERNS = {
-            "/admin", "/admin/", "/admin/*", "/admin.html", "/exam.html",
+        "/admin", "/admin/", "/admin/*", "/admin.html", "/exam.html",
     };
 
     @Bean

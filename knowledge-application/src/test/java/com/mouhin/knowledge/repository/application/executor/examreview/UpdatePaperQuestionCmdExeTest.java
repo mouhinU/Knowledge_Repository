@@ -1,18 +1,17 @@
 package com.mouhin.knowledge.repository.application.executor.examreview;
 
-import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
+import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 就地编辑单题校对信息执行器单测：锁定「回写 + 复跑校验」闭环—— （1）正常编辑 → updateCorrection 原样透传五个字段，并返回基于最新题目集合的契约校验结果； （2）题号为空

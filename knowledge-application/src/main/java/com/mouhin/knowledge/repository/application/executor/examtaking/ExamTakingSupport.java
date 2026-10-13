@@ -15,12 +15,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 在线做题用例共享支撑（app 层）
@@ -36,9 +35,7 @@ public class ExamTakingSupport {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /**
-     * 卷面总分解析失败时的兜底值
-     */
+    /** 卷面总分解析失败时的兜底值 */
     private static final int DEFAULT_TOTAL_SCORE = 100;
 
     private final StudentGateway studentGateway;
@@ -127,7 +124,7 @@ public class ExamTakingSupport {
      *
      * <p>无绑定、题号不匹配或解析失败时原样返回入参，绝不阻断开考。
      *
-     * @param questionsJson  渲染后的题目快照 JSON
+     * @param questionsJson 渲染后的题目快照 JSON
      * @param paperQuestions 该试卷的结构化题目行（含 {@code imagesJson}）
      * @return 注入图片后的快照 JSON；无需注入或异常时返回原快照
      */
@@ -142,8 +139,7 @@ public class ExamTakingSupport {
         try {
             List<Map<String, Object>> questions =
                     OBJECT_MAPPER.readValue(
-                            questionsJson, new TypeReference<List<Map<String, Object>>>() {
-                            });
+                            questionsJson, new TypeReference<List<Map<String, Object>>>() {});
             if (questions.isEmpty()) {
                 return questionsJson;
             }
@@ -180,16 +176,12 @@ public class ExamTakingSupport {
         }
     }
 
-    /**
-     * 解析 {@code images_json}（assetKey 字符串数组）为列表；委托共享工具 {@link ExamImages}，null / 空 / 解析失败返回空列表。
-     */
+    /** 解析 {@code images_json}（assetKey 字符串数组）为列表；委托共享工具 {@link ExamImages}，null / 空 / 解析失败返回空列表。 */
     private List<String> parseAssetKeys(String imagesJson) {
         return ExamImages.parseAssetKeys(imagesJson);
     }
 
-    /**
-     * 宽松地把快照中的题号值转 {@link Integer}（Number 或数字字符串），无法转换返回 null。
-     */
+    /** 宽松地把快照中的题号值转 {@link Integer}（Number 或数字字符串），无法转换返回 null。 */
     private Integer toInteger(Object value) {
         if (value instanceof Number num) {
             return num.intValue();
@@ -204,16 +196,12 @@ public class ExamTakingSupport {
         return null;
     }
 
-    /**
-     * 渲染题目（带考试方案）
-     */
+    /** 渲染题目（带考试方案） */
     public String renderWithPlan(String examPaper, String examPlan) {
         return contentRenderAgent.render(examPaper, null, examPlan);
     }
 
-    /**
-     * 渲染题目（无考试方案）
-     */
+    /** 渲染题目（无考试方案） */
     public String renderNoPlan(String examPaper) {
         return contentRenderAgent.render(examPaper, null);
     }
@@ -222,9 +210,7 @@ public class ExamTakingSupport {
         return contentValidatorAgent.validate(questionsJson);
     }
 
-    /**
-     * 渲染后立即校验，存在阻断性错误时抛出异常阻止开考
-     */
+    /** 渲染后立即校验，存在阻断性错误时抛出异常阻止开考 */
     public void validateOrThrow(String questionsJson) {
         PaperValidationReport report = contentValidatorAgent.validate(questionsJson);
         if (!report.pass()) {
@@ -234,15 +220,12 @@ public class ExamTakingSupport {
         }
     }
 
-    /**
-     * 依据渲染后的题目列表累加各题 maxScore，得到与试卷 / 方案一致的卷面总分；解析失败或为 0 回退 100。
-     */
+    /** 依据渲染后的题目列表累加各题 maxScore，得到与试卷 / 方案一致的卷面总分；解析失败或为 0 回退 100。 */
     public int sumMaxScore(String questionsJson) {
         try {
             List<Map<String, Object>> qs =
                     OBJECT_MAPPER.readValue(
-                            questionsJson, new TypeReference<List<Map<String, Object>>>() {
-                            });
+                            questionsJson, new TypeReference<List<Map<String, Object>>>() {});
             int sum = 0;
             for (Map<String, Object> q : qs) {
                 Object ms = q.get("maxScore");
@@ -277,9 +260,7 @@ public class ExamTakingSupport {
                 .orElse(null);
     }
 
-    /**
-     * 持久化场次更新（供 getSession 重解析回写复用）
-     */
+    /** 持久化场次更新（供 getSession 重解析回写复用） */
     public void updateSession(ExamSession session) {
         examSessionGateway.update(session);
     }

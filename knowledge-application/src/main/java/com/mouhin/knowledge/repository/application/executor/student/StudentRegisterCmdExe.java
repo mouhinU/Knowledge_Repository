@@ -5,13 +5,12 @@ import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * 考生注册命令执行器（app 层用例，事务边界）
@@ -23,14 +22,10 @@ import java.util.Optional;
 @Slf4j
 public class StudentRegisterCmdExe {
 
-    /**
-     * 密码最小长度
-     */
+    /** 密码最小长度 */
     private static final int MIN_PASSWORD_LENGTH = 6;
 
-    /**
-     * 初始账号状态
-     */
+    /** 初始账号状态 */
     private static final String STATUS_ACTIVE = "ACTIVE";
 
     private final StudentGateway studentGateway;

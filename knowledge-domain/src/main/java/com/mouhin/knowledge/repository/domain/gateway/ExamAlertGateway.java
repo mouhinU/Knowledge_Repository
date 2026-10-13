@@ -16,7 +16,7 @@ public interface ExamAlertGateway {
      * 上报出卷契约校验失败（试卷被置为 VALIDATION_FAILED）。
      *
      * @param paperSessionKey 试卷标识（出卷历史 sessionId）
-     * @param issueCount      校验问题条数
+     * @param issueCount 校验问题条数
      */
     void validationFailed(String paperSessionKey, int issueCount);
 
@@ -24,15 +24,15 @@ public interface ExamAlertGateway {
      * 上报出卷质量分低于自动发布门禁阈值。
      *
      * @param paperSessionKey 试卷标识
-     * @param quality         实际质量分
-     * @param threshold       门禁阈值
+     * @param quality 实际质量分
+     * @param threshold 门禁阈值
      */
     void lowQualityScore(String paperSessionKey, int quality, int threshold);
 
     /**
      * 上报评分时发现题目缺少标准答案。
      *
-     * @param sessionId      考试场次 ID
+     * @param sessionId 考试场次 ID
      * @param questionNumber 题号（可能为空）
      */
     void answerKeyMissing(Long sessionId, Integer questionNumber);
@@ -47,9 +47,9 @@ public interface ExamAlertGateway {
     /**
      * 通用告警埋点（供上述语义方法复用，也便于扩展新信号）。
      *
-     * @param type     告警类型
+     * @param type 告警类型
      * @param objectId 关联对象标识（试卷键 / 场次 ID 等）
-     * @param detail   补充明细，可为 {@code null}
+     * @param detail 补充明细，可为 {@code null}
      */
     void alert(ExamAlertType type, String objectId, String detail);
 }

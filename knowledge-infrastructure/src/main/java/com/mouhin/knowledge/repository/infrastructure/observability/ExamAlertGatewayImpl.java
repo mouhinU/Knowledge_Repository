@@ -17,8 +17,8 @@ import org.springframework.stereotype.Component;
  *       {@code /actuator/metrics}，供时序库 / 看板采集与阈值告警。
  *   <li><b>结构化日志</b>：输出带固定标记 {@code EXAM_ALERT} 的 WARN 行，供 ELK / 日志告警按关键字抓取。
  * </ol>
- * <p>
- * {@link MeterRegistry} 由 actuator 自动装配提供；缺失时降级为仅日志，绝不影响主流程。
+ *
+ * <p>{@link MeterRegistry} 由 actuator 自动装配提供；缺失时降级为仅日志，绝不影响主流程。
  *
  * @author mouhinU
  * @date 2026-09-18
@@ -27,19 +27,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExamAlertGatewayImpl implements ExamAlertGateway {
 
-    /**
-     * 指标名：考试告警计数
-     */
+    /** 指标名：考试告警计数 */
     private static final String METRIC_NAME = "knowledge.exam.alert";
 
-    /**
-     * 指标标签键：告警类型
-     */
+    /** 指标标签键：告警类型 */
     private static final String TAG_TYPE = "type";
 
-    /**
-     * 结构化日志标记，供日志告警规则关键字匹配
-     */
+    /** 结构化日志标记，供日志告警规则关键字匹配 */
     private static final String LOG_MARKER = "EXAM_ALERT";
 
     private final MeterRegistry meterRegistry;

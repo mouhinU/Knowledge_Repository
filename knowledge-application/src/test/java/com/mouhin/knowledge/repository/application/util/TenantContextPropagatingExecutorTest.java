@@ -1,13 +1,12 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import com.mouhin.knowledge.repository.domain.context.TenantContext;
-import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 /**
  * {@link TenantContextPropagatingExecutor} 契约单测（P1-T9，SaaS 异步脊柱）。
@@ -243,8 +242,7 @@ class TenantContextPropagatingExecutorTest {
         @DisplayName("Runnable：worker 线程执行完后恢复其进入前的绑定，不残留租户")
         void runnableRestoresWorkerPriorState() throws Exception {
             TenantContext.set("task-tenant");
-            Runnable wrapped = TenantContextPropagatingExecutor.wrapCurrent(() -> {
-            });
+            Runnable wrapped = TenantContextPropagatingExecutor.wrapCurrent(() -> {});
 
             AtomicReference<String> afterRun = new AtomicReference<>("sentinel");
             Thread worker =

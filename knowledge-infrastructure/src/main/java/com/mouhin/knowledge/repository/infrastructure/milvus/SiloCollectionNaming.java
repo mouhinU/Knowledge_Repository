@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -30,9 +29,7 @@ import java.util.regex.Pattern;
  */
 public final class SiloCollectionNaming {
 
-    /**
-     * SILO 集合名前缀，与 POOL 主集合 {@code knowledge_chunks} 显式区分。
-     */
+    /** SILO 集合名前缀，与 POOL 主集合 {@code knowledge_chunks} 显式区分。 */
     public static final String COLLECTION_PREFIX = "kc_";
 
     /**
@@ -42,17 +39,14 @@ public final class SiloCollectionNaming {
      * 个字符允许字母 / 数字 / 下划线。上限 63 给前缀 {@code kc_}（3 字符）留出 192 字符的 Milvus 硬限余量。
      */
     public static final String TENANT_KEY_PATTERN = TenantKey.PATTERN;
-    /**
-     * Milvus collection name 长度硬上限（含前缀），超出时 Phase 3 建集合直接失败。
-     */
+
+    /** Milvus collection name 长度硬上限（含前缀），超出时 Phase 3 建集合直接失败。 */
     static final int MAX_MILVUS_COLLECTION_NAME_LENGTH = 255;
-    /**
-     * {@link #TENANT_KEY_PATTERN} 的预编译形态，避免热路径重复构造。
-     */
+
+    /** {@link #TENANT_KEY_PATTERN} 的预编译形态，避免热路径重复构造。 */
     private static final Pattern TENANT_KEY_REGEX = Pattern.compile(TENANT_KEY_PATTERN);
 
-    private SiloCollectionNaming() {
-    }
+    private SiloCollectionNaming() {}
 
     /**
      * 把 {@code tenantKey} 转成 SILO 集合名。校验通过则返回 {@code kc_{tenantKey}}； 未通过抛 {@link

@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.infrastructure.llm.LlmResilience;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
@@ -13,8 +15,6 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Phase R1 三段式模型装配的容器接线测试。
@@ -82,15 +82,15 @@ class LlmClientConfigTest {
 
     @Configuration
     @EnableConfigurationProperties({
-            LlmChatProperties.class,
-            LlmEmbeddingProperties.class,
-            LlmResilienceProperties.class
+        LlmChatProperties.class,
+        LlmEmbeddingProperties.class,
+        LlmResilienceProperties.class
     })
     @Import({
-            LlmClientConfig.class,
-            ChatModelConfig.class,
-            EmbeddingModelConfig.class,
-            LlmResilience.class
+        LlmClientConfig.class,
+        ChatModelConfig.class,
+        EmbeddingModelConfig.class,
+        LlmResilience.class
     })
     static class TestConfig {
         @Bean

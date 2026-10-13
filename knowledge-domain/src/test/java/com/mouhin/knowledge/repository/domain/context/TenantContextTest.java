@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.domain.context;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext.Snapshot;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link TenantContext} 单元测试（P1-T2）。
@@ -118,12 +117,12 @@ class TenantContextTest {
         void restoresOnException() {
             TenantContext.set("alpha");
             assertThatThrownBy(
-                    () ->
-                            TenantContext.callWithTenant(
-                                    "beta",
-                                    () -> {
-                                        throw new IllegalStateException("boom");
-                                    }))
+                            () ->
+                                    TenantContext.callWithTenant(
+                                            "beta",
+                                            () -> {
+                                                throw new IllegalStateException("boom");
+                                            }))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("boom");
             assertThat(TenantContext.get()).isEqualTo("alpha");

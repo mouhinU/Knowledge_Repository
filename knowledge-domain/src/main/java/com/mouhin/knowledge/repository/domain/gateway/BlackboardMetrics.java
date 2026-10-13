@@ -1,7 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-
 import java.time.Duration;
 
 /**
@@ -28,8 +27,8 @@ public interface BlackboardMetrics {
      * 记录 Agent 执行耗时
      *
      * @param agentName Agent 名称
-     * @param phase     阶段
-     * @param duration  耗时
+     * @param phase 阶段
+     * @param duration 耗时
      */
     void recordAgentDuration(String agentName, BlackboardPhase phase, Duration duration);
 
@@ -37,8 +36,8 @@ public interface BlackboardMetrics {
      * 记录 Agent 执行次数（按状态）
      *
      * @param agentName Agent 名称
-     * @param phase     阶段
-     * @param status    状态（success / failed / skipped）
+     * @param phase 阶段
+     * @param status 状态（success / failed / skipped）
      */
     void incrementAgentCount(String agentName, BlackboardPhase phase, String status);
 
@@ -46,8 +45,8 @@ public interface BlackboardMetrics {
      * 记录质量门禁执行次数
      *
      * @param gateName 门禁名称
-     * @param phase    阶段
-     * @param passed   是否通过
+     * @param phase 阶段
+     * @param passed 是否通过
      */
     void incrementQualityGateCount(String gateName, BlackboardPhase phase, boolean passed);
 
@@ -61,7 +60,7 @@ public interface BlackboardMetrics {
     /**
      * 记录 Agent token 消耗
      *
-     * @param agentName  Agent 名称
+     * @param agentName Agent 名称
      * @param tokenCount token 数量
      */
     void recordAgentTokenCount(String agentName, int tokenCount);

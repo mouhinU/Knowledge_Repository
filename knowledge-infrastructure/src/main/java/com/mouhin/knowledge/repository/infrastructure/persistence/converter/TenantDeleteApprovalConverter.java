@@ -13,12 +13,9 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Ten
  */
 public final class TenantDeleteApprovalConverter {
 
-    private TenantDeleteApprovalConverter() {
-    }
+    private TenantDeleteApprovalConverter() {}
 
-    /**
-     * DO → domain entity；{@code null} 输入返回 {@code null}。
-     */
+    /** DO → domain entity；{@code null} 输入返回 {@code null}。 */
     public static TenantDeleteApproval toDomain(TenantDeleteApprovalDO source) {
         if (source == null) {
             return null;
@@ -37,9 +34,7 @@ public final class TenantDeleteApprovalConverter {
         return target;
     }
 
-    /**
-     * domain entity → DO；{@code null} 输入返回 {@code null}。
-     */
+    /** domain entity → DO；{@code null} 输入返回 {@code null}。 */
     public static TenantDeleteApprovalDO toDO(TenantDeleteApproval source) {
         if (source == null) {
             return null;

@@ -2,7 +2,6 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-
 import java.time.Duration;
 
 /**
@@ -20,9 +19,9 @@ public interface BlackboardAuditLog {
     /**
      * 记录 Agent 开始执行
      *
-     * @param sessionId    会话 ID
-     * @param agentName    Agent 名称
-     * @param phase        当前阶段
+     * @param sessionId 会话 ID
+     * @param agentName Agent 名称
+     * @param phase 当前阶段
      * @param inputSummary 输入摘要（如 "检索到 5 条知识片段"）
      */
     void logAgentStart(
@@ -31,12 +30,12 @@ public interface BlackboardAuditLog {
     /**
      * 记录 Agent 执行完成
      *
-     * @param sessionId     会话 ID
-     * @param agentName     Agent 名称
-     * @param phase         当前阶段
-     * @param duration      执行耗时
-     * @param tokenCount    token 消耗（可空，非流式场景可能未知）
-     * @param confidence    置信度（可空）
+     * @param sessionId 会话 ID
+     * @param agentName Agent 名称
+     * @param phase 当前阶段
+     * @param duration 执行耗时
+     * @param tokenCount token 消耗（可空，非流式场景可能未知）
+     * @param confidence 置信度（可空）
      * @param outputSummary 输出摘要（如 "生成 350 字文章草稿"）
      */
     void logAgentComplete(
@@ -53,9 +52,9 @@ public interface BlackboardAuditLog {
      *
      * @param sessionId 会话 ID
      * @param agentName Agent 名称
-     * @param phase     当前阶段
-     * @param duration  执行耗时（到失败点）
-     * @param error     错误信息
+     * @param phase 当前阶段
+     * @param duration 执行耗时（到失败点）
+     * @param error 错误信息
      */
     void logAgentFailed(
             String sessionId,
@@ -68,10 +67,10 @@ public interface BlackboardAuditLog {
      * 记录质量门禁结果
      *
      * @param sessionId 会话 ID
-     * @param gateName  门禁名称
-     * @param phase     当前阶段
-     * @param passed    是否通过
-     * @param reason    判定原因
+     * @param gateName 门禁名称
+     * @param phase 当前阶段
+     * @param passed 是否通过
+     * @param reason 判定原因
      */
     void logQualityGate(
             String sessionId,
@@ -83,11 +82,11 @@ public interface BlackboardAuditLog {
     /**
      * 记录流水线整体完成
      *
-     * @param sessionId         会话 ID
-     * @param totalDuration     总耗时
-     * @param totalTokenCount   总 token 消耗
+     * @param sessionId 会话 ID
+     * @param totalDuration 总耗时
+     * @param totalTokenCount 总 token 消耗
      * @param finalQualityScore 最终质量评分
-     * @param agentCount        参与的 Agent 数量
+     * @param agentCount 参与的 Agent 数量
      */
     void logPipelineComplete(
             String sessionId,

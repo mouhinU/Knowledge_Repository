@@ -23,9 +23,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.saas")
 public class SaasProperties {
 
-    /**
-     * 多租户总开关，默认关闭（单租户语义）。
-     */
+    /** 多租户总开关，默认关闭（单租户语义）。 */
     private boolean enabled = false;
 
     /**

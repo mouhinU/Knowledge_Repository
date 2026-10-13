@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
@@ -12,18 +17,12 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.logical.And;
+import java.util.List;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link MilvusVectorStoreService#storeChunks} 的 metadata 写入契约测试（P2-T2）。
@@ -50,14 +49,10 @@ import static org.mockito.Mockito.*;
 @DisplayName("MilvusVectorStoreService P2-T2 metadata.tenant_id 写入")
 class MilvusVectorStoreServiceTest {
 
-    @Mock
-    private EmbeddingStoreProvider storeProvider;
-    @Mock
-    private EmbeddingStore<TextSegment> embeddingStore;
-    @Mock
-    private EmbeddingModel embeddingModel;
-    @Mock
-    private TenantIdResolver tenantIdResolver;
+    @Mock private EmbeddingStoreProvider storeProvider;
+    @Mock private EmbeddingStore<TextSegment> embeddingStore;
+    @Mock private EmbeddingModel embeddingModel;
+    @Mock private TenantIdResolver tenantIdResolver;
 
     private MilvusVectorStoreService service;
 
@@ -84,14 +79,12 @@ class MilvusVectorStoreServiceTest {
         TenantContext.clear();
     }
 
-    /**
-     * 打桩 embedAll：返回与 batch 等长的 dummy embedding 列表，并把 storeProvider.store() 串起来。
-     */
+    /** 打桩 embedAll：返回与 batch 等长的 dummy embedding 列表，并把 storeProvider.store() 串起来。 */
     private void stubEmbedAndStore(int totalChunks) {
         when(storeProvider.store()).thenReturn(embeddingStore);
         List<Embedding> embeddings = new java.util.ArrayList<>(totalChunks);
         for (int i = 0; i < totalChunks; i++) {
-            embeddings.add(Embedding.from(new float[]{0f, 0f, 0f}));
+            embeddings.add(Embedding.from(new float[] {0f, 0f, 0f}));
         }
         when(embeddingModel.embedAll(anyList())).thenReturn(Response.from(embeddings));
     }
@@ -391,7 +384,7 @@ class MilvusVectorStoreServiceTest {
         @DisplayName("resolver 抛未知租户 → search 立即失败（P1-T8 哨兵），不触达 store")
         void resolverFailurePropagatesInSearch() {
             when(embeddingModel.embed("hello"))
-                    .thenReturn(Response.from(Embedding.from(new float[]{0f})));
+                    .thenReturn(Response.from(Embedding.from(new float[] {0f})));
             when(tenantIdResolver.resolve(anyString()))
                     .thenThrow(new IllegalStateException("Unknown tenant_key: ghost"));
             TenantContext.set("ghost");
@@ -420,7 +413,7 @@ class MilvusVectorStoreServiceTest {
 
         private void stubEmbedAndEmptySearch() {
             when(embeddingModel.embed(anyString()))
-                    .thenReturn(Response.from(Embedding.from(new float[]{0f, 0f, 0f})));
+                    .thenReturn(Response.from(Embedding.from(new float[] {0f, 0f, 0f})));
             when(storeProvider.store()).thenReturn(embeddingStore);
             @SuppressWarnings("unchecked")
             EmbeddingSearchResult<TextSegment> emptyResult = mock(EmbeddingSearchResult.class);

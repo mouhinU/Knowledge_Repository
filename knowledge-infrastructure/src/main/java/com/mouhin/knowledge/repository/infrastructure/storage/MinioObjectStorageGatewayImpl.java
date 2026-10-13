@@ -7,8 +7,6 @@ import com.mouhin.knowledge.repository.domain.util.PathGuard;
 import com.mouhin.knowledge.repository.infrastructure.config.StorageProperties;
 import io.minio.*;
 import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
@@ -16,6 +14,7 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * MinIO 对象存储实现（P5-T1）。

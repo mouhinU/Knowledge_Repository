@@ -5,8 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
 import com.mouhin.knowledge.repository.domain.util.PathGuard;
 import com.mouhin.knowledge.repository.infrastructure.config.StorageProperties;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -15,6 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 本地磁盘对象存储实现（P5-T1）。
@@ -153,16 +152,12 @@ public class LocalObjectStorageGatewayImpl implements ObjectStorageGateway {
                         lastModified));
     }
 
-    /**
-     * 返回文档存储根目录（供重构后的 DocumentIngestionSupport 使用）。
-     */
+    /** 返回文档存储根目录（供重构后的 DocumentIngestionSupport 使用）。 */
     public Path getDocumentRoot() {
         return documentRoot;
     }
 
-    /**
-     * 返回考试配图存储根目录（供重构后的 DocumentImageSupport 使用）。
-     */
+    /** 返回考试配图存储根目录（供重构后的 DocumentImageSupport 使用）。 */
     public Path getExamAssetRoot() {
         return examAssetRoot;
     }
@@ -186,9 +181,7 @@ public class LocalObjectStorageGatewayImpl implements ObjectStorageGateway {
         return Path.of(storageKey).toAbsolutePath().normalize();
     }
 
-    /**
-     * 校验路径是否在允许的根目录之内（文档根 or 配图根）。
-     */
+    /** 校验路径是否在允许的根目录之内（文档根 or 配图根）。 */
     private boolean isWithinAllowedRoots(Path file) {
         Path normalized = file.toAbsolutePath().normalize();
         return normalized.startsWith(documentRoot) || normalized.startsWith(examAssetRoot);

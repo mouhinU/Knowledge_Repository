@@ -14,12 +14,9 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Ten
  */
 public final class TenantConverter {
 
-    private TenantConverter() {
-    }
+    private TenantConverter() {}
 
-    /**
-     * DO → 领域实体；入参为 {@code null} 时返回 {@code null}。
-     */
+    /** DO → 领域实体；入参为 {@code null} 时返回 {@code null}。 */
     public static Tenant toDomain(TenantDO doObj) {
         if (doObj == null) {
             return null;
@@ -40,9 +37,7 @@ public final class TenantConverter {
         return tenant;
     }
 
-    /**
-     * 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。
-     */
+    /** 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。 */
     public static TenantDO toDO(Tenant tenant) {
         if (tenant == null) {
             return null;

@@ -15,7 +15,7 @@ public interface UploadSessionStore {
      * 写入会话元数据
      *
      * @param uploadId 会话 ID
-     * @param session  会话对象
+     * @param session 会话对象
      */
     void put(String uploadId, UploadSessionManager.UploadSession session);
 
@@ -37,7 +37,7 @@ public interface UploadSessionStore {
     /**
      * 追加已收到分片序号
      *
-     * @param uploadId   会话 ID
+     * @param uploadId 会话 ID
      * @param chunkIndex 分片序号（0-based）
      */
     void addReceivedChunk(String uploadId, int chunkIndex);

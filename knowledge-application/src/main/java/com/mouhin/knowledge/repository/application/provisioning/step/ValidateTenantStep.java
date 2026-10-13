@@ -20,14 +20,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ValidateTenantStep implements ProvisioningStep {
 
-    /**
-     * 步骤名常量，落 {@code sys_tenant_provision_step.step_name}，须稳定不可改名。
-     */
+    /** 步骤名常量，落 {@code sys_tenant_provision_step.step_name}，须稳定不可改名。 */
     public static final String STEP_NAME = "VALIDATE_TENANT";
 
-    /**
-     * 排序权重：所有开通步骤最先执行。
-     */
+    /** 排序权重：所有开通步骤最先执行。 */
     public static final int STEP_ORDER = 100;
 
     @Override

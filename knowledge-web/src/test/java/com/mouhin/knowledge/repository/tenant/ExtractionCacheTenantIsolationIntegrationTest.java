@@ -1,11 +1,15 @@
 package com.mouhin.knowledge.repository.tenant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCacheKey;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.infrastructure.config.MyBatisPlusConfig;
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.ExtractionCacheRepositoryImpl;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.*;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +20,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * P4-T3 · 解析缓存跨租户隔离端到端（H2 MODE=MySQL，挂载 {@code TenantLineInnerInterceptor}，无需 Docker）。
@@ -52,12 +51,9 @@ class ExtractionCacheTenantIsolationIntegrationTest {
 
     private static final ExtractionCacheKey KEY =
             new ExtractionCacheKey("b".repeat(32), "VISION", "gpt-4o", "q".repeat(32), "raster");
-    @Autowired
-    private ExtractionCacheRepositoryImpl extractionCacheRepository;
-    @Autowired
-    private TenantIdResolver tenantIdResolver;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private ExtractionCacheRepositoryImpl extractionCacheRepository;
+    @Autowired private TenantIdResolver tenantIdResolver;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
@@ -164,13 +160,10 @@ class ExtractionCacheTenantIsolationIntegrationTest {
                 .containsExactlyInAnyOrder(defaultId, acmeId);
     }
 
-    /**
-     * 最小上下文：DataSource / Flyway / MyBatis-Plus + 租户拦截器 + 租户解析器 + 真实缓存仓储。
-     */
+    /** 最小上下文：DataSource / Flyway / MyBatis-Plus + 租户拦截器 + 租户解析器 + 真实缓存仓储。 */
     @Configuration
     @EnableAutoConfiguration
     @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
     @Import({MyBatisPlusConfig.class, TenantIdResolver.class, ExtractionCacheRepositoryImpl.class})
-    static class TestConfig {
-    }
+    static class TestConfig {}
 }

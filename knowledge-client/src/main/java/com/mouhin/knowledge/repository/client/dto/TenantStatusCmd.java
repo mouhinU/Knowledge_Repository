@@ -18,23 +18,15 @@ import lombok.Setter;
 @Setter
 public class TenantStatusCmd {
 
-    /**
-     * 目标租户业务键。
-     */
+    /** 目标租户业务键。 */
     private String tenantKey;
 
-    /**
-     * 流转原因（可空，写入审计 detail）。
-     */
+    /** 流转原因（可空，写入审计 detail）。 */
     private String reason;
 
-    /**
-     * 操作者标识（来自平台令牌 claim，非请求体）。
-     */
+    /** 操作者标识（来自平台令牌 claim，非请求体）。 */
     private String operatorId;
 
-    /**
-     * 操作者展示名（来自平台令牌 claim，非请求体）。
-     */
+    /** 操作者展示名（来自平台令牌 claim，非请求体）。 */
     private String operatorName;
 }

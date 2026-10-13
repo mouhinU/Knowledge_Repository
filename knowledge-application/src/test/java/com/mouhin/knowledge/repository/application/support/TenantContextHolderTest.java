@@ -1,14 +1,14 @@
 package com.mouhin.knowledge.repository.application.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 /**
  * {@link TenantContextHolder} 单元测试（P1-T2）。
@@ -23,8 +23,7 @@ import static org.mockito.Mockito.when;
 @DisplayName("TenantContextHolder 开关门控 (P1-T2)")
 class TenantContextHolderTest {
 
-    @Mock
-    private SaasProperties saasProperties;
+    @Mock private SaasProperties saasProperties;
 
     private TenantContextHolder holder;
 

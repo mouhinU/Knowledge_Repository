@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.document;
 import com.mouhin.knowledge.repository.application.converter.DocumentConverter;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.stereotype.Component;
 
 /**
  * 全部文档列表查询执行器（app 层用例）

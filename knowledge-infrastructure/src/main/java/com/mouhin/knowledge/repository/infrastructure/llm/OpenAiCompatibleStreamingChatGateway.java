@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OpenAI 兼容端点的流式对话网关实现。
@@ -42,12 +41,12 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
     private final Duration requestTimeout;
 
     /**
-     * @param baseUrl     OpenAI 兼容 base-url（已含 /v1 等前缀）
-     * @param apiKey      访问密钥（ollama 可传占位符）
-     * @param modelName   模型名
+     * @param baseUrl OpenAI 兼容 base-url（已含 /v1 等前缀）
+     * @param apiKey 访问密钥（ollama 可传占位符）
+     * @param modelName 模型名
      * @param temperature 采样温度
-     * @param maxTokens   最大生成 token 数
-     * @param timeout     单次请求超时
+     * @param maxTokens 最大生成 token 数
+     * @param timeout 单次请求超时
      */
     public OpenAiCompatibleStreamingChatGateway(
             String baseUrl,
@@ -83,7 +82,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
 
     private static String readAll(InputStream in) {
         try (BufferedReader reader =
-                     new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
@@ -148,9 +147,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         return output.toString();
     }
 
-    /**
-     * 逐行读取 SSE，解析增量并回调。
-     */
+    /** 逐行读取 SSE，解析增量并回调。 */
     private void consumeStream(
             InputStream body,
             StreamDeltaHandler handler,
@@ -158,7 +155,7 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
             String[] finishReason)
             throws IOException {
         try (BufferedReader reader =
-                     new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
+                new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();

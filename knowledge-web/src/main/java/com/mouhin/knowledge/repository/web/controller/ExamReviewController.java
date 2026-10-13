@@ -8,17 +8,16 @@ import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
 import com.mouhin.knowledge.repository.client.dto.ReviewRequest;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 成绩复核控制器（管理端）
@@ -50,9 +49,7 @@ public class ExamReviewController {
         this.triggerGradingAsyncCmdExe = triggerGradingAsyncCmdExe;
     }
 
-    /**
-     * 查询待 AI 评分的考试列表（SUBMITTED 状态）
-     */
+    /** 查询待 AI 评分的考试列表（SUBMITTED 状态） */
     @GetMapping("/pending-grading")
     public ResponseEntity<Map<String, Object>> listPendingGrading(
             @RequestParam(defaultValue = "20") int limit,
@@ -66,9 +63,7 @@ public class ExamReviewController {
                         "total", total));
     }
 
-    /**
-     * 手动触发单场考试的 AI 评分（同步，向后兼容）
-     */
+    /** 手动触发单场考试的 AI 评分（同步，向后兼容） */
     @PostMapping("/{sessionId}/trigger-grading")
     public ResponseEntity<Map<String, String>> triggerGrading(@PathVariable Long sessionId) {
         try {
@@ -85,7 +80,7 @@ public class ExamReviewController {
      * <p>立即返回 sessionId，实际评分在虚拟线程中执行，每题通过 SSE 通道 {@code streamId} 上报。
      *
      * @param sessionId 考试场次 ID
-     * @param streamId  前端生成的 SSE 通道 ID（与 GET /grading-stream 一致）
+     * @param streamId 前端生成的 SSE 通道 ID（与 GET /grading-stream 一致）
      */
     @PostMapping("/{sessionId}/trigger-grading-async")
     public ResponseEntity<Map<String, Object>> triggerGradingAsync(
@@ -173,9 +168,7 @@ public class ExamReviewController {
         return gradingProgressStore.createEmitter(streamId);
     }
 
-    /**
-     * 包装回调：整场 COMPLETE / FATAL 后递减剩余场次；归零时统一推送 BATCH_COMPLETE 并关闭 SSE。
-     */
+    /** 包装回调：整场 COMPLETE / FATAL 后递减剩余场次；归零时统一推送 BATCH_COMPLETE 并关闭 SSE。 */
     private ExamGradingProgressCallback wrapWithCounter(
             ExamGradingProgressCallback inner,
             AtomicInteger remaining,
@@ -227,9 +220,7 @@ public class ExamReviewController {
         };
     }
 
-    /**
-     * 查询待复核的考试列表
-     */
+    /** 查询待复核的考试列表 */
     @GetMapping("/pending")
     public ResponseEntity<Map<String, Object>> listPending(
             @RequestParam(defaultValue = "20") int limit,
@@ -272,9 +263,7 @@ public class ExamReviewController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * 复核单题
-     */
+    /** 复核单题 */
     @PostMapping("/answer/{answerId}/review")
     public ResponseEntity<Map<String, String>> reviewAnswer(
             @PathVariable Long answerId, @RequestBody ReviewRequest request) {
@@ -290,9 +279,7 @@ public class ExamReviewController {
         }
     }
 
-    /**
-     * 发布成绩
-     */
+    /** 发布成绩 */
     @PostMapping("/{sessionId}/publish")
     public ResponseEntity<Map<String, String>> publish(
             @PathVariable Long sessionId, @RequestParam(defaultValue = "admin") String reviewer) {
@@ -304,9 +291,7 @@ public class ExamReviewController {
         }
     }
 
-    /**
-     * 管理员设置 / 覆盖考试时长
-     */
+    /** 管理员设置 / 覆盖考试时长 */
     @PostMapping("/{sessionKey}/duration")
     public ResponseEntity<Map<String, String>> updateDuration(
             @PathVariable String sessionKey, @RequestBody Map<String, Integer> body) {

@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.event.DocumentCreatedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
@@ -9,22 +14,16 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEn
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * 仅上传命令执行器单测：锁定空文件拒绝、MD5 去重短路、成功链路（UPLOADED 状态落库 + checksum 回写 + 图片抽取容错 + 发布创建事件，不做文本提取）。
@@ -49,8 +48,7 @@ class UploadOnlyCmdExeTest {
                     documentExtractionService,
                     eventPublisher,
                     documentImageSupport);
-    @TempDir
-    Path tmp;
+    @TempDir Path tmp;
 
     private MultipartFile stubFile() {
         MultipartFile file = mock(MultipartFile.class);
@@ -81,16 +79,16 @@ class UploadOnlyCmdExeTest {
         doc.setOwnerId("u-1");
         doc.setDepartmentId("d-1");
         when(support.buildDocument(
-                anyString(),
-                any(),
-                anyString(),
-                anyString(),
-                anyString(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any()))
+                        anyString(),
+                        any(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()))
                 .thenReturn(doc);
         return doc;
     }
@@ -99,30 +97,30 @@ class UploadOnlyCmdExeTest {
     @DisplayName("文件为 null / 空 → 'File must not be empty'，不进入任何 IO")
     void emptyFileRejected() throws IOException {
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                null,
-                                "u-1",
-                                "d-1",
-                                DocumentVisibilityEnum.INTERNAL,
-                                null,
-                                null,
-                                null))
+                        () ->
+                                exe.execute(
+                                        null,
+                                        "u-1",
+                                        "d-1",
+                                        DocumentVisibilityEnum.INTERNAL,
+                                        null,
+                                        null,
+                                        null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("File must not be empty");
         MultipartFile empty = mock(MultipartFile.class);
         when(empty.isEmpty()).thenReturn(true);
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                empty,
-                                "u-1",
-                                "d-1",
-                                DocumentVisibilityEnum.INTERNAL,
-                                null,
-                                null,
-                                null))
+                        () ->
+                                exe.execute(
+                                        empty,
+                                        "u-1",
+                                        "d-1",
+                                        DocumentVisibilityEnum.INTERNAL,
+                                        null,
+                                        null,
+                                        null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("File must not be empty");
         verify(support, never()).saveToTemp(any());
@@ -141,15 +139,15 @@ class UploadOnlyCmdExeTest {
         when(documentGateway.findByFileChecksum("md5-dup")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                file,
-                                "u-1",
-                                "d-1",
-                                DocumentVisibilityEnum.INTERNAL,
-                                null,
-                                null,
-                                null))
+                        () ->
+                                exe.execute(
+                                        file,
+                                        "u-1",
+                                        "d-1",
+                                        DocumentVisibilityEnum.INTERNAL,
+                                        null,
+                                        null,
+                                        null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Duplicate file detected")
                 .hasMessageContaining("dup-key");
@@ -207,15 +205,15 @@ class UploadOnlyCmdExeTest {
                 .thenThrow(new IOException("read fail"));
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                file,
-                                "u-1",
-                                "d-1",
-                                DocumentVisibilityEnum.INTERNAL,
-                                null,
-                                null,
-                                null))
+                        () ->
+                                exe.execute(
+                                        file,
+                                        "u-1",
+                                        "d-1",
+                                        DocumentVisibilityEnum.INTERNAL,
+                                        null,
+                                        null,
+                                        null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Failed to calculate file checksum");
         verify(documentGateway, never()).save(any());

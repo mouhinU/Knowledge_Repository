@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.gateway.*;
@@ -9,21 +13,16 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 出卷支撑组件单测（主干抽样，不穷举 7-Agent 流水线）：锁定同步出题 generateExam 的 LLM 直通与空结果兜底、 generateDistribution
@@ -104,7 +103,7 @@ class ExamGenerationSupportTest {
     @DisplayName("同步出题：检索 → 组装提示词 → 返回 LLM 卷面原文")
     void generateExamReturnsLlmOutput() {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of(new SearchResult("知识点：古诗", "d-1", "教材", 2, 0, 0.9)));
         when(chatModel.chat(any(ChatRequest.class)))
                 .thenReturn(
@@ -121,7 +120,7 @@ class ExamGenerationSupportTest {
     @DisplayName("同步出题：LLM 返回空白 → 兜底失败文案而非抛断（可重试语义）")
     void generateExamBlankLlmFallsBack() {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
         when(chatModel.chat(any(ChatRequest.class)))
                 .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from("   ")).build());
@@ -135,7 +134,7 @@ class ExamGenerationSupportTest {
     @DisplayName("分布方案生成：检索异常吞断降级，knowledgeHint 以 null 继续委托分布 Agent")
     void generateDistributionSwallowsSearchFailure() {
         when(authorizedSearch.searchAuthorized(
-                anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenThrow(new RuntimeException("milvus down"));
         ExamPlan plan = new ExamPlan();
         when(distributionAgent.generate(eq("数学"), eq("MEDIUM"), eq("PRIMARY"), isNull()))
@@ -202,9 +201,7 @@ class ExamGenerationSupportTest {
                 "实际：" + errors.get(0).getErrorMessage());
     }
 
-    /**
-     * 记录进度事件并在终态（COMPLETED / ERROR）放行的测试回调。
-     */
+    /** 记录进度事件并在终态（COMPLETED / ERROR）放行的测试回调。 */
     private static final class Recorder implements BlackboardProgressCallback {
         final List<BlackboardProgressEvent> events =
                 Collections.synchronizedList(new ArrayList<>());

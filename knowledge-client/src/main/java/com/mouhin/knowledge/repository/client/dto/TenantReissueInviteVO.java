@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * 平台端重签邀请视图对象（client 层出参，P3-T7 邀请式设密<b>回访</b>）。
@@ -22,33 +21,21 @@ import java.time.LocalDateTime;
 @Setter
 public class TenantReissueInviteVO {
 
-    /**
-     * 目标租户业务键。
-     */
+    /** 目标租户业务键。 */
     private String tenantKey;
 
-    /**
-     * 目标管理员用户名（租户内唯一，与 tenantKey 一起定位邀请归属）。
-     */
+    /** 目标管理员用户名（租户内唯一，与 tenantKey 一起定位邀请归属）。 */
     private String username;
 
-    /**
-     * raw invite code（Base64URL 无填充，43 字符）；<b>仅本次响应可见</b>。
-     */
+    /** raw invite code（Base64URL 无填充，43 字符）；<b>仅本次响应可见</b>。 */
     private String code;
 
-    /**
-     * 前端设密页相对 URL：{@code /set-password.html?code=<code>}。
-     */
+    /** 前端设密页相对 URL：{@code /set-password.html?code=<code>}。 */
     private String url;
 
-    /**
-     * 邀请过期时间（签发时刻 + TTL）。
-     */
+    /** 邀请过期时间（签发时刻 + TTL）。 */
     private LocalDateTime expiresAt;
 
-    /**
-     * 本次签发吊销的旧 PENDING 邀请数（通常为 1，首次补签为 0）。供运维核对是否重签成功。
-     */
+    /** 本次签发吊销的旧 PENDING 邀请数（通常为 1，首次补签为 0）。供运维核对是否重签成功。 */
     private int revokedPrevious;
 }

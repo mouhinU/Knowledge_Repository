@@ -8,5 +8,4 @@ package com.mouhin.knowledge.repository.client.dto;
  * @author mouhinU
  * @date 2026-09-17
  */
-public record PageDetail(int pageNumber, int charCount, String preview) {
-}
+public record PageDetail(int pageNumber, int charCount, String preview) {}

@@ -12,19 +12,18 @@ import com.mouhin.knowledge.repository.infrastructure.export.ExamWordExporter;
 import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * AI 试卷生成控制器
@@ -35,8 +34,8 @@ import java.util.concurrent.RejectedExecutionException;
  *   <li>异步模式（SSE）：generate-stream + progress → 7 步 Agent 流水线，实时推送进度
  *   <li>同步模式：generate / export-word → 单次 LLM 调用，用于 Word 导出
  * </ul>
- * <p>
- * 生成 / 方案 / 校验等含领域类型的路径由 app 层生成执行器承载；出卷历史读写走 client 契约。
+ *
+ * <p>生成 / 方案 / 校验等含领域类型的路径由 app 层生成执行器承载；出卷历史读写走 client 契约。
  *
  * @author mouhinU
  * @date 2026-09-13
@@ -82,16 +81,12 @@ public class ExamController {
         this.progressStore = progressStore;
     }
 
-    /**
-     * 从请求解析调用方权限（userId 缺省 {@code anonymous}）；收敛各端点重复的构造骨架（java:DuplicatedBlocks）。
-     */
+    /** 从请求解析调用方权限（userId 缺省 {@code anonymous}）；收敛各端点重复的构造骨架（java:DuplicatedBlocks）。 */
     private static Permission resolvePermission(HttpServletRequest request) {
         return AdminPrincipalSupport.toPermission(request);
     }
 
-    /**
-     * 题型分布方案是否含有效题型。
-     */
+    /** 题型分布方案是否含有效题型。 */
     private static boolean hasTypes(ExamPlan plan) {
         return plan != null && plan.getTypes() != null && !plan.getTypes().isEmpty();
     }
@@ -105,9 +100,7 @@ public class ExamController {
         return ResponseEntity.badRequest().body(Map.of("error", message));
     }
 
-    /**
-     * {@code Integer} 计数缺省 0。
-     */
+    /** {@code Integer} 计数缺省 0。 */
     private static int nz(Integer value) {
         return value != null ? value : 0;
     }
@@ -224,9 +217,7 @@ public class ExamController {
         return progressStore.createEmitter(sessionId);
     }
 
-    /**
-     * 生成试卷（同步，用于 Word 导出）
-     */
+    /** 生成试卷（同步，用于 Word 导出） */
     @PostMapping("/exam/generate")
     public ResponseEntity<Map<String, String>> generateExam(
             @RequestBody ExamGenerationRequest request, HttpServletRequest httpRequest) {
@@ -255,9 +246,7 @@ public class ExamController {
         return ResponseEntity.ok(Map.of("examPaper", examPaper));
     }
 
-    /**
-     * 导出试卷为 Word 文档
-     */
+    /** 导出试卷为 Word 文档 */
     @PostMapping("/exam/export-word")
     public void exportExamWord(
             @RequestBody ExamGenerationRequest request,
@@ -398,9 +387,7 @@ public class ExamController {
         return ResponseEntity.ok(Map.of("sessionId", sessionId));
     }
 
-    /**
-     * 构建题型配置描述（传递给 Agent）
-     */
+    /** 构建题型配置描述（传递给 Agent） */
     private String buildQuestionConfig(ExamGenerationRequest request) {
         StringBuilder sb = new StringBuilder();
         if (request.getSingleChoiceCount() != null && request.getSingleChoiceCount() > 0) {
@@ -425,9 +412,7 @@ public class ExamController {
         return result.endsWith("、") ? result.substring(0, result.length() - 1) : result;
     }
 
-    /**
-     * 解析前端回传的题型分布方案 JSON。解析失败或为空时返回 null（走旧逻辑兜底）。
-     */
+    /** 解析前端回传的题型分布方案 JSON。解析失败或为空时返回 null（走旧逻辑兜底）。 */
     private ExamPlan parsePlan(String distributionJson) {
         if (distributionJson == null || distributionJson.isBlank()) {
             return null;
@@ -440,9 +425,7 @@ public class ExamController {
         }
     }
 
-    /**
-     * 由已确认方案构建题型配置描述（传递给 Agent）。
-     */
+    /** 由已确认方案构建题型配置描述（传递给 Agent）。 */
     private String buildQuestionConfigFromPlan(ExamPlan plan) {
         StringBuilder sb = new StringBuilder();
         for (com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan t :
@@ -457,7 +440,7 @@ public class ExamController {
                     t.getLabel() != null && !t.getLabel().isBlank()
                             ? t.getLabel()
                             : com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine
-                            .chineseFromKey(t.getKey());
+                                    .chineseFromKey(t.getKey());
             sb.append(label).append(" ").append(t.getCount()).append(" 道");
         }
         return sb.toString();
@@ -531,7 +514,7 @@ public class ExamController {
      * 导出历史试卷为 Word 文档
      *
      * @param sessionId 会话 ID
-     * @param response  HTTP 响应
+     * @param response HTTP 响应
      */
     @PostMapping("/exam/history/{sessionId}/export-word")
     public void exportHistoryWord(@PathVariable String sessionId, HttpServletResponse response) {

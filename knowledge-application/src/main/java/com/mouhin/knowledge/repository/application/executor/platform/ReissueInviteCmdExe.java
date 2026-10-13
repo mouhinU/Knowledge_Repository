@@ -13,13 +13,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 平台端邀请重签执行器（app 层用例，事务边界，P3-T7 邀请式设密<b>回访</b>）。
@@ -54,9 +53,7 @@ import java.util.Optional;
 @Slf4j
 public class ReissueInviteCmdExe {
 
-    /**
-     * 审计动作名。
-     */
+    /** 审计动作名。 */
     public static final String ACTION = "TENANT_INVITE_REISSUE";
 
     private final TenantGateway tenantGateway;

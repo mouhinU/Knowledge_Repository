@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.tenant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
@@ -10,11 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * {@link TenantIdResolver} 单元测试（P1-T7）。
@@ -29,8 +29,7 @@ import static org.mockito.Mockito.*;
 @DisplayName("TenantIdResolver 缓存/异常语义")
 class TenantIdResolverTest {
 
-    @Mock
-    private TenantMapper tenantMapper;
+    @Mock private TenantMapper tenantMapper;
 
     private TenantIdResolver resolver;
 

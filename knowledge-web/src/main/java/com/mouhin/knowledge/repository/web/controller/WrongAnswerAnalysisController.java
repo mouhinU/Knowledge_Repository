@@ -7,6 +7,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgre
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import jakarta.annotation.PreDestroy;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -14,11 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 错题分析流式控制器
@@ -61,9 +60,7 @@ public class WrongAnswerAnalysisController {
         }
     }
 
-    /**
-     * SSE 进度流（前端先建立连接，再 POST 触发分析）
-     */
+    /** SSE 进度流（前端先建立连接，再 POST 触发分析） */
     @GetMapping(value = "/progress/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter getProgress(@PathVariable String sessionId) {
         return progressStore.createEmitter(sessionId);

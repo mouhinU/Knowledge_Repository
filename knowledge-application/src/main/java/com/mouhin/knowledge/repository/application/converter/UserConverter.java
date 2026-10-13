@@ -14,8 +14,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.User;
  */
 public final class UserConverter {
 
-    private UserConverter() {
-    }
+    private UserConverter() {}
 
     public static UserVO toVO(User user) {
         UserVO vo = new UserVO();

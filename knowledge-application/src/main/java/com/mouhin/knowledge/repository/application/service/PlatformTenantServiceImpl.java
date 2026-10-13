@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.application.service;
 import com.mouhin.knowledge.repository.application.executor.platform.*;
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
 import com.mouhin.knowledge.repository.client.dto.*;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 /**
  * 平台端租户生命周期应用服务实现（app 层，仅分发到 Executor，COLA 红线 #8，P3-T1）。

@@ -26,61 +26,39 @@ import java.util.Objects;
  */
 public class UserInvite {
 
-    /**
-     * 状态：待使用。
-     */
+    /** 状态：待使用。 */
     public static final String STATUS_PENDING = "PENDING";
 
-    /**
-     * 状态：已被设密消费。
-     */
+    /** 状态：已被设密消费。 */
     public static final String STATUS_USED = "USED";
 
-    /**
-     * 状态：已过期（惰性判定，不主动写库）。
-     */
+    /** 状态：已过期（惰性判定，不主动写库）。 */
     public static final String STATUS_EXPIRED = "EXPIRED";
 
-    /**
-     * 状态：已吊销（重复签发 / 运维主动收回）。
-     */
+    /** 状态：已吊销（重复签发 / 运维主动收回）。 */
     public static final String STATUS_REVOKED = "REVOKED";
 
     private Long inviteId;
 
-    /**
-     * 被邀请加入的租户 id（业务列，与 sys_tenant_provision_step 同性质）。
-     */
+    /** 被邀请加入的租户 id（业务列，与 sys_tenant_provision_step 同性质）。 */
     private Long tenantId;
 
-    /**
-     * 目标 sys_user.id。
-     */
+    /** 目标 sys_user.id。 */
     private Long userId;
 
-    /**
-     * SHA-256(raw code) 的 hex 字符串（64 字符）；raw code 不入库。
-     */
+    /** SHA-256(raw code) 的 hex 字符串（64 字符）；raw code 不入库。 */
     private String inviteCodeHash;
 
-    /**
-     * 生命周期状态，取值见 {@code STATUS_*} 常量。
-     */
+    /** 生命周期状态，取值见 {@code STATUS_*} 常量。 */
     private String status;
 
-    /**
-     * 过期时间（默认签发 +72h）。
-     */
+    /** 过期时间（默认签发 +72h）。 */
     private LocalDateTime expiresAt;
 
-    /**
-     * 消费时间（{@link #markUsed} 落值）。
-     */
+    /** 消费时间（{@link #markUsed} 落值）。 */
     private LocalDateTime usedAt;
 
-    /**
-     * 吊销时间（{@link #markRevoked} 落值）。
-     */
+    /** 吊销时间（{@link #markRevoked} 落值）。 */
     private LocalDateTime revokedAt;
 
     private LocalDateTime createTime;
@@ -105,9 +83,7 @@ public class UserInvite {
         return now.isBefore(expiresAt);
     }
 
-    /**
-     * 是否已过期（仅按时间判定，不看状态）。
-     */
+    /** 是否已过期（仅按时间判定，不看状态）。 */
     public boolean isExpired(LocalDateTime now) {
         return expiresAt != null && !now.isBefore(expiresAt);
     }
@@ -238,9 +214,7 @@ public class UserInvite {
         return Objects.hashCode(inviteId);
     }
 
-    /**
-     * 不含 inviteCodeHash，避免误落日志。
-     */
+    /** 不含 inviteCodeHash，避免误落日志。 */
     @Override
     public String toString() {
         return "UserInvite{inviteId="

@@ -5,12 +5,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandid
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.xslf.usermodel.XMLSlideShow;
-import org.apache.poi.xslf.usermodel.XSLFSlide;
-import org.apache.poi.xslf.usermodel.XSLFTextShape;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -18,6 +12,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFTextShape;
+import org.springframework.stereotype.Component;
 
 /**
  * PowerPoint 解析策略（PPTX / PPT）。
@@ -31,9 +30,7 @@ import java.util.Set;
 @Slf4j
 public class PptxExtractionStrategy implements ContentExtractor {
 
-    /**
-     * 本策略命中的 MIME 类型。
-     */
+    /** 本策略命中的 MIME 类型。 */
     private static final Set<String> SUPPORTED_MIME_TYPES =
             Set.of(
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -58,7 +55,7 @@ public class PptxExtractionStrategy implements ContentExtractor {
     public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
         Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath);
-             XMLSlideShow slideShow = new XMLSlideShow(is)) {
+                XMLSlideShow slideShow = new XMLSlideShow(is)) {
 
             List<XSLFSlide> slides = slideShow.getSlides();
             List<String> slideTexts = new ArrayList<>(slides.size());

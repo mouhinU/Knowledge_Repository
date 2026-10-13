@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.client.dto.ChunkDetail;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.PageDetail;
@@ -13,6 +17,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,17 +30,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * 文档摄入共享支撑单测：锁定分块策略解析回退（无效值 → FIXED_SIZE）、处理流水线的状态机与事件发布 （UPLOADED→PROCESSING→INDEXED，空分块 / 异常回退
@@ -50,8 +49,7 @@ class DocumentIngestionSupportTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
 
-    @TempDir
-    Path storageDir;
+    @TempDir Path storageDir;
 
     private DocumentIngestionSupport support;
 
@@ -232,12 +230,12 @@ class DocumentIngestionSupportTest {
         Files.write(source, "x".getBytes(StandardCharsets.UTF_8));
         try {
             String[] malicious = {
-                    "foo.pdf/../../etc/passwd",
-                    "evil.pdf\\..\\..\\windows\\win.ini",
-                    "with.nul\0txt",
-                    "/abs/path/file.bin",
-                    "noextension",
-                    "shell.pdf$(rm -rf /)",
+                "foo.pdf/../../etc/passwd",
+                "evil.pdf\\..\\..\\windows\\win.ini",
+                "with.nul\0txt",
+                "/abs/path/file.bin",
+                "noextension",
+                "shell.pdf$(rm -rf /)",
             };
             for (String originalName : malicious) {
                 String safeKey =

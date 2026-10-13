@@ -1,19 +1,18 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DepartmentDO;
-import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.model.entity.Department;
+import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DepartmentDO;
+import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * {@link DepartmentGatewayImpl} 契约单测：锁定转换、父链上溯与空/缺失分支。

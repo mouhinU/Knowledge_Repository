@@ -23,14 +23,10 @@ import org.springframework.context.annotation.Lazy;
 @Slf4j
 public class MilvusConfig {
 
-    /**
-     * 建连失败最大重试次数。
-     */
+    /** 建连失败最大重试次数。 */
     private static final int MAX_CONNECT_ATTEMPTS = 5;
 
-    /**
-     * 重试基础退避（毫秒），第 n 次等待 n * BASE。
-     */
+    /** 重试基础退避（毫秒），第 n 次等待 n * BASE。 */
     private static final long RETRY_BACKOFF_BASE_MS = 2000L;
 
     @Value("${knowledge.milvus.host:localhost}")

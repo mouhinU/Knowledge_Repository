@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 /**
  * 管理端当前登录者身份（由令牌校验还原，供 /me 与过滤器使用）。
@@ -24,23 +23,16 @@ public class AdminPrincipalDTO {
     private String username;
     private Boolean admin;
 
-    /**
-     * 所属部门，由令牌校验回库读取，供下游按部门作用域检索使用；不再信任请求体传入。
-     */
+    /** 所属部门，由令牌校验回库读取，供下游按部门作用域检索使用；不再信任请求体传入。 */
     private String departmentId;
 
-    /**
-     * 用户角色 key 列表（P0-T2）；{@code null} 归一为空列表。
-     */
+    /** 用户角色 key 列表（P0-T2）；{@code null} 归一为空列表。 */
     private List<String> roles;
 
-    /**
-     * 所属租户 key（P1-T8）；{@code null} 表示签发端未携带或未升级，由下游按 default 处理。
-     */
+    /** 所属租户 key（P1-T8）；{@code null} 表示签发端未携带或未升级，由下游按 default 处理。 */
     private String tenantKey;
 
-    public AdminPrincipalDTO() {
-    }
+    public AdminPrincipalDTO() {}
 
     public AdminPrincipalDTO(String userKey, String username, Boolean admin) {
         this.userKey = userKey;
@@ -64,9 +56,7 @@ public class AdminPrincipalDTO {
         this.roles = roles == null ? List.of() : List.copyOf(roles);
     }
 
-    /**
-     * P1-T8 起主用途：附带 tenantKey，供 AdminTokenAuthFilter 落到 request attr。
-     */
+    /** P1-T8 起主用途：附带 tenantKey，供 AdminTokenAuthFilter 落到 request attr。 */
     public AdminPrincipalDTO(
             String userKey,
             String username,

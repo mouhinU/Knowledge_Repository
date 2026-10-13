@@ -5,9 +5,8 @@ import com.mouhin.knowledge.repository.client.api.UserServiceI;
 import com.mouhin.knowledge.repository.client.dto.UserCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserVO;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 /**
  * 用户管理应用服务实现（app 层，仅分发到 Executor）

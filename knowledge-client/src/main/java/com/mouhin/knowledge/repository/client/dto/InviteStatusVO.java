@@ -1,9 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 /**
  * 邀请码状态视图对象（client 层出参，P3-T7 邀请式设密<b>回访</b>）。
@@ -31,50 +30,37 @@ import java.time.LocalDateTime;
 @Setter
 public class InviteStatusVO {
 
-    /**
-     * raw code 未在任何 hash 行命中（无效 / 拼错 / 库中不存在）。
-     */
+    /** raw code 未在任何 hash 行命中（无效 / 拼错 / 库中不存在）。 */
     public static final String STATUS_UNKNOWN = "UNKNOWN";
-    /**
-     * raw code 命中且邀请处于 {@code PENDING} 未过期，可继续设密。
-     */
+
+    /** raw code 命中且邀请处于 {@code PENDING} 未过期，可继续设密。 */
     public static final String STATUS_PENDING = "PENDING";
-    /**
-     * raw code 命中但邀请已被前次设密消费（{@code USED}）。
-     */
+
+    /** raw code 命中但邀请已被前次设密消费（{@code USED}）。 */
     public static final String STATUS_USED = "USED";
-    /**
-     * raw code 命中但邀请已过期（{@code now >= expiresAt}，数据库列可能仍为 PENDING）。
-     */
+
+    /** raw code 命中但邀请已过期（{@code now >= expiresAt}，数据库列可能仍为 PENDING）。 */
     public static final String STATUS_EXPIRED = "EXPIRED";
-    /**
-     * raw code 命中但邀请已被平台运维吊销或重签覆盖（{@code REVOKED}）。
-     */
+
+    /** raw code 命中但邀请已被平台运维吊销或重签覆盖（{@code REVOKED}）。 */
     public static final String STATUS_REVOKED = "REVOKED";
-    /**
-     * 邀请码语义状态；取值见本类四个 {@code STATUS_*} 常量。
-     */
+
+    /** 邀请码语义状态；取值见本类四个 {@code STATUS_*} 常量。 */
     private String status;
-    /**
-     * 邀请过期时间；仅 {@code STATUS_PENDING} 场景非空，其它态为 {@code null} 防枚举。
-     */
+
+    /** 邀请过期时间；仅 {@code STATUS_PENDING} 场景非空，其它态为 {@code null} 防枚举。 */
     private LocalDateTime expiresAt;
-    /**
-     * 目标租户业务键脱敏（前 3 字符 + {@code …}）；仅命中场景非空。
-     */
+
+    /** 目标租户业务键脱敏（前 3 字符 + {@code …}）；仅命中场景非空。 */
     private String tenantKeyHint;
-    /**
-     * 目标账号用户名脱敏（首字符 + {@code ***}）；仅命中场景非空。
-     */
+
+    /** 目标账号用户名脱敏（首字符 + {@code ***}）；仅命中场景非空。 */
     private String usernameHint;
-    /**
-     * 面向用户的建议性提示文案（如"请使用新密码登录"/"链接已过期，请联系平台运维重新申请"）。
-     */
+
+    /** 面向用户的建议性提示文案（如"请使用新密码登录"/"链接已过期，请联系平台运维重新申请"）。 */
     private String hint;
 
-    /**
-     * 未命中态工厂：仅返回 status 与通用 hint，不携带任何可被枚举的字段。
-     */
+    /** 未命中态工厂：仅返回 status 与通用 hint，不携带任何可被枚举的字段。 */
     public static InviteStatusVO unknown() {
         InviteStatusVO vo = new InviteStatusVO();
         vo.setStatus(STATUS_UNKNOWN);

@@ -24,24 +24,16 @@ import com.mouhin.knowledge.repository.client.dto.*;
  */
 public interface AdminAuthServiceI {
 
-    /**
-     * 用户名密码登录，签发访问令牌。
-     */
+    /** 用户名密码登录，签发访问令牌。 */
     SingleResponse<AdminLoginResultDTO> login(AdminLoginCmd cmd);
 
-    /**
-     * 退出登录。JWT 无状态，服务端仅记录审计、令牌由前端丢弃。
-     */
+    /** 退出登录。JWT 无状态，服务端仅记录审计、令牌由前端丢弃。 */
     Response logout(String token);
 
-    /**
-     * 校验令牌并还原当前登录者身份（签名 / 过期 / 账号激活态三重判定）。
-     */
+    /** 校验令牌并还原当前登录者身份（签名 / 过期 / 账号激活态三重判定）。 */
     SingleResponse<AdminPrincipalDTO> validateToken(String token);
 
-    /**
-     * 自助修改密码：校验旧密码后设置新密码。
-     */
+    /** 自助修改密码：校验旧密码后设置新密码。 */
     Response changePassword(AdminChangePasswordCmd cmd);
 
     /**

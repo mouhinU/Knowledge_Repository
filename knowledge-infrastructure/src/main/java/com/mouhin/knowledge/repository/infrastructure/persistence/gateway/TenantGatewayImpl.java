@@ -6,12 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.TenantConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 /**
  * 租户仓储实现（infrastructure 层，P3-T1 平台端生命周期管理的持久化落地）。

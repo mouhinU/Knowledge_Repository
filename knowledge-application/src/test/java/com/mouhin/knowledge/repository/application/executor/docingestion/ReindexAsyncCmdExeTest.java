@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
@@ -10,21 +13,17 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 异步重新入库执行器单测（{@link ReindexAsyncCmdExe}）。
@@ -64,12 +63,11 @@ class ReindexAsyncCmdExeTest {
                     documentImageSupport,
                     eventPublisher,
                     transactionTemplate);
-    @TempDir
-    Path tmp;
+    @TempDir Path tmp;
 
     private Document stubDocument(DocumentStatusEnum status) throws IOException {
         Path file = tmp.resolve("stored.pdf");
-        Files.write(file, new byte[]{1, 2, 3});
+        Files.write(file, new byte[] {1, 2, 3});
         Document doc = new Document();
         doc.setId(99L);
         doc.setDocumentKey(KEY);
@@ -79,11 +77,11 @@ class ReindexAsyncCmdExeTest {
         when(documentGateway.findByDocumentKey(KEY)).thenReturn(Optional.of(doc));
         // 让短事务真正执行清理闭包
         doAnswer(
-                inv -> {
-                    Consumer<?> consumer = inv.getArgument(0);
-                    consumer.accept(null);
-                    return null;
-                })
+                        inv -> {
+                            Consumer<?> consumer = inv.getArgument(0);
+                            consumer.accept(null);
+                            return null;
+                        })
                 .when(transactionTemplate)
                 .executeWithoutResult(any());
         return doc;

@@ -3,14 +3,13 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 文本提取结果缓存（app 层，跨用例共享状态）
@@ -42,9 +41,7 @@ public class ExtractionCacheHolder {
         cache.remove(documentKey);
     }
 
-    /**
-     * 获取缓存的提取结果，若缓存未命中则从存储文件重新提取。
-     */
+    /** 获取缓存的提取结果，若缓存未命中则从存储文件重新提取。 */
     public ExtractionResult getOrReextract(Document document) {
         ExtractionResult cached = cache.get(document.getDocumentKey());
         if (cached != null) {

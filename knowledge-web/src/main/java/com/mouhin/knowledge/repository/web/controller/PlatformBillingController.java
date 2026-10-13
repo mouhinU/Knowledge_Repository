@@ -7,13 +7,6 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantPlanLimit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDate;
@@ -23,6 +16,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 平台端计费数据导出控制器（adapter 层，P6-T4）。
@@ -77,9 +76,7 @@ public class PlatformBillingController {
         return YearMonth.parse(value.trim(), YEAR_MONTH_FMT);
     }
 
-    /**
-     * 简易 JSON 序列化（避免引入额外依赖，v0.1 字段均为字符串或长整型，无嵌套结构）。
-     */
+    /** 简易 JSON 序列化（避免引入额外依赖，v0.1 字段均为字符串或长整型，无嵌套结构）。 */
     private static String mapToJson(Map<String, Object> map) {
         StringBuilder sb = new StringBuilder("{");
         int idx = 0;
@@ -105,8 +102,8 @@ public class PlatformBillingController {
      *
      * <p>按租户、周期、指标三维聚合，输出 CSV 或 JSON。
      *
-     * @param from   起始月份（yyyy-MM，可选，默认当月）
-     * @param to     结束月份（yyyy-MM，可选，默认当月）
+     * @param from 起始月份（yyyy-MM，可选，默认当月）
+     * @param to 结束月份（yyyy-MM，可选，默认当月）
      * @param tenant 租户键（可选，不传则遍历全部租户）
      * @param format 输出格式（csv / json，默认 csv）
      */
@@ -116,7 +113,7 @@ public class PlatformBillingController {
             @RequestParam(value = PARAM_TO, required = false) String to,
             @RequestParam(value = PARAM_TENANT, required = false) String tenant,
             @RequestParam(value = PARAM_FORMAT, required = false, defaultValue = FORMAT_CSV)
-            String format,
+                    String format,
             HttpServletResponse response)
             throws IOException {
 
@@ -211,10 +208,7 @@ public class PlatformBillingController {
         writer.flush();
     }
 
-    /**
-     * 计费导出行数据（内部 record，不越过 adapter 层）。
-     */
+    /** 计费导出行数据（内部 record，不越过 adapter 层）。 */
     private record BillingRow(
-            String tenantKey, String period, String metric, long quota, long currentUsage) {
-    }
+            String tenantKey, String period, String metric, long quota, long currentUsage) {}
 }

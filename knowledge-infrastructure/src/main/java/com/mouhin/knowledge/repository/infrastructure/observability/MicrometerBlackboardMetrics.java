@@ -3,9 +3,8 @@ package com.mouhin.knowledge.repository.infrastructure.observability;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
+import org.springframework.stereotype.Component;
 
 /**
  * 黑板 Agent 流水线可观测埋点（Phase R2）。
@@ -47,9 +46,7 @@ public class MicrometerBlackboardMetrics implements BlackboardMetrics {
 
     private final MeterRegistry registry;
 
-    /**
-     * 最近一次流水线质量评分（供 Gauge 读取）
-     */
+    /** 最近一次流水线质量评分（供 Gauge 读取） */
     private volatile double lastQualityScore = 0.0;
 
     public MicrometerBlackboardMetrics(MeterRegistry registry) {

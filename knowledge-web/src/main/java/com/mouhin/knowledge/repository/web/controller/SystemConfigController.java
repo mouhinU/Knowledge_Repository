@@ -3,11 +3,10 @@ package com.mouhin.knowledge.repository.web.controller;
 import com.mouhin.knowledge.repository.client.api.SystemConfigServiceI;
 import com.mouhin.knowledge.repository.client.dto.SystemConfigDTO;
 import com.mouhin.knowledge.repository.client.dto.SystemStatusVO;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 系统配置控制器（adapter 层）
@@ -25,25 +24,19 @@ public class SystemConfigController {
         this.systemConfigService = systemConfigService;
     }
 
-    /**
-     * 获取系统状态概览（Embedding 模型、Milvus 连接、知识库统计）
-     */
+    /** 获取系统状态概览（Embedding 模型、Milvus 连接、知识库统计） */
     @GetMapping("/status")
     public ResponseEntity<SystemStatusVO> getStatus() {
         return ResponseEntity.ok(systemConfigService.getSystemStatus());
     }
 
-    /**
-     * 查询全部系统配置（特性开关 + 运行时参数）
-     */
+    /** 查询全部系统配置（特性开关 + 运行时参数） */
     @GetMapping("/configs")
     public ResponseEntity<List<SystemConfigDTO>> listConfigs() {
         return ResponseEntity.ok(systemConfigService.listConfigs());
     }
 
-    /**
-     * 更新单个配置值
-     */
+    /** 更新单个配置值 */
     @PutMapping("/configs")
     public ResponseEntity<Void> updateConfig(@RequestBody Map<String, String> body) {
         String configKey = body.get("configKey");

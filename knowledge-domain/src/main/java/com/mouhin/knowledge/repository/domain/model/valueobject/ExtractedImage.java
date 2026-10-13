@@ -12,10 +12,10 @@ import java.util.Objects;
  * <p>java:S6218：record 默认 equals/hashCode/toString 对数组字段按引用比较，会把内容相同的两张图误判为不等；此处显式覆写为按 Arrays 语义 比较
  * {@code bytes}， 且 toString 只报字节长度避免原始数据泄漏到日志。
  *
- * @param bytes     图片二进制内容
- * @param mimeType  MIME 类型（如 image/png、image/jpeg）
- * @param width     像素宽
- * @param height    像素高
+ * @param bytes 图片二进制内容
+ * @param mimeType MIME 类型（如 image/png、image/jpeg）
+ * @param width 像素宽
+ * @param height 像素高
  * @param pageOrSeq 来源页码 / 工作表序号 / 幻灯片序号（1 起始），无法定位时可为 null
  * @param seqOnPage 同一页内的图片序号（0 起始），用于稳定排序
  * @author mouhinU

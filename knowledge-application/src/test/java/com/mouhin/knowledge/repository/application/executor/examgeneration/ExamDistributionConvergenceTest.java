@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * 分布方案评估收敛逻辑单测。
@@ -33,9 +32,7 @@ class ExamDistributionConvergenceTest {
         return plan;
     }
 
-    /**
-     * 通过反射调用 private static extractFailingDimensions
-     */
+    /** 通过反射调用 private static extractFailingDimensions */
     @SuppressWarnings("unchecked")
     private static List<String> invokeExtractFailing(ExamPlan plan) throws Exception {
         Method m =
@@ -45,9 +42,7 @@ class ExamDistributionConvergenceTest {
         return (List<String>) m.invoke(null, plan);
     }
 
-    /**
-     * 通过反射调用 private static hasEvaluationSuggestions
-     */
+    /** 通过反射调用 private static hasEvaluationSuggestions */
     private static boolean invokeHasSuggestions(ExamPlan plan) throws Exception {
         Method m =
                 ExamGenerationSupport.class.getDeclaredMethod(

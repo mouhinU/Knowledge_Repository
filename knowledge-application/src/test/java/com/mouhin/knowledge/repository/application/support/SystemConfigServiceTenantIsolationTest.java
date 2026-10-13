@@ -1,17 +1,16 @@
 package com.mouhin.knowledge.repository.application.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
-import org.junit.jupiter.api.*;
-
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.*;
 
 /**
  * {@link SystemConfigService} 租户缓存隔离单测（P4-T1 · {@link
@@ -40,9 +39,7 @@ class SystemConfigServiceTenantIsolationTest {
     private SystemConfigGateway gateway;
     private SystemConfigService service;
 
-    /**
-     * 桩后端：租户 → 业务配置值。缺省租户未播种 → 走内置默认。
-     */
+    /** 桩后端：租户 → 业务配置值。缺省租户未播种 → 走内置默认。 */
     private java.util.Map<String, String> backend;
 
     private static SystemConfig config(String tenant, String key, String value) {

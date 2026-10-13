@@ -8,13 +8,12 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.converter.Syst
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.SystemConfigDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.SystemConfigMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * 系统配置网关实现（基础设施层持久化）。
@@ -36,22 +35,16 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
 
     private static final Logger log = LoggerFactory.getLogger(SystemConfigGatewayImpl.class);
 
-    /**
-     * 拷贝 SQL：SELECT 源租户全部行的业务列，供 {@link #copyAllFromTenantToTenant} 逐行 INSERT 到目标租户。
-     */
+    /** 拷贝 SQL：SELECT 源租户全部行的业务列，供 {@link #copyAllFromTenantToTenant} 逐行 INSERT 到目标租户。 */
     private static final String SQL_SELECT_BY_TENANT =
             "SELECT config_key, config_value, value_type, description, category, editable "
                     + "FROM sys_config WHERE tenant_id = ?";
 
-    /**
-     * 目标租户是否已有同 config_key 行的存在性检查 SQL。
-     */
+    /** 目标租户是否已有同 config_key 行的存在性检查 SQL。 */
     private static final String SQL_EXISTS_IN_TENANT =
             "SELECT COUNT(1) FROM sys_config WHERE tenant_id = ? AND config_key = ?";
 
-    /**
-     * 向目标租户 INSERT 一行配置的 SQL（create_time / update_time 走 DB DEFAULT）。
-     */
+    /** 向目标租户 INSERT 一行配置的 SQL（create_time / update_time 走 DB DEFAULT）。 */
     private static final String SQL_INSERT_INTO_TENANT =
             "INSERT INTO sys_config (tenant_id, config_key, config_value, value_type, description, category, editable) "
                     + "VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -204,12 +197,12 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
     /**
      * 拷贝操作的中间行结构；只承载 SELECT 出的业务列，不带 id / tenant_id / 时间戳（由 DB DEFAULT / INSERT 语句填）。
      *
-     * @param configKey   配置键
+     * @param configKey 配置键
      * @param configValue 配置值
-     * @param valueType   值类型
+     * @param valueType 值类型
      * @param description 说明
-     * @param category    分组
-     * @param editable    是否可编辑
+     * @param category 分组
+     * @param editable 是否可编辑
      */
     private record ConfigRow(
             String configKey,
@@ -217,6 +210,5 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
             String valueType,
             String description,
             String category,
-            boolean editable) {
-    }
+            boolean editable) {}
 }

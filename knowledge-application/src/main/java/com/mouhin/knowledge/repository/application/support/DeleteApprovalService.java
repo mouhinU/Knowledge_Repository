@@ -2,11 +2,6 @@ package com.mouhin.knowledge.repository.application.support;
 
 import com.mouhin.knowledge.repository.domain.gateway.TenantDeleteApprovalGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeleteApproval;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -14,6 +9,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * 租户删除审批令牌服务（P3-T5，app/support 层，S-4=方案 A 双人复核载体）。
@@ -37,34 +36,27 @@ import java.util.Optional;
 @Component
 public class DeleteApprovalService {
 
-    /**
-     * 默认审批令牌 TTL：24 小时（删除是高敏操作，有效期短于邀请码）。
-     */
+    /** 默认审批令牌 TTL：24 小时（删除是高敏操作，有效期短于邀请码）。 */
     public static final Duration DEFAULT_TTL = Duration.ofHours(24);
+
     private static final Logger log = LoggerFactory.getLogger(DeleteApprovalService.class);
-    /**
-     * raw token 熵源字节数；32 字节经 Base64URL 无填充编码后为 43 字符，抗暴力枚举足够。
-     */
+
+    /** raw token 熵源字节数；32 字节经 Base64URL 无填充编码后为 43 字符，抗暴力枚举足够。 */
     private static final int RAW_TOKEN_BYTES = 32;
-    /**
-     * 日志脱敏：hash 前缀可见长度。
-     */
+
+    /** 日志脱敏：hash 前缀可见长度。 */
     private static final int HASH_LOG_PREFIX = 8;
 
     private final TenantDeleteApprovalGateway approvalGateway;
     private final SecureRandom secureRandom;
 
-    /**
-     * 生产注入路径：由 Spring 选定此构造器（存在两个构造器时须显式标注，否则回退到不存在的无参构造器）。
-     */
+    /** 生产注入路径：由 Spring 选定此构造器（存在两个构造器时须显式标注，否则回退到不存在的无参构造器）。 */
     @Autowired
     public DeleteApprovalService(TenantDeleteApprovalGateway approvalGateway) {
         this(approvalGateway, new SecureRandom());
     }
 
-    /**
-     * 测试可注入自定义 {@link SecureRandom}（如固定种子）以断言 raw token 生成路径。
-     */
+    /** 测试可注入自定义 {@link SecureRandom}（如固定种子）以断言 raw token 生成路径。 */
     public DeleteApprovalService(
             TenantDeleteApprovalGateway approvalGateway, SecureRandom secureRandom) {
         this.approvalGateway = Objects.requireNonNull(approvalGateway);
@@ -76,9 +68,9 @@ public class DeleteApprovalService {
      *
      * <p>流程：吊销同租户旧 PENDING 审批 → 生成 raw token → SHA-256 → 落库 PENDING 行 → 返回 (entity, rawToken)。
      *
-     * @param tenantId           目标租户 id
+     * @param tenantId 目标租户 id
      * @param approverOperatorId 签发者（项目负责人）operator id
-     * @param ttl                有效期；{@code null} 或 ≤0 时用 {@link #DEFAULT_TTL}
+     * @param ttl 有效期；{@code null} 或 ≤0 时用 {@link #DEFAULT_TTL}
      * @return 签发结果，包含仅本次可见的 raw token 与已落库的审批实体
      */
     public ApprovalIssueResult issue(Long tenantId, String approverOperatorId, Duration ttl) {
@@ -139,8 +131,8 @@ public class DeleteApprovalService {
      *
      * <p>调用方（{@code ConfirmTenantDeletionCmdExe}）须已完成"令牌有效 + 属于本租户 + 确认者 ≠ 签发者"校验。
      *
-     * @param approval         待消费的审批实体（{@code approvalId} 必填）
-     * @param usedAt           消费时间
+     * @param approval 待消费的审批实体（{@code approvalId} 必填）
+     * @param usedAt 消费时间
      * @param usedByOperatorId 确认者（第二操作者）operator id
      */
     public void consume(
@@ -161,6 +153,5 @@ public class DeleteApprovalService {
      * @param approval 已落库的审批实体（含 hash / expiresAt，不含 raw token）
      * @param rawToken 原始审批令牌，<b>仅此一次可见</b>，caller 应立即返回给项目负责人并放弃本地引用
      */
-    public record ApprovalIssueResult(TenantDeleteApproval approval, String rawToken) {
-    }
+    public record ApprovalIssueResult(TenantDeleteApproval approval, String rawToken) {}
 }

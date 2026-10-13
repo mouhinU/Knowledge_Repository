@@ -1,5 +1,9 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
@@ -10,15 +14,10 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * 评分并发状态机回归测试（V2 阶段 2-B / 体检 P4 / CONC-1 围栏令牌）。
@@ -35,9 +34,7 @@ class ExamGradingConcurrencyTest {
 
     private static final long SESSION_ID = 7L;
 
-    /**
-     * claimForGrading 认领成功时返回的围栏令牌桩值。
-     */
+    /** claimForGrading 认领成功时返回的围栏令牌桩值。 */
     private static final String TOKEN = "fencing-token-abc";
 
     private final ExamSessionGateway sessionGateway = mock(ExamSessionGateway.class);
@@ -80,9 +77,7 @@ class ExamGradingConcurrencyTest {
         return a;
     }
 
-    /**
-     * 认领成功、心跳持续、终态 CAS 成功 → 逐题更新 + 恰好一次 completeGrading + onComplete。
-     */
+    /** 认领成功、心跳持续、终态 CAS 成功 → 逐题更新 + 恰好一次 completeGrading + onComplete。 */
     @Test
     @DisplayName("正常路径：令牌认领→令牌心跳→令牌终态 CAS→onComplete")
     void happyPathClaimsHeartbeatsAndCompletesViaCas() {
@@ -93,7 +88,7 @@ class ExamGradingConcurrencyTest {
                 .thenReturn(List.of(objective(1, "B", "B", 3), objective(2, "A", "C", 2)));
         when(sessionGateway.touchGradingHeartbeat(SESSION_ID, TOKEN)).thenReturn(true);
         when(sessionGateway.completeGrading(
-                eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
+                        eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
                 .thenReturn(true);
 
         ExamGradingProgressCallback callback = mock(ExamGradingProgressCallback.class);
@@ -113,9 +108,7 @@ class ExamGradingConcurrencyTest {
         verify(sessionGateway, never()).update(any(ExamSession.class));
     }
 
-    /**
-     * 认领失败（返回 null 令牌，已有评分者持有本场次）→ 不评分、不落任何写，优雅 onComplete(0,0)。
-     */
+    /** 认领失败（返回 null 令牌，已有评分者持有本场次）→ 不评分、不落任何写，优雅 onComplete(0,0)。 */
     @Test
     @DisplayName("认领失败：跳过重复评分，不触碰答题与终态")
     void claimLostShortCircuits() {
@@ -135,9 +128,7 @@ class ExamGradingConcurrencyTest {
         verify(callback, never()).onError(any());
     }
 
-    /**
-     * 评分中途心跳令牌失配（场次被超时回收并重新认领）→ 停止，绝不 completeGrading、绝不 onComplete。
-     */
+    /** 评分中途心跳令牌失配（场次被超时回收并重新认领）→ 停止，绝不 completeGrading、绝不 onComplete。 */
     @Test
     @DisplayName("心跳丢失：立即停止且放弃终态写入，避免与接管者交叉写")
     void heartbeatLostStopsBeforeTerminalWrite() {
@@ -163,9 +154,7 @@ class ExamGradingConcurrencyTest {
         verify(callback).onError(any());
     }
 
-    /**
-     * 终态 CAS 令牌失配（提交瞬间已被回收重新认领）→ 不 onComplete，改 onError，结果不被采纳。
-     */
+    /** 终态 CAS 令牌失配（提交瞬间已被回收重新认领）→ 不 onComplete，改 onError，结果不被采纳。 */
     @Test
     @DisplayName("终态 CAS 失败：慢速评分者不得盲写覆盖")
     void terminalCasLostDiscardsResult() {
@@ -176,7 +165,7 @@ class ExamGradingConcurrencyTest {
                 .thenReturn(List.of(objective(1, "B", "B", 3)));
         when(sessionGateway.touchGradingHeartbeat(SESSION_ID, TOKEN)).thenReturn(true);
         when(sessionGateway.completeGrading(
-                eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
+                        eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
                 .thenReturn(false);
 
         ExamGradingProgressCallback callback = mock(ExamGradingProgressCallback.class);
@@ -189,9 +178,7 @@ class ExamGradingConcurrencyTest {
         verify(callback).onError(any());
     }
 
-    /**
-     * DATA-5：全空答卷（零作答行）也必须落到终态，而非停在 SUBMITTED。
-     */
+    /** DATA-5：全空答卷（零作答行）也必须落到终态，而非停在 SUBMITTED。 */
     @Test
     @DisplayName("全空答卷：令牌认领→零分终态 CAS→onComplete(0,0)，不落中间态")
     void emptyAnswersStillReachTerminalState() {
@@ -200,7 +187,7 @@ class ExamGradingConcurrencyTest {
         when(structuredSupport.resolvePaperSessionKey(any())).thenReturn(null);
         when(answerGateway.listBySessionId(SESSION_ID)).thenReturn(List.of());
         when(sessionGateway.completeGrading(
-                eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
+                        eq(SESSION_ID), eq(TOKEN), eq("AI_GRADED"), anyInt(), anyInt()))
                 .thenReturn(true);
 
         ExamGradingProgressCallback callback = mock(ExamGradingProgressCallback.class);
@@ -217,9 +204,7 @@ class ExamGradingConcurrencyTest {
         verify(sessionGateway, never()).touchGradingHeartbeat(anyLong(), anyString());
     }
 
-    /**
-     * CONC-1：认领后评分过程抛异常 → 以本次围栏令牌安全回退为 SUBMITTED 并向上抛出， 使场次能立即重新纳入调度，且绝不落终态。
-     */
+    /** CONC-1：认领后评分过程抛异常 → 以本次围栏令牌安全回退为 SUBMITTED 并向上抛出， 使场次能立即重新纳入调度，且绝不落终态。 */
     @Test
     @DisplayName("认领后异常：以令牌安全回退并上抛，不落终态")
     void exceptionAfterClaimReleasesWithToken() {

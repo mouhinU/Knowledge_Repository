@@ -2,11 +2,6 @@ package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -17,6 +12,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * 基于 HTTP 的远程 JWKS 公钥来源（P3-T7 / C-3=方案 B，infrastructure 实现）。
@@ -37,14 +36,10 @@ import java.util.Optional;
 @Slf4j
 public class HttpJwkSetProvider implements JwkSetProvider {
 
-    /**
-     * JWKS 文档中被解析的 RSA 密钥类型标记。
-     */
+    /** JWKS 文档中被解析的 RSA 密钥类型标记。 */
     private static final String KEY_TYPE_RSA = "RSA";
 
-    /**
-     * HTTP 连接 / 读取超时（秒）。
-     */
+    /** HTTP 连接 / 读取超时（秒）。 */
     private static final int HTTP_TIMEOUT_SECONDS = 5;
 
     private final URI jwksUri;
@@ -52,14 +47,10 @@ public class HttpJwkSetProvider implements JwkSetProvider {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 最近一次成功解析出的 {@code kid -> RsaJwk} 快照（不可变视图）；从未成功过时为空 Map。
-     */
+    /** 最近一次成功解析出的 {@code kid -> RsaJwk} 快照（不可变视图）；从未成功过时为空 Map。 */
     private volatile Map<String, RsaJwk> snapshot = Collections.emptyMap();
 
-    /**
-     * 最近一次成功拉取/解析的时刻；用于 TTL 判定。
-     */
+    /** 最近一次成功拉取/解析的时刻；用于 TTL 判定。 */
     private volatile Instant lastLoadedAt = Instant.EPOCH;
 
     public HttpJwkSetProvider(
@@ -129,9 +120,7 @@ public class HttpJwkSetProvider implements JwkSetProvider {
         return keys.size() == 1 ? Optional.of(keys.values().iterator().next()) : Optional.empty();
     }
 
-    /**
-     * 取当前可用密钥快照：TTL 过期则尝试刷新；刷新失败保留陈旧快照。
-     */
+    /** 取当前可用密钥快照：TTL 过期则尝试刷新；刷新失败保留陈旧快照。 */
     private Map<String, RsaJwk> currentKeys() {
         if (isStale()) {
             refresh();

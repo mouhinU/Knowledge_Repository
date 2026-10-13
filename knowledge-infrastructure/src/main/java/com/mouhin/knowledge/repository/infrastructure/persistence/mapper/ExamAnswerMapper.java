@@ -11,5 +11,4 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-09-15
  */
 @Mapper
-public interface ExamAnswerMapper extends BaseMapper<ExamAnswerDO> {
-}
+public interface ExamAnswerMapper extends BaseMapper<ExamAnswerDO> {}

@@ -3,11 +3,10 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageSearchRowDO;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-
-import java.util.List;
 
 /**
  * 文档图片 Mapper
@@ -49,9 +48,7 @@ public interface DocumentImageMapper extends BaseMapper<DocumentImageDO> {
             @Param("limit") int limit,
             @Param("offset") int offset);
 
-    /**
-     * 统计 {@link #searchRows} 同条件下的总命中数。
-     */
+    /** 统计 {@link #searchRows} 同条件下的总命中数。 */
     @Select(
             """
                     <script>

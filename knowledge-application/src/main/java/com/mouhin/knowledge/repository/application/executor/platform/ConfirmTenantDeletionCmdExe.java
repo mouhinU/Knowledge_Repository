@@ -11,15 +11,14 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeleteApproval;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 平台端删除确认执行器（app 层用例，事务边界，P3-T5；S-4=方案 A 双人复核第二步）。
@@ -46,9 +45,7 @@ import java.util.UUID;
 @Slf4j
 public class ConfirmTenantDeletionCmdExe {
 
-    /**
-     * 审计动作名。
-     */
+    /** 审计动作名。 */
     public static final String ACTION = "TENANT_DELETE_CONFIRM";
 
     private final TenantGateway tenantGateway;
@@ -57,9 +54,7 @@ public class ConfirmTenantDeletionCmdExe {
     private final TenantDirectory tenantDirectory;
     private final SystemConfigService systemConfigService;
 
-    /**
-     * S-4=方案 A 保留期天数（默认 30）。
-     */
+    /** S-4=方案 A 保留期天数（默认 30）。 */
     @Value("${knowledge.saas.tenant-deletion.retention-days:30}")
     private int retentionDays;
 
@@ -195,9 +190,7 @@ public class ConfirmTenantDeletionCmdExe {
         return TenantVoConverter.toVO(tenant);
     }
 
-    /**
-     * 计算保留期截止点：{@code archivedAt + retentionDays}；未打归档戳返回 {@code null}。
-     */
+    /** 计算保留期截止点：{@code archivedAt + retentionDays}；未打归档戳返回 {@code null}。 */
     private LocalDateTime eligibleAt(Tenant tenant, LocalDateTime now) {
         LocalDateTime archivedAt = tenant.getArchivedAt();
         if (archivedAt == null) {
@@ -206,9 +199,7 @@ public class ConfirmTenantDeletionCmdExe {
         return archivedAt.plusDays(Math.max(0, retentionDays));
     }
 
-    /**
-     * 统一拒绝路径：审计 REJECTED + 抛出业务异常。
-     */
+    /** 统一拒绝路径：审计 REJECTED + 抛出业务异常。 */
     private TenantVO reject(String operator, String tenantKey, String detail, RuntimeException ex) {
         platformAuditLog.logTenantAction(operator, ACTION, tenantKey, "REJECTED", detail);
         throw ex;

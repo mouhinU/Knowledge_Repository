@@ -14,8 +14,7 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  */
 public final class StudentConverter {
 
-    private StudentConverter() {
-    }
+    private StudentConverter() {}
 
     public static StudentVO toVO(Student student) {
         StudentVO vo = new StudentVO();

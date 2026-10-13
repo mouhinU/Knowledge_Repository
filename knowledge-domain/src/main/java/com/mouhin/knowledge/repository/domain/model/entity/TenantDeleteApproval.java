@@ -18,52 +18,36 @@ import java.util.Objects;
  */
 public class TenantDeleteApproval {
 
-    /**
-     * 状态：已签发待确认。
-     */
+    /** 状态：已签发待确认。 */
     public static final String STATUS_PENDING = "PENDING";
 
-    /**
-     * 状态：已消费（确认删除时置位）。
-     */
+    /** 状态：已消费（确认删除时置位）。 */
     public static final String STATUS_USED = "USED";
 
-    /**
-     * 状态：已过期（超 {@code expiresAt} 未消费）。
-     */
+    /** 状态：已过期（超 {@code expiresAt} 未消费）。 */
     public static final String STATUS_EXPIRED = "EXPIRED";
 
-    /**
-     * 状态：已撤销（签发者主动作废或重签时吊销旧令牌）。
-     */
+    /** 状态：已撤销（签发者主动作废或重签时吊销旧令牌）。 */
     public static final String STATUS_REVOKED = "REVOKED";
 
     private Long approvalId;
 
     private Long tenantId;
 
-    /**
-     * 签发者（项目负责人）operator id。
-     */
+    /** 签发者（项目负责人）operator id。 */
     private String approverOperatorId;
 
-    /**
-     * SHA-256(raw token) hex 64 字符；raw token 不入库。
-     */
+    /** SHA-256(raw token) hex 64 字符；raw token 不入库。 */
     private String tokenHash;
 
-    /**
-     * 状态，见本类 {@code STATUS_*} 常量。
-     */
+    /** 状态，见本类 {@code STATUS_*} 常量。 */
     private String status;
 
     private LocalDateTime expiresAt;
 
     private LocalDateTime usedAt;
 
-    /**
-     * 确认者（第二操作者）operator id；消费时回填。
-     */
+    /** 确认者（第二操作者）operator id；消费时回填。 */
     private String usedByOperatorId;
 
     private LocalDateTime createTime;
@@ -82,9 +66,7 @@ public class TenantDeleteApproval {
                 && (now == null || expiresAt.isAfter(now));
     }
 
-    /**
-     * 是否已过期（PENDING 但 {@code expiresAt} 已过）。
-     */
+    /** 是否已过期（PENDING 但 {@code expiresAt} 已过）。 */
     public boolean isExpired(LocalDateTime now) {
         return STATUS_PENDING.equals(status) && expiresAt != null && !expiresAt.isAfter(now);
     }
@@ -92,7 +74,7 @@ public class TenantDeleteApproval {
     /**
      * 消费令牌：置 USED + 回填 {@code usedAt} / {@code usedByOperatorId}。
      *
-     * @param usedAt           消费时间
+     * @param usedAt 消费时间
      * @param usedByOperatorId 确认者 operator id
      */
     public void markUsed(LocalDateTime usedAt, String usedByOperatorId) {
@@ -101,17 +83,13 @@ public class TenantDeleteApproval {
         this.usedByOperatorId = usedByOperatorId;
     }
 
-    /**
-     * 撤销令牌：置 REVOKED（重签前吊销旧令牌 / 签发者主动作废）。
-     */
+    /** 撤销令牌：置 REVOKED（重签前吊销旧令牌 / 签发者主动作废）。 */
     public void markRevoked(LocalDateTime revokedAt) {
         this.status = STATUS_REVOKED;
         this.updateTime = revokedAt;
     }
 
-    /**
-     * 标记过期：置 EXPIRED（懒过期，被查询命中且已超期时回写）。
-     */
+    /** 标记过期：置 EXPIRED（懒过期，被查询命中且已超期时回写）。 */
     public void markExpired() {
         this.status = STATUS_EXPIRED;
     }

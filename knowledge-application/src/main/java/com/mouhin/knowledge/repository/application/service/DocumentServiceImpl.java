@@ -4,10 +4,9 @@ import com.mouhin.knowledge.repository.application.executor.document.*;
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Service;
 
 /**
  * 文档管理应用服务实现（app 层，仅分发到 Executor）

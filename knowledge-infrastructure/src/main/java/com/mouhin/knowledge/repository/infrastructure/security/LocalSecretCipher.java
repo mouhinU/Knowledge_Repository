@@ -2,19 +2,18 @@ package com.mouhin.knowledge.repository.infrastructure.security;
 
 import com.mouhin.knowledge.repository.domain.gateway.SecretCipher;
 import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * 本地主密钥 AES-256-GCM 加解密实现（P4-T4 · B-2 方案 B）。
@@ -44,7 +43,7 @@ public class LocalSecretCipher implements SecretCipher {
 
     public LocalSecretCipher(
             @Value("${knowledge.secret.master-key-path:/var/run/secrets/kr/master.key}")
-            String masterKeyPath) {
+                    String masterKeyPath) {
         this.masterKeyPath = masterKeyPath;
     }
 

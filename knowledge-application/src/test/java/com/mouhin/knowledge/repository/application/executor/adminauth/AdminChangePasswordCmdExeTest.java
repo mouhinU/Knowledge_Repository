@@ -1,20 +1,19 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
-import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
-import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
+import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * 管理端自助改密单测：锁定 userKey 空 / newPassword 空 / 用户不存在 / 原密码错误 四条拒绝路径， 以及成功路径的 passwordHash 覆盖写入。特别断言新密码

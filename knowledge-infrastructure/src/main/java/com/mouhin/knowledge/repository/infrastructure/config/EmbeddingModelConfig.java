@@ -5,12 +5,11 @@ import com.mouhin.knowledge.repository.infrastructure.llm.ResilientEmbeddingMode
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
 
 /**
  * Embedding 角色模型装配（Phase R1 三段式）。
@@ -26,9 +25,7 @@ import java.time.Duration;
 @Slf4j
 public class EmbeddingModelConfig {
 
-    /**
-     * Embedding 模型，注入 embedding 角色独立 HTTP 客户端，并套 {@code embedding} 角色熔断/重试。
-     */
+    /** Embedding 模型，注入 embedding 角色独立 HTTP 客户端，并套 {@code embedding} 角色熔断/重试。 */
     @Bean("delegateEmbeddingModel")
     public EmbeddingModel embeddingModel(
             LlmEmbeddingProperties embedding,

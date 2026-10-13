@@ -15,18 +15,12 @@ import lombok.Setter;
 @Setter
 public class AdminChangePasswordCmd {
 
-    /**
-     * 目标用户唯一标识（由服务端从令牌回填）。
-     */
+    /** 目标用户唯一标识（由服务端从令牌回填）。 */
     private String userKey;
 
-    /**
-     * 旧密码，用于校验身份。
-     */
+    /** 旧密码，用于校验身份。 */
     private String oldPassword;
 
-    /**
-     * 新密码（明文，服务端 BCrypt 后落库）。
-     */
+    /** 新密码（明文，服务端 BCrypt 后落库）。 */
     private String newPassword;
 }

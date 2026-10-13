@@ -1,8 +1,8 @@
 package com.mouhin.knowledge.repository.domain.model.valueobject;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * AgentConfidence 值对象测试

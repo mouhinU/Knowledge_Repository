@@ -4,12 +4,11 @@ import com.mouhin.knowledge.repository.application.converter.DepartmentConverter
 import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * 部门树查询执行器（app 层用例）

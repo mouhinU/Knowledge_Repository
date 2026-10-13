@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.tenant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mouhin.knowledge.repository.application.executor.adminauth.InviteStatusQryExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.SetPasswordByInviteCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.ReissueInviteCmdExe;
@@ -16,6 +18,9 @@ import com.mouhin.knowledge.repository.domain.model.entity.*;
 import com.mouhin.knowledge.repository.infrastructure.observability.Slf4jPlatformAuditLog;
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.*;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -28,12 +33,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * P3-T3 租户开通 + 邀请式引导端到端集成测试（H2 MODE=MySQL，无需 Docker）。
@@ -64,30 +63,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = TenantProvisioningInviteIntegrationTest.TestConfig.class)
 class TenantProvisioningInviteIntegrationTest {
 
-    @Autowired
-    private TenantGateway tenantGateway;
-    @Autowired
-    private TenantProvisionStepGateway stepGateway;
-    @Autowired
-    private SystemConfigGateway systemConfigGateway;
-    @Autowired
-    private DepartmentGateway departmentGateway;
-    @Autowired
-    private UserGateway userGateway;
-    @Autowired
-    private UserInviteGateway userInviteGateway;
-    @Autowired
-    private UserInviteService userInviteService;
-    @Autowired
-    private ProvisioningStateMachine stateMachine;
-    @Autowired
-    private SetPasswordByInviteCmdExe setPasswordExe;
-    @Autowired
-    private InviteStatusQryExe inviteStatusQryExe;
-    @Autowired
-    private ReissueInviteCmdExe reissueInviteCmdExe;
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    @Autowired private TenantGateway tenantGateway;
+    @Autowired private TenantProvisionStepGateway stepGateway;
+    @Autowired private SystemConfigGateway systemConfigGateway;
+    @Autowired private DepartmentGateway departmentGateway;
+    @Autowired private UserGateway userGateway;
+    @Autowired private UserInviteGateway userInviteGateway;
+    @Autowired private UserInviteService userInviteService;
+    @Autowired private ProvisioningStateMachine stateMachine;
+    @Autowired private SetPasswordByInviteCmdExe setPasswordExe;
+    @Autowired private InviteStatusQryExe inviteStatusQryExe;
+    @Autowired private ReissueInviteCmdExe reissueInviteCmdExe;
+    @Autowired private BCryptPasswordEncoder passwordEncoder;
 
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
@@ -310,22 +297,22 @@ class TenantProvisioningInviteIntegrationTest {
     @EnableAutoConfiguration
     @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
     @Import({
-            TenantGatewayImpl.class,
-            TenantProvisionStepGatewayImpl.class,
-            SystemConfigGatewayImpl.class,
-            DepartmentGatewayImpl.class,
-            UserGatewayImpl.class,
-            UserInviteGatewayImpl.class,
-            TenantIdResolver.class,
-            Slf4jPlatformAuditLog.class,
-            ProvisioningStateMachine.class,
-            UserInviteService.class,
-            CopyDefaultSystemConfigStep.class,
-            CreateRootDepartmentStep.class,
-            CreateFirstAdminStep.class,
-            SetPasswordByInviteCmdExe.class,
-            InviteStatusQryExe.class,
-            ReissueInviteCmdExe.class
+        TenantGatewayImpl.class,
+        TenantProvisionStepGatewayImpl.class,
+        SystemConfigGatewayImpl.class,
+        DepartmentGatewayImpl.class,
+        UserGatewayImpl.class,
+        UserInviteGatewayImpl.class,
+        TenantIdResolver.class,
+        Slf4jPlatformAuditLog.class,
+        ProvisioningStateMachine.class,
+        UserInviteService.class,
+        CopyDefaultSystemConfigStep.class,
+        CreateRootDepartmentStep.class,
+        CreateFirstAdminStep.class,
+        SetPasswordByInviteCmdExe.class,
+        InviteStatusQryExe.class,
+        ReissueInviteCmdExe.class
     })
     static class TestConfig {
 

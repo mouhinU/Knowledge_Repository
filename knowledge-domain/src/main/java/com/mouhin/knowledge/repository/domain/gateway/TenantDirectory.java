@@ -48,8 +48,6 @@ public interface TenantDirectory {
      */
     void invalidateById(long tenantId);
 
-    /**
-     * 全量清空缓存（配置热更 / 测试隔离使用）。
-     */
+    /** 全量清空缓存（配置热更 / 测试隔离使用）。 */
     void invalidateAll();
 }

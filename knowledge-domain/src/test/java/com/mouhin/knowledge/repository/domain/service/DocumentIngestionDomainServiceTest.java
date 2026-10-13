@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 文档摄入领域服务单测：锁定分块策略选择（五种策略各产出非空结果）、页码追踪（1 起始、空白页过滤）、 权限 / 展示元数据组装（visibility 缺省 INTERNAL）与空文本 /

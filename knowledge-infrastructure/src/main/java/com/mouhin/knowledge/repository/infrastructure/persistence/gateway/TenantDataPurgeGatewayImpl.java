@@ -2,13 +2,12 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.mouhin.knowledge.repository.domain.gateway.TenantDataPurgeGateway;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantPurgeMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Repository;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Repository;
 
 /**
  * {@link TenantDataPurgeGateway} 实现（infrastructure 层，P3-T5 租户硬删 DB 侧）。
@@ -58,9 +57,7 @@ public class TenantDataPurgeGatewayImpl implements TenantDataPurgeGateway {
                     "sys_config",
                     "sys_user_invite");
 
-    /**
-     * 表名白名单（{@link #PURGE_TABLES} 的集合视图），用于删除前的防御性校验。
-     */
+    /** 表名白名单（{@link #PURGE_TABLES} 的集合视图），用于删除前的防御性校验。 */
     private static final Set<String> WHITELIST = Set.copyOf(PURGE_TABLES);
 
     private final TenantPurgeMapper purgeMapper;
@@ -69,9 +66,7 @@ public class TenantDataPurgeGatewayImpl implements TenantDataPurgeGateway {
         this.purgeMapper = purgeMapper;
     }
 
-    /**
-     * 防御性白名单校验：表名必须来自硬编码常量集，否则拒绝执行（红线 #5）。
-     */
+    /** 防御性白名单校验：表名必须来自硬编码常量集，否则拒绝执行（红线 #5）。 */
     private static void assertWhitelisted(String table) {
         if (!WHITELIST.contains(table)) {
             throw new IllegalArgumentException("Table not in purge whitelist: " + table);

@@ -22,18 +22,13 @@ import java.util.regex.Pattern;
  */
 public final class TenantKey {
 
-    /**
-     * 租户键严格正则：小写字母开头 + {@code [a-z0-9_]}，总长 2–63。
-     */
+    /** 租户键严格正则：小写字母开头 + {@code [a-z0-9_]}，总长 2–63。 */
     public static final String PATTERN = "^[a-z][a-z0-9_]{1,62}$";
 
-    /**
-     * {@link #PATTERN} 的预编译形态，避免热路径重复构造。
-     */
+    /** {@link #PATTERN} 的预编译形态，避免热路径重复构造。 */
     private static final Pattern REGEX = Pattern.compile(PATTERN);
 
-    private TenantKey() {
-    }
+    private TenantKey() {}
 
     /**
      * 归一化：去除首尾空白并转小写（与库 collation utf8mb4_general_ci 的忽略大小写语义对齐， 且保证 {@code acme} 与 {@code ACME}

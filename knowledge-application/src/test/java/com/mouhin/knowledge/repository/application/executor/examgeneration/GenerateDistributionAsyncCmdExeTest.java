@@ -1,13 +1,13 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * 异步题型分布方案生成命令执行器单测：薄分派层——锁定入参完整透传给 {@link ExamGenerationSupport#generateDistributionAsync}，异常原样冒泡。
@@ -74,15 +74,15 @@ class GenerateDistributionAsyncCmdExeTest {
                         any(BlackboardProgressCallback.class));
 
         assertThatThrownBy(
-                () ->
-                        exe.execute(
-                                "s3",
-                                "t",
-                                "EASY",
-                                "初中",
-                                null,
-                                new Permission("u", null, null, false),
-                                mock(BlackboardProgressCallback.class)))
+                        () ->
+                                exe.execute(
+                                        "s3",
+                                        "t",
+                                        "EASY",
+                                        "初中",
+                                        null,
+                                        new Permission("u", null, null, false),
+                                        mock(BlackboardProgressCallback.class)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Query must not be blank");
     }

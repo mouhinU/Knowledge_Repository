@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.infrastructure.security;
 
-import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * {@link PlatformJwtGatewayImpl} 平台端 JWT 网关单测（P3-T1 / T-4 方案 B）。
@@ -105,9 +104,7 @@ class PlatformJwtGatewayImplTest {
         assertThat(gw.verify(token)).isPresent();
     }
 
-    /**
-     * 用反射借用 gateway 的 hmac 逻辑构造一个缺 scope claim 的令牌，验证 scope 强制校验。
-     */
+    /** 用反射借用 gateway 的 hmac 逻辑构造一个缺 scope claim 的令牌，验证 scope 强制校验。 */
     private String issueWithoutScope(PlatformJwtGatewayImpl gw, String opId, String opName) {
         try {
             java.util.Base64.Encoder enc = java.util.Base64.getUrlEncoder().withoutPadding();

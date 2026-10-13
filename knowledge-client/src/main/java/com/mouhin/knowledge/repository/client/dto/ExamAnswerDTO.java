@@ -1,11 +1,10 @@
 package com.mouhin.knowledge.repository.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 单题答题记录视图对象

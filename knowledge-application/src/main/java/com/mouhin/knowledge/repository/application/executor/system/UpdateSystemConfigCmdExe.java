@@ -23,7 +23,7 @@ public class UpdateSystemConfigCmdExe {
     /**
      * 更新单个配置值
      *
-     * @param configKey   配置键
+     * @param configKey 配置键
      * @param configValue 新值
      */
     public void execute(String configKey, String configValue) {

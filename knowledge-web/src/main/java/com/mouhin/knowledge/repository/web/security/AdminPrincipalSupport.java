@@ -3,7 +3,6 @@ package com.mouhin.knowledge.repository.web.security;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.util.List;
 
 /**
@@ -19,8 +18,7 @@ public final class AdminPrincipalSupport {
 
     private static final String ROLE_DELIMITER = ",";
 
-    private AdminPrincipalSupport() {
-    }
+    private AdminPrincipalSupport() {}
 
     /**
      * 从管理端过滤器写入的请求属性读取主体，并转换为管理员权限上下文。
@@ -48,9 +46,7 @@ public final class AdminPrincipalSupport {
                 true);
     }
 
-    /**
-     * 空列表归一为 null，保持与 Permission 旧契约一致（"null / 空 = 不过滤"）。
-     */
+    /** 空列表归一为 null，保持与 Permission 旧契约一致（"null / 空 = 不过滤"）。 */
     private static String joinRoles(List<String> roles) {
         if (roles == null || roles.isEmpty()) {
             return null;

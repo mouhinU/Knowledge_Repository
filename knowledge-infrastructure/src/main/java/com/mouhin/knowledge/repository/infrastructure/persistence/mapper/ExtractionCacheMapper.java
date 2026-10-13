@@ -11,5 +11,4 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-09-23
  */
 @Mapper
-public interface ExtractionCacheMapper extends BaseMapper<ExtractionCacheDO> {
-}
+public interface ExtractionCacheMapper extends BaseMapper<ExtractionCacheDO> {}

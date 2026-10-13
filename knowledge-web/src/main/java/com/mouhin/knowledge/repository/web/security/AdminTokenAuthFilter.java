@@ -8,14 +8,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 管理端令牌鉴权过滤器（adapter 层，集中校验）。
@@ -38,21 +37,15 @@ import java.util.Map;
 @Slf4j
 public class AdminTokenAuthFilter extends OncePerRequestFilter {
 
-    /**
-     * 管理端令牌请求头。
-     */
+    /** 管理端令牌请求头。 */
     public static final String TOKEN_HEADER = "X-Admin-Token";
 
-    /**
-     * 登录后可从令牌身份还原的请求属性键，供下游（如审计）读取，避免重复解析。
-     */
+    /** 登录后可从令牌身份还原的请求属性键，供下游（如审计）读取，避免重复解析。 */
     public static final String PRINCIPAL_ATTRIBUTE = "knowledge.admin.principal";
 
     private static final String BEARER_PREFIX = "Bearer ";
 
-    /**
-     * SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。
-     */
+    /** SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。 */
     private static final String ACCESS_TOKEN_PARAM = "access_token";
 
     /**
@@ -120,9 +113,7 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * 判定请求是否需要管理端令牌。仅拦截 {@code /api/**} 与 {@code /actuator/**}，且排除健康探针与放行前缀。
-     */
+    /** 判定请求是否需要管理端令牌。仅拦截 {@code /api/**} 与 {@code /actuator/**}，且排除健康探针与放行前缀。 */
     private boolean requiresAuth(String path) {
         if (path == null) {
             return false;

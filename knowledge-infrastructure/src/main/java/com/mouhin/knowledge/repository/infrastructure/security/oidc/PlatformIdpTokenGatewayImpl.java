@@ -4,11 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -18,6 +13,10 @@ import java.security.spec.RSAPublicKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * 企业 IdP OIDC 令牌校验网关的 RS256/JWKS 实现（infrastructure 层，P3-T7 / C-3=方案 B）。
@@ -131,9 +130,7 @@ public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
         }
     }
 
-    /**
-     * 校验签发者 / 受众 / 时效 / 主体；全部通过返回归一载荷，否则 empty。
-     */
+    /** 校验签发者 / 受众 / 时效 / 主体；全部通过返回归一载荷，否则 empty。 */
     private Optional<PlatformTokenPayload> validateClaims(JsonNode payload) {
         String iss = payload.path(CLAIM_ISS).asText(null);
         if (!issuer.equals(iss)) {
@@ -167,9 +164,7 @@ public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
                 new PlatformTokenPayload(operatorId, operatorName, Instant.ofEpochSecond(exp)));
     }
 
-    /**
-     * {@code aud} 可为字符串或字符串数组；命中配置受众即为真。
-     */
+    /** {@code aud} 可为字符串或字符串数组；命中配置受众即为真。 */
     private boolean audienceMatches(JsonNode aud) {
         if (aud.isMissingNode() || aud.isNull()) {
             return false;

@@ -14,8 +14,7 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
  */
 public final class DocumentConverter {
 
-    private DocumentConverter() {
-    }
+    private DocumentConverter() {}
 
     public static DocumentVO toVO(Document doc) {
         DocumentVO vo = new DocumentVO();

@@ -1,12 +1,12 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * {@link PermissionDomainService} 回归测试。

@@ -1,19 +1,18 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.StudentDO;
-import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.StudentMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.StudentDO;
+import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.StudentMapper;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * {@link StudentGatewayImpl} 契约单测：锁定 Entity⇄DO 字段回写、查询转换与空/缺失分支。

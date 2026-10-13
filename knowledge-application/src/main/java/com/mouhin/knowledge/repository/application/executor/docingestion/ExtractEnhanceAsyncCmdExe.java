@@ -4,16 +4,15 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 /**
  * 视觉异步增强用例执行器（app 层，Phase C）。
@@ -100,9 +99,9 @@ public class ExtractEnhanceAsyncCmdExe {
             ExtractionResult result =
                     (forcedStack == null || forcedStack.isEmpty())
                             ? documentExtractionService.extractText(
-                            storagePath, size, document.getFileName())
+                                    storagePath, size, document.getFileName())
                             : documentExtractionService.extractText(
-                            storagePath, size, document.getFileName(), forcedStack);
+                                    storagePath, size, document.getFileName(), forcedStack);
             extractionCache.put(documentKey, result);
             log.info(
                     "vision enhance done for {}: {} pages, format={}",
