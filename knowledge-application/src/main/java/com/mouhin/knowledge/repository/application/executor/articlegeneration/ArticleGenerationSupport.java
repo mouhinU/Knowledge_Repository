@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.Agent
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
@@ -181,8 +182,9 @@ public class ArticleGenerationSupport {
             }
 
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
-            int searchMaxResults = systemConfigService.getInt("search.max-results");
-            double searchMinScore = systemConfigService.getDouble("search.min-score");
+            int searchMaxResults = systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
+            double searchMinScore =
+                    systemConfigService.getDouble(SystemConfigKeys.SEARCH_MIN_SCORE);
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 

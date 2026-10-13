@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSuppo
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
@@ -254,9 +255,10 @@ public class ExamGenerationSupport {
                     BlackboardProgressEvent.phaseChanged(BlackboardPhase.RESEARCH, "正在检索知识库..."));
 
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
-            int searchMaxResults = systemConfigService.getInt("search.max-results");
+            int searchMaxResults = systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
-            double searchMinScore = systemConfigService.getDouble("search.min-score");
+            double searchMinScore =
+                    systemConfigService.getDouble(SystemConfigKeys.SEARCH_MIN_SCORE);
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
             List<SearchResult> results =
@@ -352,7 +354,7 @@ public class ExamGenerationSupport {
                 examWriterAgent.execute(blackboard, callback);
 
                 // 3.5 考点去重（特性开关控制）：编写完成后、答案生成前，去除重复考点的试题并替补
-                if (systemConfigService.getBoolean("exam.knowledge-dedup.enabled")) {
+                if (systemConfigService.getBoolean(SystemConfigKeys.EXAM_KNOWLEDGE_DEDUP_ENABLED)) {
                     examKnowledgeDedupAgent.execute(blackboard, callback);
                 }
 
@@ -398,7 +400,8 @@ public class ExamGenerationSupport {
                                 && Math.abs(score - firstAttemptScore) <= SCORE_CONVERGENCE_DELTA;
                 if (converged) {
                     int qualityThreshold =
-                            systemConfigService.getInt("exam.quality-score-threshold");
+                            systemConfigService.getInt(
+                                    SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD);
                     if (score < qualityThreshold) {
                         blackboard.setQualityScore(qualityThreshold);
                         score = qualityThreshold;
@@ -419,7 +422,9 @@ public class ExamGenerationSupport {
                                             firstAttemptScore, score, SCORE_CONVERGENCE_DELTA)));
                 }
 
-                if (score >= systemConfigService.getInt("exam.quality-score-threshold")
+                if (score
+                                >= systemConfigService.getInt(
+                                        SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD)
                         || attempt == MAX_REVIEW_RETRIES
                         || converged) {
                     log.info(
@@ -427,7 +432,8 @@ public class ExamGenerationSupport {
                             sessionId,
                             attempt + 1,
                             score,
-                            systemConfigService.getInt("exam.quality-score-threshold"),
+                            systemConfigService.getInt(
+                                    SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD),
                             manualPlan,
                             converged);
                     break;
@@ -436,7 +442,7 @@ public class ExamGenerationSupport {
                 log.info(
                         "[ExamPipeline] 评分 {} 低于阈值 {}，启动第 {} 次改进 [session={}]",
                         score,
-                        systemConfigService.getInt("exam.quality-score-threshold"),
+                        systemConfigService.getInt(SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD),
                         attempt + 1,
                         sessionId);
                 emit(
@@ -446,7 +452,8 @@ public class ExamGenerationSupport {
                                 String.format(
                                         "质量评分 %d 分，低于 %d 分，正在根据审核意见改进（第 %d/%d 轮）...",
                                         score,
-                                        systemConfigService.getInt("exam.quality-score-threshold"),
+                                        systemConfigService.getInt(
+                                                SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD),
                                         attempt + 1,
                                         MAX_REVIEW_RETRIES)));
             }
@@ -597,9 +604,9 @@ public class ExamGenerationSupport {
                 ScoreRuleEngine.renderScheme(ScoreRuleEngine.allocate(total, counts), topic, level);
 
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
-        int searchMaxResults = systemConfigService.getInt("search.max-results");
+        int searchMaxResults = systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
-        double searchMinScore = systemConfigService.getDouble("search.min-score");
+        double searchMinScore = systemConfigService.getDouble(SystemConfigKeys.SEARCH_MIN_SCORE);
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
         List<SearchResult> results =
@@ -650,9 +657,10 @@ public class ExamGenerationSupport {
         String knowledgeHint = null;
         try {
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
-            int searchMaxResults = systemConfigService.getInt("search.max-results");
+            int searchMaxResults = systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
-            double searchMinScore = systemConfigService.getDouble("search.min-score");
+            double searchMinScore =
+                    systemConfigService.getDouble(SystemConfigKeys.SEARCH_MIN_SCORE);
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
             List<SearchResult> results =
                     authorizedSearch.searchAuthorized(
@@ -693,11 +701,13 @@ public class ExamGenerationSupport {
                         try {
                             String filterExpr =
                                     permissionDomainService.buildFilterExpression(permission);
-                            int searchMaxResults = systemConfigService.getInt("search.max-results");
+                            int searchMaxResults =
+                                    systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
                             int maxResults =
                                     searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
                             double searchMinScore =
-                                    systemConfigService.getDouble("search.min-score");
+                                    systemConfigService.getDouble(
+                                            SystemConfigKeys.SEARCH_MIN_SCORE);
                             double minScore =
                                     searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
                             List<SearchResult> results =
@@ -766,10 +776,11 @@ public class ExamGenerationSupport {
             BlackboardProgressCallback callback) {
 
         boolean autoBalanceEnabled =
-                systemConfigService.getBoolean("exam.plan.auto-balance.enabled");
+                systemConfigService.getBoolean(SystemConfigKeys.EXAM_PLAN_AUTO_BALANCE_ENABLED);
         int maxRounds =
                 autoBalanceEnabled
-                        ? systemConfigService.getInt("exam.plan.auto-balance.max-rounds")
+                        ? systemConfigService.getInt(
+                                SystemConfigKeys.EXAM_PLAN_AUTO_BALANCE_MAX_ROUNDS)
                         : 1;
         if (maxRounds <= 0) {
             maxRounds = 1;
@@ -1073,9 +1084,9 @@ public class ExamGenerationSupport {
         String schemeText = ScoreRuleEngine.renderPlan(plan, topic);
 
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
-        int searchMaxResults = systemConfigService.getInt("search.max-results");
+        int searchMaxResults = systemConfigService.getInt(SystemConfigKeys.SEARCH_MAX_RESULTS);
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
-        double searchMinScore = systemConfigService.getDouble("search.min-score");
+        double searchMinScore = systemConfigService.getDouble(SystemConfigKeys.SEARCH_MIN_SCORE);
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
         List<SearchResult> results =
                 authorizedSearch.searchAuthorized(
@@ -1372,11 +1383,12 @@ public class ExamGenerationSupport {
         }
 
         int quality = (int) blackboard.getQualityScore();
-        int qualityThreshold = systemConfigService.getInt("exam.quality-score-threshold");
+        int qualityThreshold =
+                systemConfigService.getInt(SystemConfigKeys.EXAM_QUALITY_SCORE_THRESHOLD);
         if (quality < qualityThreshold) {
             examAlertGateway.lowQualityScore(sessionId, quality, qualityThreshold);
         }
-        if (!systemConfigService.getBoolean("exam.review-required")
+        if (!systemConfigService.getBoolean(SystemConfigKeys.EXAM_REVIEW_REQUIRED)
                 && quality >= qualityThreshold) {
             log.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
             return ExamHistory.STATUS_PUBLISHED;

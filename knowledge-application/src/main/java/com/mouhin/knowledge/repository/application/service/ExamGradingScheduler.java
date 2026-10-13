@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
@@ -138,7 +139,7 @@ public class ExamGradingScheduler {
                     "[ExamGrading] 本轮扫描完成：租户数={}, 触发评分={}, 延迟阈值={}分钟",
                     tenantsScanned,
                     totalTriggered,
-                    systemConfigService.getInt("exam.grading-delay-minutes"));
+                    systemConfigService.getInt(SystemConfigKeys.EXAM_GRADING_DELAY_MINUTES));
         }
     }
 
@@ -204,7 +205,8 @@ public class ExamGradingScheduler {
             LocalDateTime deadline =
                     LocalDateTime.now()
                             .minusMinutes(
-                                    systemConfigService.getInt("exam.grading-timeout-minutes"));
+                                    systemConfigService.getInt(
+                                            SystemConfigKeys.EXAM_GRADING_TIMEOUT_MINUTES));
             int recovered = 0;
             for (ExamSession session : grading) {
                 // CONC-1：单条原子回收——SQL 内判定 status==GRADING 且 update_time<deadline，
@@ -225,7 +227,7 @@ public class ExamGradingScheduler {
                         "[ExamGrading] 超时评分回收 [tenantKey={}, 本轮回退={}, 超时阈值={}分钟]",
                         tenantKey,
                         recovered,
-                        systemConfigService.getInt("exam.grading-timeout-minutes"));
+                        systemConfigService.getInt(SystemConfigKeys.EXAM_GRADING_TIMEOUT_MINUTES));
             }
         } catch (Exception e) {
             log.error("[ExamGrading] 超时评分回收任务异常 [tenantKey={}]: {}", tenantKey, e.getMessage(), e);

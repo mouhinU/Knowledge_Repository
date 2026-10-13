@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -33,9 +34,11 @@ public class ResearchQualityGate implements QualityGate {
             return QualityGateResult.pass(GATE_NAME, "非研究阶段，跳过");
         }
 
-        int minChunks = systemConfigService.getInt("quality-gate.research.min-chunks");
+        int minChunks =
+                systemConfigService.getInt(SystemConfigKeys.QUALITY_GATE_RESEARCH_MIN_CHUNKS);
         int lowConfidenceThreshold =
-                systemConfigService.getInt("quality-gate.research.low-confidence-threshold");
+                systemConfigService.getInt(
+                        SystemConfigKeys.QUALITY_GATE_RESEARCH_LOW_CONFIDENCE_THRESHOLD);
 
         int chunkCount =
                 blackboard.getKnowledgeChunks() != null
@@ -47,11 +50,11 @@ public class ResearchQualityGate implements QualityGate {
                     chunkCount >= lowConfidenceThreshold
                             ? AgentConfidence.high("检索到 " + chunkCount + " 条知识片段")
                             : AgentConfidence.medium(
-                                    "检索到 "
-                                            + chunkCount
-                                            + " 条知识片段（低于理想阈值 "
-                                            + lowConfidenceThreshold
-                                            + "）");
+                            "检索到 "
+                                    + chunkCount
+                                    + " 条知识片段（低于理想阈值 "
+                                    + lowConfidenceThreshold
+                                    + "）");
             return QualityGateResult.pass(
                     GATE_NAME, "检索到 " + chunkCount + " 条知识片段（≥ " + minChunks + "）", confidence);
         }

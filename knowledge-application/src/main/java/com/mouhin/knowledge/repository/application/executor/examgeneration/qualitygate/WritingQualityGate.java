@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -33,7 +34,8 @@ public class WritingQualityGate implements QualityGate {
             return QualityGateResult.pass(GATE_NAME, "非写作阶段，跳过");
         }
 
-        int minLength = systemConfigService.getInt("quality-gate.writing.min-length");
+        int minLength =
+                systemConfigService.getInt(SystemConfigKeys.QUALITY_GATE_WRITING_MIN_LENGTH);
 
         String output =
                 blackboard.getExamPaper() != null

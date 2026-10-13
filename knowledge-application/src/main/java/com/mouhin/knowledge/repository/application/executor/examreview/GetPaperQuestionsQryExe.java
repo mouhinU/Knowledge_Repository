@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.examreview;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
+import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
@@ -35,6 +36,6 @@ public class GetPaperQuestionsQryExe {
                 history,
                 questions,
                 support.validate(questions, plan),
-                systemConfigService.getBoolean("exam.review-required"));
+                systemConfigService.getBoolean(SystemConfigKeys.EXAM_REVIEW_REQUIRED));
     }
 }
