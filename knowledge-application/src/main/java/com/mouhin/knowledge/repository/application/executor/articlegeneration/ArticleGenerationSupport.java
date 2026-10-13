@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
@@ -34,7 +35,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -66,15 +66,10 @@ public class ArticleGenerationSupport {
     private final BlackboardAuditLog auditLog;
     private final BlackboardMetrics metrics;
     private final List<QualityGate> qualityGates;
+    private final SystemConfigService systemConfigService;
 
     private final ExecutorService agentExecutor =
             AgentExecutorFactory.newTenantAwareAgentPool("article-gen");
-
-    @Value("${knowledge.blackboard.search.max-results:10}")
-    private int searchMaxResults;
-
-    @Value("${knowledge.blackboard.search.min-score:0.5}")
-    private double searchMinScore;
 
     public ArticleGenerationSupport(
             @Qualifier("researcherAgent") BlackboardAgent researcherAgent,
@@ -87,7 +82,8 @@ public class ArticleGenerationSupport {
             BlackboardAuditLog auditLog,
             BlackboardMetrics metrics,
             List<QualityGate> qualityGates,
-            AgentDecoratorRegistrar registrar) {
+            AgentDecoratorRegistrar registrar,
+            SystemConfigService systemConfigService) {
         this.researcherAgent = registrar.wrap(researcherAgent);
         this.writerAgent = registrar.wrap(writerAgent);
         this.reviewerAgent = registrar.wrap(reviewerAgent);
@@ -98,6 +94,7 @@ public class ArticleGenerationSupport {
         this.auditLog = auditLog;
         this.metrics = metrics;
         this.qualityGates = qualityGates;
+        this.systemConfigService = systemConfigService;
     }
 
     /** 容器优雅停机时关闭文章生成异步线程池，拒绝新任务并给在途流水线短暂收尾窗口。 */
@@ -184,6 +181,8 @@ public class ArticleGenerationSupport {
             }
 
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
+            int searchMaxResults = systemConfigService.getInt("search.max-results");
+            double searchMinScore = systemConfigService.getDouble("search.min-score");
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 

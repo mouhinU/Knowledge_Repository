@@ -1,11 +1,11 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QualityGateResult;
 import com.mouhin.knowledge.repository.domain.service.QualityGate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,19 +21,21 @@ public class ResearchQualityGate implements QualityGate {
 
     private static final String GATE_NAME = "research-min-chunks";
 
-    /** 最低检索结果数（默认 1，允许无结果时走 LLM 补充路径） */
-    @Value("${knowledge.blackboard.quality-gate.research.min-chunks:1}")
-    private int minChunks;
+    private final SystemConfigService systemConfigService;
 
-    /** 低质量阈值（检索结果 < 此值时标记低置信度） */
-    @Value("${knowledge.blackboard.quality-gate.research.low-confidence-threshold:3}")
-    private int lowConfidenceThreshold;
+    public ResearchQualityGate(SystemConfigService systemConfigService) {
+        this.systemConfigService = systemConfigService;
+    }
 
     @Override
     public QualityGateResult evaluate(BlackboardPhase phase, BlackboardState blackboard) {
         if (phase != BlackboardPhase.RESEARCH) {
             return QualityGateResult.pass(GATE_NAME, "非研究阶段，跳过");
         }
+
+        int minChunks = systemConfigService.getInt("quality-gate.research.min-chunks");
+        int lowConfidenceThreshold =
+                systemConfigService.getInt("quality-gate.research.low-confidence-threshold");
 
         int chunkCount =
                 blackboard.getKnowledgeChunks() != null

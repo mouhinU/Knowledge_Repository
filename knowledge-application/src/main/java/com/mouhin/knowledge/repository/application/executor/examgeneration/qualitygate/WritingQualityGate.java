@@ -1,11 +1,11 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QualityGateResult;
 import com.mouhin.knowledge.repository.domain.service.QualityGate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,15 +21,19 @@ public class WritingQualityGate implements QualityGate {
 
     private static final String GATE_NAME = "writing-min-length";
 
-    /** 最低输出字符数（默认 50，过短视为无效输出） */
-    @Value("${knowledge.blackboard.quality-gate.writing.min-length:50}")
-    private int minLength;
+    private final SystemConfigService systemConfigService;
+
+    public WritingQualityGate(SystemConfigService systemConfigService) {
+        this.systemConfigService = systemConfigService;
+    }
 
     @Override
     public QualityGateResult evaluate(BlackboardPhase phase, BlackboardState blackboard) {
         if (phase != BlackboardPhase.WRITING) {
             return QualityGateResult.pass(GATE_NAME, "非写作阶段，跳过");
         }
+
+        int minLength = systemConfigService.getInt("quality-gate.writing.min-length");
 
         String output =
                 blackboard.getExamPaper() != null

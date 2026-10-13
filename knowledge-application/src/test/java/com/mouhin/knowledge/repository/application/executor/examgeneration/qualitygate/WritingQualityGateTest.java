@@ -1,13 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QualityGateResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * WritingQualityGate 单元测试
@@ -17,13 +19,14 @@ import org.springframework.test.util.ReflectionTestUtils;
  */
 class WritingQualityGateTest {
 
+    private final SystemConfigService systemConfigService = mock(SystemConfigService.class);
     private WritingQualityGate gate;
     private BlackboardState blackboard;
 
     @BeforeEach
     void setUp() {
-        gate = new WritingQualityGate();
-        ReflectionTestUtils.setField(gate, "minLength", 50);
+        gate = new WritingQualityGate(systemConfigService);
+        when(systemConfigService.getInt("quality-gate.writing.min-length")).thenReturn(50);
         blackboard = new BlackboardState("test-session", "测试问题");
         blackboard.advanceTo(BlackboardPhase.WRITING);
     }

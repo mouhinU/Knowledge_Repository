@@ -31,7 +31,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -49,7 +48,6 @@ public class ExamGenerationSupport {
 
     private static final int DEFAULT_MAX_RESULTS = 20;
     private static final double DEFAULT_MIN_SCORE = 0.3;
-    private static final int QUALITY_SCORE_THRESHOLD = 80;
 
     /** Agent 规划校验 span 名（java:S1192：抽常量防 5 处字面量漂移）。 */
     private static final String SPAN_NAME_PLAN_VALIDATOR = "exam-plan-validator";
@@ -92,16 +90,6 @@ public class ExamGenerationSupport {
 
     private final ExecutorService agentExecutor =
             AgentExecutorFactory.newTenantAwareAgentPool("exam-gen");
-
-    @Value("${knowledge.blackboard.search.max-results:20}")
-    private int searchMaxResults;
-
-    @Value("${knowledge.blackboard.search.min-score:0.3}")
-    private double searchMinScore;
-
-    /** 是否强制人工校对后方可发布（默认 true：所有卷须校对通过才发布） */
-    @Value("${knowledge.exam.review-required:true}")
-    private boolean examReviewRequired;
 
     public ExamGenerationSupport(
             @Qualifier("examResearcherAgent") BlackboardAgent examResearcherAgent,
@@ -266,7 +254,9 @@ public class ExamGenerationSupport {
                     BlackboardProgressEvent.phaseChanged(BlackboardPhase.RESEARCH, "正在检索知识库..."));
 
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
+            int searchMaxResults = systemConfigService.getInt("search.max-results");
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+            double searchMinScore = systemConfigService.getDouble("search.min-score");
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
             List<SearchResult> results =
@@ -407,9 +397,11 @@ public class ExamGenerationSupport {
                                 && attempt >= 1
                                 && Math.abs(score - firstAttemptScore) <= SCORE_CONVERGENCE_DELTA;
                 if (converged) {
-                    if (score < QUALITY_SCORE_THRESHOLD) {
-                        blackboard.setQualityScore(QUALITY_SCORE_THRESHOLD);
-                        score = QUALITY_SCORE_THRESHOLD;
+                    int qualityThreshold =
+                            systemConfigService.getInt("exam.quality-score-threshold");
+                    if (score < qualityThreshold) {
+                        blackboard.setQualityScore(qualityThreshold);
+                        score = qualityThreshold;
                     }
                     log.info(
                             "[ExamPipeline] 手动方案评分收敛（首轮 {}，本轮 {}，差值 ≤ {}），提前结束改进 [session={}, attempt={}]",
@@ -427,7 +419,7 @@ public class ExamGenerationSupport {
                                             firstAttemptScore, score, SCORE_CONVERGENCE_DELTA)));
                 }
 
-                if (score >= QUALITY_SCORE_THRESHOLD
+                if (score >= systemConfigService.getInt("exam.quality-score-threshold")
                         || attempt == MAX_REVIEW_RETRIES
                         || converged) {
                     log.info(
@@ -435,7 +427,7 @@ public class ExamGenerationSupport {
                             sessionId,
                             attempt + 1,
                             score,
-                            QUALITY_SCORE_THRESHOLD,
+                            systemConfigService.getInt("exam.quality-score-threshold"),
                             manualPlan,
                             converged);
                     break;
@@ -444,7 +436,7 @@ public class ExamGenerationSupport {
                 log.info(
                         "[ExamPipeline] 评分 {} 低于阈值 {}，启动第 {} 次改进 [session={}]",
                         score,
-                        QUALITY_SCORE_THRESHOLD,
+                        systemConfigService.getInt("exam.quality-score-threshold"),
                         attempt + 1,
                         sessionId);
                 emit(
@@ -454,7 +446,7 @@ public class ExamGenerationSupport {
                                 String.format(
                                         "质量评分 %d 分，低于 %d 分，正在根据审核意见改进（第 %d/%d 轮）...",
                                         score,
-                                        QUALITY_SCORE_THRESHOLD,
+                                        systemConfigService.getInt("exam.quality-score-threshold"),
                                         attempt + 1,
                                         MAX_REVIEW_RETRIES)));
             }
@@ -605,7 +597,9 @@ public class ExamGenerationSupport {
                 ScoreRuleEngine.renderScheme(ScoreRuleEngine.allocate(total, counts), topic, level);
 
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
+        int searchMaxResults = systemConfigService.getInt("search.max-results");
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+        double searchMinScore = systemConfigService.getDouble("search.min-score");
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
 
         List<SearchResult> results =
@@ -656,7 +650,9 @@ public class ExamGenerationSupport {
         String knowledgeHint = null;
         try {
             String filterExpr = permissionDomainService.buildFilterExpression(permission);
+            int searchMaxResults = systemConfigService.getInt("search.max-results");
             int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+            double searchMinScore = systemConfigService.getDouble("search.min-score");
             double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
             List<SearchResult> results =
                     authorizedSearch.searchAuthorized(
@@ -697,8 +693,11 @@ public class ExamGenerationSupport {
                         try {
                             String filterExpr =
                                     permissionDomainService.buildFilterExpression(permission);
+                            int searchMaxResults = systemConfigService.getInt("search.max-results");
                             int maxResults =
                                     searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+                            double searchMinScore =
+                                    systemConfigService.getDouble("search.min-score");
                             double minScore =
                                     searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
                             List<SearchResult> results =
@@ -1074,7 +1073,9 @@ public class ExamGenerationSupport {
         String schemeText = ScoreRuleEngine.renderPlan(plan, topic);
 
         String filterExpr = permissionDomainService.buildFilterExpression(permission);
+        int searchMaxResults = systemConfigService.getInt("search.max-results");
         int maxResults = searchMaxResults > 0 ? searchMaxResults : DEFAULT_MAX_RESULTS;
+        double searchMinScore = systemConfigService.getDouble("search.min-score");
         double minScore = searchMinScore > 0 ? searchMinScore : DEFAULT_MIN_SCORE;
         List<SearchResult> results =
                 authorizedSearch.searchAuthorized(
@@ -1371,10 +1372,12 @@ public class ExamGenerationSupport {
         }
 
         int quality = (int) blackboard.getQualityScore();
-        if (quality < QUALITY_SCORE_THRESHOLD) {
-            examAlertGateway.lowQualityScore(sessionId, quality, QUALITY_SCORE_THRESHOLD);
+        int qualityThreshold = systemConfigService.getInt("exam.quality-score-threshold");
+        if (quality < qualityThreshold) {
+            examAlertGateway.lowQualityScore(sessionId, quality, qualityThreshold);
         }
-        if (!examReviewRequired && quality >= QUALITY_SCORE_THRESHOLD) {
+        if (!systemConfigService.getBoolean("exam.review-required")
+                && quality >= qualityThreshold) {
             log.info("[ExamPipeline] 免校对自动发布 [session={}, quality={}]", sessionId, quality);
             return ExamHistory.STATUS_PUBLISHED;
         }

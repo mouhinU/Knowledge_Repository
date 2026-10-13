@@ -1,10 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.examreview;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,12 +19,12 @@ import org.springframework.stereotype.Component;
 public class GetPaperQuestionsQryExe {
 
     private final PaperReviewSupport support;
+    private final SystemConfigService systemConfigService;
 
-    @Value("${knowledge.exam.review-required:true}")
-    private boolean examReviewRequired;
-
-    public GetPaperQuestionsQryExe(PaperReviewSupport support) {
+    public GetPaperQuestionsQryExe(
+            PaperReviewSupport support, SystemConfigService systemConfigService) {
         this.support = support;
+        this.systemConfigService = systemConfigService;
     }
 
     public PaperQuestionsView execute(String sessionKey) {
@@ -32,6 +32,9 @@ public class GetPaperQuestionsQryExe {
         List<ExamQuestion> questions = support.listQuestions(sessionKey);
         ExamPlan plan = support.planOf(history);
         return new PaperQuestionsView(
-                history, questions, support.validate(questions, plan), examReviewRequired);
+                history,
+                questions,
+                support.validate(questions, plan),
+                systemConfigService.getBoolean("exam.review-required"));
     }
 }

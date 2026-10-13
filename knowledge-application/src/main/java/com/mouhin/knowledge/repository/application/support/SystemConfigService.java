@@ -116,6 +116,16 @@ public class SystemConfigService {
         }
     }
 
+    /** 获取 double 配置 */
+    public double getDouble(String configKey) {
+        String val = getString(configKey);
+        try {
+            return Double.parseDouble(val);
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+
     /**
      * 获取配置实体（含元数据），供管理页面使用；三级读取顺序 Tier 1 + Tier 2。
      *

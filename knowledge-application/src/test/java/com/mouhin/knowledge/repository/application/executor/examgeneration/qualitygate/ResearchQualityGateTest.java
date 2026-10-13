@@ -1,7 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration.qualitygate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QualityGateResult;
@@ -10,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * ResearchQualityGate 单元测试
@@ -20,14 +22,16 @@ import org.springframework.test.util.ReflectionTestUtils;
  */
 class ResearchQualityGateTest {
 
+    private final SystemConfigService systemConfigService = mock(SystemConfigService.class);
     private ResearchQualityGate gate;
     private BlackboardState blackboard;
 
     @BeforeEach
     void setUp() {
-        gate = new ResearchQualityGate();
-        ReflectionTestUtils.setField(gate, "minChunks", 1);
-        ReflectionTestUtils.setField(gate, "lowConfidenceThreshold", 3);
+        gate = new ResearchQualityGate(systemConfigService);
+        when(systemConfigService.getInt("quality-gate.research.min-chunks")).thenReturn(1);
+        when(systemConfigService.getInt("quality-gate.research.low-confidence-threshold"))
+                .thenReturn(3);
         blackboard = new BlackboardState("test-session", "测试问题");
         blackboard.advanceTo(BlackboardPhase.RESEARCH);
     }
@@ -85,7 +89,7 @@ class ResearchQualityGateTest {
     void evaluate_shouldFailWithRetry_whenChunksBelowMinChunks() {
         // minChunks=1, 0 chunks → SKIP (not RETRY)
         // 调高 minChunks 使 chunkCount > 0 但 < minChunks
-        ReflectionTestUtils.setField(gate, "minChunks", 3);
+        when(systemConfigService.getInt("quality-gate.research.min-chunks")).thenReturn(3);
         blackboard.setKnowledgeChunks(createChunks(1));
 
         QualityGateResult result = gate.evaluate(BlackboardPhase.RESEARCH, blackboard);
@@ -113,7 +117,7 @@ class ResearchQualityGateTest {
 
     @Test
     void evaluate_shouldPassExactlyAtMinChunks() {
-        ReflectionTestUtils.setField(gate, "minChunks", 2);
+        when(systemConfigService.getInt("quality-gate.research.min-chunks")).thenReturn(2);
         blackboard.setKnowledgeChunks(createChunks(2));
 
         QualityGateResult result = gate.evaluate(BlackboardPhase.RESEARCH, blackboard);

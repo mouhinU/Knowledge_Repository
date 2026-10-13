@@ -72,6 +72,10 @@
     const CATEGORY_LABELS = {
         'feature-toggle': '特性开关',
         'exam': '考试参数',
+        'llm': 'LLM 模型',
+        'search': '检索参数',
+        'quality-gate': '质量门禁',
+        'extraction': '文档解析',
         'system': '系统参数',
         'general': '通用配置'
     };
@@ -102,7 +106,7 @@
             });
 
             let html = '';
-            const catOrder = ['feature-toggle', 'exam', 'system', 'general'];
+            const catOrder = ['feature-toggle', 'exam', 'llm', 'search', 'quality-gate', 'extraction', 'system', 'general'];
             catOrder.forEach(cat => {
                 const items = groups[cat];
                 if (!items || !items.length) return;

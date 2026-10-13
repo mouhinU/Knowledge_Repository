@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
@@ -65,6 +66,7 @@ class ArticleGenerationSupportTest {
     private final ChatModel chatModel = mock(ChatModel.class);
     private final BlackboardAuditLog auditLog = mock(BlackboardAuditLog.class);
     private final BlackboardMetrics metrics = mock(BlackboardMetrics.class);
+    private final SystemConfigService systemConfigService = mock(SystemConfigService.class);
     private final List<QualityGate> qualityGates = List.of();
     private final AgentDecoratorRegistrar registrar =
             new AgentDecoratorRegistrar(auditLog, metrics);
@@ -86,7 +88,8 @@ class ArticleGenerationSupportTest {
                         auditLog,
                         metrics,
                         qualityGates,
-                        registrar);
+                        registrar,
+                        systemConfigService);
         when(permissionDomainService.buildFilterExpression(any())).thenReturn("owner_id == 'u-1'");
     }
 

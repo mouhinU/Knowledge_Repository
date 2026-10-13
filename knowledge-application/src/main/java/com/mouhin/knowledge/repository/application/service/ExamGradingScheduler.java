@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
@@ -12,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -56,28 +56,25 @@ public class ExamGradingScheduler {
     private final ExamAlertGateway examAlertGateway;
     private final TenantGateway tenantGateway;
     private final DistributedLockGateway distributedLockGateway;
+    private final SystemConfigService systemConfigService;
 
     /** 实例唯一标识，用于分布式锁 ownerId */
     private final String instanceId =
             UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-
-    @Value("${knowledge.exam.grading-delay-minutes:30}")
-    private int gradingDelayMinutes;
-
-    @Value("${knowledge.exam.grading-timeout-minutes:15}")
-    private int gradingTimeoutMinutes;
 
     public ExamGradingScheduler(
             ExamSessionGateway examSessionGateway,
             ExamGradingServiceI gradingService,
             ExamAlertGateway examAlertGateway,
             TenantGateway tenantGateway,
-            DistributedLockGateway distributedLockGateway) {
+            DistributedLockGateway distributedLockGateway,
+            SystemConfigService systemConfigService) {
         this.examSessionGateway = examSessionGateway;
         this.gradingService = gradingService;
         this.examAlertGateway = examAlertGateway;
         this.tenantGateway = tenantGateway;
         this.distributedLockGateway = distributedLockGateway;
+        this.systemConfigService = systemConfigService;
     }
 
     /**
@@ -141,7 +138,7 @@ public class ExamGradingScheduler {
                     "[ExamGrading] 本轮扫描完成：租户数={}, 触发评分={}, 延迟阈值={}分钟",
                     tenantsScanned,
                     totalTriggered,
-                    gradingDelayMinutes);
+                    systemConfigService.getInt("exam.grading-delay-minutes"));
         }
     }
 
@@ -165,7 +162,11 @@ public class ExamGradingScheduler {
                         return 0;
                     }
 
-                    LocalDateTime threshold = LocalDateTime.now().minusMinutes(gradingDelayMinutes);
+                    LocalDateTime threshold =
+                            LocalDateTime.now()
+                                    .minusMinutes(
+                                            systemConfigService.getInt(
+                                                    "exam.grading-delay-minutes"));
                     int triggered = 0;
 
                     for (ExamSession session : pending) {
@@ -200,7 +201,10 @@ public class ExamGradingScheduler {
             if (grading.isEmpty()) {
                 return;
             }
-            LocalDateTime deadline = LocalDateTime.now().minusMinutes(gradingTimeoutMinutes);
+            LocalDateTime deadline =
+                    LocalDateTime.now()
+                            .minusMinutes(
+                                    systemConfigService.getInt("exam.grading-timeout-minutes"));
             int recovered = 0;
             for (ExamSession session : grading) {
                 // CONC-1：单条原子回收——SQL 内判定 status==GRADING 且 update_time<deadline，
@@ -221,7 +225,7 @@ public class ExamGradingScheduler {
                         "[ExamGrading] 超时评分回收 [tenantKey={}, 本轮回退={}, 超时阈值={}分钟]",
                         tenantKey,
                         recovered,
-                        gradingTimeoutMinutes);
+                        systemConfigService.getInt("exam.grading-timeout-minutes"));
             }
         } catch (Exception e) {
             log.error("[ExamGrading] 超时评分回收任务异常 [tenantKey={}]: {}", tenantKey, e.getMessage(), e);
