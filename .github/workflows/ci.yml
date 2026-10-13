@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
   pull_request:
-    branches: [main, master]
+    branches: [ main, master ]
 
 # CI 只需要读源码；不写 GHCR、不改 PR 状态以外的资源。
 # 顶层 permissions 会覆盖仓库默认 workflow permissions（即使是 Read-only 也能跑）。

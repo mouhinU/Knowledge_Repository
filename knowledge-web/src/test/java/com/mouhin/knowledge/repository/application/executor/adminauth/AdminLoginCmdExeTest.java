@@ -1,30 +1,24 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * 管理端登录执行器单元测试。
@@ -101,11 +95,11 @@ class AdminLoginCmdExeTest {
         when(userGateway.findRoleKeysByUserIdAndDocumentId(99L, null))
                 .thenReturn(List.of("ADMIN", "AUDITOR"));
         when(adminJwtService.issue(
-                        eq("key-1"),
-                        eq("admin"),
-                        eq(true),
-                        eq(List.of("ADMIN", "AUDITOR")),
-                        isNull()))
+                eq("key-1"),
+                eq("admin"),
+                eq(true),
+                eq(List.of("ADMIN", "AUDITOR")),
+                isNull()))
                 .thenReturn("jwt-with-roles");
         when(adminJwtService.verify("jwt-with-roles"))
                 .thenReturn(

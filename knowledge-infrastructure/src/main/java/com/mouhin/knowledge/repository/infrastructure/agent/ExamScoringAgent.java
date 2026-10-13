@@ -8,11 +8,12 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ScorePlanValidator;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 分值校验与评估 Agent
@@ -35,7 +36,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExamScoringAgent implements BlackboardAgent {
 
-    /** 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式 */
+    /**
+     * 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式
+     */
     private static final Pattern QUESTION_PATTERN =
             Pattern.compile("(单选题|多选题|判断题|填空题|简答题|论述题)\\s*(\\d+)\\s*[道题个]");
 
@@ -128,14 +131,18 @@ public class ExamScoringAgent implements BlackboardAgent {
         }
     }
 
-    /** 无方案且无 questionConfig 时统一走异常路径阻断流水线 */
+    /**
+     * 无方案且无 questionConfig 时统一走异常路径阻断流水线
+     */
     private void failPipeline(
             BlackboardProgressCallback callback, String report, String materials) {
         emitProgress(callback, BlackboardProgressEvent.agentFailed("exam-scoring", report));
         throw new IllegalStateException("分值校验未通过：方案与题型配置均为空，无法确定试卷结构");
     }
 
-    /** 描述本 Agent 的输入物料（供 SSE 面板"输入"区块展示） */
+    /**
+     * 描述本 Agent 的输入物料（供 SSE 面板"输入"区块展示）
+     */
     private String describeInput(ExamPlan plan, String questionConfig) {
         StringBuilder sb = new StringBuilder();
         sb.append("主题输入源：");

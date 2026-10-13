@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
  */
 public final class ExamHistoryConverter {
 
-    private ExamHistoryConverter() {}
+    private ExamHistoryConverter() {
+    }
 
     public static ExamHistory toDomain(ExamHistoryDO doObj) {
         if (doObj == null) {

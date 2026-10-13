@@ -9,8 +9,9 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
 import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
-import java.util.List;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 部门管理应用服务实现（app 层，仅分发到 Executor）

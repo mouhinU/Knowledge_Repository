@@ -1,13 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.observability;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamAlertType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * {@link ExamAlertGatewayImpl} 契约单测：锁定双通道中的指标埋点与注册表缺失降级。

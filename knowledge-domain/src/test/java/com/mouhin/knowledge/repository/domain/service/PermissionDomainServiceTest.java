@@ -1,14 +1,12 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * {@link PermissionDomainService} 回归测试。
@@ -36,6 +34,15 @@ class PermissionDomainServiceTest {
     void nullPermissionThrows() {
         org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalArgumentException.class, () -> service.buildFilterExpression(null));
+    }
+
+    @Test
+    @DisplayName("私有文档按所有者过滤")
+    void privateFilterUsesOwnerId() {
+        Permission p = new Permission("owner-9", "dept-a", "MEMBER", false);
+        String expr = service.buildFilterExpression(p);
+        assertTrue(expr.contains("visibility == \"PRIVATE\""));
+        assertTrue(expr.contains("owner_id == \"owner-9\""));
     }
 
     @Nested
@@ -78,15 +85,6 @@ class PermissionDomainServiceTest {
             String expr = service.buildFilterExpression(p);
             assertTrue(expr.contains("allowed_roles like \"%ADMIN\\\"X%\""), "角色值应被转义，实际：" + expr);
         }
-    }
-
-    @Test
-    @DisplayName("私有文档按所有者过滤")
-    void privateFilterUsesOwnerId() {
-        Permission p = new Permission("owner-9", "dept-a", "MEMBER", false);
-        String expr = service.buildFilterExpression(p);
-        assertTrue(expr.contains("visibility == \"PRIVATE\""));
-        assertTrue(expr.contains("owner_id == \"owner-9\""));
     }
 
     @Nested

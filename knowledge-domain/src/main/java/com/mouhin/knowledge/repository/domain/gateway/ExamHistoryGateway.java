@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +27,9 @@ public interface ExamHistoryGateway {
 
     Optional<ExamHistory> findBySessionId(String sessionId);
 
-    /** 按创建时间倒序查询历史记录 */
+    /**
+     * 按创建时间倒序查询历史记录
+     */
     List<ExamHistory> listRecent(int limit);
 
     /**
@@ -40,41 +43,55 @@ public interface ExamHistoryGateway {
     /**
      * 查询待校对队列（状态为 REVIEWABLE 或 VALIDATION_FAILED），按创建时间倒序。
      *
-     * @param limit 每页数量
+     * @param limit  每页数量
      * @param offset 偏移量
      * @return 待校对试卷列表
      */
     List<ExamHistory> listReviewPending(int limit, int offset);
 
-    /** 统计待校对队列总数（REVIEWABLE + VALIDATION_FAILED）。 */
+    /**
+     * 统计待校对队列总数（REVIEWABLE + VALIDATION_FAILED）。
+     */
     long countReviewPending();
 
     /**
      * 分页查询历史记录（按创建时间倒序）
      *
-     * @param limit 每页数量
+     * @param limit  每页数量
      * @param offset 偏移量
      * @return 当前页历史记录
      */
     List<ExamHistory> listPage(int limit, int offset);
 
-    /** 统计历史记录总数 */
+    /**
+     * 统计历史记录总数
+     */
     long countAll();
 
-    /** 根据会话 ID 删除出卷历史 */
+    /**
+     * 根据会话 ID 删除出卷历史
+     */
     void deleteBySessionId(String sessionId);
 
     // ==================== P0-T3 带作用域的方法（管理端专用） ====================
 
-    /** 分页查询历史记录（作用域版）。{@code permission==null}/{@code admin=true} → 全局；否则按 owner/dept 谓词过滤。 */
+    /**
+     * 分页查询历史记录（作用域版）。{@code permission==null}/{@code admin=true} → 全局；否则按 owner/dept 谓词过滤。
+     */
     List<ExamHistory> listPageScoped(int limit, int offset, Permission permission);
 
-    /** 统计历史记录总数（作用域版）。 */
+    /**
+     * 统计历史记录总数（作用域版）。
+     */
     long countAllScoped(Permission permission);
 
-    /** 待校对队列分页（作用域版）。 */
+    /**
+     * 待校对队列分页（作用域版）。
+     */
     List<ExamHistory> listReviewPendingScoped(int limit, int offset, Permission permission);
 
-    /** 待校对队列总数（作用域版）。 */
+    /**
+     * 待校对队列总数（作用域版）。
+     */
     long countReviewPendingScoped(Permission permission);
 }

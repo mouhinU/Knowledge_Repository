@@ -18,31 +18,47 @@ import lombok.Setter;
 @Setter
 public class SearchCmd {
 
-    /** 查询文本 */
+    /**
+     * 查询文本
+     */
     private String query;
 
-    /** 用户 ID —— 服务端令牌回读，禁止反序列化 */
+    /**
+     * 用户 ID —— 服务端令牌回读，禁止反序列化
+     */
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String userId;
 
-    /** 部门 ID —— 服务端令牌回读，禁止反序列化 */
+    /**
+     * 部门 ID —— 服务端令牌回读，禁止反序列化
+     */
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String departmentId;
 
-    /** 角色（逗号分隔）—— 服务端令牌回读，禁止反序列化 */
+    /**
+     * 角色（逗号分隔）—— 服务端令牌回读，禁止反序列化
+     */
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String roles;
 
-    /** 是否超级管理员 —— 服务端令牌回读，禁止反序列化 */
+    /**
+     * 是否超级管理员 —— 服务端令牌回读，禁止反序列化
+     */
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private boolean admin;
 
-    /** 最大返回数量（null 用默认） */
+    /**
+     * 最大返回数量（null 用默认）
+     */
     private Integer maxResults;
 
-    /** 最低相似度（null 用默认） */
+    /**
+     * 最低相似度（null 用默认）
+     */
     private Double minScore;
 
-    /** 分类过滤（null / 空表示不过滤） */
+    /**
+     * 分类过滤（null / 空表示不过滤）
+     */
     private String category;
 }

@@ -1,7 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome;
 import com.mouhin.knowledge.repository.application.service.ProvisioningStateMachine;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
@@ -14,9 +12,6 @@ import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningStep;
 import com.mouhin.knowledge.repository.infrastructure.observability.Slf4jPlatformAuditLog;
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantGatewayImpl;
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantProvisionStepGatewayImpl;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -28,6 +23,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * P3-T2 租户开通状态机端到端集成测试（H2 MODE=MySQL，无需 Docker）。
@@ -52,6 +53,15 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(classes = TenantProvisioningIntegrationTest.TestConfig.class)
 class TenantProvisioningIntegrationTest {
 
+    @Autowired
+    private TenantGateway tenantGateway;
+    @Autowired
+    private TenantProvisionStepGateway stepGateway;
+    @Autowired
+    private PlatformAuditLog auditLog;
+    @Autowired
+    private CountingStep countingStep;
+
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
         registry.add(
@@ -67,72 +77,6 @@ class TenantProvisioningIntegrationTest {
         registry.add("knowledge.saas.enabled", () -> "false");
     }
 
-    /** 最小 Spring 上下文：DataSource / Flyway / MyBatis-Plus / 两个真实 Gateway / 状态机 / 审计。 */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({
-        TenantGatewayImpl.class,
-        TenantProvisionStepGatewayImpl.class,
-        Slf4jPlatformAuditLog.class,
-        ProvisioningStateMachine.class
-    })
-    static class TestConfig {
-
-        /** 计数步骤：记录执行次数，验证幂等跳过。 */
-        @Bean
-        CountingStep countingStep() {
-            return new CountingStep();
-        }
-    }
-
-    /** 可计数的成功步骤（order=150，排在 ValidateTenantStep 之后）。 */
-    static class CountingStep implements ProvisioningStep {
-        final AtomicInteger executions = new AtomicInteger();
-
-        @Override
-        public String name() {
-            return "COUNTING_STEP";
-        }
-
-        @Override
-        public int order() {
-            return 150;
-        }
-
-        @Override
-        public void execute(ProvisioningContext context) {
-            executions.incrementAndGet();
-        }
-    }
-
-    /** 首次失败、之后成功的步骤，用于模拟"中断后重试"。 */
-    static class FlakyStep implements ProvisioningStep {
-        final AtomicInteger executions = new AtomicInteger();
-
-        @Override
-        public String name() {
-            return "FLAKY_STEP";
-        }
-
-        @Override
-        public int order() {
-            return 300;
-        }
-
-        @Override
-        public void execute(ProvisioningContext context) {
-            if (executions.incrementAndGet() == 1) {
-                throw new IllegalStateException("simulated transient failure");
-            }
-        }
-    }
-
-    @Autowired private TenantGateway tenantGateway;
-    @Autowired private TenantProvisionStepGateway stepGateway;
-    @Autowired private PlatformAuditLog auditLog;
-    @Autowired private CountingStep countingStep;
-
     private Tenant newPendingTenant(String key) {
         Tenant t = new Tenant();
         t.setTenantKey(key);
@@ -145,7 +89,9 @@ class TenantProvisioningIntegrationTest {
         return t;
     }
 
-    /** 构造一个只含指定步骤的状态机（复用真实网关 + 审计）。 */
+    /**
+     * 构造一个只含指定步骤的状态机（复用真实网关 + 审计）。
+     */
     private ProvisioningStateMachine machineWith(ProvisioningStep... steps) {
         return new ProvisioningStateMachine(tenantGateway, stepGateway, auditLog, List.of(steps));
     }
@@ -249,5 +195,74 @@ class TenantProvisioningIntegrationTest {
         long countingRows =
                 allSteps.stream().filter(s -> "COUNTING_STEP".equals(s.getStepName())).count();
         assertThat(countingRows).isEqualTo(1);
+    }
+
+    /**
+     * 最小 Spring 上下文：DataSource / Flyway / MyBatis-Plus / 两个真实 Gateway / 状态机 / 审计。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({
+            TenantGatewayImpl.class,
+            TenantProvisionStepGatewayImpl.class,
+            Slf4jPlatformAuditLog.class,
+            ProvisioningStateMachine.class
+    })
+    static class TestConfig {
+
+        /**
+         * 计数步骤：记录执行次数，验证幂等跳过。
+         */
+        @Bean
+        CountingStep countingStep() {
+            return new CountingStep();
+        }
+    }
+
+    /**
+     * 可计数的成功步骤（order=150，排在 ValidateTenantStep 之后）。
+     */
+    static class CountingStep implements ProvisioningStep {
+        final AtomicInteger executions = new AtomicInteger();
+
+        @Override
+        public String name() {
+            return "COUNTING_STEP";
+        }
+
+        @Override
+        public int order() {
+            return 150;
+        }
+
+        @Override
+        public void execute(ProvisioningContext context) {
+            executions.incrementAndGet();
+        }
+    }
+
+    /**
+     * 首次失败、之后成功的步骤，用于模拟"中断后重试"。
+     */
+    static class FlakyStep implements ProvisioningStep {
+        final AtomicInteger executions = new AtomicInteger();
+
+        @Override
+        public String name() {
+            return "FLAKY_STEP";
+        }
+
+        @Override
+        public int order() {
+            return 300;
+        }
+
+        @Override
+        public void execute(ProvisioningContext context) {
+            if (executions.incrementAndGet() == 1) {
+                throw new IllegalStateException("simulated transient failure");
+            }
+        }
     }
 }

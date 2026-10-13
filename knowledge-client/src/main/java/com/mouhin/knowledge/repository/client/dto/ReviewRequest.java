@@ -13,12 +13,18 @@ import lombok.Setter;
 @Setter
 public class ReviewRequest {
 
-    /** 复核分数 */
+    /**
+     * 复核分数
+     */
     private Integer reviewScore;
 
-    /** 复核反馈 */
+    /**
+     * 复核反馈
+     */
     private String reviewFeedback;
 
-    /** 复核人 */
+    /**
+     * 复核人
+     */
     private String reviewer;
 }

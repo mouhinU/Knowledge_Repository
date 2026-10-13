@@ -17,24 +17,27 @@ import java.util.regex.Pattern;
  */
 public final class ExamAnswerNormalizer {
 
-    private ExamAnswerNormalizer() {}
-
-    /** 解释性标记：出现在答案串中时，标记及其之后的内容视为「解析 / 理由」，不属于答案本体。 覆盖【解析】/【分析】/【解答】括号式与「解析：」「理由：」等带冒号写法。 */
+    /**
+     * 解释性标记：出现在答案串中时，标记及其之后的内容视为「解析 / 理由」，不属于答案本体。 覆盖【解析】/【分析】/【解答】括号式与「解析：」「理由：」等带冒号写法。
+     */
     private static final Pattern EXPLANATION_MARKER =
-            Pattern.compile(
-                    "(?:【\\s*(?:答案)?(?:解析|分析|解答|说明|理由)\\s*】"
-                            + "|(?:答案解释|参考解析|本题解析|解析|分析|解答|说明|理由|为什么)\\s*[：:])");
-
-    /** 答案本体尾部残留的分隔 / 标点，予以剥离。 */
+            Pattern.compile("(?:【\\s*(?:答案)?(?:解析|分析|解答|说明|理由)\\s*】"
+                    + "|(?:答案解释|参考解析|本题解析|解析|分析|解答|说明|理由|为什么)\\s*[：:])");
+    /**
+     * 答案本体尾部残留的分隔 / 标点，予以剥离。
+     */
     private static final Pattern TRAILING_PUNCT = Pattern.compile("[\\s。.，,、；;：:（）()【】*＊]+$");
+    /**
+     * 判断题「正确」同义记号（归一到 TRUE）。
+     */
+    private static final Set<String> TRUE_TOKENS = Set.of("正确", "对", "是", "√", "✓", "T", "TRUE", "YES", "Y");
+    /**
+     * 判断题「错误」同义记号（归一到 FALSE）。
+     */
+    private static final Set<String> FALSE_TOKENS = Set.of("错误", "错", "否", "×", "✗", "✕", "X", "F", "FALSE", "NO", "N");
 
-    /** 判断题「正确」同义记号（归一到 TRUE）。 */
-    private static final Set<String> TRUE_TOKENS =
-            Set.of("正确", "对", "是", "√", "✓", "T", "TRUE", "YES", "Y");
-
-    /** 判断题「错误」同义记号（归一到 FALSE）。 */
-    private static final Set<String> FALSE_TOKENS =
-            Set.of("错误", "错", "否", "×", "✗", "✕", "X", "F", "FALSE", "NO", "N");
+    private ExamAnswerNormalizer() {
+    }
 
     /**
      * 提取答案头部：截断到第一个解释标记之前，并剥离尾随标点 / 空白。

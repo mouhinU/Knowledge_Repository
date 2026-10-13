@@ -1,10 +1,12 @@
 package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -16,9 +18,8 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PlatformIdpTokenGatewayImpl} RS256/JWKS 验签单元测试（P3-T7 / C-3=方案 B）。
@@ -45,6 +46,14 @@ class PlatformIdpTokenGatewayImplTest {
     private String modulusB64Url;
     private String exponentB64Url;
 
+    private static String unsignedBase64Url(BigInteger value) {
+        byte[] bytes = value.toByteArray();
+        if (bytes.length > 1 && bytes[0] == 0) {
+            bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
@@ -60,15 +69,17 @@ class PlatformIdpTokenGatewayImplTest {
         return new PlatformIdpTokenGatewayImpl(ISSUER, AUDIENCE, null, SKEW, provider);
     }
 
-    /** 提供已知 KID 的公钥；其它 kid 返回空。 */
+    // ==================== 正向 ====================
+
+    /**
+     * 提供已知 KID 的公钥；其它 kid 返回空。
+     */
     private JwkSetProvider providerWithTestKey() {
         return kid ->
                 KID.equals(kid)
                         ? Optional.of(new RsaJwk(KID, modulusB64Url, exponentB64Url))
                         : Optional.empty();
     }
-
-    // ==================== 正向 ====================
 
     @Test
     @DisplayName("合法 RS256 令牌 → 通过并归一 sub/preferred_username/exp")
@@ -91,6 +102,8 @@ class PlatformIdpTokenGatewayImplTest {
         assertThat(result.get().expiresAt()).isEqualTo(Instant.ofEpochSecond(exp));
     }
 
+    // ==================== 反向 ====================
+
     @Test
     @DisplayName("aud 为数组且命中配置受众 → 通过")
     void audienceAsArrayContainingConfiguredPasses() throws Exception {
@@ -101,8 +114,6 @@ class PlatformIdpTokenGatewayImplTest {
 
         assertThat(gateway(providerWithTestKey()).verify(token)).isPresent();
     }
-
-    // ==================== 反向 ====================
 
     @Test
     @DisplayName("签名被篡改 → 拒")
@@ -179,6 +190,8 @@ class PlatformIdpTokenGatewayImplTest {
         assertThat(gateway(providerWithTestKey()).verify(token)).isEmpty();
     }
 
+    // ==================== 测试辅助 ====================
+
     @Test
     @DisplayName("非三段 / 空令牌 → 拒（不抛）")
     void malformedTokenRejected() {
@@ -188,8 +201,6 @@ class PlatformIdpTokenGatewayImplTest {
         assertThat(gateway.verify("a.b")).isEmpty();
     }
 
-    // ==================== 测试辅助 ====================
-
     private ObjectNode header() {
         ObjectNode header = mapper.createObjectNode();
         header.put("alg", "RS256");
@@ -198,7 +209,9 @@ class PlatformIdpTokenGatewayImplTest {
         return header;
     }
 
-    /** 一份默认合法载荷（iss/aud/sub/exp 均满足），供各反向用例逐字段改坏。 */
+    /**
+     * 一份默认合法载荷（iss/aud/sub/exp 均满足），供各反向用例逐字段改坏。
+     */
     private ObjectNode basePayload() {
         ObjectNode payload = mapper.createObjectNode();
         payload.put("iss", ISSUER);
@@ -209,7 +222,9 @@ class PlatformIdpTokenGatewayImplTest {
         return payload;
     }
 
-    /** 用测试私钥对 {@code header.payload} 做 SHA256withRSA 签名，拼出三段 JWT。 */
+    /**
+     * 用测试私钥对 {@code header.payload} 做 SHA256withRSA 签名，拼出三段 JWT。
+     */
     private String sign(ObjectNode header, ObjectNode payload) throws Exception {
         String signingInput =
                 b64.encodeToString(mapper.writeValueAsBytes(header))
@@ -219,13 +234,5 @@ class PlatformIdpTokenGatewayImplTest {
         signature.initSign(privateKey);
         signature.update(signingInput.getBytes(StandardCharsets.UTF_8));
         return signingInput + "." + b64.encodeToString(signature.sign());
-    }
-
-    private static String unsignedBase64Url(BigInteger value) {
-        byte[] bytes = value.toByteArray();
-        if (bytes.length > 1 && bytes[0] == 0) {
-            bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
-        }
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

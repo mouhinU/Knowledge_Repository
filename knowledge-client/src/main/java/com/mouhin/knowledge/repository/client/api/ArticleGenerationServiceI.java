@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.client.api;
 
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
+
 import java.util.List;
 
 /**

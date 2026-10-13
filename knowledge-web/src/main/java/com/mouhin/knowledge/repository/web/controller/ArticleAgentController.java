@@ -7,15 +7,16 @@ import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * AI 文章生成控制器
@@ -26,7 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *   <li>GET /api/agent/article/progress/{sessionId} → 建立 SSE 连接（先连接）
  *   <li>POST /api/agent/article/generate → 启动生成，返回 sessionId
  * </ol>
- *
+ * <p>
  * 前端先建立 SSE 连接，再发送 POST 启动生成，确保不丢失任何进度事件。
  *
  * @author mouhinU

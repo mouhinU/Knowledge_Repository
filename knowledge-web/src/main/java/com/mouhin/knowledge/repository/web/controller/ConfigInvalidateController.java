@@ -28,7 +28,9 @@ public class ConfigInvalidateController {
         this.systemConfigService = systemConfigService;
     }
 
-    /** 手工失效指定租户的配置缓存（Redis pub/sub 广播 + 本实例即时清除）。 */
+    /**
+     * 手工失效指定租户的配置缓存（Redis pub/sub 广播 + 本实例即时清除）。
+     */
     @PostMapping("/invalidate")
     public ResponseEntity<Void> invalidate(@RequestParam String tenantKey) {
         if (tenantKey == null || tenantKey.isBlank()) {

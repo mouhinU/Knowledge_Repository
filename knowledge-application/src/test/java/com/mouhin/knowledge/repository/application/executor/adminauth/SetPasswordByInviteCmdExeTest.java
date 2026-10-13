@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
@@ -19,13 +8,19 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link SetPasswordByInviteCmdExe} 单元测试（P3-T3 邀请式设密）。

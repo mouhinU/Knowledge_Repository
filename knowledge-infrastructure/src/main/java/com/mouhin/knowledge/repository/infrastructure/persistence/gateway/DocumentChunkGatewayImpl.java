@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.DocumentChunkConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentChunkDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DocumentChunkMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * 文档分块仓储实现

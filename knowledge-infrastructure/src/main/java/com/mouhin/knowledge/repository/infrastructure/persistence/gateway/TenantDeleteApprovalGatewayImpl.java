@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.TenantDeleteApproval;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.TenantDeleteApprovalConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDeleteApprovalDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantDeleteApprovalMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * {@link TenantDeleteApprovalGateway} MyBatis-Plus 实现（P3-T5）。

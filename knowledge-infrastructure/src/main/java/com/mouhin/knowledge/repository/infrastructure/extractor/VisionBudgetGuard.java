@@ -1,9 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import java.time.LocalDate;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 视觉成本护栏（Phase D）。
@@ -24,9 +25,9 @@ public class VisionBudgetGuard {
     /**
      * 尝试消费 {@code pages} 页视觉预算。
      *
-     * @param pages 本次拟处理的页数
+     * @param pages      本次拟处理的页数
      * @param dailyLimit 全局每日页数上限
-     * @param enforce true=超限拦截；false=仅告警不拦截
+     * @param enforce    true=超限拦截；false=仅告警不拦截
      * @return 允许处理返回 {@code true}；{@code enforce} 且超限返回 {@code false}
      */
     public synchronized boolean tryConsume(int pages, int dailyLimit, boolean enforce) {
@@ -46,7 +47,9 @@ public class VisionBudgetGuard {
         return true;
     }
 
-    /** 当日已消费页数（供观测/测试）。 */
+    /**
+     * 当日已消费页数（供观测/测试）。
+     */
     public long usedToday() {
         rollWindowIfNeeded();
         return usedPagesToday.get();

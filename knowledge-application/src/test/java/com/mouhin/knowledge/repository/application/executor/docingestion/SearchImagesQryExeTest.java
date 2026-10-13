@@ -1,21 +1,17 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 全局配图检索查询执行器单测：锁定分页参数钳制（limit∈[1,200] / offset≥0）、keyword/documentKey 空白归一为 null（走全量最新序）、 VO

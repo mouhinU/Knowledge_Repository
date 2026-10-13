@@ -2,18 +2,15 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
-import com.mouhin.knowledge.repository.client.dto.ExamAnswerDTO;
-import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
-import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
-import com.mouhin.knowledge.repository.client.dto.SaveAnswersRequest;
-import com.mouhin.knowledge.repository.client.dto.StartExamRequest;
+import com.mouhin.knowledge.repository.client.dto.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 /**
  * 在线做题控制器
@@ -55,7 +52,9 @@ public class ExamTakingController {
         return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit, token));
     }
 
-    /** 开始考试 */
+    /**
+     * 开始考试
+     */
     @PostMapping("/start")
     public ResponseEntity<Map<String, Object>> startExam(@RequestBody StartExamRequest request) {
         try {
@@ -84,18 +83,18 @@ public class ExamTakingController {
                             "sessionKey", session.getSessionKey(),
                             "topic", session.getTopic(),
                             "questionsJson",
-                                    session.getQuestionsJson() != null
-                                            ? session.getQuestionsJson()
-                                            : "[]",
+                            session.getQuestionsJson() != null
+                                    ? session.getQuestionsJson()
+                                    : "[]",
                             "totalScore", session.getTotalScore(),
                             "durationMinutes",
-                                    session.getDurationMinutes() != null
-                                            ? session.getDurationMinutes()
-                                            : 0,
+                            session.getDurationMinutes() != null
+                                    ? session.getDurationMinutes()
+                                    : 0,
                             "validation",
-                                    examTakingService
-                                            .validateReport(session.getQuestionsJson())
-                                            .getData(),
+                            examTakingService
+                                    .validateReport(session.getQuestionsJson())
+                                    .getData(),
                             "startTime", session.getStartTime().toString(),
                             "serverNow", LocalDateTime.now().toString()));
         } catch (IllegalArgumentException e) {
@@ -103,7 +102,9 @@ public class ExamTakingController {
         }
     }
 
-    /** 保存答题（断点续答） */
+    /**
+     * 保存答题（断点续答）
+     */
     @PostMapping("/{sessionKey}/save")
     public ResponseEntity<Map<String, String>> saveAnswers(
             @PathVariable String sessionKey, @RequestBody SaveAnswersRequest request) {
@@ -115,7 +116,9 @@ public class ExamTakingController {
         }
     }
 
-    /** 交卷 */
+    /**
+     * 交卷
+     */
     @PostMapping("/{sessionKey}/submit")
     public ResponseEntity<Map<String, Object>> submitExam(
             @PathVariable String sessionKey,
@@ -133,7 +136,9 @@ public class ExamTakingController {
         }
     }
 
-    /** 获取考试详情 */
+    /**
+     * 获取考试详情
+     */
     @GetMapping("/{sessionKey}")
     public ResponseEntity<Map<String, Object>> getSession(
             @PathVariable String sessionKey,
@@ -173,7 +178,9 @@ public class ExamTakingController {
         }
     }
 
-    /** 获取答题记录（含评分） */
+    /**
+     * 获取答题记录（含评分）
+     */
     @GetMapping("/{sessionKey}/answers")
     public ResponseEntity<List<ExamAnswerDTO>> getAnswers(
             @PathVariable String sessionKey,
@@ -187,7 +194,9 @@ public class ExamTakingController {
         }
     }
 
-    /** 查询我的考试历史 */
+    /**
+     * 查询我的考试历史
+     */
     @GetMapping("/my-sessions")
     public ResponseEntity<List<ExamSessionDTO>> mySessions(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {

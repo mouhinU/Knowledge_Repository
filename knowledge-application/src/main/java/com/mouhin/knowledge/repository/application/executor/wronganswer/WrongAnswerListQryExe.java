@@ -9,14 +9,11 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 错题列表核心查询执行器（app 层用例）
@@ -30,11 +27,15 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class WrongAnswerListQryExe {
 
-    /** 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED） */
+    /**
+     * 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED）
+     */
     private static final List<String> GRADED_STATUSES =
             List.of("AI_GRADED", "REVIEWED", "PUBLISHED");
 
-    /** 缺省考生名 */
+    /**
+     * 缺省考生名
+     */
     private static final String UNKNOWN_STUDENT = "未知考生";
 
     private final ExamAnswerGateway examAnswerGateway;
@@ -126,7 +127,9 @@ public class WrongAnswerListQryExe {
         return result;
     }
 
-    /** 查询已评分的场次（支持按考生和主题过滤） */
+    /**
+     * 查询已评分的场次（支持按考生和主题过滤）
+     */
     private List<ExamSession> findGradedSessions(Long studentId, String topic) {
         List<ExamSession> sessions;
         if (studentId != null) {
@@ -144,15 +147,17 @@ public class WrongAnswerListQryExe {
                                     s ->
                                             s.getTopic() != null
                                                     && s.getTopic()
-                                                            .toLowerCase()
-                                                            .contains(lowerTopic))
+                                                    .toLowerCase()
+                                                    .contains(lowerTopic))
                             .toList();
         }
 
         return sessions;
     }
 
-    /** 批量解析考生名称 */
+    /**
+     * 批量解析考生名称
+     */
     private Map<Long, String> resolveStudentNames(List<Long> studentIds) {
         Map<Long, String> names = new HashMap<>(studentIds.size());
         for (Long id : studentIds) {

@@ -8,13 +8,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * 平台端令牌鉴权过滤器（adapter 层，P3-T1 / T-4 方案 B）。
@@ -40,13 +41,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 public class PlatformTokenAuthFilter extends OncePerRequestFilter {
 
-    /** 平台端令牌请求头。 */
+    /**
+     * 平台端令牌请求头。
+     */
     public static final String TOKEN_HEADER = "X-Platform-Token";
 
-    /** 校验成功后平台操作者载荷落到请求属性的键，供 controller 读取注入审计。 */
+    /**
+     * 校验成功后平台操作者载荷落到请求属性的键，供 controller 读取注入审计。
+     */
     public static final String PRINCIPAL_ATTRIBUTE = "knowledge.platform.principal";
 
-    /** 本过滤器唯一拦截的路径前缀。 */
+    /**
+     * 本过滤器唯一拦截的路径前缀。
+     */
     public static final String PLATFORM_PREFIX = "/api/platform/";
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -54,7 +61,9 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
 
     private final PlatformJwtService platformJwtService;
 
-    /** 企业 IdP 令牌校验器（P3-T7，可空）：{@code oidc.enabled=false} 或未装配时缺席，平台端仅走本地 JWT。 */
+    /**
+     * 企业 IdP 令牌校验器（P3-T7，可空）：{@code oidc.enabled=false} 或未装配时缺席，平台端仅走本地 JWT。
+     */
     private final PlatformIdpTokenService idpTokenService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

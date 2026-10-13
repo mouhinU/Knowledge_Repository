@@ -4,8 +4,9 @@ import com.mouhin.knowledge.repository.application.executor.articlegeneration.Ge
 import com.mouhin.knowledge.repository.application.executor.articlegeneration.ListHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ArticleGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.WritingHistoryDTO;
-import java.util.List;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * AI 文章生成应用服务实现（app 层，仅分发到执行器）

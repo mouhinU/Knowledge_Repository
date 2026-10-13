@@ -7,11 +7,12 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 从历史试卷开考命令执行器（app 层用例，事务边界）

@@ -33,7 +33,9 @@ public class AgentDecoratorRegistrar {
         this.metrics = metrics;
     }
 
-    /** 将 Agent 包装为带审计 + 指标的装饰版本。幂等：若已是装饰器则直接返回。 */
+    /**
+     * 将 Agent 包装为带审计 + 指标的装饰版本。幂等：若已是装饰器则直接返回。
+     */
     public BlackboardAgent wrap(BlackboardAgent agent) {
         if (agent instanceof BlackboardAgentDecorator) {
             return agent;

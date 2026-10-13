@@ -16,18 +16,14 @@ import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import jakarta.annotation.PreDestroy;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 考试评分支撑组件（app 层）
@@ -46,32 +42,42 @@ public class ExamGradingSupport {
 
     private static final String AI_GRADING_SYSTEM_PROMPT =
             """
-            你是一位专业的考试阅卷老师。请根据题目、参考答案和学生的回答进行评分。
+                    你是一位专业的考试阅卷老师。请根据题目、参考答案和学生的回答进行评分。
+                    
+                    评分要求：
+                    1. 严格按照满分上限评分，不能超过满分
+                    2. 给出合理的分数和简短的评分理由
+                    3. 如果学生未作答，给 0 分
+                    4. 答案意思相近即可给分，不要求与参考答案完全一致
+                    
+                    请严格按以下格式输出：
+                    分数：X
+                    理由：XXX
+                    """;
 
-            评分要求：
-            1. 严格按照满分上限评分，不能超过满分
-            2. 给出合理的分数和简短的评分理由
-            3. 如果学生未作答，给 0 分
-            4. 答案意思相近即可给分，不要求与参考答案完全一致
-
-            请严格按以下格式输出：
-            分数：X
-            理由：XXX
-            """;
-
-    /** 匹配 AI 返回的分数 */
+    /**
+     * 匹配 AI 返回的分数
+     */
     private static final Pattern SCORE_PATTERN = Pattern.compile("分数[：:]\\s*(\\d+)");
 
-    /** 匹配 AI 返回的理由 */
+    /**
+     * 匹配 AI 返回的理由
+     */
     private static final Pattern REASON_PATTERN = Pattern.compile("理由[：:]\\s*(.+)", Pattern.DOTALL);
 
-    /** 关闭评分 Agent 线程池时等待在途任务收尾的秒数 */
+    /**
+     * 关闭评分 Agent 线程池时等待在途任务收尾的秒数
+     */
     private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
 
-    /** 场次状态：已交卷，待评分 */
+    /**
+     * 场次状态：已交卷，待评分
+     */
     private static final String STATUS_SUBMITTED = "SUBMITTED";
 
-    /** 场次状态：AI 评分完成（终态之一） */
+    /**
+     * 场次状态：AI 评分完成（终态之一）
+     */
     private static final String STATUS_AI_GRADED = "AI_GRADED";
 
     private final ExamSessionGateway examSessionGateway;
@@ -101,7 +107,9 @@ public class ExamGradingSupport {
         this.agentExecutor = AgentExecutorFactory.newTenantAwareAgentPool("exam-grading");
     }
 
-    /** 容器优雅停机时关闭评分异步线程池：先温和 shutdown 拒绝新任务， 给在途评分留出短暂收尾窗口，超时则强制中断，杜绝停机后遗留在跑线程。 */
+    /**
+     * 容器优雅停机时关闭评分异步线程池：先温和 shutdown 拒绝新任务， 给在途评分留出短暂收尾窗口，超时则强制中断，杜绝停机后遗留在跑线程。
+     */
     @PreDestroy
     public void shutdown() {
         agentExecutor.shutdown();
@@ -122,7 +130,7 @@ public class ExamGradingSupport {
      * <p>事务边界由调用方执行器持有（同步路径 {@code @Transactional}，异步路径无事务）。
      *
      * @param sessionId 考试场次 ID
-     * @param callback 进度回调，null 表示静默模式
+     * @param callback  进度回调，null 表示静默模式
      */
     public void gradeExamInternal(Long sessionId, ExamGradingProgressCallback callback) {
 
@@ -342,7 +350,7 @@ public class ExamGradingSupport {
      * 异步评分：在虚拟线程中执行，通过回调上报每题输入 / 原始输出 / 得分。
      *
      * @param sessionId 考试场次 ID
-     * @param callback 进度回调，可为 null
+     * @param callback  进度回调，可为 null
      */
     public void gradeExamAsync(Long sessionId, ExamGradingProgressCallback callback) {
         try {
@@ -384,7 +392,7 @@ public class ExamGradingSupport {
      * 异步触发 AI 评分：立即返回，评分过程通过回调上报每题输入 / 原始输出。
      *
      * @param sessionId 考试场次 ID
-     * @param callback 进度回调
+     * @param callback  进度回调
      */
     public void triggerGradingAsync(Long sessionId, ExamGradingProgressCallback callback) {
         try {
@@ -416,7 +424,7 @@ public class ExamGradingSupport {
      *
      * <p>包级可见以便 golden-file 回归基线测试直接调用（0-A），不改变任何评分逻辑。
      *
-     * @param answer 待评分的答题记录
+     * @param answer   待评分的答题记录
      * @param callback 进度回调（可为 null）
      */
     void gradeObjective(ExamAnswer answer, ExamGradingProgressCallback callback) {
@@ -504,7 +512,9 @@ public class ExamGradingSupport {
                         + "）");
     }
 
-    /** 组装客观题的 trace 输入（题目 / 期望 / 实际） */
+    /**
+     * 组装客观题的 trace 输入（题目 / 期望 / 实际）
+     */
     private String buildObjectiveInput(ExamAnswer answer) {
         StringBuilder sb = new StringBuilder();
         sb.append("[客观题自动比对 · 无需 LLM]\n");
@@ -524,7 +534,9 @@ public class ExamGradingSupport {
         return sb.toString();
     }
 
-    /** 主观题 AI 评分 */
+    /**
+     * 主观题 AI 评分
+     */
     private void gradeSubjectiveWithAi(
             ExamAnswer answer, ExamSession session, ExamGradingProgressCallback callback) {
         int qIdx = answer.getQuestionIndex() != null ? answer.getQuestionIndex() : 0;
@@ -638,7 +650,7 @@ public class ExamGradingSupport {
      *   <li>其他：trim + 全半角 + 去空白 + 大写
      * </ul>
      *
-     * @param raw 原始答案字符串
+     * @param raw          原始答案字符串
      * @param questionType 题型 key
      * @return 规范化后的比较用字符串（null 入参返回 null）
      */
@@ -679,7 +691,9 @@ public class ExamGradingSupport {
                 .toString();
     }
 
-    /** 解析多选字母集合：从已规范化的纯字母串拆为 Set。 */
+    /**
+     * 解析多选字母集合：从已规范化的纯字母串拆为 Set。
+     */
     private Set<Character> parseChoiceSet(String normalized) {
         if (normalized == null || normalized.isBlank()) {
             return Collections.emptySet();
@@ -693,7 +707,9 @@ public class ExamGradingSupport {
         return set;
     }
 
-    /** 全角字符 → 半角（仅处理常见全角 ASCII 范围 0xFF01-0xFF5E，以及全角空格 0x3000）。 */
+    /**
+     * 全角字符 → 半角（仅处理常见全角 ASCII 范围 0xFF01-0xFF5E，以及全角空格 0x3000）。
+     */
     private String toHalfWidth(String s) {
         if (s == null) {
             return null;

@@ -1,17 +1,18 @@
 package com.mouhin.knowledge.repository.infrastructure.llm;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.mouhin.knowledge.repository.infrastructure.config.LlmResilienceProperties;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link LlmResilience} 契约测试（Phase R2）：验证 per-role 重试 / 熔断 / 隔离 / 指标。
@@ -28,7 +29,9 @@ class LlmResilienceTest {
         registry = new SimpleMeterRegistry();
     }
 
-    /** 默认角色配置（chat 重试 3 次），仅把 chat 退避压到 1ms 保证测试快。 */
+    /**
+     * 默认角色配置（chat 重试 3 次），仅把 chat 退避压到 1ms 保证测试快。
+     */
     private LlmResilienceProperties defaultProps() {
         LlmResilienceProperties props = new LlmResilienceProperties();
         props.getChat().getRetry().setWaitDurationMs(1L);
@@ -65,13 +68,13 @@ class LlmResilienceTest {
             LlmResilience resilience = new LlmResilience(defaultProps(), registry);
             AtomicInteger calls = new AtomicInteger();
             assertThatThrownBy(
-                            () ->
-                                    resilience.run(
-                                            "chat-stream",
-                                            () -> {
-                                                calls.incrementAndGet();
-                                                throw new RuntimeException("boom");
-                                            }))
+                    () ->
+                            resilience.run(
+                                    "chat-stream",
+                                    () -> {
+                                        calls.incrementAndGet();
+                                        throw new RuntimeException("boom");
+                                    }))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("boom");
             assertThat(calls.get()).isEqualTo(1);
@@ -82,7 +85,9 @@ class LlmResilienceTest {
     @DisplayName("熔断")
     class CircuitBreaker {
 
-        /** chat 关闭重试 + 小窗口，便于在两次失败后即开闸。 */
+        /**
+         * chat 关闭重试 + 小窗口，便于在两次失败后即开闸。
+         */
         private LlmResilienceProperties openAfterTwo() {
             LlmResilienceProperties props = defaultProps();
             props.getChat().getRetry().setMaxAttempts(1);
@@ -101,26 +106,26 @@ class LlmResilienceTest {
             AtomicInteger calls = new AtomicInteger();
             for (int i = 0; i < 2; i++) {
                 assertThatThrownBy(
-                                () ->
-                                        resilience.run(
-                                                "chat",
-                                                () -> {
-                                                    calls.incrementAndGet();
-                                                    throw new RuntimeException("down");
-                                                }))
+                        () ->
+                                resilience.run(
+                                        "chat",
+                                        () -> {
+                                            calls.incrementAndGet();
+                                            throw new RuntimeException("down");
+                                        }))
                         .isInstanceOf(RuntimeException.class)
                         .hasMessage("down");
             }
             assertThat(calls.get()).isEqualTo(2);
             // 第三次应被熔断器直接拒绝，calls 不再增长
             assertThatThrownBy(
-                            () ->
-                                    resilience.run(
-                                            "chat",
-                                            () -> {
-                                                calls.incrementAndGet();
-                                                return "never";
-                                            }))
+                    () ->
+                            resilience.run(
+                                    "chat",
+                                    () -> {
+                                        calls.incrementAndGet();
+                                        return "never";
+                                    }))
                     .isInstanceOf(CallNotPermittedException.class);
             assertThat(calls.get()).isEqualTo(2);
         }
@@ -131,12 +136,12 @@ class LlmResilienceTest {
             LlmResilience resilience = new LlmResilience(openAfterTwo(), registry);
             for (int i = 0; i < 2; i++) {
                 assertThatThrownBy(
-                                () ->
-                                        resilience.run(
-                                                "chat",
-                                                () -> {
-                                                    throw new RuntimeException("down");
-                                                }))
+                        () ->
+                                resilience.run(
+                                        "chat",
+                                        () -> {
+                                            throw new RuntimeException("down");
+                                        }))
                         .isInstanceOf(RuntimeException.class);
             }
             // chat 已 OPEN；embedding 独立熔断器，调用正常
@@ -156,10 +161,10 @@ class LlmResilienceTest {
             resilience.run("chat", () -> "ok");
 
             assertThat(
-                            registry.find("knowledge.llm.call")
-                                    .tag("role", "chat")
-                                    .tag("success", "true")
-                                    .timer())
+                    registry.find("knowledge.llm.call")
+                            .tag("role", "chat")
+                            .tag("success", "true")
+                            .timer())
                     .isNotNull();
             assertThat(registry.getMeters().stream())
                     .anyMatch(m -> m.getId().getName().startsWith("resilience4j.circuitbreaker"));

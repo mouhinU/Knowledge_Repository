@@ -1,10 +1,11 @@
 package com.mouhin.knowledge.repository.application.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 标准答案与评分标准 Markdown 解析器
@@ -27,32 +28,48 @@ public final class AnswerKeyParser {
      */
     private static final Pattern QNUM_HEADER = Pattern.compile("^#{0,6}\\s*第\\s*(\\d{1,3})\\s*题");
 
-    /** 题号标记（行首）：**1. 或 1. 或 1、 */
+    /**
+     * 题号标记（行首）：**1. 或 1. 或 1、
+     */
     private static final Pattern QNUM_INLINE = Pattern.compile("^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*");
 
-    /** 答案标记 */
+    /**
+     * 答案标记
+     */
     private static final Pattern ANSWER_MARK =
             Pattern.compile("\\*{0,2}(?:标准答案|参考答案|正确答案|答案)\\s*+[：:]\\s*+(.*)$");
 
-    /** 解析标记 */
+    /**
+     * 解析标记
+     */
     private static final Pattern ANALYSIS_MARK =
             Pattern.compile("\\*{0,2}(?:解析|分析|说明|理由)\\s*+[：:]\\s*+(.*)$");
 
-    /** 评分标准标记 */
+    /**
+     * 评分标准标记
+     */
     private static final Pattern CRITERIA_MARK =
             Pattern.compile("\\*{0,2}(?:评分标准|给分标准|赋分标准|得分标准|评分细则)\\s*+[：:]\\s*+(.*)$");
 
-    /** 通用「加粗标签」标记（如 **题目：** / **知识点：**），命中则切换到无归属状态 */
+    /**
+     * 通用「加粗标签」标记（如 **题目：** / **知识点：**），命中则切换到无归属状态
+     */
     private static final Pattern OTHER_LABEL_MARK = Pattern.compile("^\\*{1,2}[^*：:]{1,10}[：:]");
 
-    /** 标题行（# / ## / ###） */
+    /**
+     * 标题行（# / ## / ###）
+     */
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s");
 
-    /** 行首「分值」括注（含"分"字），用于从行内答案中剥离，如 （2分） / （共35分） */
+    /**
+     * 行首「分值」括注（含"分"字），用于从行内答案中剥离，如 （2分） / （共35分）
+     */
     private static final Pattern INLINE_SCORE_PAREN =
             Pattern.compile("^[（(【][^）)】分]*分[^）)】]*+[）)】]\\s*+");
 
-    /** 行内答案前可能残留的「答案：」类标签，剥离后只留答案本体 */
+    /**
+     * 行内答案前可能残留的「答案：」类标签，剥离后只留答案本体
+     */
     private static final Pattern ANSWER_LABEL_PREFIX =
             Pattern.compile("^(?:标准答案|参考答案|正确答案|答案)\\s*[：:]\\s*");
 
@@ -65,7 +82,8 @@ public final class AnswerKeyParser {
             Pattern.compile(
                     "^\\*{0,2}+\\s*+(?:示例|例题|参考答案|标准答案|正确答案|答案|解答|解析|分析|说明|理由)\\s*+[：:]?\\s*+\\*{0,2}+$");
 
-    private AnswerKeyParser() {}
+    private AnswerKeyParser() {
+    }
 
     /**
      * 解析标准答案 Markdown，返回题号 → 答案/解析/评分标准。
@@ -317,7 +335,9 @@ public final class AnswerKeyParser {
         return answers;
     }
 
-    /** 集合内容块 */
+    /**
+     * 集合内容块
+     */
     private enum Section {
         NONE,
         ANSWER,
@@ -328,9 +348,10 @@ public final class AnswerKeyParser {
     /**
      * 单题的答案、解析与评分标准
      *
-     * @param answer 标准答案（可能为空）
-     * @param analysis 解析 / 说明（可能为空）
+     * @param answer          标准答案（可能为空）
+     * @param analysis        解析 / 说明（可能为空）
      * @param scoringCriteria 评分标准（可能为空）
      */
-    public record QuestionKey(String answer, String analysis, String scoringCriteria) {}
+    public record QuestionKey(String answer, String analysis, String scoringCriteria) {
+    }
 }

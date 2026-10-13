@@ -6,9 +6,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 出卷研究员 Agent
@@ -26,18 +27,18 @@ public class ExamResearcherAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT =
             """
-            你是一个教育知识库研究员。你的任务是根据考试主题，从知识库检索结果中提取和组织关键知识点。
-
-            要求：
-            1. 仔细阅读每个知识片段，提取与考试主题直接相关的知识点
-            2. 按知识领域或主题分类组织，形成结构化的知识点清单
-            3. 标注每条知识点的来源文档
-            4. 评估每个知识点适合出什么类型的题目（概念题、应用题、分析题等）
-            5. 如果知识点不足以覆盖考试主题，明确指出缺失的知识领域
-            6. 保持客观准确，不要添加自己的推测
-
-            输出格式：使用 Markdown 格式，按知识领域分节组织。
-            """;
+                    你是一个教育知识库研究员。你的任务是根据考试主题，从知识库检索结果中提取和组织关键知识点。
+                    
+                    要求：
+                    1. 仔细阅读每个知识片段，提取与考试主题直接相关的知识点
+                    2. 按知识领域或主题分类组织，形成结构化的知识点清单
+                    3. 标注每条知识点的来源文档
+                    4. 评估每个知识点适合出什么类型的题目（概念题、应用题、分析题等）
+                    5. 如果知识点不足以覆盖考试主题，明确指出缺失的知识领域
+                    6. 保持客观准确，不要添加自己的推测
+                    
+                    输出格式：使用 Markdown 格式，按知识领域分节组织。
+                    """;
 
     private final BlackboardAgentStreamer agentStreamer;
 
@@ -86,13 +87,13 @@ public class ExamResearcherAgent implements BlackboardAgent {
         String userPrompt =
                 String.format(
                         """
-                考试主题：%s
-
-                以下是从知识库中检索到的相关片段：
-
-                %s
-                请提取和组织与考试主题相关的关键知识点，为出题提供知识基础。
-                """,
+                                考试主题：%s
+                                
+                                以下是从知识库中检索到的相关片段：
+                                
+                                %s
+                                请提取和组织与考试主题相关的关键知识点，为出题提供知识基础。
+                                """,
                         blackboard.getQuestion(), contextBuilder);
 
         String findings =

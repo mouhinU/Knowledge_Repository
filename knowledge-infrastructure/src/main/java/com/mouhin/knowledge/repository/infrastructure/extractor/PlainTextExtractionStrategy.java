@@ -5,14 +5,15 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandid
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 纯文本族解析策略（TXT / CSV / HTML / Markdown）。
@@ -26,7 +27,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PlainTextExtractionStrategy implements ContentExtractor {
 
-    /** 本策略命中的 MIME 类型。 */
+    /**
+     * 本策略命中的 MIME 类型。
+     */
     private static final Set<String> SUPPORTED_MIME_TYPES =
             Set.of("text/plain", "text/csv", "text/html", "text/markdown");
 

@@ -4,10 +4,10 @@
 **"万级规模 partition 剪枝时延复测"**，为 Phase 3 开工门禁清单
 [../../docs/saas-phase3-go-checklist.md](../../docs/saas-phase3-go-checklist.md) 三项决策提供实证：
 
-| 清单项 | 本 spike 提供的证据 |
-|---|---|
-| **S-3** 万级时延阈值 P95 | partition-key vs 普通标量全扫 vs LangChain4j JSON 谓词三条路径的 P50/P95/P99 时延分布 |
-| **S-2** 现网集合迁移策略 | 复刻 `knowledge_chunks` 的 `metadata` 单 JSON 列模型，评估双写 / 停机重灌 / 延后的插入成本 |
+| 清单项                                             | 本 spike 提供的证据                                                                                                                                      |
+|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| **S-3** 万级时延阈值 P95                              | partition-key vs 普通标量全扫 vs LangChain4j JSON 谓词三条路径的 P50/P95/P99 时延分布                                                                               |
+| **S-2** 现网集合迁移策略                                | 复刻 `knowledge_chunks` 的 `metadata` 单 JSON 列模型，评估双写 / 停机重灌 / 延后的插入成本                                                                                |
 | **T-2** partition-key schema 与 io.milvus SDK 兼容 | 用 SDK 原生 schema（`tenant_id Int64 isPartitionKey=true` + `metadata JSON` + `category VarChar` + `FloatVector 1024`）建集合，验证与 LangChain4j 现网集合同库共存可建可查 |
 
 ## 运行

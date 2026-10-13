@@ -11,10 +11,11 @@ import java.time.Instant;
  *
  * <p>纯 JDK 类型，不依赖任何基础设施。
  *
- * @param operatorId 平台操作者唯一标识（写入 JWT {@code sub} claim，用于审计溯源）
+ * @param operatorId   平台操作者唯一标识（写入 JWT {@code sub} claim，用于审计溯源）
  * @param operatorName 平台操作者展示名（写入 {@code username} claim）
- * @param expiresAt 令牌过期时刻
+ * @param expiresAt    令牌过期时刻
  * @author mouhinU
  * @date 2026-10-08
  */
-public record PlatformTokenPayload(String operatorId, String operatorName, Instant expiresAt) {}
+public record PlatformTokenPayload(String operatorId, String operatorName, Instant expiresAt) {
+}

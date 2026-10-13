@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.application.executor.wronganswer;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.StudentOptionVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 /**
  * 考生下拉选项查询执行器单测：锁定全量转换（id / username / displayName / studentNo 逐字段映射）与空库回空列表语义。

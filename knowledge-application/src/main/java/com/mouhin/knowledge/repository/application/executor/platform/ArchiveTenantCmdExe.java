@@ -9,10 +9,11 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * 平台端归档租户命令执行器（app 层用例，事务边界，P3-T5；S-4=方案 A 保留期起点）。
@@ -32,7 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ArchiveTenantCmdExe {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "TENANT_ARCHIVE";
 
     private final TenantGateway tenantGateway;

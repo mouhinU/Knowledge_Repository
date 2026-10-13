@@ -6,11 +6,12 @@ import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.web.security.AdminPrincipalSupport;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 知识库查询控制器（adapter 层）
@@ -73,7 +74,9 @@ public class KnowledgeQueryController {
         return ResponseEntity.ok(response);
     }
 
-    /** 获取知识库分类列表 */
+    /**
+     * 获取知识库分类列表
+     */
     @GetMapping("/categories")
     public ResponseEntity<List<Map<String, Object>>> listCategories() {
         List<Map<String, Object>> categories =

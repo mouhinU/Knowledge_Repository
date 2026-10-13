@@ -16,7 +16,8 @@ import java.security.NoSuchAlgorithmException;
  */
 public final class ExtractionSupport {
 
-    private ExtractionSupport() {}
+    private ExtractionSupport() {
+    }
 
     /**
      * 计算文件 SHA-256 校验和（内容寻址用途，非安全签名）

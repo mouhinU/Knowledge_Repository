@@ -1,19 +1,32 @@
 {
-  "annotations": {"list": []},
+  "annotations": {
+    "list": []
+  },
   "description": "文档解析可观测面板（Phase D）。数据源为 Prometheus 抓取 Spring Boot actuator；knowledge-web 已引入 micrometer-registry-prometheus 并暴露 /actuator/prometheus，可直接抓取。指标前缀 knowledge.extraction.*，标签仅 strategy/mime/outcome/reason/model，不含高基数字段。",
   "editable": true,
   "graphTooltip": 1,
   "schemaVersion": 39,
   "title": "文档解析可观测（Extraction）",
   "uid": "knowledge-extraction",
-  "tags": ["knowledge", "extraction"],
+  "tags": [
+    "knowledge",
+    "extraction"
+  ],
   "timezone": "browser",
   "panels": [
     {
       "type": "timeseries",
       "title": "解析调用量（按策略/结果）",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "targets": [
         {
           "expr": "sum by (strategy, outcome) (rate(knowledge_extraction_invocations_total[$__rate_interval]))",
@@ -24,8 +37,16 @@
     {
       "type": "timeseries",
       "title": "解析耗时 P50 / P95 / P99（按策略）",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum by (le, strategy) (rate(knowledge_extraction_latency_bucket[$__rate_interval])))",
@@ -44,8 +65,16 @@
     {
       "type": "timeseries",
       "title": "持久缓存命中 / 未命中",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "targets": [
         {
           "expr": "sum by (strategy) (rate(knowledge_extraction_cache_hit_total[$__rate_interval]))",
@@ -60,8 +89,16 @@
     {
       "type": "timeseries",
       "title": "视觉模型调用与失败（成本 / 稳定性）",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "targets": [
         {
           "expr": "sum by (model) (rate(knowledge_extraction_vision_invocations_total[$__rate_interval]))",
@@ -85,5 +122,8 @@
     ]
   },
   "refresh": "30s",
-  "time": {"from": "now-6h", "to": "now"}
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  }
 }

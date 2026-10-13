@@ -4,12 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.application.util.ParserUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 试卷内容渲染 Agent
@@ -33,13 +34,15 @@ public class ExamContentRenderAgent {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /** 默认每题分值（解析不到时使用） */
+    /**
+     * 默认每题分值（解析不到时使用）
+     */
     private static final int DEFAULT_MAX_SCORE = 5;
 
     /**
      * 渲染试卷为前端可用的结构化题目 JSON
      *
-     * @param examPaper 试卷 Markdown（用于回退解析与选项修复）
+     * @param examPaper     试卷 Markdown（用于回退解析与选项修复）
      * @param questionsJson 已存的题目 JSON（可能为 null / "[]"）
      * @return 渲染就绪的题目 JSON 字符串
      */
@@ -50,9 +53,9 @@ public class ExamContentRenderAgent {
     /**
      * 渲染试卷为前端可用的结构化题目 JSON（带题型分布方案）
      *
-     * @param examPaper 试卷 Markdown
+     * @param examPaper     试卷 Markdown
      * @param questionsJson 已存的题目 JSON（可能为 null / "[]"）
-     * @param planJson 题型分布方案 JSON（可为 null；存在时以其为题型/分值真源）
+     * @param planJson      题型分布方案 JSON（可为 null；存在时以其为题型/分值真源）
      * @return 渲染就绪的题目 JSON 字符串
      */
     public String render(String examPaper, String questionsJson, String planJson) {
@@ -115,14 +118,17 @@ public class ExamContentRenderAgent {
             return new ArrayList<>();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {
+            });
         } catch (Exception e) {
             log.warn("渲染 Agent：questionsJson 解析失败: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    /** 统一选项结构为 {key, value}，过滤空白项 */
+    /**
+     * 统一选项结构为 {key, value}，过滤空白项
+     */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> normalizeOptions(Object rawOptions) {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -157,7 +163,9 @@ public class ExamContentRenderAgent {
         return result;
     }
 
-    /** 从题目正文中抽取内联选项（形如 "A. xx B. xx C. xx"） */
+    /**
+     * 从题目正文中抽取内联选项（形如 "A. xx B. xx C. xx"）
+     */
     private OptionSplit extractOptionsFromContent(String content) {
         List<Map<String, Object>> options = new ArrayList<>();
         if (content == null || content.isBlank()) {
@@ -221,6 +229,9 @@ public class ExamContentRenderAgent {
         return fallback;
     }
 
-    /** 正文与抽取出的选项的拆分结果 */
-    private record OptionSplit(String content, List<Map<String, Object>> options) {}
+    /**
+     * 正文与抽取出的选项的拆分结果
+     */
+    private record OptionSplit(String content, List<Map<String, Object>> options) {
+    }
 }

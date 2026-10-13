@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -27,14 +28,18 @@ public interface UserInviteGateway {
      * 列出某租户下某用户的全部 PENDING 邀请（未过期未消费未吊销）。用于"重复签发前吊销旧邀请"场景。
      *
      * @param tenantId 租户 id
-     * @param userId 用户 id
+     * @param userId   用户 id
      * @return 邀请列表，可能为空
      */
     List<UserInvite> findPendingByUser(Long tenantId, Long userId);
 
-    /** 落库新邀请；主键回填 {@code invite.inviteId}。 */
+    /**
+     * 落库新邀请；主键回填 {@code invite.inviteId}。
+     */
     void insert(UserInvite invite);
 
-    /** 更新既有邀请（消费 / 吊销时回填 status/usedAt/revokedAt/updateTime）。 */
+    /**
+     * 更新既有邀请（消费 / 吊销时回填 status/usedAt/revokedAt/updateTime）。
+     */
     void update(UserInvite invite);
 }

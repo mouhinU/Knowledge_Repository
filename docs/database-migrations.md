@@ -1,19 +1,20 @@
 # Knowledge Repository 数据库迁移脚本全览（V1 → V31）
 
 > 汇总 Knowledge_Repository 迄今全部 31 个 Flyway 迁移版本：版本号、文件名、关联任务、动作摘要、涉及表与关键 SQL。
-> 权威决策以 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 为准；逐 Phase 门禁以对应 go-checklist 为准。
+> 权威决策以 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 为准；逐 Phase 门禁以对应 go-checklist
+> 为准。
 > SaaS 租户脊柱相关迁移（V23+）的深入分析见 [saas-migration-summary.md](saas-migration-summary.md)。
 
 ---
 
 ## 总览
 
-| 阶段 | 版本范围 | 定位 | 表数量变化 |
-| ---- | -------- | ---- | ---------- |
-| 单租户基线 | V1–V22 | 核心业务 schema 建立（文档/考试/RBAC/配置） | 0 → 18 表 |
-| SaaS 租户脊柱 | V23–V26 | 多租户地基：建租户表 → 加列 → 切唯一键 → 收紧 NOT NULL | 18 → 20 表 |
-| 生命周期 | V27–V29 | 开通状态机 / 邀请 / 归档 & 删除 | 20 → 25 表 |
-| Phase 4 治理 | V30–V31 | 解析缓存租户化 / per-tenant LLM profile | 25 → 26 表 |
+| 阶段         | 版本范围    | 定位                                   | 表数量变化     |
+|------------|---------|--------------------------------------|-----------|
+| 单租户基线      | V1–V22  | 核心业务 schema 建立（文档/考试/RBAC/配置）        | 0 → 18 表  |
+| SaaS 租户脊柱  | V23–V26 | 多租户地基：建租户表 → 加列 → 切唯一键 → 收紧 NOT NULL | 18 → 20 表 |
+| 生命周期       | V27–V29 | 开通状态机 / 邀请 / 归档 & 删除                 | 20 → 25 表 |
+| Phase 4 治理 | V30–V31 | 解析缓存租户化 / per-tenant LLM profile     | 25 → 26 表 |
 
 **当前表总数**：26 张（含 flyway_schema_history）
 
@@ -27,14 +28,14 @@
 
 **新建表**（6 张）：
 
-| 表名 | 用途 |
-| ---- | ---- |
-| `sys_department` | 部门表 |
-| `sys_user` | 用户表 |
-| `sys_role` | 角色表 |
-| `sys_user_role` | 用户-角色关联表 |
-| `kb_document` | 文档表 |
-| `kb_document_chunk` | 文档分块表 |
+| 表名                  | 用途       |
+|---------------------|----------|
+| `sys_department`    | 部门表      |
+| `sys_user`          | 用户表      |
+| `sys_role`          | 角色表      |
+| `sys_user_role`     | 用户-角色关联表 |
+| `kb_document`       | 文档表      |
+| `kb_document_chunk` | 文档分块表    |
 
 **种子数据**：4 个默认部门 + 3 个默认角色（ADMIN/MANAGER/MEMBER）+ 1 个 admin 用户 + 管理员角色关联
 
@@ -82,11 +83,11 @@
 
 **新建表**（3 张）：
 
-| 表名 | 用途 |
-| ---- | ---- |
-| `kb_student` | 考生表（username 唯一） |
+| 表名                | 用途                                               |
+|-------------------|--------------------------------------------------|
+| `kb_student`      | 考生表（username 唯一）                                 |
 | `kb_exam_session` | 考试场次表（session_key 唯一，状态 IN_PROGRESS→SUBMITTED→…） |
-| `kb_exam_answer` | 单题答题记录表 |
+| `kb_exam_answer`  | 单题答题记录表                                          |
 
 ---
 
@@ -136,7 +137,8 @@
 
 **定位**：试卷校对关口
 
-**变更**：`kb_exam_history` 加 `reviewed_by` + `reviewed_time`；`status` 语义扩展为试卷生命周期（DRAFT/REVIEWABLE/PUBLISHED/VALIDATION_FAILED）
+**变更**：`kb_exam_history` 加 `reviewed_by` + `reviewed_time`；`status`
+语义扩展为试卷生命周期（DRAFT/REVIEWABLE/PUBLISHED/VALIDATION_FAILED）
 
 ---
 
@@ -212,7 +214,8 @@
 
 **新建表**：`sys_config`（`UNIQUE(config_key)`，三层获取：内存缓存 → 数据库 → 系统默认值）
 
-**种子数据**：6 条特性开关与可调参数（exam.plan.auto-balance / quality-score-threshold / review-required / grading-delay / grading-timeout）
+**种子数据**：6 条特性开关与可调参数（exam.plan.auto-balance / quality-score-threshold / review-required / grading-delay /
+grading-timeout）
 
 ---
 
@@ -234,9 +237,9 @@
 
 **新建表**（2 张）：
 
-| 表名 | 用途 |
-| ---- | ---- |
-| `sys_tenant` | 租户主表（`UNIQUE(tenant_key)`） |
+| 表名                     | 用途                                   |
+|------------------------|--------------------------------------|
+| `sys_tenant`           | 租户主表（`UNIQUE(tenant_key)`）           |
 | `sys_tenant_placement` | 放置策略表（POOL/SILO，`UNIQUE(tenant_id)`） |
 
 **种子数据**：`tenant_key='default'` 默认租户 + POOL 放置
@@ -249,7 +252,9 @@
 
 **定位**：15 张业务表加 `tenant_id BIGINT NULL` + 单列索引 + scalar 子查询回填 default
 
-**涉及表**：`kb_document` / `kb_document_chunk` / `kb_document_image` / `kb_category` / `kb_exam_history` / `kb_exam_session` / `kb_exam_question` / `kb_exam_answer` / `kb_student` / `kb_student_session` / `kb_writing_history` / `sys_user` / `sys_role` / `sys_user_role` / `sys_department`
+**涉及表**：`kb_document` / `kb_document_chunk` / `kb_document_image` / `kb_category` / `kb_exam_history` /
+`kb_exam_session` / `kb_exam_question` / `kb_exam_answer` / `kb_student` / `kb_student_session` / `kb_writing_history` /
+`sys_user` / `sys_role` / `sys_user_role` / `sys_department`
 
 **刻意排除**：`sys_config`（P4-T1 才租户化）、`kb_extraction_cache`（P4-T3 才租户化）
 
@@ -259,16 +264,17 @@
 
 **定位**：6 张表唯一键从"全局唯一"切"租户内唯一" `(tenant_id, <原键>)`
 
-| 表 | 旧唯一键 | 新唯一键 |
-| -- | -------- | -------- |
-| `kb_category` | `(name)` | `(tenant_id, name)` |
-| `kb_student` | `(username)` | `(tenant_id, username)` |
-| `kb_writing_history` | `(session_id)` | `(tenant_id, session_id)` |
-| `kb_exam_history` | `(session_id)` | `(tenant_id, session_id)` |
-| `kb_exam_session` | `(session_key)` | `(tenant_id, session_key)` |
-| `kb_exam_question` | `(session_key, question_number)` | `(tenant_id, session_key, question_number)` |
+| 表                    | 旧唯一键                             | 新唯一键                                        |
+|----------------------|----------------------------------|---------------------------------------------|
+| `kb_category`        | `(name)`                         | `(tenant_id, name)`                         |
+| `kb_student`         | `(username)`                     | `(tenant_id, username)`                     |
+| `kb_writing_history` | `(session_id)`                   | `(tenant_id, session_id)`                   |
+| `kb_exam_history`    | `(session_id)`                   | `(tenant_id, session_id)`                   |
+| `kb_exam_session`    | `(session_key)`                  | `(tenant_id, session_key)`                  |
+| `kb_exam_question`   | `(session_key, question_number)` | `(tenant_id, session_key, question_number)` |
 
-**保留全局唯一**：`kb_document_image.asset_key` / `kb_document_image(document_id, sha256)` / `kb_student_session.session_token` / `sys_user_role(user_id, role_id)`
+**保留全局唯一**：`kb_document_image.asset_key` / `kb_document_image(document_id, sha256)` /
+`kb_student_session.session_token` / `sys_user_role(user_id, role_id)`
 
 ---
 
@@ -299,6 +305,7 @@
 **定位**：三件事合一
 
 **变更**：
+
 1. `sys_config` 加 `tenant_id NOT NULL DEFAULT 1`，唯一键从 `(config_key)` 切为 `(tenant_id, config_key)`
 2. `sys_user` 加 `must_change_password TINYINT(1) NOT NULL DEFAULT 0`
 
@@ -316,11 +323,11 @@
 
 **新建表**（3 张）：
 
-| 表名 | 用途 |
-| ---- | ---- |
-| `sys_tenant_delete_approval` | 一次性删除审批令牌（双人复核，SHA-256 hash） |
-| `sys_tenant_deletion_step` | 删除步骤级审计与幂等（`UNIQUE(tenant_id, deletion_request_id, step_name, attempt_no)`） |
-| `sys_audit_log` | 平台端高敏操作 DB 持久化审计 |
+| 表名                           | 用途                                                                          |
+|------------------------------|-----------------------------------------------------------------------------|
+| `sys_tenant_delete_approval` | 一次性删除审批令牌（双人复核，SHA-256 hash）                                                |
+| `sys_tenant_deletion_step`   | 删除步骤级审计与幂等（`UNIQUE(tenant_id, deletion_request_id, step_name, attempt_no)`） |
+| `sys_audit_log`              | 平台端高敏操作 DB 持久化审计                                                            |
 
 **白名单**：三张新表均进 IGNORE_TABLES（tenant_id/tenant_key 是业务列非过滤维度）
 
@@ -332,7 +339,9 @@
 
 **定位**：修复 G7 跨租户解析缓存泄漏
 
-**变更**：`kb_extraction_cache` 四段式合一——加 nullable `tenant_id` → scalar 子查询回填 → 唯一键从 `(checksum, strategy, model_name, prompt_hash, render_mode)` 切为 `(tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)` → 收紧 `NOT NULL DEFAULT 1`
+**变更**：`kb_extraction_cache` 四段式合一——加 nullable `tenant_id` → scalar 子查询回填 → 唯一键从
+`(checksum, strategy, model_name, prompt_hash, render_mode)` 切为
+`(tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)` → 收紧 `NOT NULL DEFAULT 1`
 
 **白名单变动**：`kb_extraction_cache` 移出 IGNORE_TABLES（交回拦截器自动注入 tenant_id）
 
@@ -344,65 +353,67 @@
 
 **新建表**：`sys_tenant_llm_profile`
 
-| 列 | 类型 | 说明 |
-| -- | ---- | ---- |
-| `id` | BIGINT PK | 自增主键 |
-| `tenant_id` | BIGINT NOT NULL | 租户 id（`UNIQUE`，每租户最多一行） |
-| `api_key` | VARCHAR(512) NULL | LLM API Key（mode=local 时 AES-256-GCM 密文 base64；mode=none 时明文） |
-| `base_url` | VARCHAR(255) NULL | API 基地址 |
-| `model` | VARCHAR(128) NULL | 聊天模型名 |
-| `embedding_model` | VARCHAR(128) NULL | 向量模型名 |
-| `dimension` | INT NULL | 向量维度 |
-| `updated_at` | DATETIME NOT NULL | 更新时间 |
+| 列                 | 类型                | 说明                                                            |
+|-------------------|-------------------|---------------------------------------------------------------|
+| `id`              | BIGINT PK         | 自增主键                                                          |
+| `tenant_id`       | BIGINT NOT NULL   | 租户 id（`UNIQUE`，每租户最多一行）                                       |
+| `api_key`         | VARCHAR(512) NULL | LLM API Key（mode=local 时 AES-256-GCM 密文 base64；mode=none 时明文） |
+| `base_url`        | VARCHAR(255) NULL | API 基地址                                                       |
+| `model`           | VARCHAR(128) NULL | 聊天模型名                                                         |
+| `embedding_model` | VARCHAR(128) NULL | 向量模型名                                                         |
+| `dimension`       | INT NULL          | 向量维度                                                          |
+| `updated_at`      | DATETIME NOT NULL | 更新时间                                                          |
 
-**关联代码**：`SecretCipher` 端口（domain）→ `LocalSecretCipher`（AES-256-GCM，mode=local）/ `NoopSecretCipher`（mode=none）→ `LlmProfileGatewayImpl` 在 DO↔Entity 边界加解密 → `TenantLlmProfileResolver`（L1 ConcurrentHashMap 30s TTL 热缓存）
+**关联代码**：`SecretCipher` 端口（domain）→ `LocalSecretCipher`（AES-256-GCM，mode=local）/ `NoopSecretCipher`（mode=none）→
+`LlmProfileGatewayImpl` 在 DO↔Entity 边界加解密 → `TenantLlmProfileResolver`（L1 ConcurrentHashMap 30s TTL 热缓存）
 
 ---
 
 ## 附录 A：租户白名单（IGNORE_TABLES）演进
 
-| 版本 | 加入白名单 | 移出白名单 |
-| ---- | ---------- | ---------- |
-| P1-T7 初版 | `sys_tenant`、`sys_tenant_placement`、`flyway_schema_history`、`kb_extraction_cache` | — |
-| P3-T2（V27） | `sys_tenant_provision_step` | — |
-| P3-T3（V28） | `sys_user_invite` | `sys_config` |
-| P3-T5（V29） | `sys_tenant_delete_approval`、`sys_tenant_deletion_step`、`sys_audit_log` | — |
-| P4-T3（V30） | — | `kb_extraction_cache` |
+| 版本         | 加入白名单                                                                             | 移出白名单                 |
+|------------|-----------------------------------------------------------------------------------|-----------------------|
+| P1-T7 初版   | `sys_tenant`、`sys_tenant_placement`、`flyway_schema_history`、`kb_extraction_cache` | —                     |
+| P3-T2（V27） | `sys_tenant_provision_step`                                                       | —                     |
+| P3-T3（V28） | `sys_user_invite`                                                                 | `sys_config`          |
+| P3-T5（V29） | `sys_tenant_delete_approval`、`sys_tenant_deletion_step`、`sys_audit_log`           | —                     |
+| P4-T3（V30） | —                                                                                 | `kb_extraction_cache` |
 
-**当前白名单**（8 张）：`sys_tenant`、`sys_tenant_placement`、`sys_tenant_provision_step`、`sys_tenant_delete_approval`、`sys_tenant_deletion_step`、`sys_audit_log`、`sys_user_invite`、`flyway_schema_history`
+**当前白名单**（8 张）：`sys_tenant`、`sys_tenant_placement`、`sys_tenant_provision_step`、`sys_tenant_delete_approval`、
+`sys_tenant_deletion_step`、`sys_audit_log`、`sys_user_invite`、`flyway_schema_history`
 
 ---
 
 ## 附录 B：全部表清单（V31 落地后）
 
-| # | 表名 | 建表版本 | 有 tenant_id | 在 IGNORE 白名单 |
-| - | ---- | -------- | ------------ | ---------------- |
-| 1 | `sys_department` | V1 | ✔ (V24) | — |
-| 2 | `sys_user` | V1 | ✔ (V24) | — |
-| 3 | `sys_role` | V1 | ✔ (V24) | — |
-| 4 | `sys_user_role` | V1 | ✔ (V24) | — |
-| 5 | `kb_document` | V1 | ✔ (V24) | — |
-| 6 | `kb_document_chunk` | V1 | ✔ (V24) | — |
-| 7 | `kb_writing_history` | V3 | ✔ (V24) | — |
-| 8 | `kb_category` | V4 | ✔ (V24) | — |
-| 9 | `kb_exam_history` | V5 | ✔ (V24) | — |
-| 10 | `kb_student` | V6 | ✔ (V24) | — |
-| 11 | `kb_exam_session` | V6 | ✔ (V24) | — |
-| 12 | `kb_exam_answer` | V6 | ✔ (V24) | — |
-| 13 | `kb_exam_question` | V11 | ✔ (V24) | — |
-| 14 | `kb_document_image` | V16 | ✔ (V24) | — |
-| 15 | `kb_extraction_cache` | V19 | ✔ (V30) | — |
-| 16 | `sys_config` | V21 | ✔ (V28) | — |
-| 17 | `kb_student_session` | V22 | ✔ (V24) | — |
-| 18 | `sys_tenant` | V23 | — (平台主数据) | ✔ |
-| 19 | `sys_tenant_placement` | V23 | — (平台元数据) | ✔ |
-| 20 | `sys_tenant_provision_step` | V27 | — (业务列) | ✔ |
-| 21 | `sys_user_invite` | V28 | ✔ (业务列) | ✔ |
-| 22 | `sys_tenant_delete_approval` | V29 | — (业务列) | ✔ |
-| 23 | `sys_tenant_deletion_step` | V29 | — (业务列) | ✔ |
-| 24 | `sys_audit_log` | V29 | — (平台级) | ✔ |
-| 25 | `sys_tenant_llm_profile` | V31 | — (UNIQUE tenant_id) | — |
-| 26 | `flyway_schema_history` | Flyway 内部 | — | ✔ |
+| #  | 表名                           | 建表版本      | 有 tenant_id          | 在 IGNORE 白名单 |
+|----|------------------------------|-----------|----------------------|--------------|
+| 1  | `sys_department`             | V1        | ✔ (V24)              | —            |
+| 2  | `sys_user`                   | V1        | ✔ (V24)              | —            |
+| 3  | `sys_role`                   | V1        | ✔ (V24)              | —            |
+| 4  | `sys_user_role`              | V1        | ✔ (V24)              | —            |
+| 5  | `kb_document`                | V1        | ✔ (V24)              | —            |
+| 6  | `kb_document_chunk`          | V1        | ✔ (V24)              | —            |
+| 7  | `kb_writing_history`         | V3        | ✔ (V24)              | —            |
+| 8  | `kb_category`                | V4        | ✔ (V24)              | —            |
+| 9  | `kb_exam_history`            | V5        | ✔ (V24)              | —            |
+| 10 | `kb_student`                 | V6        | ✔ (V24)              | —            |
+| 11 | `kb_exam_session`            | V6        | ✔ (V24)              | —            |
+| 12 | `kb_exam_answer`             | V6        | ✔ (V24)              | —            |
+| 13 | `kb_exam_question`           | V11       | ✔ (V24)              | —            |
+| 14 | `kb_document_image`          | V16       | ✔ (V24)              | —            |
+| 15 | `kb_extraction_cache`        | V19       | ✔ (V30)              | —            |
+| 16 | `sys_config`                 | V21       | ✔ (V28)              | —            |
+| 17 | `kb_student_session`         | V22       | ✔ (V24)              | —            |
+| 18 | `sys_tenant`                 | V23       | — (平台主数据)            | ✔            |
+| 19 | `sys_tenant_placement`       | V23       | — (平台元数据)            | ✔            |
+| 20 | `sys_tenant_provision_step`  | V27       | — (业务列)              | ✔            |
+| 21 | `sys_user_invite`            | V28       | ✔ (业务列)              | ✔            |
+| 22 | `sys_tenant_delete_approval` | V29       | — (业务列)              | ✔            |
+| 23 | `sys_tenant_deletion_step`   | V29       | — (业务列)              | ✔            |
+| 24 | `sys_audit_log`              | V29       | — (平台级)              | ✔            |
+| 25 | `sys_tenant_llm_profile`     | V31       | — (UNIQUE tenant_id) | —            |
+| 26 | `flyway_schema_history`      | Flyway 内部 | —                    | ✔            |
 
 ---
 
@@ -415,7 +426,8 @@
 3. `DROP INDEX uk_x ON <t>` + `CREATE UNIQUE INDEX uk_tenant_x ON <t>(tenant_id, ...)` — 唯一键切换
 4. `MODIFY COLUMN tenant_id BIGINT NOT NULL DEFAULT 1` — 收紧 + 过渡默认
 
-**方言纪律**：`DROP INDEX ... ON <table>`（MySQL 形态，H2 MODE=MySQL 兼容）；不用 `CREATE INDEX IF NOT EXISTS`（MySQL 8 不支持）；不用 `COMMENT`/`UNSIGNED`/`ON UPDATE`/内联 `INDEX`/`AFTER`。
+**方言纪律**：`DROP INDEX ... ON <table>`（MySQL 形态，H2 MODE=MySQL 兼容）；不用 `CREATE INDEX IF NOT EXISTS`（MySQL 8
+不支持）；不用 `COMMENT`/`UNSIGNED`/`ON UPDATE`/内联 `INDEX`/`AFTER`。
 
 ---
 

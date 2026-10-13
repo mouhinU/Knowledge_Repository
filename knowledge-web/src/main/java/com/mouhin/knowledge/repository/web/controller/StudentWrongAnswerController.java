@@ -4,11 +4,12 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.api.WrongAnswerServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 错题本控制器（考生端）
@@ -32,7 +33,9 @@ public class StudentWrongAnswerController {
         this.studentService = studentService;
     }
 
-    /** 查询当前考生的错题列表（支持按主题 / 题型过滤 + 分页） */
+    /**
+     * 查询当前考生的错题列表（支持按主题 / 题型过滤 + 分页）
+     */
     @GetMapping
     public ResponseEntity<Object> listMyWrongAnswers(
             @RequestHeader(value = "X-Student-Token", required = false) String token,

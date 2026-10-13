@@ -1,23 +1,20 @@
 package com.mouhin.knowledge.repository.application.executor.department;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * 修改部门命令执行器单测：锁定 null 保持原值、字段独立更新、找不到 → 'Department\ not\ found'；VO\ 归一化契约同步。

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCacheKey;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+
 import java.util.Optional;
 
 /**
@@ -26,7 +27,7 @@ public interface ExtractionCacheRepository {
     /**
      * 写入或更新缓存（按复合键 upsert）。
      *
-     * @param key 缓存键
+     * @param key    缓存键
      * @param result 提取结果
      */
     void save(ExtractionCacheKey key, ExtractionResult result);

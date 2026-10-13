@@ -14,22 +14,33 @@ import java.util.List;
  */
 public class TypePlan {
 
-    /** 内核题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY */
+    /**
+     * 内核题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY
+     */
     private String key;
 
-    /** 显示题型名（可按科目命名，如"阅读理解""计算题""解答题"） */
+    /**
+     * 显示题型名（可按科目命名，如"阅读理解""计算题""解答题"）
+     */
     private String label;
 
-    /** 题量 */
+    /**
+     * 题量
+     */
     private int count;
 
-    /** 每道小题的分值，长度应等于 count */
+    /**
+     * 每道小题的分值，长度应等于 count
+     */
     private List<Integer> perQuestion = new ArrayList<>();
 
-    /** Agent 选题 / 定题量的简要理由（供评估与页面提示） */
+    /**
+     * Agent 选题 / 定题量的简要理由（供评估与页面提示）
+     */
     private String reason;
 
-    public TypePlan() {}
+    public TypePlan() {
+    }
 
     public TypePlan(String key, String label, int count, List<Integer> perQuestion) {
         this.key = key;
@@ -40,7 +51,9 @@ public class TypePlan {
         }
     }
 
-    /** 该题型小计（逐题分值之和） */
+    /**
+     * 该题型小计（逐题分值之和）
+     */
     public int subtotal() {
         int sum = 0;
         if (perQuestion != null) {

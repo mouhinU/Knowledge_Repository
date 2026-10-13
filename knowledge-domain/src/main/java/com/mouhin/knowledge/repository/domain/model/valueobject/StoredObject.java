@@ -31,13 +31,13 @@ public final class StoredObject {
     /**
      * 全参构造。
      *
-     * @param storageKey 不透明存储标识（本地路径 or MinIO 对象 key）
+     * @param storageKey   不透明存储标识（本地路径 or MinIO 对象 key）
      * @param originalName 用户上传时的原始文件名，可为 null
-     * @param contentType MIME 类型，可为 null（由调用方后续探测）
-     * @param size 文件大小（字节），负数表示未知
-     * @param tenantKey 租户键
-     * @param category 存储分类
-     * @param createdAt 存储时间戳，可为 null（由实现填充）
+     * @param contentType  MIME 类型，可为 null（由调用方后续探测）
+     * @param size         文件大小（字节），负数表示未知
+     * @param tenantKey    租户键
+     * @param category     存储分类
+     * @param createdAt    存储时间戳，可为 null（由实现填充）
      */
     public StoredObject(
             String storageKey,
@@ -62,7 +62,9 @@ public final class StoredObject {
         this.createdAt = createdAt;
     }
 
-    /** 便捷构造（不含可选元数据），{@link #createdAt} 取当前时刻。 */
+    /**
+     * 便捷构造（不含可选元数据），{@link #createdAt} 取当前时刻。
+     */
     public StoredObject(
             String storageKey, String tenantKey, StorageCategory category, String originalName) {
         this(storageKey, originalName, null, -1L, tenantKey, category, Instant.now());
@@ -80,7 +82,9 @@ public final class StoredObject {
         return contentType;
     }
 
-    /** 文件大小（字节）；负数表示未知。 */
+    /**
+     * 文件大小（字节）；负数表示未知。
+     */
     public long size() {
         return size;
     }

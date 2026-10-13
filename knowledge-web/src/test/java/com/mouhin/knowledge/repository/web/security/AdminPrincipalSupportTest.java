@@ -1,18 +1,16 @@
 package com.mouhin.knowledge.repository.web.security;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * 管理端主体 → 权限转换单测：锁定 {@code toPermission} 的可信身份口径 —— 字段从 principal 回读（userId / departmentId /

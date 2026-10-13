@@ -2,10 +2,11 @@ package com.mouhin.knowledge.repository.infrastructure.tenant;
 
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
-import java.util.Locale;
-import java.util.Set;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
+
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * MyBatis-Plus 租户过滤处理器（P1-T7，SaaS 租户脊柱）。

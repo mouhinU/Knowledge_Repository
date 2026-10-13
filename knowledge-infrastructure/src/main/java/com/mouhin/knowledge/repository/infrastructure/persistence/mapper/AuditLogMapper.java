@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-09
  */
 @Mapper
-public interface AuditLogMapper extends BaseMapper<AuditLogDO> {}
+public interface AuditLogMapper extends BaseMapper<AuditLogDO> {
+}

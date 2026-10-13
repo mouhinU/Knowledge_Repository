@@ -15,4 +15,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-08
  */
 @Mapper
-public interface UserInviteMapper extends BaseMapper<UserInviteDO> {}
+public interface UserInviteMapper extends BaseMapper<UserInviteDO> {
+}

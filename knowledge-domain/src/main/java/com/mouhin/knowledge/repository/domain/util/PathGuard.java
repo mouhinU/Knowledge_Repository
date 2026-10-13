@@ -25,10 +25,13 @@ import java.util.regex.Pattern;
  */
 public final class PathGuard {
 
-    /** 允许的扩展名形态：点号 + 1~10 位字母数字；其他一律视为不安全。 */
+    /**
+     * 允许的扩展名形态：点号 + 1~10 位字母数字；其他一律视为不安全。
+     */
     private static final Pattern SAFE_EXTENSION = Pattern.compile("^\\.[A-Za-z0-9]{1,10}$");
 
-    private PathGuard() {}
+    private PathGuard() {
+    }
 
     /**
      * 从原始上传文件名截出白名单扩展名。
@@ -51,7 +54,7 @@ public final class PathGuard {
     /**
      * 在 {@code root} 下解析相对段并做 {@code startsWith} 白名单校验。
      *
-     * @param root 已 {@code toAbsolutePath().normalize()} 的目录根
+     * @param root            已 {@code toAbsolutePath().normalize()} 的目录根
      * @param relativeSegment 用户可控的相对段（如拼接后的 storedName）
      * @return 归一化后的目标绝对路径
      * @throws IOException 相对段穿越 root 之外，或参数不合法
@@ -77,7 +80,7 @@ public final class PathGuard {
      *
      * <p>拒绝绝对路径穿越与符号链接逃逸前的字面路径校验；{@code target} 会先 {@code toAbsolutePath().normalize()}。
      *
-     * @param target 待校验的目标路径
+     * @param target       待校验的目标路径
      * @param allowedRoots 一个或多个已 normalize 的合法根目录
      * @return 归一化后的 {@code target}
      * @throws IOException 目标不在任何一个 root 之内

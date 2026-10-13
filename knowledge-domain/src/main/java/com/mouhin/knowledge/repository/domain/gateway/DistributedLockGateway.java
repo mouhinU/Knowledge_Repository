@@ -22,8 +22,8 @@ public interface DistributedLockGateway {
     /**
      * 尝试获取分布式锁。
      *
-     * @param lockKey 锁标识（如 {@code kr:lock:exam-grading}）
-     * @param ownerId 持锁者唯一标识（如实例 ID / UUID），用于安全释放
+     * @param lockKey    锁标识（如 {@code kr:lock:exam-grading}）
+     * @param ownerId    持锁者唯一标识（如实例 ID / UUID），用于安全释放
      * @param ttlSeconds 锁自动过期时间（秒），须大于任务最大执行时间
      * @return true=获锁成功；false=已被其他实例持有
      */

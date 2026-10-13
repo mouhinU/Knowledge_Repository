@@ -22,7 +22,9 @@
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
                 <div style="flex:0 0 200px">
                     <label class="form-label" for="wb-student">考生</label>
-                    <select class="form-input" id="wb-student"><option value="">全部考生</option></select>
+                    <select class="form-input" id="wb-student">
+                        <option value="">全部考生</option>
+                    </select>
                 </div>
                 <div style="flex:1;min-width:160px">
                     <label class="form-label" for="wb-topic">主题关键词</label>
@@ -47,15 +49,17 @@
 
         <div class="stats-grid" id="wb-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
 
-        <div id="wb-list"><div class="empty-state">加载错题数据...</div></div>
+        <div id="wb-list">
+            <div class="empty-state">加载错题数据...</div>
+        </div>
         <div id="wb-pager"></div>
     </div>
 </div>
 
 <!-- AI 错题分析总结弹窗 -->
-<div class="wb-modal-overlay" id="wb-summary-modal" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeWbSummaryModal()"
-     onkeydown="if(event.key==='Escape')closeWbSummaryModal()">
+<div class="wb-modal-overlay" id="wb-summary-modal" onclick="if(event.target===this)closeWbSummaryModal()" onkeydown="if(event.key==='Escape')closeWbSummaryModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="wb-modal">
         <div class="wb-modal-header">
             <div>
@@ -64,7 +68,8 @@
             </div>
             <button class="wb-modal-close" onclick="closeWbSummaryModal()">&times;</button>
         </div>
-        <div id="wb-summary-content" class="wb-modal-body" style="font-size:14px;line-height:1.8;min-height:200px"></div>
+        <div class="wb-modal-body" id="wb-summary-content"
+             style="font-size:14px;line-height:1.8;min-height:200px"></div>
         <div class="wb-modal-footer">
             <button class="btn btn-outline" onclick="closeWbSummaryModal()">关闭</button>
         </div>

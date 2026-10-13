@@ -1,27 +1,24 @@
 package com.mouhin.knowledge.repository.application.support;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.support.UserInviteService.InviteIssueResult;
 import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link UserInviteService} 单元测试（P3-T3 邀请式引导）。
@@ -48,13 +45,15 @@ class UserInviteServiceTest {
     private UserInviteGateway gateway;
     private UserInviteService service;
 
-    /** 固定种子 SecureRandom，使 raw code 在测试内可预测（不跨 JVM 断言具体值，只断言长度/哈希关系）。 */
+    /**
+     * 固定种子 SecureRandom，使 raw code 在测试内可预测（不跨 JVM 断言具体值，只断言长度/哈希关系）。
+     */
     private SecureRandom deterministicRandom;
 
     @BeforeEach
     void setUp() {
         gateway = mock(UserInviteGateway.class);
-        deterministicRandom = new SecureRandom(new byte[] {1, 2, 3, 4, 5, 6, 7, 8});
+        deterministicRandom = new SecureRandom(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
         service = new UserInviteService(gateway, deterministicRandom);
         // 默认：无旧 PENDING 邀请
         when(gateway.findPendingByUser(any(), any())).thenReturn(List.of());

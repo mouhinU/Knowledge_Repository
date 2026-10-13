@@ -1,23 +1,21 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * 已发布试卷列表查询执行器单测（主查询分支）：锁定 limit≤0 归一为 20、旧签名 execute(limit) 等价于未登录全量语义、 登录但无已考记录时走 over-fetch

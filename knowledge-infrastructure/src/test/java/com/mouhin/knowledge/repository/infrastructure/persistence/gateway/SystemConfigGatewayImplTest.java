@@ -1,22 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.SystemConfigDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.SystemConfigMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +12,15 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link SystemConfigGatewayImpl} 契约单测（P3-T3 起 sys_config 已租户化）：
@@ -226,7 +223,9 @@ class SystemConfigGatewayImplTest {
         verify(jdbcTemplate, times(1)).update(any(String.class), any(Object[].class));
     }
 
-    /** 构造一个仅承载 config_key / config_value 的 mock ResultSet，其余列回默认值，供生产 RowMapper 读取。 */
+    /**
+     * 构造一个仅承载 config_key / config_value 的 mock ResultSet，其余列回默认值，供生产 RowMapper 读取。
+     */
     private java.sql.ResultSet resultSetOf(String key, String value) throws Exception {
         java.sql.ResultSet rs = mock(java.sql.ResultSet.class);
         when(rs.getString("config_key")).thenReturn(key);

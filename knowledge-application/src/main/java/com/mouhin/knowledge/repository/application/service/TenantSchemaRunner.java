@@ -3,15 +3,16 @@ package com.mouhin.knowledge.repository.application.service;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.SiloCollectionAdmin;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SiloCollectionSchema;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * SILO 集合 schema 对齐巡检器（app 层，P3-T6）。
@@ -35,22 +36,27 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
 public class TenantSchemaRunner {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION_SCHEMA_CHECK = "SILO_SCHEMA_CHECK";
 
-    /** 审计动作名（手工触发）。 */
+    /**
+     * 审计动作名（手工触发）。
+     */
     public static final String ACTION_SCHEMA_CHECK_MANUAL = "SILO_SCHEMA_CHECK_MANUAL";
-
-    /** 期望的向量维度（从配置读取，默认 1024 = bge-m3）。 */
-    @Value("${knowledge.milvus.dimension:1024}")
-    private int expectedDimension;
-
-    /** 期望的向量字段名（LangChain4j MilvusEmbeddingStore 默认值）。 */
-    @Value("${knowledge.saas.silo-schema.expected-vector-field:embedding}")
-    private String expectedVectorField;
-
     private final SiloCollectionAdmin siloCollectionAdmin;
     private final PlatformAuditLog auditLog;
+    /**
+     * 期望的向量维度（从配置读取，默认 1024 = bge-m3）。
+     */
+    @Value("${knowledge.milvus.dimension:1024}")
+    private int expectedDimension;
+    /**
+     * 期望的向量字段名（LangChain4j MilvusEmbeddingStore 默认值）。
+     */
+    @Value("${knowledge.saas.silo-schema.expected-vector-field:embedding}")
+    private String expectedVectorField;
 
     public TenantSchemaRunner(SiloCollectionAdmin siloCollectionAdmin, PlatformAuditLog auditLog) {
         this.siloCollectionAdmin = siloCollectionAdmin;
@@ -181,19 +187,23 @@ public class TenantSchemaRunner {
     /**
      * 巡检结果摘要（供健康端点使用）。
      *
-     * @param total 检查的 SILO 集合总数
-     * @param aligned 对齐的集合数
+     * @param total      检查的 SILO 集合总数
+     * @param aligned    对齐的集合数
      * @param misaligned 不对齐的集合数
-     * @param issues 不一致详情列表
+     * @param issues     不一致详情列表
      */
     public record SchemaCheckResult(int total, int aligned, int misaligned, List<String> issues) {
 
-        /** 是否全部对齐。 */
+        /**
+         * 是否全部对齐。
+         */
         public boolean isAllAligned() {
             return misaligned == 0 && issues.isEmpty();
         }
 
-        /** 转为健康端点响应 Map。 */
+        /**
+         * 转为健康端点响应 Map。
+         */
         public Map<String, Object> toResponseMap() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("status", total == 0 ? "IDLE" : (isAllAligned() ? "HEALTHY" : "DEGRADED"));

@@ -6,9 +6,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 研究员 Agent
@@ -24,18 +25,18 @@ public class ResearcherAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT =
             """
-            你是一个知识库研究员。你的任务是根据用户的问题，从知识库检索结果中提取和组织关键信息。
-
-            要求：
-            1. 仔细阅读每个知识片段，提取与问题直接相关的信息
-            2. 按主题或逻辑关系组织信息，形成结构化的研究发现
-            3. 标注每条信息的来源文档名称
-            4. 如果不同文档的信息有冲突或互补，请指出
-            5. 如果检索结果不足以回答问题，明确指出缺失的信息方向
-            6. 保持客观，不要添加自己的推测
-
-            输出格式：使用 Markdown 格式，按主题分节组织。
-            """;
+                    你是一个知识库研究员。你的任务是根据用户的问题，从知识库检索结果中提取和组织关键信息。
+                    
+                    要求：
+                    1. 仔细阅读每个知识片段，提取与问题直接相关的信息
+                    2. 按主题或逻辑关系组织信息，形成结构化的研究发现
+                    3. 标注每条信息的来源文档名称
+                    4. 如果不同文档的信息有冲突或互补，请指出
+                    5. 如果检索结果不足以回答问题，明确指出缺失的信息方向
+                    6. 保持客观，不要添加自己的推测
+                    
+                    输出格式：使用 Markdown 格式，按主题分节组织。
+                    """;
 
     private final BlackboardAgentStreamer agentStreamer;
 
@@ -86,13 +87,13 @@ public class ResearcherAgent implements BlackboardAgent {
         String userPrompt =
                 String.format(
                         """
-                用户问题：%s
-
-                以下是从知识库中检索到的相关片段：
-
-                %s
-                请提取和组织与问题相关的关键信息。
-                """,
+                                用户问题：%s
+                                
+                                以下是从知识库中检索到的相关片段：
+                                
+                                %s
+                                请提取和组织与问题相关的关键信息。
+                                """,
                         blackboard.getQuestion(), contextBuilder);
 
         String findings =
@@ -110,7 +111,9 @@ public class ResearcherAgent implements BlackboardAgent {
         log.info("[Researcher] 研究发现生成完成，长度：{} 字符", findings.length());
     }
 
-    /** 构建检索物料摘要（展示给前端的输入信息） */
+    /**
+     * 构建检索物料摘要（展示给前端的输入信息）
+     */
     private String buildMaterialsSummary(List<SearchResult> chunks) {
         if (chunks.isEmpty()) {
             return "（无检索结果）";
@@ -138,7 +141,9 @@ public class ResearcherAgent implements BlackboardAgent {
         return sb.toString();
     }
 
-    /** LLM 返回空结果时，直接用原始知识片段作为研究发现 */
+    /**
+     * LLM 返回空结果时，直接用原始知识片段作为研究发现
+     */
     private String buildFallbackFindings(List<SearchResult> chunks) {
         StringBuilder sb = new StringBuilder();
         sb.append("以下是从知识库中检索到的原始内容（LLM 分析失败，直接使用原文）：\n\n");

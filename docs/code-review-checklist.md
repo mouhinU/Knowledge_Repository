@@ -6,11 +6,11 @@
 
 ## 风险分级（先判级，再决定动作）
 
-| 级别   | 典型改动                                                                                                             | 必做动作                                                                                                                       |
-| ------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 级别    | 典型改动                                                                    | 必做动作                                                                                        |
+|-------|-------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
 | **高** | 鉴权 / 令牌 / 口令 / 权限模型、SQL 拼接面、Flyway 迁移链（尤其改历史脚本）、删除 / 清理 / 部署脚本、框架或依赖大版本 | 执行前复述影响面并**获用户确认**（[security-guideline.md](security-guideline.md) §8）；补门禁负向用例 + 迁移冒烟；给出回滚方案 |
-| **中** | 新增 / 修改用例（`CmdExe`/`QryExe`）、接口与分层对象调整、上传解析新格式、向量化 / 分块逻辑                          | 相关单测全绿 + `./mvnw test`；行为改动补一条手工 E2E 记录                                                                      |
-| **低** | 命名、注释、日志级别、文案、前端样式                                                                                 | 走下方逐条自检即可                                                                                                             |
+| **中** | 新增 / 修改用例（`CmdExe`/`QryExe`）、接口与分层对象调整、上传解析新格式、向量化 / 分块逻辑               | 相关单测全绿 + `./mvnw test`；行为改动补一条手工 E2E 记录                                                     |
+| **低** | 命名、注释、日志级别、文案、前端样式                                                      | 走下方逐条自检即可                                                                                   |
 
 ## 提交前工作流
 
@@ -53,12 +53,16 @@ AI 生成代码时，逐条自检：
 ### B. 架构 / 分层类（COLA）
 
 9. SQL 是否使用 `#{}` 参数绑定？（[data-and-migration-guideline.md](data-and-migration-guideline.md) §2）
-10. 领域模型是否放在 `domain` 层？DO 与领域对象是否分离、DO 未越过 infrastructure 层？（[architecture-decisions.md](architecture-decisions.md) §2）
+10. 领域模型是否放在 `domain` 层？DO 与领域对象是否分离、DO 未越过 infrastructure
+    层？（[architecture-decisions.md](architecture-decisions.md) §2）
 11. Gateway 接口是否定义在领域层、`GatewayImpl` 是否实现在基础设施层？（COLA 术语，等价原 Repository）（§3/§5/§6）
-12. app 层是否只做分发（Service → Executor），用例编排是否在单一 Executor；写库事务是否在 Executor，长耗时 LLM / 外部 IO 是否未套大事务？（§4）
+12. app 层是否只做分发（Service → Executor），用例编排是否在单一 Executor；写库事务是否在 Executor，长耗时 LLM / 外部 IO
+    是否未套大事务？（§4）
 13. 对外契约（Service 接口 + Cmd/Qry/Response DTO）是否归入 client 层、而非散落在 web？（§1）
 14. 分层依赖是否单向合规：domain 纯净不依赖其它业务层，infrastructure 反向实现 domain？（§1）
-15. 对于服务端主动推送 / 进度更新 / 状态同步场景，是否优先采用 SSE，而非直接上 WebSocket 或前端轮询？WebSocket 是否仅用于明确的双向低延迟需求，轮询是否仅作兜底并控制频率？（[architecture-decisions.md](architecture-decisions.md) §8）
+15. 对于服务端主动推送 / 进度更新 / 状态同步场景，是否优先采用 SSE，而非直接上 WebSocket 或前端轮询？WebSocket
+    是否仅用于明确的双向低延迟需求，轮询是否仅作兜底并控制频率？（[architecture-decisions.md](architecture-decisions.md)
+    §8）
 16. 是否使用构造器注入、面向接口，杜绝字段 `@Autowired`？（§7）
 
 ### C. RAG 领域类
@@ -77,9 +81,12 @@ AI 生成代码时，逐条自检：
 
 ### E. 数据库 / 迁移 / 测试类（拆分补入）
 
-24. 新增 / 修改迁移脚本是否同步 `FlywayMigrationSmokeTest` 的计数、版本断言与对象抽查？（[testing-guideline.md](testing-guideline.md) §5）
-25. 迁移是否 H2 + MySQL 双兼容（无 `COMMENT`/`UNSIGNED`/内联 `INDEX`，布尔用 `BOOLEAN`）？（[data-and-migration-guideline.md](data-and-migration-guideline.md) §3/§4）
-26. 关键业务分支与门禁负向路径是否都有单测（Given–When–Then + 中文 `@DisplayName`）？（[testing-guideline.md](testing-guideline.md) §2/§4）
+24. 新增 / 修改迁移脚本是否同步 `FlywayMigrationSmokeTest`
+    的计数、版本断言与对象抽查？（[testing-guideline.md](testing-guideline.md) §5）
+25. 迁移是否 H2 + MySQL 双兼容（无 `COMMENT`/`UNSIGNED`/内联 `INDEX`，布尔用
+    `BOOLEAN`）？（[data-and-migration-guideline.md](data-and-migration-guideline.md) §3/§4）
+26. 关键业务分支与门禁负向路径是否都有单测（Given–When–Then + 中文
+    `@DisplayName`）？（[testing-guideline.md](testing-guideline.md) §2/§4）
 27. `./mvnw test` 是否全绿（`Failures: 0, Errors: 0`）？涉库改动是否跑过迁移冒烟？（§6）
 
 ### F. 方法与函数类（2026-09-21 新增硬性）
@@ -87,4 +94,5 @@ AI 生成代码时，逐条自检：
 28. 方法名是否 ≤50 字符、见名知意且无乱缩写？（[coding-guideline.md](coding-guideline.md) §十）
 29. 方法体是否 ≤50 行（不含空行 / 注释）？超出是否已按单一职责拆分私有方法？（§十 / §三）
 30. 参数是否 ≤5 个，且 >3 个时已封装为 `Cmd`/`Query`/参数 DTO？是否避免了 `boolean` 开关参数？（§十）
-31. 核心逻辑是否优先纯函数（相同输入→相同输出），DB / 网络 / 时间 / 随机等副作用是否收敛到 infrastructure 边界？（§十 / [architecture-decisions.md](architecture-decisions.md) §4/§5）
+31. 核心逻辑是否优先纯函数（相同输入→相同输出），DB / 网络 / 时间 / 随机等副作用是否收敛到 infrastructure
+    边界？（§十 / [architecture-decisions.md](architecture-decisions.md) §4/§5）

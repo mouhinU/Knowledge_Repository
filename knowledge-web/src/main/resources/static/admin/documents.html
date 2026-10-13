@@ -29,14 +29,17 @@
                 <div class="upload-area" id="upload-area">
                     <div class="upload-icon">📄</div>
                     <p>点击选择文件或拖拽到此处上传</p>
-                    <p class="hint-box" style="text-align:center">支持 PDF / Word / Excel / PowerPoint / TXT / CSV / HTML / RTF，单文件 ≤ 200MB</p>
+                    <p class="hint-box" style="text-align:center">支持 PDF / Word / Excel / PowerPoint / TXT / CSV /
+                        HTML / RTF，单文件 ≤ 200MB</p>
                 </div>
                 <div class="upload-actions">
-                    <button type="button" onclick="pickFiles()">选择文件</button>
-                    <button type="button" onclick="pickFolder()">选择目录</button>
+                    <button onclick="pickFiles()" type="button">选择文件</button>
+                    <button onclick="pickFolder()" type="button">选择目录</button>
                 </div>
-                <input id="file-input" aria-label="选择文件" multiple onchange="handleFileSelect(this)" style="display:none" type="file">
-                <input id="dir-input" aria-label="选择目录" multiple onchange="handleFileSelect(this)" style="display:none" type="file" webkitdirectory>
+                <input aria-label="选择文件" id="file-input" multiple onchange="handleFileSelect(this)"
+                       style="display:none" type="file">
+                <input aria-label="选择目录" id="dir-input" multiple onchange="handleFileSelect(this)"
+                       style="display:none" type="file" webkitdirectory>
 
                 <div id="upload-form" style="display:none;margin-top:16px">
                     <div class="upload-queue" id="upload-queue"></div>
@@ -81,7 +84,8 @@
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:8px">
-                        <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传</button>
+                        <button class="btn btn-primary" id="btn-start-upload" onclick="startBatchUpload()">开始上传
+                        </button>
                         <button class="btn btn-outline" onclick="cancelUpload()">清空</button>
                     </div>
                 </div>
@@ -93,7 +97,8 @@
             <div class="card">
                 <div class="card-head">
                     <div class="card-title" style="margin:0">文档列表</div>
-                    <select class="form-select" id="doc-filter-status" aria-label="状态筛选" onchange="loadDocuments()" style="width:160px">
+                    <select aria-label="状态筛选" class="form-select" id="doc-filter-status" onchange="loadDocuments()"
+                            style="width:160px">
                         <option value="">全部状态</option>
                         <option value="UPLOADED">待入库</option>
                         <option value="INDEXED">已索引</option>
@@ -104,10 +109,18 @@
                 <div class="table-wrap">
                     <table>
                         <thead>
-                        <tr><th>文件名</th><th>状态</th><th>页数</th><th>可见性</th><th style="width:220px">操作</th></tr>
+                        <tr>
+                            <th>文件名</th>
+                            <th>状态</th>
+                            <th>页数</th>
+                            <th>可见性</th>
+                            <th style="width:220px">操作</th>
+                        </tr>
                         </thead>
                         <tbody id="doc-list">
-                        <tr><td class="loading" colspan="5">加载中...</td></tr>
+                        <tr>
+                            <td class="loading" colspan="5">加载中...</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -137,41 +150,51 @@
             <div class="pv-field pv-slider-field">
                 <label for="pv-chunk-size">分块大小</label>
                 <div class="pv-slider-row">
-                    <input id="pv-chunk-size" max="2000" min="200" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="50" type="range" value="500">
+                    <input id="pv-chunk-size" max="2000" min="200"
+                           oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="50"
+                           type="range" value="500">
                     <span class="pv-slider-val">500</span>
                 </div>
             </div>
             <div class="pv-field pv-slider-field">
                 <label for="pv-overlap">重叠大小</label>
                 <div class="pv-slider-row">
-                    <input id="pv-overlap" max="200" min="20" oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="10" type="range" value="50">
+                    <input id="pv-overlap" max="200" min="20"
+                           oninput="this.nextElementSibling.textContent=this.value; triggerAutoPreview()" step="10"
+                           type="range" value="50">
                     <span class="pv-slider-val">50</span>
                 </div>
             </div>
             <div class="pv-actions">
                 <button class="btn btn-primary" onclick="doModalPreview()">解析</button>
-                <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">确认入库</button>
+                <button class="btn btn-success" id="pv-confirm-btn" onclick="confirmIndex()" style="display:none">
+                    确认入库
+                </button>
             </div>
         </div>
-        <div id="pv-index-progress" style="display:none;margin-bottom:12px;padding:10px 16px;background:var(--primary-soft);border-radius:8px">
+        <div id="pv-index-progress"
+             style="display:none;margin-bottom:12px;padding:10px 16px;background:var(--primary-soft);border-radius:8px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                 <span id="pv-index-label" style="font-size:13px;font-weight:600;color:var(--primary)">入库中...</span>
                 <span id="pv-index-percent" style="font-size:13px;font-weight:600;color:var(--primary)">0%</span>
             </div>
             <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden">
-                <div id="pv-index-bar" style="background:var(--primary);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
+                <div id="pv-index-bar"
+                     style="background:var(--primary);height:100%;width:0;transition:width .3s;border-radius:4px"></div>
             </div>
             <div id="pv-index-detail" style="font-size:11px;color:var(--text-light);margin-top:4px">准备中...</div>
         </div>
         <div id="pv-modal-warn"></div>
         <div class="preview-info-bar" id="pv-modal-summary"></div>
         <div class="tabs" data-manual>
-            <div class="tab active" data-panel="pv-pages" role="tab" tabindex="0" aria-selected="true"
-                 onclick="switchModalTab('pv-pages')"
-                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-pages')}">页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
-            <div class="tab" data-panel="pv-chunks" role="tab" tabindex="0" aria-selected="false"
-                 onclick="switchModalTab('pv-chunks')"
-                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-chunks')}">分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
+            <div aria-selected="true" class="tab active" data-panel="pv-pages" onclick="switchModalTab('pv-pages')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-pages')}"
+                 role="tab"
+                 tabindex="0">
+                页面/段落<span class="tab-count" id="pv-m-tab-pages">0</span></div>
+            <div aria-selected="false" class="tab" data-panel="pv-chunks" onclick="switchModalTab('pv-chunks')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchModalTab('pv-chunks')}"
+                 role="tab"
+                 tabindex="0">
+                分块<span class="tab-count" id="pv-m-tab-chunks">0</span></div>
         </div>
         <div class="tab-panel active" id="panel-pv-pages">
             <div class="pv-toolbar">

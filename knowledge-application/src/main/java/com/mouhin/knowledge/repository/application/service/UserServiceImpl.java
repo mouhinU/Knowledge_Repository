@@ -1,16 +1,13 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.application.executor.user.UserCreateCmdExe;
-import com.mouhin.knowledge.repository.application.executor.user.UserDeleteCmdExe;
-import com.mouhin.knowledge.repository.application.executor.user.UserGetQryExe;
-import com.mouhin.knowledge.repository.application.executor.user.UserListQryExe;
-import com.mouhin.knowledge.repository.application.executor.user.UserUpdateCmdExe;
+import com.mouhin.knowledge.repository.application.executor.user.*;
 import com.mouhin.knowledge.repository.client.api.UserServiceI;
 import com.mouhin.knowledge.repository.client.dto.UserCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserVO;
-import java.util.List;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 用户管理应用服务实现（app 层，仅分发到 Executor）

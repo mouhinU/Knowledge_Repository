@@ -9,15 +9,12 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.service.ExamAnswerNormalizer;
 import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
 import com.mouhin.knowledge.repository.domain.service.ExamContractValidator;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 /**
  * 出卷期切分支撑（app 层，V2「出卷即切分」核心节点）
@@ -35,7 +32,9 @@ public class ExamQuestionSplitSupport {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /** 客观题题型：答案存在「结论 + 内联解释」整串风险，切分时需拆出纯净答案头部 */
+    /**
+     * 客观题题型：答案存在「结论 + 内联解释」整串风险，切分时需拆出纯净答案头部
+     */
     private static final Set<String> OBJECTIVE_TYPES =
             Set.of("SINGLE_CHOICE", "MULTI_CHOICE", "TRUE_FALSE");
 
@@ -46,12 +45,45 @@ public class ExamQuestionSplitSupport {
     }
 
     /**
+     * 快照既有行的人工配图绑定（印刷题号 → images_json），仅收录非空项。
+     */
+    static Map<Integer, String> snapshotImagesByNumber(List<ExamQuestion> existingQuestions) {
+        Map<Integer, String> snapshot = new HashMap<>();
+        for (ExamQuestion existing : existingQuestions) {
+            if (existing.getQuestionNumber() != null
+                    && existing.getImagesJson() != null
+                    && !existing.getImagesJson().isBlank()) {
+                snapshot.put(existing.getQuestionNumber(), existing.getImagesJson());
+            }
+        }
+        return snapshot;
+    }
+
+    /**
+     * 把配图快照回填到重切后的题目行（按印刷题号匹配），返回成功保留的绑定数。
+     */
+    static int applyImageSnapshot(List<ExamQuestion> questions, Map<Integer, String> snapshot) {
+        if (snapshot.isEmpty()) {
+            return 0;
+        }
+        int preserved = 0;
+        for (ExamQuestion question : questions) {
+            String imagesJson = snapshot.get(question.getQuestionNumber());
+            if (imagesJson != null) {
+                question.setImagesJson(imagesJson);
+                preserved++;
+            }
+        }
+        return preserved;
+    }
+
+    /**
      * 切分并绑定答案，返回结构化题目列表（不落库）。
      *
-     * @param sessionKey 试卷标识（出卷会话 session_id）
+     * @param sessionKey  试卷标识（出卷会话 session_id）
      * @param examPaperMd 试卷 Markdown
      * @param answerKeyMd 标准答案与评分标准 Markdown
-     * @param plan 题型分布方案（可为 null，缺省时解析器回退关键词判定）
+     * @param plan        题型分布方案（可为 null，缺省时解析器回退关键词判定）
      * @return 结构化题目列表，按印刷题号出现顺序排列
      */
     public List<ExamQuestion> splitAndBind(
@@ -132,35 +164,6 @@ public class ExamQuestionSplitSupport {
         return new SplitOutcome(questions.size(), validation);
     }
 
-    /** 快照既有行的人工配图绑定（印刷题号 → images_json），仅收录非空项。 */
-    static Map<Integer, String> snapshotImagesByNumber(List<ExamQuestion> existingQuestions) {
-        Map<Integer, String> snapshot = new HashMap<>();
-        for (ExamQuestion existing : existingQuestions) {
-            if (existing.getQuestionNumber() != null
-                    && existing.getImagesJson() != null
-                    && !existing.getImagesJson().isBlank()) {
-                snapshot.put(existing.getQuestionNumber(), existing.getImagesJson());
-            }
-        }
-        return snapshot;
-    }
-
-    /** 把配图快照回填到重切后的题目行（按印刷题号匹配），返回成功保留的绑定数。 */
-    static int applyImageSnapshot(List<ExamQuestion> questions, Map<Integer, String> snapshot) {
-        if (snapshot.isEmpty()) {
-            return 0;
-        }
-        int preserved = 0;
-        for (ExamQuestion question : questions) {
-            String imagesJson = snapshot.get(question.getQuestionNumber());
-            if (imagesJson != null) {
-                question.setImagesJson(imagesJson);
-                preserved++;
-            }
-        }
-        return preserved;
-    }
-
     // ==================== 工具 ====================
 
     /**
@@ -171,8 +174,8 @@ public class ExamQuestionSplitSupport {
      * 原样绑定，避免误截。{@code scoring_criteria} 与题型无关，统一从答案键一次性绑定。
      *
      * @param question 目标题目行
-     * @param key 答案键解析结果（非空）
-     * @param type 题型 key
+     * @param key      答案键解析结果（非空）
+     * @param type     题型 key
      */
     private void bindAnswerAndAnalysis(
             ExamQuestion question, AnswerKeyParser.QuestionKey key, String type) {
@@ -231,8 +234,9 @@ public class ExamQuestionSplitSupport {
     /**
      * 切分落库结果。
      *
-     * @param count 落库题目数量
+     * @param count      落库题目数量
      * @param validation 出卷契约校验结果
      */
-    public record SplitOutcome(int count, ExamContractValidator.Result validation) {}
+    public record SplitOutcome(int count, ExamContractValidator.Result validation) {
+    }
 }

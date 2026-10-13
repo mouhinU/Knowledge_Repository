@@ -1,9 +1,10 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 保存答题请求
@@ -15,9 +16,13 @@ import lombok.Setter;
 @Setter
 public class SaveAnswersRequest {
 
-    /** 考生令牌 */
+    /**
+     * 考生令牌
+     */
     private String token;
 
-    /** 答题列表，每项包含 questionIndex、questionType、content、answer */
+    /**
+     * 答题列表，每项包含 questionIndex、questionType、content、answer
+     */
     private List<Map<String, String>> answers;
 }

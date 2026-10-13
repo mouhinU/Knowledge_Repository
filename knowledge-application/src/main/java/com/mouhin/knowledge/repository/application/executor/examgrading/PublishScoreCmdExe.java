@@ -4,11 +4,12 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import java.time.LocalDateTime;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 完成复核并发布成绩执行器
@@ -27,6 +28,29 @@ public class PublishScoreCmdExe {
             ExamSessionGateway examSessionGateway, ExamAnswerGateway examAnswerGateway) {
         this.examSessionGateway = examSessionGateway;
         this.examAnswerGateway = examAnswerGateway;
+    }
+
+    /**
+     * 判断某题在发布前是否必须经人工确认。
+     *
+     * <p>仅当"机器无法自信评分"时才拦门禁：主观题、缺少标准答案的客观题、或尚未评分的题项。 客观题若标准答案存在，则自动比对结果（无论对错）都是确定的，无需人工复核即可发布，
+     * 以免学生仅因答错选择题就被迫逐题人工确认。已由人工复核过（{@code reviewScore!=null}）的题项放行。
+     *
+     * @param answer 答题记录
+     * @return 需要人工确认返回 {@code true}
+     */
+    private static boolean requiresHumanConfirmation(ExamAnswer answer) {
+        if (answer.getReviewScore() != null) {
+            return false;
+        }
+        if (!answer.isObjective()) {
+            return true;
+        }
+        if (answer.getAiScore() == null) {
+            return true;
+        }
+        String correctAnswer = answer.getCorrectAnswer();
+        return correctAnswer == null || correctAnswer.isBlank();
     }
 
     @Transactional
@@ -59,28 +83,5 @@ public class PublishScoreCmdExe {
         examSessionGateway.update(session);
 
         log.info("成绩已发布 [session={}, finalScore={}, reviewer={}]", sessionId, finalScore, reviewer);
-    }
-
-    /**
-     * 判断某题在发布前是否必须经人工确认。
-     *
-     * <p>仅当"机器无法自信评分"时才拦门禁：主观题、缺少标准答案的客观题、或尚未评分的题项。 客观题若标准答案存在，则自动比对结果（无论对错）都是确定的，无需人工复核即可发布，
-     * 以免学生仅因答错选择题就被迫逐题人工确认。已由人工复核过（{@code reviewScore!=null}）的题项放行。
-     *
-     * @param answer 答题记录
-     * @return 需要人工确认返回 {@code true}
-     */
-    private static boolean requiresHumanConfirmation(ExamAnswer answer) {
-        if (answer.getReviewScore() != null) {
-            return false;
-        }
-        if (!answer.isObjective()) {
-            return true;
-        }
-        if (answer.getAiScore() == null) {
-            return true;
-        }
-        String correctAnswer = answer.getCorrectAnswer();
-        return correctAnswer == null || correctAnswer.isBlank();
     }
 }

@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
+
 import java.time.LocalDate;
 
 /**
@@ -14,8 +15,8 @@ public interface TenantUsageRecorder {
      * 原子递增。首次调用（无现有行）时自动 seed。
      *
      * @param tenantKey 归一化租户键（小写）
-     * @param metric 指标枚举
-     * @param amount 增量（≤0 静默忽略）
+     * @param metric    指标枚举
+     * @param amount    增量（≤0 静默忽略）
      */
     void record(String tenantKey, UsageMetric metric, long amount);
 
@@ -23,8 +24,8 @@ public interface TenantUsageRecorder {
      * 查询指定租户在给定周期的用量。无记录返回 0。
      *
      * @param tenantKey 归一化租户键
-     * @param metric 指标枚举
-     * @param period 查询周期（通常为当月 1 日）
+     * @param metric    指标枚举
+     * @param period    查询周期（通常为当月 1 日）
      * @return 当前用量
      */
     long getCurrentUsage(String tenantKey, UsageMetric metric, LocalDate period);

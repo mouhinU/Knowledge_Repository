@@ -9,11 +9,12 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 直接解析上传文件预览用例执行器（app 层，不入库）。

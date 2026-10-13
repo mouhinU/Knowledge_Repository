@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.support;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
@@ -18,13 +7,19 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibili
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link AuthorizedSearchSupport} 单元测试（SEC-1：检索出口权限后置过滤）。
@@ -92,6 +87,25 @@ class AuthorizedSearchSupportTest {
         verify(documentGateway, never()).findByDocumentKeys(any());
     }
 
+    @Test
+    @DisplayName("searchAuthorized 走 over-fetch 拉取并截断至 maxResults")
+    void overFetchThenTrim() {
+        Permission admin = new Permission("u-admin", "dept-x", "ADMIN", true);
+        int max = 2;
+        int expectedFetch = AuthorizedSearchSupport.overFetchSize(max);
+        List<SearchResult> raw = new ArrayList<>();
+        for (int i = 0; i < expectedFetch; i++) {
+            raw.add(result("k" + i));
+        }
+        when(vectorStoreGateway.search(anyString(), eq(expectedFetch), anyDouble(), any(), any()))
+                .thenReturn(raw);
+
+        List<SearchResult> out = support.searchAuthorized("q", max, 0.3, null, null, admin);
+
+        assertEquals(max, out.size());
+        verify(vectorStoreGateway).search(eq("q"), eq(expectedFetch), eq(0.3), any(), any());
+    }
+
     @Nested
     @DisplayName("非超管按 ACL 逐条过滤")
     class AccessControl {
@@ -147,25 +161,6 @@ class AuthorizedSearchSupportTest {
 
             assertEquals(0, kept.size());
         }
-    }
-
-    @Test
-    @DisplayName("searchAuthorized 走 over-fetch 拉取并截断至 maxResults")
-    void overFetchThenTrim() {
-        Permission admin = new Permission("u-admin", "dept-x", "ADMIN", true);
-        int max = 2;
-        int expectedFetch = AuthorizedSearchSupport.overFetchSize(max);
-        List<SearchResult> raw = new ArrayList<>();
-        for (int i = 0; i < expectedFetch; i++) {
-            raw.add(result("k" + i));
-        }
-        when(vectorStoreGateway.search(anyString(), eq(expectedFetch), anyDouble(), any(), any()))
-                .thenReturn(raw);
-
-        List<SearchResult> out = support.searchAuthorized("q", max, 0.3, null, null, admin);
-
-        assertEquals(max, out.size());
-        verify(vectorStoreGateway).search(eq("q"), eq(expectedFetch), eq(0.3), any(), any());
     }
 
     @Nested

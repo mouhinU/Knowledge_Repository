@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
  */
 public final class DocumentChunkConverter {
 
-    private DocumentChunkConverter() {}
+    private DocumentChunkConverter() {
+    }
 
     public static DocumentChunk toDomain(DocumentChunkDO doObj) {
         if (doObj == null) {

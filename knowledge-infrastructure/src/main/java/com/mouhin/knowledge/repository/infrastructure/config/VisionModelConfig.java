@@ -2,12 +2,13 @@ package com.mouhin.knowledge.repository.infrastructure.config;
 
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.infrastructure.llm.OpenAiCompatibleVisionChatGateway;
-import java.net.http.HttpClient;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 /**
  * 视觉角色模型装配（Phase B）。
@@ -25,7 +26,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class VisionModelConfig {
 
-    /** 视觉角色专属 HTTP 客户端，与 chat / embedding 连接池隔离。 */
+    /**
+     * 视觉角色专属 HTTP 客户端，与 chat / embedding 连接池隔离。
+     */
     @Bean("visionHttpClient")
     public HttpClient visionHttpClient(LlmVisionProperties vision) {
         log.info(
@@ -39,7 +42,9 @@ public class VisionModelConfig {
                 .build();
     }
 
-    /** 视觉对话网关，注入视觉角色独立 HTTP 客户端与整调用超时。 */
+    /**
+     * 视觉对话网关，注入视觉角色独立 HTTP 客户端与整调用超时。
+     */
     @Bean
     public VisionChatGateway visionChatGateway(
             LlmVisionProperties vision, @Qualifier("visionHttpClient") HttpClient httpClient) {

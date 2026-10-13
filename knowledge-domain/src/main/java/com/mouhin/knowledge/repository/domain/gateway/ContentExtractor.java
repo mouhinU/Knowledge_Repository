@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+
 import java.io.IOException;
 
 /**

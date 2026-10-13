@@ -16,18 +16,28 @@ import lombok.Setter;
 @Setter
 public class SearchImagesQuery {
 
-    /** 单页默认条数 */
+    /**
+     * 单页默认条数
+     */
     private static final int DEFAULT_LIMIT = 60;
 
-    /** 关键词（匹配来源文档名 / 文档 Key），可空 */
+    /**
+     * 关键词（匹配来源文档名 / 文档 Key），可空
+     */
     private String keyword;
 
-    /** 限定到某篇文档的 Key，可空 */
+    /**
+     * 限定到某篇文档的 Key，可空
+     */
     private String documentKey;
 
-    /** 单页条数 */
+    /**
+     * 单页条数
+     */
     private int limit = DEFAULT_LIMIT;
 
-    /** 偏移量 */
+    /**
+     * 偏移量
+     */
     private int offset;
 }

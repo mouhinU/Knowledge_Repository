@@ -25,14 +25,15 @@
     </div>
     <p class="login-sub">RAG 知识库管理台 · 请登录后访问</p>
     <div class="login-err" id="login-err"></div>
-    <form id="login-form" autocomplete="on">
+    <form autocomplete="on" id="login-form">
         <div class="form-group">
             <label class="form-label" for="username">用户名</label>
-            <input class="form-input" id="username" name="username" type="text" autocomplete="username" required>
+            <input autocomplete="username" class="form-input" id="username" name="username" required type="text">
         </div>
         <div class="form-group">
             <label class="form-label" for="password">密码</label>
-            <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" required>
+            <input autocomplete="current-password" class="form-input" id="password" name="password" required
+                   type="password">
         </div>
         <button class="btn btn-primary" id="login-btn" type="submit">登录</button>
     </form>

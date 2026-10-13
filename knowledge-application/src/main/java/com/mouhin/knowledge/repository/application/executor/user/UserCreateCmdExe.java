@@ -5,11 +5,12 @@ import com.mouhin.knowledge.repository.client.dto.UserCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.UserVO;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 /**
  * 新增用户命令执行器（app 层用例，事务边界）

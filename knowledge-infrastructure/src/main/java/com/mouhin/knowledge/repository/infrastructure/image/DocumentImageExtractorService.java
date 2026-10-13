@@ -2,20 +2,6 @@ package com.mouhin.knowledge.repository.infrastructure.image;
 
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSBase;
@@ -25,22 +11,24 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.apache.poi.xslf.usermodel.XMLSlideShow;
-import org.apache.poi.xslf.usermodel.XSLFPictureData;
-import org.apache.poi.xslf.usermodel.XSLFPictureShape;
-import org.apache.poi.xslf.usermodel.XSLFShape;
-import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFPictureData;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.usermodel.IBodyElement;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFPicture;
-import org.apache.poi.xwpf.usermodel.XWPFPictureData;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.*;
 import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.List;
 
 /**
  * 文档内嵌图片提取服务（基础设施层）。
@@ -52,7 +40,7 @@ import org.springframework.stereotype.Service;
  *   <li>Word：POI 按正文顺序（段落 / 表格）解析内联图片，保留出现次序与近似页序；
  *   <li>Excel / PPT：POI 遍历工作表 / 幻灯片中的图片。
  * </ul>
- *
+ * <p>
  * 过滤过小装饰图（默认 {@code >=80x80}）并限制单文档上限，异常按格式吞掉、绝不中断文本摄入主流程。 仅返回二进制与元信息，落盘与持久化由应用层完成。
  *
  * @author mouhinU
@@ -62,13 +50,19 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class DocumentImageExtractorService implements DocumentImageExtractorGateway {
 
-    /** 过滤边长小于该值的装饰性小图（px） */
+    /**
+     * 过滤边长小于该值的装饰性小图（px）
+     */
     private static final int MIN_EDGE = 80;
 
-    /** 单文档最多抽取的图片数，防御恶意 / 超大文件撑爆内存 */
+    /**
+     * 单文档最多抽取的图片数，防御恶意 / 超大文件撑爆内存
+     */
     private static final int MAX_IMAGES_PER_DOC = 300;
 
-    /** 默认 / fallback MIME（java:S1192：抽常量防 5 处 MIME_PNG 字面量漂移）。 */
+    /**
+     * 默认 / fallback MIME（java:S1192：抽常量防 5 处 MIME_PNG 字面量漂移）。
+     */
     private static final String MIME_PNG = "image/png";
 
     private final Tika tika = new Tika();
@@ -171,7 +165,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromDocx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-                XWPFDocument doc = new XWPFDocument(is)) {
+             XWPFDocument doc = new XWPFDocument(is)) {
 
             // 按正文顺序采集内联图片（含表格），无法定位时回退 getAllPictures
             List<DocxPic> collected = new ArrayList<>();
@@ -247,7 +241,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromXlsx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-                XSSFWorkbook wb = new XSSFWorkbook(is)) {
+             XSSFWorkbook wb = new XSSFWorkbook(is)) {
 
             List<XSSFPictureData> pictures = wb.getAllPictures();
             int sheetPages = Math.max(1, wb.getNumberOfSheets());
@@ -284,7 +278,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private List<ExtractedImage> extractFromPptx(Path path) throws IOException {
         List<ExtractedImage> result = new ArrayList<>();
         try (InputStream is = Files.newInputStream(path);
-                XMLSlideShow ppt = new XMLSlideShow(is)) {
+             XMLSlideShow ppt = new XMLSlideShow(is)) {
 
             int slideNo = 0;
             for (XSLFSlide slide : ppt.getSlides()) {
@@ -328,11 +322,11 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
      * <p>解码后按 {@link #accept} 过滤装饰性小图：不通过则返回 {@code null}，调用方据此跳过且不推进 {@code seq}；通过则以 {@link
      * #resolveMime} 定 MIME 并封装尺寸 / 页序 / 序号。accept 已保证 BufferedImage 非空，可直接取宽高。
      *
-     * @param bytes 图片原始字节
+     * @param bytes       图片原始字节
      * @param contentType 包内声明的内容类型（可为 null）
-     * @param fileExt 建议文件扩展名（pptx 无扩展名，传 null）
-     * @param pageNo 页序 / 幻灯片序号 / 工作表估算页
-     * @param seq 该页内图片序号
+     * @param fileExt     建议文件扩展名（pptx 无扩展名，传 null）
+     * @param pageNo      页序 / 幻灯片序号 / 工作表估算页
+     * @param seq         该页内图片序号
      * @return 过滤通过的 {@link ExtractedImage}；被判定为装饰小图或解码失败时返回 {@code null}
      */
     private ExtractedImage tryBuildImage(
@@ -349,8 +343,6 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                 pageNo,
                 seq);
     }
-
-    private record DocxPic(XWPFPictureData data, int page) {}
 
     private boolean accept(BufferedImage img) {
         return img != null && img.getWidth() >= MIN_EDGE && img.getHeight() >= MIN_EDGE;
@@ -381,7 +373,9 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         return baos.toByteArray();
     }
 
-    /** 解析图片 MIME：优先内容类型（image/*），其次文件扩展名，最后按字节魔数嗅探。 */
+    /**
+     * 解析图片 MIME：优先内容类型（image/*），其次文件扩展名，最后按字节魔数嗅探。
+     */
     private String resolveMime(byte[] bytes, String contentType, String fileExt) {
         if (contentType != null) {
             String lower = contentType.toLowerCase(Locale.ROOT);
@@ -434,5 +428,8 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
             return "image/bmp";
         }
         return MIME_PNG;
+    }
+
+    private record DocxPic(XWPFPictureData data, int page) {
     }
 }

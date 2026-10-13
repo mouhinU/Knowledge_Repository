@@ -6,9 +6,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 知识缺口分析 Agent
@@ -26,35 +27,47 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT =
             """
-            你是一位知识可信度审核专家，负责检查试卷中的每道题是否能从知识库中找到依据。
-
-            任务：
-            1. 逐一分析试卷中的每道题目，检查其考查的知识点是否在提供的知识片段中有明确依据
-            2. 对于找不到知识库依据的题目，标记为"⚠️ 无依据"并说明理由
-            3. 对于有依据的题目，标记为"✅ 有依据"并指出对应的知识片段编号
-            4. 统计整体知识覆盖率（有依据题数 / 总题数）
-            5. 如果覆盖率低于 70%，给出警告和补充建议
-
-            输出格式（严格按以下 Markdown 结构）：
-            ## 逐题核查
-            | 题号 | 考查知识点 | 依据状态 | 对应片段 |
-            |------|-----------|---------|---------|
-            | 1    | ...       | ✅/⚠️   | #N / 无 |
-
-            ## 覆盖率统计
-            有依据：X / Y 题（Z%）
-
-            ## 风险提示
-            （覆盖率低于 70% 时给出警告，否则写"知识覆盖率达标，无显著幻觉风险"）
-
-            ## 补充建议
-            （如有无依据题目，建议补充哪些方面的知识；否则写"无需补充"）
-            """;
+                    你是一位知识可信度审核专家，负责检查试卷中的每道题是否能从知识库中找到依据。
+                    
+                    任务：
+                    1. 逐一分析试卷中的每道题目，检查其考查的知识点是否在提供的知识片段中有明确依据
+                    2. 对于找不到知识库依据的题目，标记为"⚠️ 无依据"并说明理由
+                    3. 对于有依据的题目，标记为"✅ 有依据"并指出对应的知识片段编号
+                    4. 统计整体知识覆盖率（有依据题数 / 总题数）
+                    5. 如果覆盖率低于 70%，给出警告和补充建议
+                    
+                    输出格式（严格按以下 Markdown 结构）：
+                    ## 逐题核查
+                    | 题号 | 考查知识点 | 依据状态 | 对应片段 |
+                    |------|-----------|---------|---------|
+                    | 1    | ...       | ✅/⚠️   | #N / 无 |
+                    
+                    ## 覆盖率统计
+                    有依据：X / Y 题（Z%）
+                    
+                    ## 风险提示
+                    （覆盖率低于 70% 时给出警告，否则写"知识覆盖率达标，无显著幻觉风险"）
+                    
+                    ## 补充建议
+                    （如有无依据题目，建议补充哪些方面的知识；否则写"无需补充"）
+                    """;
 
     private final BlackboardAgentStreamer agentStreamer;
 
     public KnowledgeGapAnalyzerAgent(BlackboardAgentStreamer agentStreamer) {
         this.agentStreamer = agentStreamer;
+    }
+
+    private static String truncate(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max) + "...";
+    }
+
+    private static void emitProgress(
+            BlackboardProgressCallback callback, BlackboardProgressEvent event) {
+        if (callback != null) {
+            callback.onProgress(event);
+        }
     }
 
     @Override
@@ -83,16 +96,16 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         String userPrompt =
                 String.format(
                         """
-                考试主题：%s
-
-                【知识库片段】
-                %s
-
-                【试卷内容】
-                %s
-
-                请逐题核查试卷中每道题是否有知识库依据，并输出分析报告。
-                """,
+                                考试主题：%s
+                                
+                                【知识库片段】
+                                %s
+                                
+                                【试卷内容】
+                                %s
+                                
+                                请逐题核查试卷中每道题是否有知识库依据，并输出分析报告。
+                                """,
                         blackboard.getQuestion(), knowledgeContext, examPaper);
 
         String report =
@@ -134,7 +147,9 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         return sb.toString();
     }
 
-    /** 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分） */
+    /**
+     * 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分）
+     */
     private Double calculateGapScore(String report) {
         double score = Math.min(20.0, report.length() / 100.0 * 2.0);
         if (report.contains("逐题核查")) score += 20.0;
@@ -142,17 +157,5 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         if (report.contains("风险提示")) score += 20.0;
         if (report.contains("补充建议")) score += 20.0;
         return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
-    }
-
-    private static String truncate(String text, int max) {
-        if (text == null) return "";
-        return text.length() <= max ? text : text.substring(0, max) + "...";
-    }
-
-    private static void emitProgress(
-            BlackboardProgressCallback callback, BlackboardProgressEvent event) {
-        if (callback != null) {
-            callback.onProgress(event);
-        }
     }
 }

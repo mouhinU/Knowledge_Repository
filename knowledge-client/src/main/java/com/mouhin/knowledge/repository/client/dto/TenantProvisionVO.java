@@ -1,8 +1,9 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 租户开通结果视图对象（client 层出参，P3-T2）。
@@ -18,19 +19,29 @@ import lombok.Setter;
 @Setter
 public class TenantProvisionVO {
 
-    /** 目标租户业务键。 */
+    /**
+     * 目标租户业务键。
+     */
     private String tenantKey;
 
-    /** 本次请求 UUID v4（幂等键）。 */
+    /**
+     * 本次请求 UUID v4（幂等键）。
+     */
     private String provisionRequestId;
 
-    /** 租户终态：{@code ACTIVE} / {@code FAILED}。 */
+    /**
+     * 租户终态：{@code ACTIVE} / {@code FAILED}。
+     */
     private String finalStatus;
 
-    /** 是否开通成功。 */
+    /**
+     * 是否开通成功。
+     */
     private boolean success;
 
-    /** 各步骤执行结果，按执行顺序。 */
+    /**
+     * 各步骤执行结果，按执行顺序。
+     */
     private List<StepVO> steps;
 
     /**
@@ -51,16 +62,24 @@ public class TenantProvisionVO {
     @Setter
     public static class StepVO {
 
-        /** 步骤名。 */
+        /**
+         * 步骤名。
+         */
         private String stepName;
 
-        /** {@code SUCCESS} / {@code FAILED} / {@code SKIPPED}。 */
+        /**
+         * {@code SUCCESS} / {@code FAILED} / {@code SKIPPED}。
+         */
         private String status;
 
-        /** 本次尝试序号。 */
+        /**
+         * 本次尝试序号。
+         */
         private int attemptNo;
 
-        /** 失败原因（成功 / 跳过为 {@code null}）。 */
+        /**
+         * 失败原因（成功 / 跳过为 {@code null}）。
+         */
         private String errorDetail;
     }
 
@@ -74,16 +93,24 @@ public class TenantProvisionVO {
     @Setter
     public static class InviteVO {
 
-        /** 原始邀请码（Base64URL 无填充，43 字符）；仅本次响应可见。 */
+        /**
+         * 原始邀请码（Base64URL 无填充，43 字符）；仅本次响应可见。
+         */
         private String code;
 
-        /** 前端设密页相对 URL：{@code /set-password.html?code=<code>}。 */
+        /**
+         * 前端设密页相对 URL：{@code /set-password.html?code=<code>}。
+         */
         private String url;
 
-        /** 过期时间（ISO-8601 字符串，默认签发 +72h）。 */
+        /**
+         * 过期时间（ISO-8601 字符串，默认签发 +72h）。
+         */
         private String expiresAt;
 
-        /** 首位 admin 用户名（如 {@code acme-admin}），便于运维在邮件 / IM 中明示。 */
+        /**
+         * 首位 admin 用户名（如 {@code acme-admin}），便于运维在邮件 / IM 中明示。
+         */
         private String adminUsername;
     }
 }

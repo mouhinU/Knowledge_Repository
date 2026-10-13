@@ -8,6 +8,13 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrate
 import com.mouhin.knowledge.repository.infrastructure.config.ExtractorRoutingProperties;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,12 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.tika.Tika;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Service;
 
 /**
  * 组合式文档提取服务：MIME 检测 + 策略路由 + 顺序回退，顶替原 {@code DocumentExtractionService} 的 switch 分派。
@@ -41,19 +42,27 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class CompositeExtractionService implements DocumentExtractionGateway {
 
-    /** 最大文件大小：200MB。 */
+    /**
+     * 最大文件大小：200MB。
+     */
     private static final long MAX_FILE_SIZE = 200L * 1024 * 1024;
 
-    /** 校验失败对外统一回显消息，消除文件是否存在 / 大小是否越界 / 扩展名是否受支持等 oracle（java:S6549）。 */
+    /**
+     * 校验失败对外统一回显消息，消除文件是否存在 / 大小是否越界 / 扩展名是否受支持等 oracle（java:S6549）。
+     */
     private static final String GENERIC_INVALID_REFERENCE = "Invalid file reference";
 
-    /** 支持的文件扩展名。 */
+    /**
+     * 支持的文件扩展名。
+     */
     private static final List<String> SUPPORTED_EXTENSIONS =
             List.of(
                     "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "txt", "csv", "md", "html",
                     "htm", "rtf");
 
-    /** 未配置 routing 时的内置 MIME → 策略栈映射，与历史 switch 分支严格等价。 */
+    /**
+     * 未配置 routing 时的内置 MIME → 策略栈映射，与历史 switch 分支严格等价。
+     */
     private static final Map<String, List<String>> BUILTIN_ROUTING = buildBuiltinRouting();
 
     private final Map<String, ContentExtractor> extractorByName;
@@ -68,13 +77,17 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
     private final Tika tika = new Tika();
 
-    /** 测试专用构造器：跳过 base-dir 白名单，只校验路由与策略。生产 Spring 装配请使用 4 参构造。 */
+    /**
+     * 测试专用构造器：跳过 base-dir 白名单，只校验路由与策略。生产 Spring 装配请使用 4 参构造。
+     */
     public CompositeExtractionService(
             List<ContentExtractor> extractors, ExtractorRoutingProperties routing) {
         this(extractors, routing, null, null);
     }
 
-    /** 测试专用构造器：跳过 base-dir 白名单。 */
+    /**
+     * 测试专用构造器：跳过 base-dir 白名单。
+     */
     public CompositeExtractionService(
             List<ContentExtractor> extractors,
             ExtractorRoutingProperties routing,
@@ -87,8 +100,8 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
      * java:S6549「Filesystem Oracle」整改要求。
      *
      * @param extractors 所有已注册的抽取策略实现，Spring 自动收集
-     * @param routing 路由与启用白名单配置
-     * @param metrics 观测指标（可空）
+     * @param routing    路由与启用白名单配置
+     * @param metrics    观测指标（可空）
      * @param storageDir 文档永久存储根目录；空串或 {@code null} 时 base-dir 校验关闭（仅测试路径）
      */
     @Autowired
@@ -105,6 +118,41 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
                         .collect(
                                 Collectors.toUnmodifiableMap(
                                         ContentExtractor::name, Function.identity()));
+    }
+
+    /**
+     * 由 {@code knowledge.storage.path} 与 {@code java.io.tmpdir} 归一化生成 base-dir 白名单；storageDir 空 →
+     * 关闭。
+     */
+    private static List<Path> resolveAllowedRoots(String storageDir) {
+        if (storageDir == null || storageDir.isBlank()) {
+            return List.of();
+        }
+        Path storageRoot = Path.of(storageDir).toAbsolutePath().normalize();
+        Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
+        return List.of(storageRoot, tmpRoot);
+    }
+
+    private static Map<String, List<String>> buildBuiltinRouting() {
+        Map<String, List<String>> map = new LinkedHashMap<>();
+        map.put("application/pdf", List.of(ExtractionStrategyEnum.PDF_BOX.name()));
+        map.put(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                List.of(ExtractionStrategyEnum.DOCX.name()));
+        map.put("application/msword", List.of(ExtractionStrategyEnum.DOCX.name()));
+        map.put(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                List.of(ExtractionStrategyEnum.XLSX.name()));
+        map.put("application/vnd.ms-excel", List.of(ExtractionStrategyEnum.XLSX.name()));
+        map.put(
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                List.of(ExtractionStrategyEnum.PPTX.name()));
+        map.put("application/vnd.ms-powerpoint", List.of(ExtractionStrategyEnum.PPTX.name()));
+        map.put("text/plain", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put("text/csv", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put("text/html", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put("text/markdown", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        return Map.copyOf(map);
     }
 
     /**
@@ -134,8 +182,8 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
      */
     @Override
     @SuppressWarnings({
-        "java:S6549",
-        "javasecurity:S6549"
+            "java:S6549",
+            "javasecurity:S6549"
     }) // Sonar 报告的实际规则键为 javasecurity:S6549；两写法并列确保匹配
     public void validateFile(Path filePath, long fileSize, String fileName) {
         if (filePath == null) {
@@ -162,25 +210,14 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
         }
     }
 
-    /** 记录 debug 细节后抛出统一异常；私有工具，保证 validateFile 各分支的对外信号完全同构。 */
+    /**
+     * 记录 debug 细节后抛出统一异常；私有工具，保证 validateFile 各分支的对外信号完全同构。
+     */
     private void reject(String reason, Throwable cause) {
         if (log.isDebugEnabled()) {
             log.debug("validateFile rejected [{}]", reason, cause);
         }
         throw new IllegalArgumentException(GENERIC_INVALID_REFERENCE);
-    }
-
-    /**
-     * 由 {@code knowledge.storage.path} 与 {@code java.io.tmpdir} 归一化生成 base-dir 白名单；storageDir 空 →
-     * 关闭。
-     */
-    private static List<Path> resolveAllowedRoots(String storageDir) {
-        if (storageDir == null || storageDir.isBlank()) {
-            return List.of();
-        }
-        Path storageRoot = Path.of(storageDir).toAbsolutePath().normalize();
-        Path tmpRoot = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize();
-        return List.of(storageRoot, tmpRoot);
     }
 
     @Override
@@ -207,7 +244,9 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
         return runStack(stack, candidate, mimeType);
     }
 
-    /** 顺序尝试栈内命中策略：成功记 ok+耗时并返回；IO 异常记 fallback 并继续；全失败冒泡最后异常。 */
+    /**
+     * 顺序尝试栈内命中策略：成功记 ok+耗时并返回；IO 异常记 fallback 并继续；全失败冒泡最后异常。
+     */
     private ExtractionResult runStack(
             List<ContentExtractor> stack, ExtractionCandidate candidate, String mimeType)
             throws IOException {
@@ -265,7 +304,9 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
         return ExtractionSupport.calculateChecksum(filePath);
     }
 
-    /** 依据配置 / 内置映射解析 MIME 对应的有序策略栈，过滤掉未注册或未启用的策略名； 过滤后为空时回退到 {@code default-stack}。 */
+    /**
+     * 依据配置 / 内置映射解析 MIME 对应的有序策略栈，过滤掉未注册或未启用的策略名； 过滤后为空时回退到 {@code default-stack}。
+     */
     private List<ContentExtractor> resolveStack(String mimeType) {
         List<String> names = configuredStack(mimeType);
         List<ContentExtractor> resolved = filterEnabled(names);
@@ -275,7 +316,9 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
         return resolved;
     }
 
-    /** 解析按请求强制指定的策略名栈（名称已在上游按白名单校验）；全部未启用/未注册时回退默认栈。 */
+    /**
+     * 解析按请求强制指定的策略名栈（名称已在上游按白名单校验）；全部未启用/未注册时回退默认栈。
+     */
     private List<ContentExtractor> resolveStack(List<String> forcedNames) {
         List<ContentExtractor> resolved = filterEnabled(forcedNames);
         if (resolved.isEmpty()) {
@@ -306,27 +349,5 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
             result.add(extractor);
         }
         return result;
-    }
-
-    private static Map<String, List<String>> buildBuiltinRouting() {
-        Map<String, List<String>> map = new LinkedHashMap<>();
-        map.put("application/pdf", List.of(ExtractionStrategyEnum.PDF_BOX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                List.of(ExtractionStrategyEnum.DOCX.name()));
-        map.put("application/msword", List.of(ExtractionStrategyEnum.DOCX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                List.of(ExtractionStrategyEnum.XLSX.name()));
-        map.put("application/vnd.ms-excel", List.of(ExtractionStrategyEnum.XLSX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                List.of(ExtractionStrategyEnum.PPTX.name()));
-        map.put("application/vnd.ms-powerpoint", List.of(ExtractionStrategyEnum.PPTX.name()));
-        map.put("text/plain", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/csv", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/html", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/markdown", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        return Map.copyOf(map);
     }
 }

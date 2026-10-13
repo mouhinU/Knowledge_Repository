@@ -1,11 +1,11 @@
 package com.mouhin.knowledge.repository.domain.model.valueobject;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link TenantKey} 租户键规范单测（P3-T1 单一事实源）。

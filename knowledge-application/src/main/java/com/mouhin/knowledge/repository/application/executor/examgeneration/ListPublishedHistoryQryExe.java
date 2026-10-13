@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Component;
 
 /**
  * 查询已发布试卷列表执行器（app 层用例，阶段 1-D）
@@ -27,7 +28,9 @@ import org.springframework.stereotype.Component;
 @Component("examListPublishedHistoryQryExe")
 public class ListPublishedHistoryQryExe {
 
-    /** 剔除已考卷时向网关多取若干条做过滤后截断，避免过滤后不足 limit 造成前端"看起来只有几份"。 */
+    /**
+     * 剔除已考卷时向网关多取若干条做过滤后截断，避免过滤后不足 limit 造成前端"看起来只有几份"。
+     */
     private static final int OVERFETCH_FACTOR = 4;
 
     private final ExamHistoryGateway examHistoryGateway;
@@ -43,7 +46,9 @@ public class ListPublishedHistoryQryExe {
         this.studentGateway = studentGateway;
     }
 
-    /** 保留旧签名（不带学生身份）供其它调用方使用。 */
+    /**
+     * 保留旧签名（不带学生身份）供其它调用方使用。
+     */
     public List<ExamHistoryDTO> execute(int limit) {
         return execute(limit, null);
     }
@@ -51,7 +56,7 @@ public class ListPublishedHistoryQryExe {
     /**
      * 面向学生端的可用列表：可按登录态剔除已开考过的试卷。
      *
-     * @param limit 最大返回数量
+     * @param limit        最大返回数量
      * @param studentToken 学生会话令牌；为空或失效时按未登录处理，仅返回全量已发布列表
      * @return 可用试卷 DTO 列表（按创建时间倒序）
      */

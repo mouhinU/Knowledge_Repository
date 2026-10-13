@@ -1,6 +1,10 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -8,9 +12,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 文章生成进度存储与 SSE 推送
@@ -24,13 +25,19 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class BlackboardProgressStore {
 
-    /** SSE 超时时间：10 分钟 */
+    /**
+     * SSE 超时时间：10 分钟
+     */
     private static final long SSE_TIMEOUT_MS = 600_000L;
 
-    /** 每个 session 的 SSE 连接列表 */
+    /**
+     * 每个 session 的 SSE 连接列表
+     */
     private final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
-    /** 每个 session 的事件缓冲（SSE 连接前的早期事件） */
+    /**
+     * 每个 session 的事件缓冲（SSE 连接前的早期事件）
+     */
     private final Map<String, List<BlackboardProgressEvent>> eventBuffers =
             new ConcurrentHashMap<>();
 
@@ -78,7 +85,7 @@ public class BlackboardProgressStore {
      * <p>若 SSE 已连接则直接推送；否则缓冲等待。
      *
      * @param sessionId 会话 ID
-     * @param event 进度事件
+     * @param event     进度事件
      */
     public void pushEvent(String sessionId, BlackboardProgressEvent event) {
         List<SseEmitter> sessionEmitters = emitters.get(sessionId);
@@ -145,7 +152,9 @@ public class BlackboardProgressStore {
         }
     }
 
-    /** 将事件转换为 Map（用于 JSON 序列化） */
+    /**
+     * 将事件转换为 Map（用于 JSON 序列化）
+     */
     private Map<String, Object> eventToMap(BlackboardProgressEvent event) {
         Map<String, Object> map = new ConcurrentHashMap<>();
         putIfNotNull(map, "type", event.getType());

@@ -17,11 +17,11 @@ public interface PlatformAuditLog {
     /**
      * 记录一次平台端租户操作。
      *
-     * @param operator 操作者标识（平台管理员 userKey / username，来自平台令牌 claim）
-     * @param action 动作名（如 {@code TENANT_CREATE} / {@code TENANT_SUSPEND} / {@code TENANT_RESUME}）
+     * @param operator  操作者标识（平台管理员 userKey / username，来自平台令牌 claim）
+     * @param action    动作名（如 {@code TENANT_CREATE} / {@code TENANT_SUSPEND} / {@code TENANT_RESUME}）
      * @param tenantKey 目标租户业务键
-     * @param outcome 结果（{@code SUCCESS} / {@code REJECTED} / {@code FAILED}）
-     * @param detail 补充说明（状态迁移、拒绝原因等；实现方须做日志注入清理）
+     * @param outcome   结果（{@code SUCCESS} / {@code REJECTED} / {@code FAILED}）
+     * @param detail    补充说明（状态迁移、拒绝原因等；实现方须做日志注入清理）
      */
     void logTenantAction(
             String operator, String action, String tenantKey, String outcome, String detail);

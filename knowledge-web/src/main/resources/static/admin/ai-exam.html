@@ -167,46 +167,48 @@
         <div class="tab-panel active" id="panel-work">
             <!-- 试卷配置（工作台内的顶部配置区） -->
             <div class="card">
-            <div class="card-title">试卷配置</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-                <div>
-                    <label class="form-label" for="exam-topic">考试主题 / 科目</label>
-                    <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
+                <div class="card-title">试卷配置</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+                    <div>
+                        <label class="form-label" for="exam-topic">考试主题 / 科目</label>
+                        <input class="form-input" id="exam-topic" placeholder="例：Java 基础、项目管理、网络安全...">
+                    </div>
+                    <div>
+                        <label class="form-label" for="exam-difficulty">难度</label>
+                        <select class="form-input" id="exam-difficulty">
+                            <option value="EASY">简单（基础概念）</option>
+                            <option selected value="MEDIUM">中等（理解应用）</option>
+                            <option value="HARD">困难（综合分析）</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="exam-school-level">学段（满分规则）</label>
+                        <select class="form-input" id="exam-school-level">
+                            <option selected value="">自动识别</option>
+                            <option value="PRIMARY">小学（各科 100 分）</option>
+                            <option value="JUNIOR">初中（语数外 120 等）</option>
+                            <option value="SENIOR">高中（语数外 150 等）</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label" for="exam-difficulty">难度</label>
-                    <select class="form-input" id="exam-difficulty">
-                        <option value="EASY">简单（基础概念）</option>
-                        <option selected value="MEDIUM">中等（理解应用）</option>
-                        <option value="HARD">困难（综合分析）</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label" for="exam-school-level">学段（满分规则）</label>
-                    <select class="form-input" id="exam-school-level">
-                        <option selected value="">自动识别</option>
-                        <option value="PRIMARY">小学（各科 100 分）</option>
-                        <option value="JUNIOR">初中（语数外 120 等）</option>
-                        <option value="SENIOR">高中（语数外 150 等）</option>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                    <label class="form-label" for="exam-user" style="margin:0;white-space:nowrap;font-size:12px">用户
+                        ID</label>
+                    <input class="form-input" id="exam-user" style="width:130px;padding:6px 10px;font-size:13px"
+                           value="user-admin">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary)">
+                        <input checked id="exam-admin" style="width:14px;height:14px" type="checkbox"> 管理员模式
+                    </label>
+                    <label class="form-label" for="exam-category" style="margin:0;white-space:nowrap;font-size:12px">知识分类</label>
+                    <select class="form-input" id="exam-category" style="width:110px;padding:6px 10px;font-size:13px">
+                        <option value="">全部分类</option>
+                        <option value="工作">工作</option>
+                        <option value="学习">学习</option>
+                        <option value="休闲">休闲</option>
+                        <option value="其他">其他</option>
                     </select>
                 </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-                <label class="form-label" style="margin:0;white-space:nowrap;font-size:12px" for="exam-user">用户 ID</label>
-                <input class="form-input" id="exam-user" style="width:130px;padding:6px 10px;font-size:13px" value="user-admin">
-                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary)">
-                    <input checked id="exam-admin" type="checkbox" style="width:14px;height:14px"> 管理员模式
-                </label>
-                <label class="form-label" style="margin:0;white-space:nowrap;font-size:12px" for="exam-category">知识分类</label>
-                <select class="form-input" id="exam-category" style="width:110px;padding:6px 10px;font-size:13px">
-                    <option value="">全部分类</option>
-                    <option value="工作">工作</option>
-                    <option value="学习">学习</option>
-                    <option value="休闲">休闲</option>
-                    <option value="其他">其他</option>
-                </select>
-            </div>
-        </div>
 
             <!-- 出卷向导：纵向三步（左侧步骤节点 · 右侧对应区块） -->
             <div class="wizard">
@@ -226,20 +228,28 @@
                                     <span id="exam-plan-summary" style="font-size:13px;color:var(--text-light)"></span>
                                 </div>
                                 <div style="display:flex;gap:8px;align-items:center">
-                                    <button class="btn btn-sm btn-primary" id="exam-plan-generate-btn" onclick="generateExamPlan()"
-                                            style="white-space:nowrap">生成题型分布方案</button>
-                                    <button class="btn btn-sm btn-outline" id="exam-balance-btn" onclick="balanceAndRevalidate()"
-                                            style="white-space:nowrap" disabled title="手动调整题型或分数后，点此按满分自动平衡每题分值">自动平衡</button>
+                                    <button class="btn btn-sm btn-primary" id="exam-plan-generate-btn"
+                                            onclick="generateExamPlan()"
+                                            style="white-space:nowrap">生成题型分布方案
+                                    </button>
+                                    <button class="btn btn-sm btn-outline" disabled
+                                            id="exam-balance-btn"
+                                            onclick="balanceAndRevalidate()" style="white-space:nowrap"
+                                            title="手动调整题型或分数后，点此按满分自动平衡每题分值">自动平衡
+                                    </button>
                                 </div>
                             </div>
-                            <details id="exam-plan-trace-box" style="display:none;margin-bottom:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
-                                <summary style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
+                            <details id="exam-plan-trace-box"
+                                     style="display:none;margin-bottom:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
+                                <summary
+                                        style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
                                     ▸ Agent 生成过程（输入 · 思考 · 输出，点击展开）
                                 </summary>
                                 <div id="exam-plan-trace" style="padding:4px 12px 12px"></div>
                             </details>
                             <div id="exam-plan-wrap"></div>
-                            <div id="exam-plan-hint" style="font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5">
+                            <div id="exam-plan-hint"
+                                 style="font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5">
                                 点击「生成题型分布方案」，Agent 会依据主题/难度/学段自动分四阶段产出题型、题量、每题分数与合理性建议；
                                 随后可在表格中逐题调整题量或分值。调整导致合计与满分不符时，点击「自动平衡」按满分等比重排每题分值，
                                 再点击下方「校验方案」进入下一步。
@@ -262,18 +272,24 @@
                                     <span class="wizard-hint" id="exam-step-2-hint">需先完成方案</span>
                                 </div>
                                 <div style="display:flex;gap:8px;align-items:center">
-                                    <button class="btn btn-sm btn-primary" id="exam-validate-btn" onclick="validatePlan()"
-                                            style="white-space:nowrap" disabled title="请先生成题型分布方案">校验方案</button>
+                                    <button class="btn btn-sm btn-primary" disabled
+                                            id="exam-validate-btn"
+                                            onclick="validatePlan()" style="white-space:nowrap" title="请先生成题型分布方案">校验方案
+                                    </button>
                                 </div>
                             </div>
-                            <details id="exam-val-trace-box" style="display:none;margin-top:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
-                                <summary style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
+                            <details id="exam-val-trace-box"
+                                     style="display:none;margin-top:10px;border:1px solid #e5e9f0;border-radius:10px;background:#fbfcfe">
+                                <summary
+                                        style="cursor:pointer;padding:8px 12px;font-size:13px;font-weight:600;color:#475569;list-style:none">
                                     ▸ Agent 校验 / 平衡 过程（输入 · 思考 · 输出，点击展开）
                                 </summary>
                                 <div id="exam-val-trace" style="padding:4px 12px 12px"></div>
                             </details>
-                            <div id="exam-validate-result" class="validate-result" style="display:none;margin-top:10px;padding:12px;border-radius:8px;font-size:13px;line-height:1.6"></div>
-                            <div id="exam-validate-hint" style="font-size:12px;color:var(--text-light);margin-top:8px;line-height:1.5">
+                            <div class="validate-result" id="exam-validate-result"
+                                 style="display:none;margin-top:10px;padding:12px;border-radius:8px;font-size:13px;line-height:1.6"></div>
+                            <div id="exam-validate-hint"
+                                 style="font-size:12px;color:var(--text-light);margin-top:8px;line-height:1.5">
                                 校验方案的总分、题量、分值分布是否合理。通过后方可生成试卷；若分值与满分不符，请返回上方「题型分布方案」点击「自动平衡」重排每题分值后重新校验。
                             </div>
                         </div>
@@ -292,323 +308,388 @@
                                     <div class="card-title" style="margin:0">生成试卷</div>
                                     <span class="wizard-hint" id="exam-step-3-hint">需先通过校验</span>
                                 </div>
-                                <button class="btn btn-sm btn-primary" id="exam-generate-btn" onclick="generateExamWithAgents()"
-                                        style="white-space:nowrap" disabled title="请先通过分值校验">生成试卷</button>
+                                <button class="btn btn-sm btn-primary" disabled
+                                        id="exam-generate-btn"
+                                        onclick="generateExamWithAgents()" style="white-space:nowrap" title="请先通过分值校验">生成试卷
+                                </button>
                             </div>
                         </div>
 
-            <div class="writing-progress" id="exam-progress">
-                <div id="exam-round-badge" role="status"
-                     style="display:none;align-items:center;gap:8px;margin:2px 0 12px;padding:8px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:13px;font-weight:600">
-                    <span aria-hidden="true">🔄</span><span id="exam-round-badge-text"></span>
-                </div>
-                <div class="flow-container" id="exam-flow">
-                    <div class="flow-terminal start" id="exam-flow-start">开始</div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-parallel">
-                        <span class="flow-parallel-badge">⚡ 并行</span>
-                        <div class="flow-node" id="exam-flow-research">
-                            <span class="flow-dot">1</span><span class="flow-label">知识检索</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-research"></span>
-                                <span class="flow-time" id="exam-flow-time-research"></span>
+                        <div class="writing-progress" id="exam-progress">
+                            <div id="exam-round-badge" role="status"
+                                 style="display:none;align-items:center;gap:8px;margin:2px 0 12px;padding:8px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:13px;font-weight:600">
+                                <span aria-hidden="true">🔄</span><span id="exam-round-badge-text"></span>
                             </div>
-                        </div>
-                        <div class="flow-node" id="exam-flow-scoring">
-                            <span class="flow-dot">2</span><span class="flow-label">分值校验评估</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-scoring"></span>
-                                <span class="flow-time" id="exam-flow-time-scoring"></span>
+                            <div class="flow-container" id="exam-flow">
+                                <div class="flow-terminal start" id="exam-flow-start">开始</div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-parallel">
+                                    <span class="flow-parallel-badge">⚡ 并行</span>
+                                    <div class="flow-node" id="exam-flow-research">
+                                        <span class="flow-dot">1</span><span class="flow-label">知识检索</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-research"></span>
+                                            <span class="flow-time" id="exam-flow-time-research"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flow-node" id="exam-flow-scoring">
+                                        <span class="flow-dot">2</span><span class="flow-label">分值校验评估</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-scoring"></span>
+                                            <span class="flow-time" id="exam-flow-time-scoring"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-node" id="exam-flow-writing">
+                                    <span class="flow-dot">3</span><span class="flow-label">试卷编写</span>
+                                    <div class="flow-meta">
+                                        <span class="flow-score" id="exam-flow-score-writing"></span>
+                                        <span class="flow-time" id="exam-flow-time-writing"></span>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-node" id="exam-flow-kp-dedup">
+                                    <span class="flow-dot">3.5</span><span class="flow-label">考点去重</span>
+                                    <div class="flow-meta">
+                                        <span class="flow-score" id="exam-flow-score-kp-dedup"></span>
+                                        <span class="flow-time" id="exam-flow-time-kp-dedup"></span>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-node" id="exam-flow-knowledge-gap">
+                                    <span class="flow-dot">3.6</span><span class="flow-label">知识缺口</span>
+                                    <div class="flow-meta">
+                                        <span class="flow-score" id="exam-flow-score-knowledge-gap"></span>
+                                        <span class="flow-time" id="exam-flow-time-knowledge-gap"></span>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-parallel">
+                                    <span class="flow-parallel-badge">⚡ 并行</span>
+                                    <div class="flow-node" id="exam-flow-answer">
+                                        <span class="flow-dot">4</span><span class="flow-label">答案生成</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-answer"></span>
+                                            <span class="flow-time" id="exam-flow-time-answer"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flow-node" id="exam-flow-calibrate">
+                                        <span class="flow-dot">5</span><span class="flow-label">难度校准</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-calibrate"></span>
+                                            <span class="flow-time" id="exam-flow-time-calibrate"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flow-node" id="exam-flow-bloom">
+                                        <span class="flow-dot">5b</span><span class="flow-label">Bloom 分类</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-bloom"></span>
+                                            <span class="flow-time" id="exam-flow-time-bloom"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-parallel">
+                                    <span class="flow-parallel-badge">⚡ 并行</span>
+                                    <div class="flow-node" id="exam-flow-review">
+                                        <span class="flow-dot">6</span><span class="flow-label">内容审核</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-review"></span>
+                                            <span class="flow-time" id="exam-flow-time-review"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flow-node" id="exam-flow-dedup">
+                                        <span class="flow-dot">7</span><span class="flow-label">查重去重</span>
+                                        <div class="flow-meta">
+                                            <span class="flow-score" id="exam-flow-score-dedup"></span>
+                                            <span class="flow-time" id="exam-flow-time-dedup"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flow-connector"></div>
+                                <div class="flow-terminal end" id="exam-flow-complete">完成</div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-node" id="exam-flow-writing">
-                        <span class="flow-dot">3</span><span class="flow-label">试卷编写</span>
-                        <div class="flow-meta">
-                            <span class="flow-score" id="exam-flow-score-writing"></span>
-                            <span class="flow-time" id="exam-flow-time-writing"></span>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-node" id="exam-flow-kp-dedup">
-                        <span class="flow-dot">3.5</span><span class="flow-label">考点去重</span>
-                        <div class="flow-meta">
-                            <span class="flow-score" id="exam-flow-score-kp-dedup"></span>
-                            <span class="flow-time" id="exam-flow-time-kp-dedup"></span>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-node" id="exam-flow-knowledge-gap">
-                        <span class="flow-dot">3.6</span><span class="flow-label">知识缺口</span>
-                        <div class="flow-meta">
-                            <span class="flow-score" id="exam-flow-score-knowledge-gap"></span>
-                            <span class="flow-time" id="exam-flow-time-knowledge-gap"></span>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-parallel">
-                        <span class="flow-parallel-badge">⚡ 并行</span>
-                        <div class="flow-node" id="exam-flow-answer">
-                            <span class="flow-dot">4</span><span class="flow-label">答案生成</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-answer"></span>
-                                <span class="flow-time" id="exam-flow-time-answer"></span>
-                            </div>
-                        </div>
-                        <div class="flow-node" id="exam-flow-calibrate">
-                            <span class="flow-dot">5</span><span class="flow-label">难度校准</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-calibrate"></span>
-                                <span class="flow-time" id="exam-flow-time-calibrate"></span>
-                            </div>
-                        </div>
-                        <div class="flow-node" id="exam-flow-bloom">
-                            <span class="flow-dot">5b</span><span class="flow-label">Bloom 分类</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-bloom"></span>
-                                <span class="flow-time" id="exam-flow-time-bloom"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-parallel">
-                        <span class="flow-parallel-badge">⚡ 并行</span>
-                        <div class="flow-node" id="exam-flow-review">
-                            <span class="flow-dot">6</span><span class="flow-label">内容审核</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-review"></span>
-                                <span class="flow-time" id="exam-flow-time-review"></span>
-                            </div>
-                        </div>
-                        <div class="flow-node" id="exam-flow-dedup">
-                            <span class="flow-dot">7</span><span class="flow-label">查重去重</span>
-                            <div class="flow-meta">
-                                <span class="flow-score" id="exam-flow-score-dedup"></span>
-                                <span class="flow-time" id="exam-flow-time-dedup"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flow-connector"></div>
-                    <div class="flow-terminal end" id="exam-flow-complete">完成</div>
-                </div>
 
-                <div class="agent-panel" id="exam-panel-researcher">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
-                        <span class="agent-meta">
+                            <div class="agent-panel" id="exam-panel-researcher">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-researcher">等待中</span>
                             <span class="panel-score" id="exam-panel-score-researcher"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-researcher">等待检索...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-researcher"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-researcher"></pre></details>
-                        <div class="agent-output-label">知识点分析</div>
-                        <pre id="exam-output-researcher">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-scoring">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#ec4899">S</span> 分值校验与评估 (Scoring Validator)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-researcher">等待检索...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-researcher">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-researcher"></pre>
+                                    </details>
+                                    <div class="agent-output-label">知识点分析</div>
+                                    <pre id="exam-output-researcher">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-scoring">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#ec4899">S</span> 分值校验与评估 (Scoring Validator)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-scoring">等待中</span>
                             <span class="panel-score" id="exam-panel-score-scoring"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-scoring">等待检索...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-scoring"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-scoring"></pre></details>
-                        <div class="agent-output-label">校验报告</div>
-                        <pre id="exam-output-scoring">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-writer">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon writer">W</span> 出题人 (Writer)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-scoring">等待检索...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-scoring">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-scoring"></pre>
+                                    </details>
+                                    <div class="agent-output-label">校验报告</div>
+                                    <pre id="exam-output-scoring">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-writer">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span
+                                            class="agent-icon writer">W</span> 出题人 (Writer)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-writer">等待中</span>
                             <span class="panel-score" id="exam-panel-score-writer"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-writer">等待研究员完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-writer"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-writer"></pre></details>
-                        <div class="agent-output-label">试卷内容</div>
-                        <pre id="exam-output-writer">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-kp-dedup">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#f59e0b">K</span> 考点去重 (KP Dedup)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-writer">等待研究员完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-writer">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-writer"></pre>
+                                    </details>
+                                    <div class="agent-output-label">试卷内容</div>
+                                    <pre id="exam-output-writer">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-kp-dedup">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#f59e0b">K</span> 考点去重 (KP Dedup)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-kp-dedup">等待中</span>
                             <span class="panel-score" id="exam-panel-score-kp-dedup"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-kp-dedup">等待编写完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-kp-dedup"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-kp-dedup"></pre></details>
-                        <div class="agent-output-label">去重结果</div>
-                        <pre id="exam-output-kp-dedup">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-knowledge-gap">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#8b5cf6">G</span> 知识缺口分析 (Knowledge Gap)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-kp-dedup">等待编写完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-kp-dedup">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-kp-dedup"></pre>
+                                    </details>
+                                    <div class="agent-output-label">去重结果</div>
+                                    <pre id="exam-output-kp-dedup">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-knowledge-gap">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#8b5cf6">G</span> 知识缺口分析 (Knowledge Gap)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-knowledge-gap">等待中</span>
                             <span class="panel-score" id="exam-panel-score-knowledge-gap"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-knowledge-gap">等待考点去重完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-knowledge-gap"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-knowledge-gap"></pre></details>
-                        <div class="agent-output-label">缺口分析报告</div>
-                        <pre id="exam-output-knowledge-gap">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-answer">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#10b981">A</span> 答案生成 (Answer)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content" id="exam-materials-knowledge-gap">等待考点去重完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-knowledge-gap">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-knowledge-gap"></pre>
+                                    </details>
+                                    <div class="agent-output-label">缺口分析报告</div>
+                                    <pre id="exam-output-knowledge-gap">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-answer">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#10b981">A</span> 答案生成 (Answer)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-answer">等待中</span>
                             <span class="panel-score" id="exam-panel-score-answer"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-answer">等待出题人完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-answer"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-answer"></pre></details>
-                        <div class="agent-output-label">标准答案</div>
-                        <pre id="exam-output-answer">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-calibrator">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#f97316">C</span> 校准员 (Calibrator)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-answer">等待出题人完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-answer">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-answer"></pre>
+                                    </details>
+                                    <div class="agent-output-label">标准答案</div>
+                                    <pre id="exam-output-answer">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-calibrator">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#f97316">C</span> 校准员 (Calibrator)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-calibrator">等待中</span>
                             <span class="panel-score" id="exam-panel-score-calibrator"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-calibrator">等待审核完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-calibrator"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-calibrator"></pre></details>
-                        <div class="agent-output-label">难度评估</div>
-                        <pre id="exam-output-calibrator">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-bloom">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#0ea5e9">B</span> Bloom 分类 (Bloom Calibrator)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-calibrator">等待审核完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-calibrator">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-calibrator"></pre>
+                                    </details>
+                                    <div class="agent-output-label">难度评估</div>
+                                    <pre id="exam-output-calibrator">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-bloom">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#0ea5e9">B</span> Bloom 分类 (Bloom Calibrator)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-bloom">等待中</span>
                             <span class="panel-score" id="exam-panel-score-bloom"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-bloom">等待出题人完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-bloom"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-bloom"></pre></details>
-                        <div class="agent-output-label">Bloom 分类结果</div>
-                        <pre id="exam-output-bloom">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-reviewer">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-bloom">等待出题人完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-bloom">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-bloom"></pre>
+                                    </details>
+                                    <div class="agent-output-label">Bloom 分类结果</div>
+                                    <pre id="exam-output-bloom">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-reviewer">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-reviewer">等待中</span>
                             <span class="panel-score" id="exam-panel-score-reviewer"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-reviewer">等待答案生成完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-reviewer"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-reviewer"></pre></details>
-                        <div class="agent-output-label">审核结果</div>
-                        <pre id="exam-output-reviewer">等待执行...</pre>
-                    </div>
-                </div>
-                <div class="agent-panel" id="exam-panel-deduplicator">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
-                        <span class="agent-name"><span class="agent-icon" style="background:#6366f1">D</span> 查重员 (Deduplicator)</span>
-                        <span class="agent-meta">
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-reviewer">等待答案生成完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-reviewer">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-reviewer"></pre>
+                                    </details>
+                                    <div class="agent-output-label">审核结果</div>
+                                    <pre id="exam-output-reviewer">等待执行...</pre>
+                                </div>
+                            </div>
+                            <div class="agent-panel" id="exam-panel-deduplicator">
+                                <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                                     role="button"
+                                     tabindex="0">
+                                    <span class="agent-name"><span class="agent-icon"
+                                                                   style="background:#6366f1">D</span> 查重员 (Deduplicator)</span>
+                                    <span class="agent-meta">
                             <span class="agent-status pending" id="exam-status-deduplicator">等待中</span>
                             <span class="panel-score" id="exam-panel-score-deduplicator"></span>
                         </span>
-                    </div>
-                    <div class="agent-panel-body">
-                        <details class="agent-materials"><summary>输入物料</summary>
-                            <pre class="agent-materials-content" id="exam-materials-deduplicator">等待校准完成...</pre></details>
-                        <details class="agent-thinking" id="exam-thinkingwrap-deduplicator"><summary>💭 思考过程</summary>
-                            <pre id="exam-thinking-deduplicator"></pre></details>
-                        <div class="agent-output-label">查重报告</div>
-                        <pre id="exam-output-deduplicator">等待执行...</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="writing-error" id="exam-error"></div>
-
-            <div id="exam-result" style="display:none">
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                        <div class="card-title" style="margin:0">生成结果</div>
-                        <div style="display:flex;gap:8px">
-                            <button class="btn btn-outline btn-sm" onclick="toggleExamPanels()">展开/收起过程</button>
-                            <button class="btn btn-primary btn-sm" onclick="copyExamPaper()">复制试卷</button>
-                            <button class="btn btn-primary btn-sm" onclick="exportExamWord()">导出 Word</button>
+                                </div>
+                                <div class="agent-panel-body">
+                                    <details class="agent-materials">
+                                        <summary>输入物料</summary>
+                                        <pre class="agent-materials-content"
+                                             id="exam-materials-deduplicator">等待校准完成...</pre>
+                                    </details>
+                                    <details class="agent-thinking" id="exam-thinkingwrap-deduplicator">
+                                        <summary>💭 思考过程</summary>
+                                        <pre id="exam-thinking-deduplicator"></pre>
+                                    </details>
+                                    <div class="agent-output-label">查重报告</div>
+                                    <pre id="exam-output-deduplicator">等待执行...</pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="article-meta" id="exam-meta"></div>
-                    <div class="article-content" id="exam-content"></div>
-                    <div id="exam-answer-section" style="margin-top:20px;display:none">
-                        <details open>
-                            <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--primary);padding:8px 0">
-                                标准答案与评分标准
-                            </summary>
-                            <div class="article-content" id="exam-answer-content" style="margin-top:8px"></div>
-                        </details>
-                    </div>
-                </div>
-            </div>
+
+                        <div class="writing-error" id="exam-error"></div>
+
+                        <div id="exam-result" style="display:none">
+                            <div class="card">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                                    <div class="card-title" style="margin:0">生成结果</div>
+                                    <div style="display:flex;gap:8px">
+                                        <button class="btn btn-outline btn-sm" onclick="toggleExamPanels()">
+                                            展开/收起过程
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="copyExamPaper()">复制试卷
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="exportExamWord()">导出 Word
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="article-meta" id="exam-meta"></div>
+                                <div class="article-content" id="exam-content"></div>
+                                <div id="exam-answer-section" style="margin-top:20px;display:none">
+                                    <details open>
+                                        <summary
+                                                style="cursor:pointer;font-size:15px;font-weight:600;color:var(--primary);padding:8px 0">
+                                            标准答案与评分标准
+                                        </summary>
+                                        <div class="article-content" id="exam-answer-content"
+                                             style="margin-top:8px"></div>
+                                    </details>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -628,13 +709,19 @@
                             <th style="width:40%">主题</th>
                             <th style="width:10%">难度</th>
                             <th style="width:10%">状态</th>
-                            <th style="width:10%">评分 <button type="button" class="score-help" onclick="showScoreRuleModal()" title="点击查看分数计算规则">?</button></th>
+                            <th style="width:10%">评分
+                                <button class="score-help" onclick="showScoreRuleModal()" title="点击查看分数计算规则"
+                                        type="button">?
+                                </button>
+                            </th>
                             <th style="width:18%">时间</th>
                             <th style="width:12%">操作</th>
                         </tr>
                         </thead>
                         <tbody id="exam-history-list">
-                        <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        <tr>
+                            <td class="loading" colspan="6">加载中...</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -645,9 +732,9 @@
 </div>
 
 <!-- 节点详情弹窗 -->
-<div class="node-modal-overlay" id="node-modal-overlay" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeNodeModal()"
-     onkeydown="if(event.key==='Escape')closeNodeModal()">
+<div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()" onkeydown="if(event.key==='Escape')closeNodeModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="node-modal">
         <div class="node-modal-header">
             <div class="node-modal-title">
@@ -658,22 +745,43 @@
         </div>
         <div class="node-modal-body">
             <div class="node-time-row">
-                <div class="node-time-card"><div class="node-time-label">开始时间</div><div class="node-time-value" id="node-modal-start">-</div></div>
-                <div class="node-time-card"><div class="node-time-label">结束时间</div><div class="node-time-value" id="node-modal-end">-</div></div>
-                <div class="node-time-card"><div class="node-time-label">耗时</div><div class="node-time-value" id="node-modal-elapsed">-</div></div>
-                <div class="node-time-card"><div class="node-time-label">本次得分</div><div class="node-time-value" id="node-modal-score">-</div></div>
+                <div class="node-time-card">
+                    <div class="node-time-label">开始时间</div>
+                    <div class="node-time-value" id="node-modal-start">-</div>
+                </div>
+                <div class="node-time-card">
+                    <div class="node-time-label">结束时间</div>
+                    <div class="node-time-value" id="node-modal-end">-</div>
+                </div>
+                <div class="node-time-card">
+                    <div class="node-time-label">耗时</div>
+                    <div class="node-time-value" id="node-modal-elapsed">-</div>
+                </div>
+                <div class="node-time-card">
+                    <div class="node-time-label">本次得分</div>
+                    <div class="node-time-value" id="node-modal-score">-</div>
+                </div>
             </div>
-            <div class="node-detail-section"><div class="node-detail-title input">输入物料</div><div class="node-detail-content" id="node-modal-input">等待数据...</div></div>
-            <div class="node-detail-section"><div class="node-detail-title thinking">思考与分析</div><div class="node-detail-content" id="node-modal-thinking">等待数据...</div></div>
-            <div class="node-detail-section"><div class="node-detail-title output">输出结果</div><div class="node-detail-content" id="node-modal-output">等待数据...</div></div>
+            <div class="node-detail-section">
+                <div class="node-detail-title input">输入物料</div>
+                <div class="node-detail-content" id="node-modal-input">等待数据...</div>
+            </div>
+            <div class="node-detail-section">
+                <div class="node-detail-title thinking">思考与分析</div>
+                <div class="node-detail-content" id="node-modal-thinking">等待数据...</div>
+            </div>
+            <div class="node-detail-section">
+                <div class="node-detail-title output">输出结果</div>
+                <div class="node-detail-content" id="node-modal-output">等待数据...</div>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- 历史详情弹窗 -->
-<div class="history-modal-overlay" id="history-modal-overlay" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeHistoryModal()"
-     onkeydown="if(event.key==='Escape')closeHistoryModal()">
+<div class="history-modal-overlay" id="history-modal-overlay" onclick="if(event.target===this)closeHistoryModal()" onkeydown="if(event.key==='Escape')closeHistoryModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="history-modal">
         <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
         <div id="history-detail-content"></div>
@@ -681,13 +789,16 @@
 </div>
 
 <!-- 分数计算规则弹窗 -->
-<div class="review-modal-overlay" id="score-rule-modal" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeScoreRuleModal()"
-     onkeydown="if(event.key==='Escape')closeScoreRuleModal()">
+<div class="review-modal-overlay" id="score-rule-modal" onclick="if(event.target===this)closeScoreRuleModal()" onkeydown="if(event.key==='Escape')closeScoreRuleModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="review-modal" style="width:560px">
         <div class="review-modal-header">
             <div><h3 style="font-size:17px;font-weight:700;margin:0">质量评分计算规则</h3>
-                <div style="font-size:12px;color:#64748b;margin-top:2px">由「内容审核 Agent」按 6 个维度独立打分后加权汇总</div></div>
+                <div style="font-size:12px;color:#64748b;margin-top:2px">由「内容审核 Agent」按 6
+                    个维度独立打分后加权汇总
+                </div>
+            </div>
             <button class="review-modal-close" onclick="closeScoreRuleModal()">✕</button>
         </div>
         <div class="review-modal-body" style="font-size:13px;line-height:1.7;color:#334155">
@@ -695,12 +806,18 @@
                 <div style="display:grid;grid-template-columns:1.6fr 0.7fr 1fr;gap:8px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px">
                     <span>维度</span><span>权重</span><span>评估要点</span>
                 </div>
-                <div class="sr-rule-row"><span>知识准确性</span><span class="sr-w">25%</span><span>题目与答案是否与知识点一致、有无事实错误</span></div>
-                <div class="sr-rule-row"><span>知识点覆盖</span><span class="sr-w">25%</span><span>是否均匀覆盖主要知识点、有无遗漏</span></div>
-                <div class="sr-rule-row"><span>题目表述</span><span class="sr-w">15%</span><span>题干是否清晰无歧义、选项是否合理</span></div>
-                <div class="sr-rule-row"><span>题型合理性</span><span class="sr-w">15%</span><span>各题型设置是否恰当、题量是否合理</span></div>
-                <div class="sr-rule-row"><span>难度适当性</span><span class="sr-w">10%</span><span>难度是否符合要求、梯度是否合理</span></div>
-                <div class="sr-rule-row"><span>格式规范性</span><span class="sr-w">10%</span><span>排版、编号、分值标注是否规范</span></div>
+                <div class="sr-rule-row"><span>知识准确性</span><span
+                        class="sr-w">25%</span><span>题目与答案是否与知识点一致、有无事实错误</span></div>
+                <div class="sr-rule-row"><span>知识点覆盖</span><span
+                        class="sr-w">25%</span><span>是否均匀覆盖主要知识点、有无遗漏</span></div>
+                <div class="sr-rule-row"><span>题目表述</span><span
+                        class="sr-w">15%</span><span>题干是否清晰无歧义、选项是否合理</span></div>
+                <div class="sr-rule-row"><span>题型合理性</span><span
+                        class="sr-w">15%</span><span>各题型设置是否恰当、题量是否合理</span></div>
+                <div class="sr-rule-row"><span>难度适当性</span><span
+                        class="sr-w">10%</span><span>难度是否符合要求、梯度是否合理</span></div>
+                <div class="sr-rule-row"><span>格式规范性</span><span
+                        class="sr-w">10%</span><span>排版、编号、分值标注是否规范</span></div>
             </div>
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px">
                 <div style="font-weight:600;color:#475569;margin-bottom:4px">计算公式</div>
@@ -711,7 +828,10 @@
                 <span class="badge badge-warning" style="font-size:12px">60 – 79 良</span>
                 <span class="badge badge-danger" style="font-size:12px">&lt; 60 需改进</span>
             </div>
-            <div style="font-size:12px;color:#94a3b8">说明：每份试卷的具体维度得分在生成时已随评分一并落库，可在「查看」详情的「评分构成」中核对加权过程；若模型未按要求输出明细，系统回退解析总分，仍无法识别时默认计 70 分。</div>
+            <div style="font-size:12px;color:#94a3b8">
+                说明：每份试卷的具体维度得分在生成时已随评分一并落库，可在「查看」详情的「评分构成」中核对加权过程；若模型未按要求输出明细，系统回退解析总分，仍无法识别时默认计
+                70 分。
+            </div>
         </div>
     </div>
 </div>

@@ -6,11 +6,12 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * AI 错题总结生成执行器（app 层用例）
@@ -24,21 +25,23 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class WrongAnswerSummaryQryExe {
 
-    /** 提示词中最多列举的错题数量 */
+    /**
+     * 提示词中最多列举的错题数量
+     */
     private static final int PROMPT_ITEM_LIMIT = 50;
 
     private static final String AI_SUMMARY_SYSTEM_PROMPT =
             """
-            你是一位专业的教育分析师。请根据学生的错题信息进行分析总结，帮助教师了解学生的薄弱环节。
-
-            请从以下维度进行分析：
-            1. 错误原因分析（知识性错误、理解偏差、粗心等）
-            2. 知识点薄弱领域
-            3. 按题型分析表现差异
-            4. 针对性的改进建议和学习方向
-
-            请用中文输出，结构清晰，重点突出。
-            """;
+                    你是一位专业的教育分析师。请根据学生的错题信息进行分析总结，帮助教师了解学生的薄弱环节。
+                    
+                    请从以下维度进行分析：
+                    1. 错误原因分析（知识性错误、理解偏差、粗心等）
+                    2. 知识点薄弱领域
+                    3. 按题型分析表现差异
+                    4. 针对性的改进建议和学习方向
+                    
+                    请用中文输出，结构清晰，重点突出。
+                    """;
 
     private final WrongAnswerListQryExe wrongAnswerListQryExe;
     private final ChatModel chatModel;

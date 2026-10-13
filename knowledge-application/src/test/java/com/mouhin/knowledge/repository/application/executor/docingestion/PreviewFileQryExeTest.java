@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.dto.PreviewFileQuery;
 import com.mouhin.knowledge.repository.client.dto.PreviewResult;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
@@ -19,14 +8,20 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 上传文件解析预览查询执行器单测：锁定空文件拒绝、成功预览组装（提取 + 分块 + 页/块明细透传、不入库不发事件）、 IO 异常包装与临时文件必清理（finally 语义）。
@@ -37,8 +32,6 @@ import org.springframework.web.multipart.MultipartFile;
 @DisplayName("上传文件解析预览查询执行器 (PreviewFileQryExe)")
 class PreviewFileQryExeTest {
 
-    @TempDir Path tmp;
-
     private final DocumentIngestionSupport support = mock(DocumentIngestionSupport.class);
     private final DocumentExtractionGateway documentExtractionService =
             mock(DocumentExtractionGateway.class);
@@ -46,6 +39,8 @@ class PreviewFileQryExeTest {
             mock(DocumentIngestionDomainService.class);
     private final PreviewFileQryExe exe =
             new PreviewFileQryExe(support, documentExtractionService, ingestionDomainService);
+    @TempDir
+    Path tmp;
 
     private PreviewFileQuery query(MultipartFile file) {
         PreviewFileQuery q = new PreviewFileQuery();

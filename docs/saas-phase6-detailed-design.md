@@ -7,7 +7,8 @@ AGENTS-REFERENCE: ./AGENTS.md §0 红线 · docs/saas-phase6-go-checklist.md v0.
 > 状态：**v0.1 起草 · 2026-10-12** · 配套门禁清单 [saas-phase6-go-checklist.md](saas-phase6-go-checklist.md) v0.1
 > 权威：清单 §2 B / §3 S 已按推荐方案直接定案；备选方案与否决理由见各节"方案比选"段。
 > 基线技术栈：Spring Boot 3.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / H2 + MySQL / Flyway。
-> COLA 分层：adapter=`knowledge-web` · app=`knowledge-application` · client=`knowledge-client` · domain=`knowledge-domain` · infra=`knowledge-infrastructure`。
+> COLA 分层：adapter=`knowledge-web` · app=`knowledge-application` · client=`knowledge-client` · domain=
+`knowledge-domain` · infra=`knowledge-infrastructure`。
 
 ---
 
@@ -28,11 +29,13 @@ Phase 6 = 配额与计费（P6-T1~T4），把 SaaS 化改造从"技术隔离"推
 
 ### 1.3 依赖（全部已交付）
 
-P1-T7（`SystemConfigService`）· P2-T3（`EmbeddingStoreProvider`）· P4-T4（`TenantLlmProfileResolver` + `sys_tenant_llm_profile`）· X-T2（`knowledge.saas.enabled` 门控）· Redis（P4-T1 引入）· `PlatformTokenAuthFilter`（P3-T1）。
+P1-T7（`SystemConfigService`）· P2-T3（`EmbeddingStoreProvider`）· P4-T4（`TenantLlmProfileResolver` +
+`sys_tenant_llm_profile`）· X-T2（`knowledge.saas.enabled` 门控）· Redis（P4-T1 引入）· `PlatformTokenAuthFilter`（P3-T1）。
 
 ### 1.4 门控
 
-新增第三闸门 `knowledge.saas.quota.enabled=false`（默认关闭）。`saas.enabled=false` 级联关闭 quota 子系统——`QuotaGuard` 不装配、`PlatformBillingController` 不装配、计量采集不装配。
+新增第三闸门 `knowledge.saas.quota.enabled=false`（默认关闭）。`saas.enabled=false` 级联关闭 quota 子系统——`QuotaGuard`
+不装配、`PlatformBillingController` 不装配、计量采集不装配。
 
 ### 1.5 组件总览
 
@@ -118,7 +121,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_tenant_metric_period ON tenant_usage (tenan
 - `period` = 当月 1 日（`DATE` 类型），按月聚合。每租户每月 ≤7 行（当前 metric 白名单 4 种，远期 7 种）。
 - `value` = `BIGINT` 只增不减（计数器语义）。跨月重置通过"新月份首次 record → INSERT value=amount"实现，无需显式 reset。
 - 唯一键 `(tenant_id, metric, period)` 保证幂等。
-- **不**加入 `KnowledgeTenantLineHandler.IGNORE_TABLES`（白名单当前 8 张）——`tenant_usage` 有 `tenant_id` 列，`TenantLineInnerInterceptor` 自动追加 `WHERE tenant_id=?`，跨租户查询天然隔离。
+- **不**加入 `KnowledgeTenantLineHandler.IGNORE_TABLES`（白名单当前 8 张）——`tenant_usage` 有 `tenant_id` 列，
+  `TenantLineInnerInterceptor` 自动追加 `WHERE tenant_id=?`，跨租户查询天然隔离。
 
 ### 2.2 `UsageMetric` 枚举（domain）
 
@@ -148,7 +152,8 @@ public enum UsageMetric {
 }
 ```
 
-Phase 6 首批 4 种即时计数 metric。`exam_count` / `article_count` 随业务模块埋点就绪后补（只需加枚举值 + 埋点，无限额行 = 无约束）。`mau_students` 需独立聚合任务，延后。
+Phase 6 首批 4 种即时计数 metric。`exam_count` / `article_count` 随业务模块埋点就绪后补（只需加枚举值 + 埋点，无限额行 =
+无约束）。`mau_students` 需独立聚合任务，延后。
 
 ### 2.3 `TenantUsageRecorder` 端口（domain）
 
@@ -304,7 +309,8 @@ public class NoopTenantUsageRecorder implements TenantUsageRecorder {
 
 ### 2.5 LLM 调用点埋点——装饰器模式
 
-**核心思路**：在 infra 层用装饰器包装 `ChatModel` / `EmbeddingModel` bean，自动从 `ChatResponse.metadata().tokenUsage()` 提取 token 消耗并调 `TenantUsageRecorder.record()`。app 层 CmdExe 零改动。
+**核心思路**：在 infra 层用装饰器包装 `ChatModel` / `EmbeddingModel` bean，自动从 `ChatResponse.metadata().tokenUsage()`
+提取 token 消耗并调 `TenantUsageRecorder.record()`。app 层 CmdExe 零改动。
 
 **`UsageCapturingChatModelDecorator`**：
 
@@ -350,11 +356,16 @@ public class UsageCapturingChatModelDecorator implements ChatModel {
 }
 ```
 
-**`UsageCapturingEmbeddingModelDecorator`**：同理，从 `Response<List<Embedding>>.metadata().tokenUsage()` 提取 → `record(tenantKey, EMBEDDING_TOKENS, total)`。
+**`UsageCapturingEmbeddingModelDecorator`**：同理，从 `Response<List<Embedding>>.metadata().tokenUsage()` 提取 →
+`record(tenantKey, EMBEDDING_TOKENS, total)`。
 
-**流式调用（`StreamingChatGateway`）缺口**：当前 `streamCompletion()` 返 `String`，token usage 在 SSE 解析中丢失。Phase 6 不修改流式接口（改动面大），流式调用的 token 消耗**暂不计入**。在 `BlackboardAgentStreamer` / `ExamGenerationSupport.validatePlanWithLlm` 等流式调用点留 `// TODO P6-T1: streaming usage capture` 标记，后续可通过修改 `StreamingChatGateway` 返回 `StreamResult(text, usage)` 补全。
+**流式调用（`StreamingChatGateway`）缺口**：当前 `streamCompletion()` 返 `String`，token usage 在 SSE 解析中丢失。Phase 6
+不修改流式接口（改动面大），流式调用的 token 消耗**暂不计入**。在 `BlackboardAgentStreamer` /
+`ExamGenerationSupport.validatePlanWithLlm` 等流式调用点留 `// TODO P6-T1: streaming usage capture` 标记，后续可通过修改
+`StreamingChatGateway` 返回 `StreamResult(text, usage)` 补全。
 
-**文件落库埋点**：在 `UploadOnlyCmdExe` / `UploadFromFileCmdExe` / `UploadAndProcessCmdExe` 的 `execute()` 成功路径末尾调用 `usageRecorder.record(tenantKey, DOC_COUNT, 1)` + `record(tenantKey, STORAGE_BYTES, fileSize)`。
+**文件落库埋点**：在 `UploadOnlyCmdExe` / `UploadFromFileCmdExe` / `UploadAndProcessCmdExe` 的 `execute()` 成功路径末尾调用
+`usageRecorder.record(tenantKey, DOC_COUNT, 1)` + `record(tenantKey, STORAGE_BYTES, fileSize)`。
 
 ### 2.6 时序图 · 计量采集
 
@@ -477,11 +488,11 @@ public enum QuotaPolicy {
 
 新增 `PlatformLimitController`（`@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")`）：
 
-| 方法 | 路径 | 描述 | 请求体 | 响应 |
-|---|---|---|---|---|
-| `GET` | `/api/platform/limits?tenant={tenantKey}` | 列出指定租户全部限额 | — | `List<TenantPlanLimitVO>` |
-| `POST` | `/api/platform/limits` | 新增或更新限额 | `{tenantKey, metric, quota, policy}` | `TenantPlanLimitVO` |
-| `DELETE` | `/api/platform/limits/{tenantKey}/{metric}` | 删除限额（= 恢复无约束） | — | `{message: "deleted"}` |
+| 方法       | 路径                                          | 描述            | 请求体                                  | 响应                        |
+|----------|---------------------------------------------|---------------|--------------------------------------|---------------------------|
+| `GET`    | `/api/platform/limits?tenant={tenantKey}`   | 列出指定租户全部限额    | —                                    | `List<TenantPlanLimitVO>` |
+| `POST`   | `/api/platform/limits`                      | 新增或更新限额       | `{tenantKey, metric, quota, policy}` | `TenantPlanLimitVO`       |
+| `DELETE` | `/api/platform/limits/{tenantKey}/{metric}` | 删除限额（= 恢复无约束） | —                                    | `{message: "deleted"}`    |
 
 权限：走 `PlatformTokenAuthFilter`（平台管理员），与 `PlatformTenantController` 同安全域。
 
@@ -491,16 +502,16 @@ public enum QuotaPolicy {
 
 ### 4.1 设计定案
 
-| 维度 | 定案 |
-|---|---|
-| 所属层 | app（`application/support/`），非 domain |
-| 装配条件 | `@ConditionalOnProperty(name="knowledge.saas.quota.enabled", havingValue="true")` |
-| 级联门控 | `saas.enabled=false` → `quota.enabled` 强制不生效（文档约束，不硬编码级联） |
-| 检查时机 | CmdExe `execute()` **最前面**，事务外 |
-| 多 metric 超额 | 取最严策略：BLOCK > THROTTLE > ALERT |
-| BLOCK 响应 | HTTP 402 + `QUOTA_EXCEEDED` errorCode + 辅助字段 |
-| THROTTLE 响应 | HTTP 429 + `Retry-After: 60` header |
-| ALERT 行为 | `log.warn` 记录，不阻断 |
+| 维度          | 定案                                                                                |
+|-------------|-----------------------------------------------------------------------------------|
+| 所属层         | app（`application/support/`），非 domain                                              |
+| 装配条件        | `@ConditionalOnProperty(name="knowledge.saas.quota.enabled", havingValue="true")` |
+| 级联门控        | `saas.enabled=false` → `quota.enabled` 强制不生效（文档约束，不硬编码级联）                         |
+| 检查时机        | CmdExe `execute()` **最前面**，事务外                                                    |
+| 多 metric 超额 | 取最严策略：BLOCK > THROTTLE > ALERT                                                    |
+| BLOCK 响应    | HTTP 402 + `QUOTA_EXCEEDED` errorCode + 辅助字段                                      |
+| THROTTLE 响应 | HTTP 429 + `Retry-After: 60` header                                               |
+| ALERT 行为    | `log.warn` 记录，不阻断                                                                 |
 
 ### 4.2 `QuotaGuard`（app）
 
@@ -651,7 +662,8 @@ public ResponseEntity<Map<String, Object>> handleThrottle(ThrottleRequiredExcept
 
 ### 4.5 CmdExe 集成模式
 
-Tier 1 共 6 个 CmdExe 需集成 `QuotaGuard`。模式统一：构造器注入 `QuotaGuard`（`@Autowired(required = false)` 兼容关闭态），`execute()` 第一行调用 `check()`。
+Tier 1 共 6 个 CmdExe 需集成 `QuotaGuard`。模式统一：构造器注入 `QuotaGuard`（`@Autowired(required = false)` 兼容关闭态），
+`execute()` 第一行调用 `check()`。
 
 ```java
 // 示例：UploadOnlyCmdExe
@@ -677,14 +689,14 @@ public class UploadOnlyCmdExe {
 
 **Tier 1 集成清单**：
 
-| CmdExe |  guarded metric | 说明 |
-|---|---|---|
-| `UploadOnlyCmdExe` | `DOC_COUNT`, `STORAGE_BYTES` | 主上传路径 |
-| `UploadAndProcessCmdExe` | `DOC_COUNT`, `STORAGE_BYTES` | 上传+处理一体化 |
-| `UploadFromFileCmdExe` | `DOC_COUNT`, `STORAGE_BYTES` | 分片上传完成 |
-| `GenerateExamSyncCmdExe` | `CHAT_TOKENS` | 同步出卷 |
-| `GenerateExamAsyncCmdExe` | `CHAT_TOKENS` | 异步出卷（SSE） |
-| `GenerateArticleAsyncCmdExe` | `CHAT_TOKENS` | 异步文章生成 |
+| CmdExe                       | guarded metric               | 说明        |
+|------------------------------|------------------------------|-----------|
+| `UploadOnlyCmdExe`           | `DOC_COUNT`, `STORAGE_BYTES` | 主上传路径     |
+| `UploadAndProcessCmdExe`     | `DOC_COUNT`, `STORAGE_BYTES` | 上传+处理一体化  |
+| `UploadFromFileCmdExe`       | `DOC_COUNT`, `STORAGE_BYTES` | 分片上传完成    |
+| `GenerateExamSyncCmdExe`     | `CHAT_TOKENS`                | 同步出卷      |
+| `GenerateExamAsyncCmdExe`    | `CHAT_TOKENS`                | 异步出卷（SSE） |
+| `GenerateArticleAsyncCmdExe` | `CHAT_TOKENS`                | 异步文章生成    |
 
 ---
 
@@ -692,18 +704,18 @@ public class UploadOnlyCmdExe {
 
 ### 5.1 API 契约
 
-| 方法 | 路径 | 描述 |
-|---|---|---|
+| 方法    | 路径                                                                                   | 描述   |
+|-------|--------------------------------------------------------------------------------------|------|
 | `GET` | `/api/platform/billing/export?from=2026-01&to=2026-10&tenant={tenantKey}&format=csv` | 聚合导出 |
 
 **参数**：
 
-| 参数 | 必填 | 说明 |
-|---|---|---|
-| `from` | 否 | 起始月份 `yyyy-MM`，默认当月 |
-| `to` | 否 | 结束月份 `yyyy-MM`，默认当月 |
-| `tenant` | 否 | 租户键，不传 = 全部租户 |
-| `format` | 否 | `csv`（默认）/ `json` |
+| 参数       | 必填 | 说明                  |
+|----------|----|---------------------|
+| `from`   | 否  | 起始月份 `yyyy-MM`，默认当月 |
+| `to`     | 否  | 结束月份 `yyyy-MM`，默认当月 |
+| `tenant` | 否  | 租户键，不传 = 全部租户       |
+| `format` | 否  | `csv`（默认）/ `json`   |
 
 **权限**：`PlatformTokenAuthFilter`（平台管理员）。
 
@@ -763,7 +775,8 @@ public class PlatformBillingController {
 }
 ```
 
-`aggregateBilling` 逻辑：遍历租户 → 遍历月份 → 遍历 metric → 查 `tenant_usage` + 查 `tenant_plan_limit` → 组装 `BillingRow`。
+`aggregateBilling` 逻辑：遍历租户 → 遍历月份 → 遍历 metric → 查 `tenant_usage` + 查 `tenant_plan_limit` → 组装
+`BillingRow`。
 
 ---
 
@@ -778,11 +791,12 @@ knowledge:
       enabled: ${KNOWLEDGE_SAAS_QUOTA_ENABLED:false}
 ```
 
-| 配置项 | 环境变量 | 默认值 | 说明 |
-|---|---|---|---|
+| 配置项                            | 环境变量                           | 默认值     | 说明                                                                                                            |
+|--------------------------------|--------------------------------|---------|---------------------------------------------------------------------------------------------------------------|
 | `knowledge.saas.quota.enabled` | `KNOWLEDGE_SAAS_QUOTA_ENABLED` | `false` | 配额子系统总开关。关闭时 `QuotaGuard` / `UsageCapturingChatModelDecorator` / `UsageCapturingEmbeddingModelDecorator` 均不装配 |
 
-三闸门关系：`saas.enabled=false` → 整个 SaaS 化改造关闭（含 quota）。`saas.enabled=true` + `quota.enabled=false` → SaaS 隔离生效但配额不采集不拦截。`saas.enabled=true` + `quota.enabled=true` → 全量生效。
+三闸门关系：`saas.enabled=false` → 整个 SaaS 化改造关闭（含 quota）。`saas.enabled=true` + `quota.enabled=false` → SaaS
+隔离生效但配额不采集不拦截。`saas.enabled=true` + `quota.enabled=true` → 全量生效。
 
 ---
 
@@ -814,19 +828,19 @@ knowledge:
 
 ### 8.1 单元测试
 
-| 测试类 | 覆盖 | 用例数 |
-|---|---|---|
-| `TenantUsageRecorderImplTest` | 原子递增 / seed / 并发安全 / 负值忽略 / 采集失败不抛异常 | 5 |
-| `QuotaGuardTest` | BLOCK 抛异常 / THROTTLE 抛异常 / ALERT 仅记录 / 无限额放行 / 多 metric 取最严 / `quota=-1` 无限 | 6 |
-| `UsageCapturingChatModelDecoratorTest` | token 提取 + record 调用 / 无 tokenUsage 静默跳过 / 异常不传播 | 3 |
+| 测试类                                    | 覆盖                                                                          | 用例数 |
+|----------------------------------------|-----------------------------------------------------------------------------|-----|
+| `TenantUsageRecorderImplTest`          | 原子递增 / seed / 并发安全 / 负值忽略 / 采集失败不抛异常                                        | 5   |
+| `QuotaGuardTest`                       | BLOCK 抛异常 / THROTTLE 抛异常 / ALERT 仅记录 / 无限额放行 / 多 metric 取最严 / `quota=-1` 无限 | 6   |
+| `UsageCapturingChatModelDecoratorTest` | token 提取 + record 调用 / 无 tokenUsage 静默跳过 / 异常不传播                            | 3   |
 
 ### 8.2 集成测试
 
-| 测试类 | Tag | 覆盖 | 用例数 |
-|---|---|---|---|
-| `QuotaGuardEndToEndTest` | `tenant-isolation` | BLOCK 阻断后不影响其他租户 / THROTTLE 返 429 + Retry-After / ALERT 不阻断 | 3 |
-| `BillingExportIntegrationTest` | — | CSV 导出格式正确 / JSON 导出格式正确 / 权限校验（非平台管理员 401） | 3 |
-| `TenantUsageMigrationTest` | — | H2 原生 SQL V32/V33 表结构验证 | 2 |
+| 测试类                            | Tag                | 覆盖                                                          | 用例数 |
+|--------------------------------|--------------------|-------------------------------------------------------------|-----|
+| `QuotaGuardEndToEndTest`       | `tenant-isolation` | BLOCK 阻断后不影响其他租户 / THROTTLE 返 429 + Retry-After / ALERT 不阻断 | 3   |
+| `BillingExportIntegrationTest` | —                  | CSV 导出格式正确 / JSON 导出格式正确 / 权限校验（非平台管理员 401）                 | 3   |
+| `TenantUsageMigrationTest`     | —                  | H2 原生 SQL V32/V33 表结构验证                                     | 2   |
 
 ### 8.3 Flyway 冒烟
 
@@ -836,25 +850,25 @@ knowledge:
 
 ## 9. 回退计划
 
-| 层级 | 回退手段 |
-|---|---|
+| 层级  | 回退手段                                                                    |
+|-----|-------------------------------------------------------------------------|
 | 总开关 | `knowledge.saas.quota.enabled=false` → QuotaGuard / 装饰器 / 采集全部不装配，业务零影响 |
-| 数据 | `tenant_usage` / `tenant_plan_limit` 为独立表，DROP 不影响业务表。迁移提供配对 undo |
-| 行为 | `saas.enabled=false` 级联关闭整个 SaaS 子系统（含 quota），退回单租户行为 |
+| 数据  | `tenant_usage` / `tenant_plan_limit` 为独立表，DROP 不影响业务表。迁移提供配对 undo       |
+| 行为  | `saas.enabled=false` 级联关闭整个 SaaS 子系统（含 quota），退回单租户行为                   |
 
 ---
 
 ## 10. 文件清单（预估）
 
-| 层 | 新增 | 修改 |
-|---|---|---|
-| domain | `UsageMetric` 枚举 · `QuotaPolicy` 枚举 · `QuotaAction` 枚举 · `QuotaCheckResult` record · `TenantPlanLimit` record · `TenantUsageRecorder` 端口 · `TenantPlanLimitGateway` 端口 · `QuotaExceededException` · `ThrottleRequiredException` | — |
-| infra | `TenantUsageDO` · `TenantUsageMapper` · `TenantUsageRecorderImpl` · `NoopTenantUsageRecorder` · `TenantPlanLimitDO` · `TenantPlanLimitMapper` · `TenantPlanLimitGatewayImpl` · `UsageCapturingChatModelDecorator` · `UsageCapturingEmbeddingModelDecorator` | `ChatModelConfig`（`@Qualifier("delegateChatModel")`）· `EmbeddingModelConfig`（同理） |
-| app | `QuotaGuard` | `UploadOnlyCmdExe` · `UploadAndProcessCmdExe` · `UploadFromFileCmdExe` · `GenerateExamSyncCmdExe` · `GenerateExamAsyncCmdExe` · `GenerateArticleAsyncCmdExe`（各加 1 行 check） |
-| adapter | `PlatformBillingController` · `PlatformLimitController` · `TenantPlanLimitVO` | `GlobalExceptionHandler`（+2 handler） |
-| migration | `V32__create_tenant_usage.sql` · `V33__tenant_plan_limit.sql` | — |
-| config | — | `application.yml`（+`quota.enabled`） |
-| test | `TenantUsageRecorderImplTest` · `QuotaGuardTest` · `UsageCapturingChatModelDecoratorTest` · `QuotaGuardEndToEndTest` · `BillingExportIntegrationTest` · `TenantUsageMigrationTest` | `FlywayMigrationSmokeTest`（四处同步） |
+| 层         | 新增                                                                                                                                                                                                                                                          | 修改                                                                                                                                                                         |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| domain    | `UsageMetric` 枚举 · `QuotaPolicy` 枚举 · `QuotaAction` 枚举 · `QuotaCheckResult` record · `TenantPlanLimit` record · `TenantUsageRecorder` 端口 · `TenantPlanLimitGateway` 端口 · `QuotaExceededException` · `ThrottleRequiredException`                             | —                                                                                                                                                                          |
+| infra     | `TenantUsageDO` · `TenantUsageMapper` · `TenantUsageRecorderImpl` · `NoopTenantUsageRecorder` · `TenantPlanLimitDO` · `TenantPlanLimitMapper` · `TenantPlanLimitGatewayImpl` · `UsageCapturingChatModelDecorator` · `UsageCapturingEmbeddingModelDecorator` | `ChatModelConfig`（`@Qualifier("delegateChatModel")`）· `EmbeddingModelConfig`（同理）                                                                                           |
+| app       | `QuotaGuard`                                                                                                                                                                                                                                                | `UploadOnlyCmdExe` · `UploadAndProcessCmdExe` · `UploadFromFileCmdExe` · `GenerateExamSyncCmdExe` · `GenerateExamAsyncCmdExe` · `GenerateArticleAsyncCmdExe`（各加 1 行 check） |
+| adapter   | `PlatformBillingController` · `PlatformLimitController` · `TenantPlanLimitVO`                                                                                                                                                                               | `GlobalExceptionHandler`（+2 handler）                                                                                                                                       |
+| migration | `V32__create_tenant_usage.sql` · `V33__tenant_plan_limit.sql`                                                                                                                                                                                               | —                                                                                                                                                                          |
+| config    | —                                                                                                                                                                                                                                                           | `application.yml`（+`quota.enabled`）                                                                                                                                        |
+| test      | `TenantUsageRecorderImplTest` · `QuotaGuardTest` · `UsageCapturingChatModelDecoratorTest` · `QuotaGuardEndToEndTest` · `BillingExportIntegrationTest` · `TenantUsageMigrationTest`                                                                          | `FlywayMigrationSmokeTest`（四处同步）                                                                                                                                           |
 
 **预估新增**：~25 文件 · ~1500 行 · 修改 ~10 文件 · ~50 行。
 

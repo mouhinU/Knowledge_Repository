@@ -1,19 +1,16 @@
 package com.mouhin.knowledge.repository.application.executor.adminauth;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
-import java.time.Instant;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * 管理端退出登录命令执行器单测：JWT 无状态，服务端不做黑名单—— 只 verify + 审计日志。断言：verify 被调用、结果无论有无均不抛异常、 无用户表写操作。

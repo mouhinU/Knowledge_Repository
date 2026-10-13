@@ -1,20 +1,17 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamQuestionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamQuestionMapper;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link ExamQuestionGatewayImpl} 契约单测：锁定条件查询转换、批量插入主键回填与删除委托。

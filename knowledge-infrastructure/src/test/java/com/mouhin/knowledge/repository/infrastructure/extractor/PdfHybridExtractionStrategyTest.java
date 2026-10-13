@@ -1,37 +1,33 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.ExtractionCacheRepository;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCacheKey;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionConfig;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.infrastructure.config.HybridExtractionProperties;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
 import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-/** {@link PdfHybridExtractionStrategy} 契约测试（Phase C）。 */
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
+
+/**
+ * {@link PdfHybridExtractionStrategy} 契约测试（Phase C）。
+ */
 @DisplayName("C PDF 混合策略")
 class PdfHybridExtractionStrategyTest {
 
@@ -72,7 +68,7 @@ class PdfHybridExtractionStrategyTest {
                         metrics,
                         budgetGuard);
         realFile = Files.createTempFile("hybrid", ".pdf");
-        Files.write(realFile, new byte[] {1, 2, 3, 4});
+        Files.write(realFile, new byte[]{1, 2, 3, 4});
     }
 
     private ExtractionResult base(List<String> texts, boolean scanned) {
@@ -92,7 +88,7 @@ class PdfHybridExtractionStrategyTest {
     }
 
     private ExtractedImage img(int pageNo) {
-        return new ExtractedImage(new byte[] {1, 2, 3}, "image/png", 10, 10, pageNo, 0);
+        return new ExtractedImage(new byte[]{1, 2, 3}, "image/png", 10, 10, pageNo, 0);
     }
 
     @Test
@@ -172,7 +168,7 @@ class PdfHybridExtractionStrategyTest {
             when(cacheRepository.find(any(ExtractionCacheKey.class))).thenReturn(Optional.empty());
             when(pdfBox.extract(any())).thenReturn(base(List.of(SHORT), true));
             when(pageRenderer.renderPageToPng(any(), anyInt(), anyInt()))
-                    .thenReturn(new byte[] {9});
+                    .thenReturn(new byte[]{9});
             when(gateway.chatWithImages(any())).thenReturn("补全文本");
             ExtractionResult result = strategy.extract(candidate(List.of()));
             assertThat(result.pageTexts()).containsExactly("补全文本");
@@ -239,18 +235,18 @@ class PdfHybridExtractionStrategyTest {
             when(gateway.chatWithImages(any())).thenReturn("视觉");
             strategy.extract(candidate(List.of(img(1))));
             assertThat(
-                            meterRegistry
-                                    .get("knowledge.extraction.cache.miss")
-                                    .tag("strategy", "PDF_HYBRID")
-                                    .counter()
-                                    .count())
+                    meterRegistry
+                            .get("knowledge.extraction.cache.miss")
+                            .tag("strategy", "PDF_HYBRID")
+                            .counter()
+                            .count())
                     .isEqualTo(1.0);
             assertThat(
-                            meterRegistry
-                                    .get("knowledge.extraction.vision.invocations")
-                                    .tag("model", visionProps.getModelName())
-                                    .counter()
-                                    .count())
+                    meterRegistry
+                            .get("knowledge.extraction.vision.invocations")
+                            .tag("model", visionProps.getModelName())
+                            .counter()
+                            .count())
                     .isEqualTo(1.0);
         }
 
@@ -262,11 +258,11 @@ class PdfHybridExtractionStrategyTest {
                     .thenReturn(Optional.of(base(List.of("命中"), true)));
             strategy.extract(candidate(List.of()));
             assertThat(
-                            meterRegistry
-                                    .get("knowledge.extraction.cache.hit")
-                                    .tag("strategy", "PDF_HYBRID")
-                                    .counter()
-                                    .count())
+                    meterRegistry
+                            .get("knowledge.extraction.cache.hit")
+                            .tag("strategy", "PDF_HYBRID")
+                            .counter()
+                            .count())
                     .isEqualTo(1.0);
             verify(gateway, never()).chatWithImages(any());
         }

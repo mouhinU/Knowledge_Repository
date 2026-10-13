@@ -5,8 +5,10 @@
 > 具体「怎么写」见 [coding-guideline.md](coding-guideline.md)。
 > 维护：`@author mouhinU` · 拆分日期 2026-09-20
 
-> 说明：以阿里巴巴 **COLA 5.0**（Clean Object-oriented and Layered Architecture）为权威架构框架。COLA 5.0 支持基于 package 的轻量级分层，但本项目采用**物理多模块**分层（含独立 client 层），二者取舍以本文件为准。
-> 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。新增代码以物理模块与本分册定义为准。
+> 说明：以阿里巴巴 **COLA 5.0**（Clean Object-oriented and Layered Architecture）为权威架构框架。COLA 5.0 支持基于 package
+> 的轻量级分层，但本项目采用**物理多模块**分层（含独立 client 层），二者取舍以本文件为准。
+> 术语映射：`adapter ≈ knowledge-web`，`app ≈ knowledge-application`，`client ≈ knowledge-client`，
+`domain ≈ knowledge-domain`，`infrastructure ≈ knowledge-infrastructure`。新增代码以物理模块与本分册定义为准。
 
 ---
 
@@ -14,13 +16,13 @@
 
 COLA 将系统划分为 adapter / app / client / domain / infrastructure 五个职责单一的分层。
 
-| COLA 层                   | 目标模块（规范名）                 | 现状模块                            | 核心职责                                                                                                          |
-| ------------------------- | ---------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| adapter 适配层            | `knowledge-adapter`                | `knowledge-web`                     | 对外请求适配（HTTP/RPC），参数校验，调用 app 层，把结果组装为 **VO** 返回。不含业务逻辑。                         |
-| app 应用层                | `knowledge-app`                    | `knowledge-application`             | 用例编排、事务边界、**Cmd/Qry Executor**、DTO ↔ 领域对象转换、实现 client 暴露的 Service 接口。不含核心业务规则。 |
-| client 开放接口层         | `knowledge-client`（**必须独立**） | 现为独立物理模块 `knowledge-client` | 对外契约：Service 接口定义 + **DTO（Cmd/Qry/Response）**。仅被依赖，不反向依赖任何层。                            |
-| domain 领域层             | `knowledge-domain`                 | `knowledge-domain`                  | 核心业务逻辑：Entity、DomainService、**Gateway 接口**、领域事件、DomainAbility。不依赖其它业务层。                |
-| infrastructure 基础设施层 | `knowledge-infrastructure`         | `knowledge-infrastructure`          | **Gateway 实现**、DAO/Mapper、DO、中间件（DB/向量库/缓存）、外部服务调用、DO ↔ Entity 转换。不含业务规则。        |
+| COLA 层               | 目标模块（规范名）                    | 现状模块                        | 核心职责                                                                           |
+|----------------------|------------------------------|-----------------------------|--------------------------------------------------------------------------------|
+| adapter 适配层          | `knowledge-adapter`          | `knowledge-web`             | 对外请求适配（HTTP/RPC），参数校验，调用 app 层，把结果组装为 **VO** 返回。不含业务逻辑。                        |
+| app 应用层              | `knowledge-app`              | `knowledge-application`     | 用例编排、事务边界、**Cmd/Qry Executor**、DTO ↔ 领域对象转换、实现 client 暴露的 Service 接口。不含核心业务规则。 |
+| client 开放接口层         | `knowledge-client`（**必须独立**） | 现为独立物理模块 `knowledge-client` | 对外契约：Service 接口定义 + **DTO（Cmd/Qry/Response）**。仅被依赖，不反向依赖任何层。                   |
+| domain 领域层           | `knowledge-domain`           | `knowledge-domain`          | 核心业务逻辑：Entity、DomainService、**Gateway 接口**、领域事件、DomainAbility。不依赖其它业务层。        |
+| infrastructure 基础设施层 | `knowledge-infrastructure`   | `knowledge-infrastructure`  | **Gateway 实现**、DAO/Mapper、DO、中间件（DB/向量库/缓存）、外部服务调用、DO ↔ Entity 转换。不含业务规则。      |
 
 **依赖方向（COLA）：**
 
@@ -34,18 +36,19 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 - **client** 仅被 adapter / app 及外部调用方依赖，**禁止**引用 domain / infrastructure。
 - **domain** 保持纯净，只依赖 JDK 与公共组件，**严禁**引用 app / adapter / infrastructure。
 - **infrastructure** 依赖 domain（实现其 Gateway 接口），面向接口反向注入。
-- 现状 `knowledge-web` / `knowledge-application` 视同 adapter / app；对外契约 DTO、Cmd/Qry、Service 接口归入独立模块 `knowledge-client`。
+- 现状 `knowledge-web` / `knowledge-application` 视同 adapter / app；对外契约 DTO、Cmd/Qry、Service 接口归入独立模块
+  `knowledge-client`。
 
 ---
 
 ## 2. 对象模型分层（严禁跨层传递）
 
-| 层             | 对象类型 | 说明                                                                                           |
-| -------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| adapter        | VO       | View Object，面向前端视图展示                                                                  |
-| client / app   | DTO      | 对外契约：`XxxCmd`（写）、`XxxQry`（读）、`Response/SingleResponse/MultiResponse/PageResponse` |
-| domain         | Entity   | 领域实体 / 值对象 / 聚合根                                                                     |
-| infrastructure | DO       | Data Object，与数据库表一一对应，MyBatis-Plus 注解                                             |
+| 层              | 对象类型   | 说明                                                                                |
+|----------------|--------|-----------------------------------------------------------------------------------|
+| adapter        | VO     | View Object，面向前端视图展示                                                              |
+| client / app   | DTO    | 对外契约：`XxxCmd`（写）、`XxxQry`（读）、`Response/SingleResponse/MultiResponse/PageResponse` |
+| domain         | Entity | 领域实体 / 值对象 / 聚合根                                                                  |
+| infrastructure | DO     | Data Object，与数据库表一一对应，MyBatis-Plus 注解                                             |
 
 - **DO 不得越过 infrastructure 出现在 app / adapter**；app 层出入参为 DTO，内部编排用 domain Entity。
 - 转换只在层边界发生：`VO ⇄ DTO`（adapter/app）、`DTO ⇄ Entity`（app）、`Entity ⇄ DO`（infrastructure，经 Converter）。
@@ -55,12 +58,12 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 
 ## 3. 术语映射（以 COLA 为准，覆盖旧命名）
 
-| 本项目旧术语（历史代码）     | COLA 规范术语（新增代码必须采用）                           |
-| ---------------------------- | ----------------------------------------------------------- |
-| Repository（领域抽象）       | **Gateway**                                                 |
-| RepositoryImpl               | **GatewayImpl**（`@Repository` / `@Component` 实现）        |
-| ApplicationService           | client 层 `XxxServiceI` 接口 + app 层 `XxxServiceImpl` 实现 |
-| Service 方法内直接写用例流程 | **Executor**（一个用例一个 `XxxCmdExe` / `XxxQryExe`）      |
+| 本项目旧术语（历史代码）       | COLA 规范术语（新增代码必须采用）                                   |
+|--------------------|-------------------------------------------------------|
+| Repository（领域抽象）   | **Gateway**                                           |
+| RepositoryImpl     | **GatewayImpl**（`@Repository` / `@Component` 实现）      |
+| ApplicationService | client 层 `XxxServiceI` 接口 + app 层 `XxxServiceImpl` 实现 |
+| Service 方法内直接写用例流程 | **Executor**（一个用例一个 `XxxCmdExe` / `XxxQryExe`）        |
 
 > 迁移约定：新增代码一律采用 Gateway / Executor / client DTO；存量 `*Repository` 视同 `*Gateway`，随迭代逐步更名，不强制一次性重构。
 
@@ -68,9 +71,11 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 
 ## 4. 应用层 Executor 模式（CQRS）
 
-- 写操作用 `XxxCmd`、读操作用 `XxxQry`（对齐仓库现状与 [coding-guideline.md](coding-guideline.md) §1.6；语义对应 COLA Command/Query）。
+- 写操作用 `XxxCmd`、读操作用 `XxxQry`（对齐仓库现状与 [coding-guideline.md](coding-guideline.md) §1.6；语义对应 COLA
+  Command/Query）。
 - client 层 Service 接口（如 `DocumentServiceI`）方法接收 Cmd/Qry，返回 `Response` 系列对象。
-- app 层 Service 实现类**只做分发**（路由到对应 Executor）；真正的编排逻辑落在单个 Executor（`@Component`），保证**一个 Executor 单一职责、对应一个用例**。
+- app 层 Service 实现类**只做分发**（路由到对应 Executor）；真正的编排逻辑落在单个 Executor（`@Component`），保证**一个
+  Executor 单一职责、对应一个用例**。
 - 写库用例的 `@Transactional` 置于 Executor（或 app Service 方法）；含 LLM / 外部 IO 的长耗时用例**禁止**套大事务。
 
 ```java
@@ -108,30 +113,42 @@ public class DocumentServiceImpl implements DocumentServiceI {
 - Gateway 实现类以 `GatewayImpl` 结尾，`@Repository` / `@Component` 注解，只负责技术实现（Mapper + Converter + 外部调用）。
 - Converter 为 `final` 工具类，提供 `toDomain()`、`toDO()` 静态方法。
 - 不得包含业务规则，只负责技术实现。
-- 分页查询使用 `selectCount`（无 ORDER BY）+ `selectList`（LAST LIMIT OFFSET），H2 方言约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
+- 分页查询使用 `selectCount`（无 ORDER BY）+ `selectList`（LAST LIMIT OFFSET），H2
+  方言约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
 
 ---
 
 ## 7. 对象存储层（P5-T1 · Phase 5）
 
-> 本节规定文档/考试素材等二进制资产的存储端口与实现分层。Phase 5 引入 MinIO 对象存储后，本地磁盘与 MinIO 通过配置切换，domain 层保持纯净。
+> 本节规定文档/考试素材等二进制资产的存储端口与实现分层。Phase 5 引入 MinIO 对象存储后，本地磁盘与 MinIO 通过配置切换，domain
+> 层保持纯净。
 
 **端口（domain 层）**：
 
-- `ObjectStorageGateway` 接口定义在 `domain.gateway` 包，方法集：`store(InputStream, tenantKey, category, originalName) → StoredObject`、`store(InputStream, tenantKey, category, subDirectory, fileName) → StoredObject`、`retrieve(storageKey) → InputStream`、`delete(storageKey) → boolean`、`exists(storageKey) → boolean`、`getMetadata(storageKey) → Optional<StoredObject>`。
-- `StoredObject` 为 domain 值对象（`record`，不可变），字段：`storageKey`（不透明存储句柄，本地模式=绝对路径，MinIO 模式=对象键）、`originalName`、`contentType`、`size`、`tenantKey`、`category`、`createdAt`。
+- `ObjectStorageGateway` 接口定义在 `domain.gateway` 包，方法集：
+  `store(InputStream, tenantKey, category, originalName) → StoredObject`、
+  `store(InputStream, tenantKey, category, subDirectory, fileName) → StoredObject`、`retrieve(storageKey) → InputStream`、
+  `delete(storageKey) → boolean`、`exists(storageKey) → boolean`、`getMetadata(storageKey) → Optional<StoredObject>`。
+- `StoredObject` 为 domain 值对象（`record`，不可变），字段：`storageKey`（不透明存储句柄，本地模式=绝对路径，MinIO 模式=对象键）、
+  `originalName`、`contentType`、`size`、`tenantKey`、`category`、`createdAt`。
 - `StorageCategory` 为 domain 枚举：`DOCUMENT("documents")` / `EXAM_ASSET("exam-assets")`，控制路径一级分类段。
 
 **实现（infrastructure 层）**：
 
-- `LocalObjectStorageGatewayImpl`：本地磁盘实现，`storageKey` = 绝对路径字符串（与 P5 之前 `Document.storagePath` 格式一致，向后兼容存量数据）。文档根目录与考试素材根目录分别可配（`knowledge.storage.path` / `knowledge.storage.exam-asset-path`）。
-- `MinioObjectStorageGatewayImpl`：MinIO Java SDK 实现，对象键格式 `{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}`（exam-assets 变体 `{tenantKey}/exam-assets/{subDirectory}/{fileName}`）。`@PostConstruct` 执行 `MakeBucketIfNotExists`。
-- `StorageConfig`（`@Configuration`）通过 `@ConditionalOnProperty(name="knowledge.storage.backend")` 装配唯一 Bean：`havingValue="local", matchIfMissing=true` → 本地实现；`havingValue="minio"` → MinIO 实现。默认 `local` 保持 `saas.enabled=false` 关闭态行为等价。
+- `LocalObjectStorageGatewayImpl`：本地磁盘实现，`storageKey` = 绝对路径字符串（与 P5 之前 `Document.storagePath`
+  格式一致，向后兼容存量数据）。文档根目录与考试素材根目录分别可配（`knowledge.storage.path` /
+  `knowledge.storage.exam-asset-path`）。
+- `MinioObjectStorageGatewayImpl`：MinIO Java SDK 实现，对象键格式 `{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}`
+  （exam-assets 变体 `{tenantKey}/exam-assets/{subDirectory}/{fileName}`）。`@PostConstruct` 执行 `MakeBucketIfNotExists`。
+- `StorageConfig`（`@Configuration`）通过 `@ConditionalOnProperty(name="knowledge.storage.backend")` 装配唯一 Bean：
+  `havingValue="local", matchIfMissing=true` → 本地实现；`havingValue="minio"` → MinIO 实现。默认 `local` 保持
+  `saas.enabled=false` 关闭态行为等价。
 
 **路径规约**：
 
 - MinIO 侧：`{tenantKey}/{category.pathSegment()}/{yyyy}/{mm}/{uuid}.{ext}`，租户隔离由路径前缀天然保证。
-- 本地侧：`{documentRoot}/{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}` 或 `{examAssetRoot}/{tenantKey}/exam-assets/{documentKey}/{fileName}`。
+- 本地侧：`{documentRoot}/{tenantKey}/{category}/{yyyy}/{mm}/{uuid}.{ext}` 或
+  `{examAssetRoot}/{tenantKey}/exam-assets/{documentKey}/{fileName}`。
 - `storageKey` 对调用方不透明——adapter/app 层不得解析或拼接 `storageKey` 内部结构，只通过 `ObjectStorageGateway` 端口操作。
 
 **COLA 合规**：
@@ -151,18 +168,23 @@ public class DocumentServiceImpl implements DocumentServiceI {
 
 ## 9. 前端实时通信协议选择
 
-- 对于“服务端主动推送、进度刷新、任务状态回流”这类场景，**优先采用 SSE（Server-Sent Events）**，其适合一对多单向流式更新，兼容 HTTP 代理和浏览器原生 EventSource，便于与当前 `knowledge-web` 的 `SseEmitter` 方案对齐。
-- **WebSocket** 仅在明确需要**双向实时消息交互、低延迟命令回传、长连接双工通信**时才选择，例如前端发起命令、服务端实时回放、客户端还需发送控制帧。其使用必须说明双向语义、心跳、断线重连和鉴权方案。
-- **前端轮询**作为兜底方案，仅用于不适合长连接、低频状态查询、兼容性受限或后端没有稳定连接管道的场景。轮询必须控制频率、设置退避策略，并在设计说明中注明为何不采用 SSE / WebSocket。
+- 对于“服务端主动推送、进度刷新、任务状态回流”这类场景，**优先采用 SSE（Server-Sent Events）**，其适合一对多单向流式更新，兼容
+  HTTP 代理和浏览器原生 EventSource，便于与当前 `knowledge-web` 的 `SseEmitter` 方案对齐。
+- **WebSocket** 仅在明确需要**双向实时消息交互、低延迟命令回传、长连接双工通信**
+  时才选择，例如前端发起命令、服务端实时回放、客户端还需发送控制帧。其使用必须说明双向语义、心跳、断线重连和鉴权方案。
+- **前端轮询**作为兜底方案，仅用于不适合长连接、低频状态查询、兼容性受限或后端没有稳定连接管道的场景。轮询必须控制频率、设置退避策略，并在设计说明中注明为何不采用
+  SSE / WebSocket。
 - 对外接口与前端交互协议不应在各 Controller 自行“发明方案”；对于实时状态推送类需求，优先复用现有 SSE 入口，避免分散的轮询实现与重复连接。
 
 ---
 
 ## 10. COLA 组件复用约定
 
-> 仅遵循其规范与对象约定；如需引入组件依赖须经确认，**不得改动 Spring Boot / Java 版本**（版本基线见 [tech-stack.md](tech-stack.md)）。
+> 仅遵循其规范与对象约定；如需引入组件依赖须经确认，**不得改动 Spring Boot / Java 版本**
+> （版本基线见 [tech-stack.md](tech-stack.md)）。
 
 - 统一返回：`Response` / `SingleResponse<T>` / `MultiResponse<T>` / `PageResponse<T>`（`cola-component-dto`）。
-- 统一异常：`BizException`（业务）/ `SysException`（系统），禁止裸抛 `RuntimeException`（异常细则见 [coding-guideline.md](coding-guideline.md) §八）。
+- 统一异常：`BizException`（业务）/ `SysException`（系统），禁止裸抛 `RuntimeException`
+  （异常细则见 [coding-guideline.md](coding-guideline.md) §八）。
 - 扩展点：多分支业务差异用 `ExtensionPointI` + 业务身份（bizId）替代 if-else（`cola-component-extension`）。
 - 状态机：文档状态等流转可用 `cola-component-statemachine` 显式建模。

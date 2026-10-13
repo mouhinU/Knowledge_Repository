@@ -11,27 +11,43 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public enum ExtractionStrategyEnum {
 
-    /** PDFBox 逐页文本提取 */
+    /**
+     * PDFBox 逐页文本提取
+     */
     PDF_BOX,
 
-    /** Word（DOCX / DOC）段落提取 */
+    /**
+     * Word（DOCX / DOC）段落提取
+     */
     DOCX,
 
-    /** Excel（XLSX / XLS）工作表提取 */
+    /**
+     * Excel（XLSX / XLS）工作表提取
+     */
     XLSX,
 
-    /** PowerPoint（PPTX / PPT）幻灯片提取 */
+    /**
+     * PowerPoint（PPTX / PPT）幻灯片提取
+     */
     PPTX,
 
-    /** 纯文本族（TXT / CSV / HTML / Markdown） */
+    /**
+     * 纯文本族（TXT / CSV / HTML / Markdown）
+     */
     PLAIN_TEXT,
 
-    /** Tika 通用兜底 */
+    /**
+     * Tika 通用兜底
+     */
     TIKA_FALLBACK,
 
-    /** 视觉模型解析（Phase B 起） */
+    /**
+     * 视觉模型解析（Phase B 起）
+     */
     VISION,
 
-    /** PDF 混合解析：文本层 + 视觉补全（Phase C 起） */
+    /**
+     * PDF 混合解析：文本层 + 视觉补全（Phase C 起）
+     */
     PDF_HYBRID
 }

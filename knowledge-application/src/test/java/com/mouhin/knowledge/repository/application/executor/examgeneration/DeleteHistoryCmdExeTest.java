@@ -1,18 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
+import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.*;
 
 /**
  * 删除出卷历史记录执行器单测：本执行器是「零门禁直删」—— （1）execute 原样委派 {@code

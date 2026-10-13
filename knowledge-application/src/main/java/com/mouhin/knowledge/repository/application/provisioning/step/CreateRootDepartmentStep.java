@@ -31,20 +31,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class CreateRootDepartmentStep implements ProvisioningStep {
 
-    private static final Logger log = LoggerFactory.getLogger(CreateRootDepartmentStep.class);
-
-    /** 步骤名常量。 */
+    /**
+     * 步骤名常量。
+     */
     public static final String STEP_NAME = "CREATE_ROOT_DEPARTMENT";
-
-    /** 排序权重：在 sys_config 拷贝之后、首位 admin 创建之前。 */
+    /**
+     * 排序权重：在 sys_config 拷贝之后、首位 admin 创建之前。
+     */
     public static final int STEP_ORDER = 300;
-
-    /** 根部门 key 后缀，与 tenantKey 拼接：{@code acme + "-root" = "acme-root"}。 */
+    /**
+     * 根部门 key 后缀，与 tenantKey 拼接：{@code acme + "-root" = "acme-root"}。
+     */
     public static final String ROOT_DEPARTMENT_KEY_SUFFIX = "-root";
-
-    /** 根部门显示名后缀，与 tenant.name 拼接：{@code "Acme 制造" + " 根部门"}。 */
+    /**
+     * 根部门显示名后缀，与 tenant.name 拼接：{@code "Acme 制造" + " 根部门"}。
+     */
     public static final String ROOT_DEPARTMENT_NAME_SUFFIX = " 根部门";
-
+    private static final Logger log = LoggerFactory.getLogger(CreateRootDepartmentStep.class);
     private final DepartmentGateway departmentGateway;
 
     public CreateRootDepartmentStep(DepartmentGateway departmentGateway) {

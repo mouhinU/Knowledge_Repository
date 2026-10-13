@@ -1,16 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.extraction;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 文档提取公共工具单测：聚焦 {@code calculateChecksum} 的异常边界（目录 / 不存在路径 / 空文件固定 64 位 hex） 与 {@code getExtension}
@@ -22,11 +21,14 @@ import org.junit.jupiter.api.io.TempDir;
 @DisplayName("提取公共工具：checksum 边界与扩展名 (ExtractionSupport)")
 class ExtractionSupportTest {
 
-    /** 空字节序列的 SHA-256 固定值（NIST 标准测试向量）。 */
+    /**
+     * 空字节序列的 SHA-256 固定值（NIST 标准测试向量）。
+     */
     private static final String SHA256_OF_EMPTY =
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-    @TempDir Path tempDir;
+    @TempDir
+    Path tempDir;
 
     @Test
     @DisplayName("空文件 → 64 位小写 hex，等于空输入 SHA-256 标准向量")

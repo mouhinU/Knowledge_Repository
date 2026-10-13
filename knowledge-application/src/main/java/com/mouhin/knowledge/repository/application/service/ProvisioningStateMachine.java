@@ -9,13 +9,14 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantProvisionStep;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningContext;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningStep;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 /**
  * 租户开通状态机（P3-T2）。
@@ -41,11 +42,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProvisioningStateMachine {
 
-    private static final Logger log = LoggerFactory.getLogger(ProvisioningStateMachine.class);
-
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "TENANT_PROVISION";
-
+    private static final Logger log = LoggerFactory.getLogger(ProvisioningStateMachine.class);
     private final TenantGateway tenantGateway;
     private final TenantProvisionStepGateway stepGateway;
     private final PlatformAuditLog auditLog;
@@ -67,10 +68,10 @@ public class ProvisioningStateMachine {
      * 对指定租户执行开通编排。调用方须保证 {@code tenant} 处于可开通态（PENDING / PROVISIONING / FAILED）； ACTIVE
      * 租户直接幂等返回成功（不重跑步骤）。
      *
-     * @param tenant 目标租户（已加载，含 tenantId）
+     * @param tenant             目标租户（已加载，含 tenantId）
      * @param provisionRequestId 本次请求 UUID v4
-     * @param operatorId 操作者标识
-     * @param operatorName 操作者显示名
+     * @param operatorId         操作者标识
+     * @param operatorName       操作者显示名
      * @return 编排结果快照
      */
     public ProvisioningOutcome provision(
@@ -173,7 +174,9 @@ public class ProvisioningStateMachine {
         }
     }
 
-    /** 组装异常摘要：类型 + message，避免 NPE 时无信息。 */
+    /**
+     * 组装异常摘要：类型 + message，避免 NPE 时无信息。
+     */
     private String describe(RuntimeException ex) {
         String msg = ex.getMessage();
         return ex.getClass().getSimpleName() + (msg == null ? "" : ": " + msg);

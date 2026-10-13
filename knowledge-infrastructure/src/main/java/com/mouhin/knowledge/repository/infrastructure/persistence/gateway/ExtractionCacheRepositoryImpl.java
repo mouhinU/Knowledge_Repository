@@ -7,9 +7,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExtractionResultCodec;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExtractionCacheDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExtractionCacheMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * 解析结果持久缓存仓储实现（Phase C）。

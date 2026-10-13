@@ -1,11 +1,11 @@
 package com.mouhin.knowledge.repository.application.dto;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link SearchCmd} 身份字段反序列化契约测试（P0-T1 加固回归）。

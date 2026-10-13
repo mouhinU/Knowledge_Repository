@@ -1,27 +1,23 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 /**
  * 重新入库配图清理支撑单测（{@link DocumentImageSupport#deleteImages}）。
@@ -35,12 +31,12 @@ import org.junit.jupiter.api.io.TempDir;
 @DisplayName("重新入库配图清理 (DocumentImageSupport.deleteImages)")
 class DocumentImageSupportDeleteImagesTest {
 
-    @TempDir Path assetRoot;
-
     private final DocumentImageExtractorGateway extractor =
             mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
     private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
+    @TempDir
+    Path assetRoot;
     private DocumentImageSupport support;
 
     @BeforeEach
@@ -67,7 +63,7 @@ class DocumentImageSupportDeleteImagesTest {
     void deletesInRootFilesAndRows() throws IOException {
         Path inside = assetRoot.resolve("doc-1").resolve("a.png");
         Files.createDirectories(inside.getParent());
-        Files.write(inside, new byte[] {1, 2, 3});
+        Files.write(inside, new byte[]{1, 2, 3});
         when(imageGateway.listByDocumentId(1L))
                 .thenReturn(List.of(imageAt(10L, inside.toString())));
 

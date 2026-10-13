@@ -22,18 +22,28 @@ import lombok.Setter;
 @Setter
 public class TenantReissueInviteCmd {
 
-    /** 目标租户业务键（必填）。 */
+    /**
+     * 目标租户业务键（必填）。
+     */
     private String tenantKey;
 
-    /** 目标管理员用户名（必填，租户内唯一）。 */
+    /**
+     * 目标管理员用户名（必填，租户内唯一）。
+     */
     private String username;
 
-    /** 邀请有效期（小时）；{@code null} 或 ≤0 时由 {@code UserInviteService.DEFAULT_TTL}（72h）兜底。 */
+    /**
+     * 邀请有效期（小时）；{@code null} 或 ≤0 时由 {@code UserInviteService.DEFAULT_TTL}（72h）兜底。
+     */
     private Integer ttlHours;
 
-    /** 操作者标识（平台令牌 claim 注入，仅审计用）。 */
+    /**
+     * 操作者标识（平台令牌 claim 注入，仅审计用）。
+     */
     private String operatorId;
 
-    /** 操作者展示名（平台令牌 claim 注入，仅审计用）。 */
+    /**
+     * 操作者展示名（平台令牌 claim 注入，仅审计用）。
+     */
     private String operatorName;
 }

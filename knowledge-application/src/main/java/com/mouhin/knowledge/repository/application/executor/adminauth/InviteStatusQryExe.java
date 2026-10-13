@@ -7,10 +7,11 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * 邀请码状态查询执行器（app 层只读用例，P3-T7 邀请式设密<b>回访</b>）。
@@ -37,10 +38,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class InviteStatusQryExe {
 
-    /** tenantKey 前缀可见长度（脱敏 hint）。 */
+    /**
+     * tenantKey 前缀可见长度（脱敏 hint）。
+     */
     private static final int TENANT_KEY_HINT_LENGTH = 3;
 
-    /** tenantKey 短于该长度时不脱敏直接返回原值（极小租户场景下 3 字符已足够标识）。 */
+    /**
+     * tenantKey 短于该长度时不脱敏直接返回原值（极小租户场景下 3 字符已足够标识）。
+     */
     private static final int TENANT_KEY_MIN_HINTABLE_LENGTH = 6;
 
     private final UserInviteService userInviteService;
@@ -54,6 +59,23 @@ public class InviteStatusQryExe {
         this.userInviteService = userInviteService;
         this.userGateway = userGateway;
         this.tenantGateway = tenantGateway;
+    }
+
+    private static String maskTenantKeyLiteral(String tenantKey) {
+        if (tenantKey == null || tenantKey.isBlank()) {
+            return "?";
+        }
+        if (tenantKey.length() < TENANT_KEY_MIN_HINTABLE_LENGTH) {
+            return tenantKey;
+        }
+        return tenantKey.substring(0, TENANT_KEY_HINT_LENGTH) + "…";
+    }
+
+    private static String maskUsernameLiteral(String username) {
+        if (username == null || username.isEmpty()) {
+            return "?";
+        }
+        return username.charAt(0) + "***";
     }
 
     /**
@@ -112,17 +134,9 @@ public class InviteStatusQryExe {
                 .orElse("?");
     }
 
-    private static String maskTenantKeyLiteral(String tenantKey) {
-        if (tenantKey == null || tenantKey.isBlank()) {
-            return "?";
-        }
-        if (tenantKey.length() < TENANT_KEY_MIN_HINTABLE_LENGTH) {
-            return tenantKey;
-        }
-        return tenantKey.substring(0, TENANT_KEY_HINT_LENGTH) + "…";
-    }
-
-    /** username 脱敏：首字符 + {@code ***}；查不到或为空回退 {@code "?"}。 */
+    /**
+     * username 脱敏：首字符 + {@code ***}；查不到或为空回退 {@code "?"}。
+     */
     private String maskUsername(Long userId) {
         if (userId == null) {
             return "?";
@@ -132,12 +146,5 @@ public class InviteStatusQryExe {
                 .map(User::getUsername)
                 .map(InviteStatusQryExe::maskUsernameLiteral)
                 .orElse("?");
-    }
-
-    private static String maskUsernameLiteral(String username) {
-        if (username == null || username.isEmpty()) {
-            return "?";
-        }
-        return username.charAt(0) + "***";
     }
 }

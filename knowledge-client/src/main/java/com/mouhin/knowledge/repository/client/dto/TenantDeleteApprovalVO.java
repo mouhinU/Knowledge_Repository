@@ -1,8 +1,9 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 /**
  * 租户删除审批令牌视图对象（client 层出参，P3-T5 双人复核签发结果）。
@@ -20,14 +21,20 @@ public class TenantDeleteApprovalVO {
     private Long approvalId;
     private String tenantKey;
 
-    /** 签发者（项目负责人）operator id。 */
+    /**
+     * 签发者（项目负责人）operator id。
+     */
     private String approverOperatorId;
 
-    /** 令牌状态（PENDING / USED / EXPIRED / REVOKED）。 */
+    /**
+     * 令牌状态（PENDING / USED / EXPIRED / REVOKED）。
+     */
     private String status;
 
     private LocalDateTime expiresAt;
 
-    /** raw 审批令牌，<b>仅签发响应体一次性返回</b>；查询 / 复用场景为 {@code null}。 */
+    /**
+     * raw 审批令牌，<b>仅签发响应体一次性返回</b>；查询 / 复用场景为 {@code null}。
+     */
     private String approvalToken;
 }

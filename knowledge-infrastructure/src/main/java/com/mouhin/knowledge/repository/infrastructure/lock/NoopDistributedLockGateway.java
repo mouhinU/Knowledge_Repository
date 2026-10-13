@@ -1,10 +1,11 @@
 package com.mouhin.knowledge.repository.infrastructure.lock;
 
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 进程内分布式锁降级实现（Redis 不可用时的兜底）。
@@ -22,7 +23,9 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "knowledge.redis.enabled", havingValue = "false")
 public class NoopDistributedLockGateway implements DistributedLockGateway {
 
-    /** 进程内锁表：lockKey → ownerId */
+    /**
+     * 进程内锁表：lockKey → ownerId
+     */
     private final ConcurrentHashMap<String, String> locks = new ConcurrentHashMap<>();
 
     @Override

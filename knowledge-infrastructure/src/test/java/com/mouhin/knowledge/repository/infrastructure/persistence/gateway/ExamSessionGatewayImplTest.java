@@ -1,22 +1,19 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamSessionDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamSessionMapper;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link ExamSessionGatewayImpl} 契约单测：锁定 CRUD 转换、按状态计数与空集合/空参短路。

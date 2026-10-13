@@ -54,7 +54,9 @@ public class WebSecurityConfig {
         return new AdminTokenAuthFilter(adminAuthService);
     }
 
-    /** 租户解析过滤器（P1-T3）：紧随鉴权过滤器，以便读取其落到请求属性的 JWT 租户 claim；P3-T4 起兼做软停租户 403 软拦。 */
+    /**
+     * 租户解析过滤器（P1-T3）：紧随鉴权过滤器，以便读取其落到请求属性的 JWT 租户 claim；P3-T4 起兼做软停租户 403 软拦。
+     */
     @Bean
     public TenantResolverFilter tenantResolverFilter() {
         return new TenantResolverFilter(saasProperties, tenantDirectory);

@@ -30,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TenantSuspendCmdExe {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "TENANT_SUSPEND";
 
     private final TenantGateway tenantGateway;

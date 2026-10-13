@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.export;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * 试卷 Word 导出工具
@@ -23,7 +24,7 @@ public class ExamWordExporter {
     /**
      * 将 Markdown 试卷内容导出为 Word 文档
      *
-     * @param markdown Markdown 格式的试卷内容
+     * @param markdown     Markdown 格式的试卷内容
      * @param outputStream 输出流
      * @throws IOException 写入失败
      */
@@ -65,7 +66,9 @@ public class ExamWordExporter {
         }
     }
 
-    /** 添加标题 */
+    /**
+     * 添加标题
+     */
     private void addHeading(XWPFDocument document, String text, int level) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setSpacingBefore(level == 1 ? 240 : 160);
@@ -90,7 +93,9 @@ public class ExamWordExporter {
         }
     }
 
-    /** 添加列表项 */
+    /**
+     * 添加列表项
+     */
     private void addListItem(XWPFDocument document, String text) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setIndentationLeft(480);
@@ -98,14 +103,18 @@ public class ExamWordExporter {
         addFormattedText(paragraph, text, "  \u2022  ");
     }
 
-    /** 添加普通段落 */
+    /**
+     * 添加普通段落
+     */
     private void addBodyParagraph(XWPFDocument document, String text) {
         XWPFParagraph paragraph = document.createParagraph();
         paragraph.setSpacingAfter(60);
         addFormattedText(paragraph, text, "");
     }
 
-    /** 添加带格式的文本（处理 **bold** 标记） */
+    /**
+     * 添加带格式的文本（处理 **bold** 标记）
+     */
     private void addFormattedText(XWPFParagraph paragraph, String text, String prefix) {
         if (prefix != null && !prefix.isEmpty()) {
             XWPFRun prefixRun = paragraph.createRun();

@@ -1,28 +1,23 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 视觉异步增强执行器单测（{@link ExtractEnhanceAsyncCmdExe}，Phase C）。
@@ -37,22 +32,20 @@ import org.junit.jupiter.api.io.TempDir;
 class ExtractEnhanceAsyncCmdExeTest {
 
     private static final String KEY = "doc-key-1";
-
-    @TempDir Path tmp;
-
     private final DocumentGateway documentGateway = mock(DocumentGateway.class);
     private final DocumentExtractionGateway documentExtractionService =
             mock(DocumentExtractionGateway.class);
     private final ExtractionCacheHolder extractionCache = mock(ExtractionCacheHolder.class);
     private final Executor directExecutor = Runnable::run;
-
     private final ExtractEnhanceAsyncCmdExe exe =
             new ExtractEnhanceAsyncCmdExe(
                     documentGateway, documentExtractionService, extractionCache, directExecutor);
+    @TempDir
+    Path tmp;
 
     private Document stubDocumentWithFile() throws IOException {
         Path file = tmp.resolve("stored.pdf");
-        Files.write(file, new byte[] {1, 2, 3});
+        Files.write(file, new byte[]{1, 2, 3});
         Document doc = new Document();
         doc.setDocumentKey(KEY);
         doc.setFileName("stored.pdf");

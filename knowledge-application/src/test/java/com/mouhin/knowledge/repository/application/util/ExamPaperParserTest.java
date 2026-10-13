@@ -1,14 +1,13 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 试卷 Markdown 解析器切分单测（锁定「题型分布方案 label 带括注」场景的类型识别与选项抽取）。
@@ -25,47 +24,47 @@ class ExamPaperParserTest {
 
     private static final String PAPER =
             """
-            # 一年级语文期末试卷
-
-            **考试时间：60分钟**
-
-            **满分：100分**
-
-            ## 一、我会选（单选题）（共2题，每题2分，共4分）
-
-            **1.** 下列哪个是单韵母？（2分）
-            A. b
-            B. a
-            C. m
-            D. f
-
-            **2.** 下列哪个是声母？（2分）
-            A. o
-            B. i
-            C. d
-            D. ü
-
-            ## 二、我会判（判断题）（共1题，每题2分，共2分）
-
-            **3.** “a”是单韵母。（2分）
-
-            ## 三、我会填（填空题）（共1题，每题3分，共3分）
-
-            **4.** “口”有（ ）画。（3分）
-
-            ## 四、看图写话与写句子（简答题）（共1题，每题7分，共7分）
-
-            **5.** 看图写话：图上画着蓝天、白云、小鸟。请写一句话。（7分）
-            """;
+                    # 一年级语文期末试卷
+                    
+                    **考试时间：60分钟**
+                    
+                    **满分：100分**
+                    
+                    ## 一、我会选（单选题）（共2题，每题2分，共4分）
+                    
+                    **1.** 下列哪个是单韵母？（2分）
+                    A. b
+                    B. a
+                    C. m
+                    D. f
+                    
+                    **2.** 下列哪个是声母？（2分）
+                    A. o
+                    B. i
+                    C. d
+                    D. ü
+                    
+                    ## 二、我会判（判断题）（共1题，每题2分，共2分）
+                    
+                    **3.** “a”是单韵母。（2分）
+                    
+                    ## 三、我会填（填空题）（共1题，每题3分，共3分）
+                    
+                    **4.** “口”有（ ）画。（3分）
+                    
+                    ## 四、看图写话与写句子（简答题）（共1题，每题7分，共7分）
+                    
+                    **5.** 看图写话：图上画着蓝天、白云、小鸟。请写一句话。（7分）
+                    """;
 
     private static final String PLAN_JSON =
             """
-            {"schoolLevel":"PRIMARY","totalFullMark":100,"combined":false,"subjects":["语文"],"types":[
-            {"key":"SINGLE_CHOICE","label":"我会选（单选题）","count":2,"perQuestion":[2,2],"reason":"x"},
-            {"key":"TRUE_FALSE","label":"我会判（判断题）","count":1,"perQuestion":[2],"reason":"x"},
-            {"key":"FILL_BLANK","label":"我会填（填空题）","count":1,"perQuestion":[3],"reason":"x"},
-            {"key":"SHORT_ANSWER","label":"看图写话与写句子（简答题）","count":1,"perQuestion":[7],"reason":"x"}
-            ]}""";
+                    {"schoolLevel":"PRIMARY","totalFullMark":100,"combined":false,"subjects":["语文"],"types":[
+                    {"key":"SINGLE_CHOICE","label":"我会选（单选题）","count":2,"perQuestion":[2,2],"reason":"x"},
+                    {"key":"TRUE_FALSE","label":"我会判（判断题）","count":1,"perQuestion":[2],"reason":"x"},
+                    {"key":"FILL_BLANK","label":"我会填（填空题）","count":1,"perQuestion":[3],"reason":"x"},
+                    {"key":"SHORT_ANSWER","label":"看图写话与写句子（简答题）","count":1,"perQuestion":[7],"reason":"x"}
+                    ]}""";
 
     private Map<Integer, Map<String, Object>> byNumber(List<Map<String, Object>> qs) {
         Map<Integer, Map<String, Object>> m = new java.util.LinkedHashMap<>();
@@ -120,11 +119,11 @@ class ExamPaperParserTest {
     void stripsScoreParenInsideInlineOptionValue() {
         String paper =
                 """
-                ## 一、我会选（单选题）（共1题，每题2分，共2分）
-
-                **1.** 选出正确的一项。（2分）
-                A. 苹果（1分） B. 香蕉 C. 橘子 D. 葡萄
-                """;
+                        ## 一、我会选（单选题）（共1题，每题2分，共2分）
+                        
+                        **1.** 选出正确的一项。（2分）
+                        A. 苹果（1分） B. 香蕉 C. 橘子 D. 葡萄
+                        """;
         Map<Integer, Map<String, Object>> qs = byNumber(ExamPaperParser.parse(paper, null));
         assertEquals("SINGLE_CHOICE", qs.get(1).get("type"));
         @SuppressWarnings("unchecked")

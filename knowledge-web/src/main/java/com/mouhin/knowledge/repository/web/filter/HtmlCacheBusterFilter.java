@@ -5,16 +5,17 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingResponseWrapper;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingResponseWrapper;
 
 /**
  * 前端静态资源缓存击穿过滤器（Cache-Busting）。
@@ -57,17 +58,25 @@ public class HtmlCacheBusterFilter extends OncePerRequestFilter {
                             + "(?<query>\\?[^\"'\\s>]*)?"
                             + "(?=\\k<quote>)");
 
-    /** HTML 严格禁缓存响应头。 */
+    /**
+     * HTML 严格禁缓存响应头。
+     */
     private static final String HTML_CACHE_CONTROL =
             "no-store, no-cache, must-revalidate, max-age=0";
 
-    /** 内容类型前缀判定。 */
+    /**
+     * 内容类型前缀判定。
+     */
     private static final String HTML_CONTENT_TYPE = "text/html";
 
-    /** 本过滤器独占写入的响应头名（大小写无关）；下游 setHeader/addHeader 将被静默忽略。 */
+    /**
+     * 本过滤器独占写入的响应头名（大小写无关）；下游 setHeader/addHeader 将被静默忽略。
+     */
     private static final Set<String> LOCKED_HEADERS = Set.of("cache-control", "pragma", "expires");
 
-    /** 版本变量；空/null 时不做 URL 注入（仅锁定响应头），避免把 {@code ?v=null} 写进生产。 */
+    /**
+     * 版本变量；空/null 时不做 URL 注入（仅锁定响应头），避免把 {@code ?v=null} 写进生产。
+     */
     private final String appVersion;
 
     public HtmlCacheBusterFilter(String appVersion) {
@@ -133,7 +142,9 @@ public class HtmlCacheBusterFilter extends OncePerRequestFilter {
         return uri.equals("/admin") || uri.equals("/admin/");
     }
 
-    /** 覆写 HTML 响应头。 */
+    /**
+     * 覆写 HTML 响应头。
+     */
     private void applyNoStoreHeaders(HttpServletResponse response) {
         response.setHeader("Cache-Control", HTML_CACHE_CONTROL);
         response.setHeader("Pragma", "no-cache");

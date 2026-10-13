@@ -1,13 +1,11 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 /**
  * 待复核数量统计查询执行器单测：锁定委托口径（countPendingReview 的状态组合语义在网关侧）、结果透传与实时查询。

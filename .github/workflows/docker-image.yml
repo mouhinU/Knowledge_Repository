@@ -2,8 +2,8 @@ name: Build & Push Docker Image
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [ main ]
+    tags: [ "v*" ]
     # 只有真正影响镜像内容的文件变化才 build+push;
     # 纯改 README / docs / workflow 自身不再触发一次 GHCR 推送。
     # tag push (v*) 忽略 paths 过滤(GitHub 限制: tags 与 paths 互斥,共存时 paths 无效),
@@ -20,7 +20,7 @@ on:
       - "mvnw"
       - "mvnw.cmd"
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths:
       - "**/*.java"
       - "**/pom.xml"
@@ -32,7 +32,7 @@ on:
       - ".mvn/**"
       - "mvnw"
       - "mvnw.cmd"
-  workflow_dispatch: {}
+  workflow_dispatch: { }
 
 # Workflow-level 最小权限声明：即使仓库 Settings → Actions → General 把默认
 # workflow permissions 改成 "Read repository contents and packages permissions"

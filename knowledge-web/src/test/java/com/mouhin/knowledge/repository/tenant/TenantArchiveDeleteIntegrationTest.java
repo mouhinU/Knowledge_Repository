@@ -1,11 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import com.mouhin.knowledge.repository.application.executor.platform.ArchiveTenantCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.ConfirmTenantDeletionCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.IssueDeleteApprovalCmdExe;
@@ -13,24 +7,14 @@ import com.mouhin.knowledge.repository.application.executor.platform.TenantDelet
 import com.mouhin.knowledge.repository.application.service.TenantDeletionReconciler;
 import com.mouhin.knowledge.repository.application.support.DeleteApprovalService;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
-import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
-import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.client.dto.*;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.infrastructure.observability.DbPlatformAuditLog;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.SystemConfigGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantDataPurgeGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantDeleteApprovalGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantDeletionStepGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantGatewayImpl;
+import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.*;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +28,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * P3-T5 归档 → 保留期 → 双人复核 → 硬删（reconciler 续跑）全链路端到端集成测试（H2 MODE=MySQL，无需 Docker）。
@@ -75,6 +65,23 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(classes = TenantArchiveDeleteIntegrationTest.TestConfig.class)
 class TenantArchiveDeleteIntegrationTest {
 
+    @Autowired
+    private TenantGatewayImpl tenantGateway;
+    @Autowired
+    private ArchiveTenantCmdExe archiveExe;
+    @Autowired
+    private IssueDeleteApprovalCmdExe issueApprovalExe;
+    @Autowired
+    private ConfirmTenantDeletionCmdExe confirmDeletionExe;
+    @Autowired
+    private TenantDeletionPreviewQryExe previewQryExe;
+    @Autowired
+    private TenantDeletionReconciler reconciler;
+    @Autowired
+    private VectorStoreGateway vectorStoreGateway;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
         registry.add(
@@ -93,52 +100,6 @@ class TenantArchiveDeleteIntegrationTest {
         registry.add("knowledge.saas.tenant-deletion.retention-days", () -> "0");
     }
 
-    /**
-     * 最小上下文：DataSource / Flyway / MyBatis-Plus / 真实网关 + 审计 + 执行器 + reconciler；Milvus 侧以 mock 顶替。
-     */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({
-        TenantGatewayImpl.class,
-        TenantIdResolver.class,
-        DbPlatformAuditLog.class,
-        SystemConfigGatewayImpl.class,
-        SystemConfigService.class,
-        TenantDeletionStepGatewayImpl.class,
-        TenantDeleteApprovalGatewayImpl.class,
-        TenantDataPurgeGatewayImpl.class,
-        DeleteApprovalService.class,
-        ArchiveTenantCmdExe.class,
-        IssueDeleteApprovalCmdExe.class,
-        ConfirmTenantDeletionCmdExe.class,
-        TenantDeletionPreviewQryExe.class,
-        TenantDeletionReconciler.class
-    })
-    static class TestConfig {
-
-        /** Milvus 向量网关以 mock 顶替：H2 测试环境无向量库，仅需验证 {@code deleteByTenantId} 调用契约。 */
-        @Bean
-        VectorStoreGateway vectorStoreGateway() {
-            return mock(VectorStoreGateway.class);
-        }
-
-        /** P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。 */
-        @Bean
-        ConfigInvalidationPublisher configInvalidationPublisher() {
-            return mock(ConfigInvalidationPublisher.class);
-        }
-    }
-
-    @Autowired private TenantGatewayImpl tenantGateway;
-    @Autowired private ArchiveTenantCmdExe archiveExe;
-    @Autowired private IssueDeleteApprovalCmdExe issueApprovalExe;
-    @Autowired private ConfirmTenantDeletionCmdExe confirmDeletionExe;
-    @Autowired private TenantDeletionPreviewQryExe previewQryExe;
-    @Autowired private TenantDeletionReconciler reconciler;
-    @Autowired private VectorStoreGateway vectorStoreGateway;
-    @Autowired private JdbcTemplate jdbcTemplate;
-
     @AfterEach
     void tearDown() {
         TenantContext.clear();
@@ -156,7 +117,9 @@ class TenantArchiveDeleteIntegrationTest {
         return t;
     }
 
-    /** 为租户播种一条可被硬删的业务行（sys_config，唯一键 (tenant_id, config_key)），返回其 config_key。 */
+    /**
+     * 为租户播种一条可被硬删的业务行（sys_config，唯一键 (tenant_id, config_key)），返回其 config_key。
+     */
     private String seedBusinessRow(long tenantId, String key) {
         String configKey = "it-del-" + key;
         jdbcTemplate.update(
@@ -303,5 +266,46 @@ class TenantArchiveDeleteIntegrationTest {
         // 预览是只读操作：业务行仍在
         assertThat(countConfigByKey(configKey)).isEqualTo(1);
         assertThat(tenantGateway.findByTenantKey(key).orElseThrow().isArchived()).isTrue();
+    }
+
+    /**
+     * 最小上下文：DataSource / Flyway / MyBatis-Plus / 真实网关 + 审计 + 执行器 + reconciler；Milvus 侧以 mock 顶替。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({
+            TenantGatewayImpl.class,
+            TenantIdResolver.class,
+            DbPlatformAuditLog.class,
+            SystemConfigGatewayImpl.class,
+            SystemConfigService.class,
+            TenantDeletionStepGatewayImpl.class,
+            TenantDeleteApprovalGatewayImpl.class,
+            TenantDataPurgeGatewayImpl.class,
+            DeleteApprovalService.class,
+            ArchiveTenantCmdExe.class,
+            IssueDeleteApprovalCmdExe.class,
+            ConfirmTenantDeletionCmdExe.class,
+            TenantDeletionPreviewQryExe.class,
+            TenantDeletionReconciler.class
+    })
+    static class TestConfig {
+
+        /**
+         * Milvus 向量网关以 mock 顶替：H2 测试环境无向量库，仅需验证 {@code deleteByTenantId} 调用契约。
+         */
+        @Bean
+        VectorStoreGateway vectorStoreGateway() {
+            return mock(VectorStoreGateway.class);
+        }
+
+        /**
+         * P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。
+         */
+        @Bean
+        ConfigInvalidationPublisher configInvalidationPublisher() {
+            return mock(ConfigInvalidationPublisher.class);
+        }
     }
 }

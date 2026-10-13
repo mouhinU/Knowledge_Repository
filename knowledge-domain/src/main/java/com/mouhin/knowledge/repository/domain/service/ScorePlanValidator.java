@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,19 +21,28 @@ import java.util.List;
  */
 public final class ScorePlanValidator {
 
-    /** 认可的常见卷面满分 */
+    /**
+     * 认可的常见卷面满分
+     */
     private static final int[] STANDARD_FULL_MARKS = {100, 120, 150};
 
-    /** 单题分值占满分阈值（超过视为过重） */
+    /**
+     * 单题分值占满分阈值（超过视为过重）
+     */
     private static final double MAX_SINGLE_QUESTION_RATIO = 0.30;
 
-    /** 单题型小计占满分阈值（超过视为失衡） */
+    /**
+     * 单题型小计占满分阈值（超过视为失衡）
+     */
     private static final double MAX_TYPE_SHARE_RATIO = 0.60;
 
-    /** 单题型题量过多阈值 */
+    /**
+     * 单题型题量过多阈值
+     */
     private static final int MAX_TYPE_COUNT = 60;
 
-    private ScorePlanValidator() {}
+    private ScorePlanValidator() {
+    }
 
     /**
      * 校验并评估方案。返回 {@link Result} 包含 issues（阻断）与 suggestions（提示）。
@@ -66,7 +76,9 @@ public final class ScorePlanValidator {
         return new Result(pass, issues, suggestions);
     }
 
-    /** 基础硬校验：满分合法、总题量 &gt; 0。 */
+    /**
+     * 基础硬校验：满分合法、总题量 &gt; 0。
+     */
     private static void checkBasics(int targetFullMark, int totalCount, List<String> issues) {
         if (targetFullMark <= 0) {
             issues.add("本卷满分未设置或非法（当前 " + targetFullMark + "）");
@@ -81,8 +93,7 @@ public final class ScorePlanValidator {
      *
      * @return 跨题型累计的分值合计、最大单题、主客观存在性等统计
      */
-    private static TypeDistribution checkTypeDistribution(
-            ExamPlan plan, int targetFullMark, List<String> issues, List<String> suggestions) {
+    private static TypeDistribution checkTypeDistribution(ExamPlan plan, int targetFullMark, List<String> issues, List<String> suggestions) {
         int allocated = 0;
         boolean hasSubjective = false;
         boolean hasObjective = false;
@@ -153,7 +164,9 @@ public final class ScorePlanValidator {
                 allocated, hasSubjective, hasObjective, maxPerQuestion, maxPerQuestionType);
     }
 
-    /** 逐题分值合计与本卷满分的对齐校验。 */
+    /**
+     * 逐题分值合计与本卷满分的对齐校验。
+     */
     private static void checkTotalAlignment(
             int targetFullMark, int allocated, List<String> issues) {
         if (targetFullMark > 0 && allocated != targetFullMark) {
@@ -168,7 +181,9 @@ public final class ScorePlanValidator {
         }
     }
 
-    /** 满分标准性与单题分值占比的合理性评估（仅建议）。 */
+    /**
+     * 满分标准性与单题分值占比的合理性评估（仅建议）。
+     */
     private static void checkFullMarkRationality(
             int targetFullMark, TypeDistribution dist, List<String> suggestions) {
         if (targetFullMark <= 0) {
@@ -197,7 +212,9 @@ public final class ScorePlanValidator {
         }
     }
 
-    /** 主客观题型存在性与平均每题分值组成的评估建议（仅建议）。 */
+    /**
+     * 主客观题型存在性与平均每题分值组成的评估建议（仅建议）。
+     */
     private static void checkCompositionBalance(
             TypeDistribution dist, int totalCount, int targetFullMark, List<String> suggestions) {
         if (!dist.hasSubjective()) {
@@ -217,25 +234,9 @@ public final class ScorePlanValidator {
     }
 
     /**
-     * 逐题型累计的全局统计量，供后续对齐与合理性评估使用。
-     *
-     * @param allocated 逐题分值合计
-     * @param hasSubjective 是否含主观题
-     * @param hasObjective 是否含客观题
-     * @param maxPerQuestion 全局最大单题分值
-     * @param maxPerQuestionType 最大单题所属题型标签
-     */
-    private record TypeDistribution(
-            int allocated,
-            boolean hasSubjective,
-            boolean hasObjective,
-            int maxPerQuestion,
-            String maxPerQuestionType) {}
-
-    /**
      * 渲染校验评估报告为 Markdown（供 SSE 面板 / 复核页展示）。
      *
-     * @param plan 方案
+     * @param plan   方案
      * @param result 校验结果
      * @return Markdown
      */
@@ -291,11 +292,29 @@ public final class ScorePlanValidator {
     }
 
     /**
+     * 逐题型累计的全局统计量，供后续对齐与合理性评估使用。
+     *
+     * @param allocated          逐题分值合计
+     * @param hasSubjective      是否含主观题
+     * @param hasObjective       是否含客观题
+     * @param maxPerQuestion     全局最大单题分值
+     * @param maxPerQuestionType 最大单题所属题型标签
+     */
+    private record TypeDistribution(
+            int allocated,
+            boolean hasSubjective,
+            boolean hasObjective,
+            int maxPerQuestion,
+            String maxPerQuestionType) {
+    }
+
+    /**
      * 校验结果
      *
-     * @param pass 是否通过硬校验
-     * @param issues 阻断流水线的错误清单
+     * @param pass        是否通过硬校验
+     * @param issues      阻断流水线的错误清单
      * @param suggestions 不阻断的优化建议
      */
-    public record Result(boolean pass, List<String> issues, List<String> suggestions) {}
+    public record Result(boolean pass, List<String> issues, List<String> suggestions) {
+    }
 }

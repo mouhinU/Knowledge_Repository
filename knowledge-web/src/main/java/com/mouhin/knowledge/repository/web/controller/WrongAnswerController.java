@@ -4,11 +4,12 @@ import com.mouhin.knowledge.repository.client.api.WrongAnswerServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentOptionVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerSummaryRequest;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 错题本控制器（管理端）
@@ -27,7 +28,9 @@ public class WrongAnswerController {
         this.wrongAnswerService = wrongAnswerService;
     }
 
-    /** 查询错题列表（支持按考生 / 主题 / 题型过滤 + 分页） */
+    /**
+     * 查询错题列表（支持按考生 / 主题 / 题型过滤 + 分页）
+     */
     @GetMapping
     public ResponseEntity<WrongAnswerPageVO> listWrongAnswers(
             @RequestParam(required = false) Long studentId,
@@ -39,7 +42,9 @@ public class WrongAnswerController {
                 wrongAnswerService.pageWrongAnswers(studentId, topic, questionType, page, size));
     }
 
-    /** AI 错题总结 */
+    /**
+     * AI 错题总结
+     */
     @PostMapping("/summary")
     public ResponseEntity<Map<String, String>> generateSummary(
             @RequestBody WrongAnswerSummaryRequest request) {
@@ -54,7 +59,9 @@ public class WrongAnswerController {
         }
     }
 
-    /** 查询考生列表（供错题本筛选下拉框使用） */
+    /**
+     * 查询考生列表（供错题本筛选下拉框使用）
+     */
     @GetMapping("/students")
     public ResponseEntity<List<StudentOptionVO>> listStudents() {
         return ResponseEntity.ok(wrongAnswerService.listStudentOptions());

@@ -1,13 +1,11 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 /**
  * 待评分数量统计查询执行器单测：锁定口径固定为 SUBMITTED、结果直接透传（含 0 与负数语义原样返回）。

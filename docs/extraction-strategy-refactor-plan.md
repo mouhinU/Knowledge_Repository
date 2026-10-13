@@ -2,8 +2,10 @@
 
 > 版本：v1.5（2026-09-23）
 > 交付策略：**先策略化，后视觉**。上传与解析已解耦（上传只存文件，解析手动触发），后续按需引入视觉模型。
-> 基线技术栈：COLA 5.0 · Spring Boot 3.4 · Java 21 · PDFBox 3.0.4 · Tika 3.1.0 · POI 5.x · LangChain4j 1.0.1（`langchain4j-open-ai`）
-> v1.5 增量：Phase C（PDF Hybrid + 持久缓存 + 异步增强）、Phase D（reparse 端点 + 成本护栏 + Micrometer 观测 + Grafana）、Phase R3 均代码完成并按阶段本地提交（未 push）；剩余仅统一验证与部署冒烟。
+> 基线技术栈：COLA 5.0 · Spring Boot 3.4 · Java 21 · PDFBox 3.0.4 · Tika 3.1.0 · POI 5.x · LangChain4j 1.0.1（
+`langchain4j-open-ai`）
+> v1.5 增量：Phase C（PDF Hybrid + 持久缓存 + 异步增强）、Phase D（reparse 端点 + 成本护栏 + Micrometer 观测 + Grafana）、Phase
+> R3 均代码完成并按阶段本地提交（未 push）；剩余仅统一验证与部署冒烟。
 > v1.4 增量：重组文档结构，增加落地进度总览，清理历史修正标记使其反映当前实现现状。
 > v1.3 增量：修正解析时机——上传只保存文件，解析由用户点击「解析预览」手动触发。
 > v1.2 增量：AGENTS.md 红线全量合规审查；视觉模型调整为 CPU 优先。
@@ -13,39 +15,49 @@
 
 ## 0. 落地进度总览
 
-> 提交账本、统一验证证据与视觉端到端联调结论见配套的 [extraction-refactor-completion-report.md](extraction-refactor-completion-report.md)；本 §0 只做阶段状态矩阵（唯一权威）。
+>
+提交账本、统一验证证据与视觉端到端联调结论见配套的 [extraction-refactor-completion-report.md](extraction-refactor-completion-report.md)
+；本 §0 只做阶段状态矩阵（唯一权威）。
 
 ### 0.1 各阶段实施状态
 
-| 阶段 | 状态 | 部署版本 | 说明 |
-|---|---|---|---|
-| **Phase A1** 拆类到 6 个 Service | ✅ 已完成 | V2026092222 | 6 个 `*ExtractionService` 已落地 `infrastructure/extraction/`；`DocumentExtractionService` 改为委托 |
-| **v1.3** 解析时机修正 | ✅ 已完成 | V2026092223 | 上传移除 `extractText`，只做 `calculateChecksum` 去重；解析由「解析预览」触发 |
-| **Phase A2** 抽 SPI + Composite 顶替 | ✅ 代码完成（待统一部署） | — | `ContentExtractor` SPI + `ExtractionCandidate`/`ExtractionConfig`/`ExtractionStrategyEnum` + 6 个 `*ExtractionStrategy`(infra/extractor) + `CompositeExtractionService`(@Primary) + `ExtractorRoutingProperties`；删 `DocumentExtractionService`；7 测试类 24 用例绿 |
-| **Phase B** 视觉模型接入 | ✅ 代码完成（待统一部署） | — | `VisionChatGateway`(domain 端口)+`VisionChatRequest` VO+`OpenAiCompatibleVisionChatGateway`(infra/llm，复用 JDK HttpClient 不新增 GAV)+`VisionModelExtractionStrategy`(@Component，priority 70)+`PageRenderer`(PDFBox3 栅格化)+`LlmVisionProperties`(`knowledge.llm.vision.*` 默认 enabled=false)+`VisionModelConfig`(vision 专属 HttpClient+Gateway)+`InfraExecutorConfig.visionExecutor`(有界池)；9 用例绿（supports 矩阵/嵌入图优先/渲染回退/降级/字节上限 + 网关多模态 HTTP） |
-| **Phase C** PDF Hybrid + 持久缓存 | ✅ 代码完成（待统一部署） | — | `PdfHybridExtractionStrategy`(@Component priority 5，双门控默认关闭)+`ExtractionCacheKey`(5 列 record)+`ExtractionCacheRepository`(domain 端口)+`ExtractionCacheRepositoryImpl`(infra upsert)+`ExtractionCacheDO`/`Mapper`/`ExtractionResultCodec`(全 9 字段编解码)+迁移 `V19__create_extraction_cache.sql`(H2/MySQL 兼容)+`HybridExtractionProperties`(`knowledge.extractor.vision.*`)+`ExtractEnhanceAsyncCmdExe`(`visionExecutor` 异步)+持久缓存查在 PDFBox 主解析前(同文件二次 100% 命中)；16 用例绿 |
-| **Phase D** Admin reparse + 观测 | ✅ 代码完成（待统一部署） | — | `POST /api/admin/document/{key}/reparse`(202/ENQUEUED)+强制策略栈 `ExtractionStrategyStackParser`(域服务，白名单/去重/auto 回退)+`DocumentUploadRequest`/`ChunkUploadRequest.parsingStrategy`+`DocumentExtractionGateway` 非破坏性 default 重载+`Composite` @Override+成本护栏 `VisionBudgetGuard`(按日页数，log-only/enforce)+`HybridExtractionProperties.Budget`+观测 `ExtractionMetrics`(invocations/latency/cache·hit/miss/vision·invocations/failures)+Grafana `docs/grafana/extraction-dashboard.json`；parser 3 + ForcedStack 2 + hybrid metrics/budget + reparse controller 2 绿 |
-| **Phase R** 多模型连接治理 | ✅ R1+R2+R3 代码完成 | — | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；R2（`LlmResilience` per-role 熔断/重试 + `ResilientChatModel`/`ResilientEmbeddingModel`/`ResilientStreamingChatGateway` 装饰器 + resilience4j-micrometer 指标 + `knowledge.llm.resilience.*` 配置 + 5 用例契约测试）✅；vision 配置并入 B；R3 成本护栏（`VisionBudgetGuard` + `HybridExtractionProperties.Budget`）/Grafana（`extraction-dashboard.json`）随 Phase D 落地 ✅ |
+| 阶段                                | 状态              | 部署版本        | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+|-----------------------------------|-----------------|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Phase A1** 拆类到 6 个 Service      | ✅ 已完成           | V2026092222 | 6 个 `*ExtractionService` 已落地 `infrastructure/extraction/`；`DocumentExtractionService` 改为委托                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **v1.3** 解析时机修正                   | ✅ 已完成           | V2026092223 | 上传移除 `extractText`，只做 `calculateChecksum` 去重；解析由「解析预览」触发                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Phase A2** 抽 SPI + Composite 顶替 | ✅ 代码完成（待统一部署）   | —           | `ContentExtractor` SPI + `ExtractionCandidate`/`ExtractionConfig`/`ExtractionStrategyEnum` + 6 个 `*ExtractionStrategy`(infra/extractor) + `CompositeExtractionService`(@Primary) + `ExtractorRoutingProperties`；删 `DocumentExtractionService`；7 测试类 24 用例绿                                                                                                                                                                                                                                                                                            |
+| **Phase B** 视觉模型接入                | ✅ 代码完成（待统一部署）   | —           | `VisionChatGateway`(domain 端口)+`VisionChatRequest` VO+`OpenAiCompatibleVisionChatGateway`(infra/llm，复用 JDK HttpClient 不新增 GAV)+`VisionModelExtractionStrategy`(@Component，priority 70)+`PageRenderer`(PDFBox3 栅格化)+`LlmVisionProperties`(`knowledge.llm.vision.*` 默认 enabled=false)+`VisionModelConfig`(vision 专属 HttpClient+Gateway)+`InfraExecutorConfig.visionExecutor`(有界池)；9 用例绿（supports 矩阵/嵌入图优先/渲染回退/降级/字节上限 + 网关多模态 HTTP）                                                                                                                    |
+| **Phase C** PDF Hybrid + 持久缓存     | ✅ 代码完成（待统一部署）   | —           | `PdfHybridExtractionStrategy`(@Component priority 5，双门控默认关闭)+`ExtractionCacheKey`(5 列 record)+`ExtractionCacheRepository`(domain 端口)+`ExtractionCacheRepositoryImpl`(infra upsert)+`ExtractionCacheDO`/`Mapper`/`ExtractionResultCodec`(全 9 字段编解码)+迁移 `V19__create_extraction_cache.sql`(H2/MySQL 兼容)+`HybridExtractionProperties`(`knowledge.extractor.vision.*`)+`ExtractEnhanceAsyncCmdExe`(`visionExecutor` 异步)+持久缓存查在 PDFBox 主解析前(同文件二次 100% 命中)；16 用例绿                                                                                          |
+| **Phase D** Admin reparse + 观测    | ✅ 代码完成（待统一部署）   | —           | `POST /api/admin/document/{key}/reparse`(202/ENQUEUED)+强制策略栈 `ExtractionStrategyStackParser`(域服务，白名单/去重/auto 回退)+`DocumentUploadRequest`/`ChunkUploadRequest.parsingStrategy`+`DocumentExtractionGateway` 非破坏性 default 重载+`Composite` @Override+成本护栏 `VisionBudgetGuard`(按日页数，log-only/enforce)+`HybridExtractionProperties.Budget`+观测 `ExtractionMetrics`(invocations/latency/cache·hit/miss/vision·invocations/failures)+Grafana `docs/grafana/extraction-dashboard.json`；parser 3 + ForcedStack 2 + hybrid metrics/budget + reparse controller 2 绿 |
+| **Phase R** 多模型连接治理               | ✅ R1+R2+R3 代码完成 | —           | R1（chat/embedding 三段式 `@ConfigurationProperties` + `LlmClientConfig` per-role `HttpClientBuilder` + `.env` 密钥边界 + 接线测试）✅；R2（`LlmResilience` per-role 熔断/重试 + `ResilientChatModel`/`ResilientEmbeddingModel`/`ResilientStreamingChatGateway` 装饰器 + resilience4j-micrometer 指标 + `knowledge.llm.resilience.*` 配置 + 5 用例契约测试）✅；vision 配置并入 B；R3 成本护栏（`VisionBudgetGuard` + `HybridExtractionProperties.Budget`）/Grafana（`extraction-dashboard.json`）随 Phase D 落地 ✅                                                                                       |
 
 ### 0.2 当前实现概要（已完成部分）
 
 **上传流程**（`UploadOnlyCmdExe` / `UploadFromFileCmdExe`）：
-临时落盘 → MD5 去重（`calculateChecksum`）→ 永久存储 → 保存 Document（status=UPLOADED）→ 抽取图片元数据 → 发布创建事件。**不调用任何文本解析**。
+临时落盘 → MD5 去重（`calculateChecksum`）→ 永久存储 → 保存 Document（status=UPLOADED）→ 抽取图片元数据 → 发布创建事件。*
+*不调用任何文本解析**。
 
 **解析预览流程**（`PreviewFromDocumentQryExe`）：
-用户点击「解析预览」→ `ExtractionCacheHolder.getOrReextract(document)` → 缓存命中直接返回 / 缓存未命中调 `DocumentExtractionGateway.extractText()` 首次提取 → 分块 → 返回 `PreviewResult`。
+用户点击「解析预览」→ `ExtractionCacheHolder.getOrReextract(document)` → 缓存命中直接返回 / 缓存未命中调
+`DocumentExtractionGateway.extractText()` 首次提取 → 分块 → 返回 `PreviewResult`。
 
 **文本提取**（`CompositeExtractionService`，`@Primary`，Phase A2）：
-Tika MIME 检测 → 构造 `ExtractionCandidate` → `resolveStack(mime)`（配置 routing 优先，否则内置 MIME→策略映射，再否则 default-stack）→ 依序取用 `ContentExtractor` 策略（`PdfBox`/`Docx`/`Xlsx`/`Pptx`/`PlainText`/`TikaFallback`，各按 `supports()` 命中）→ 单个策略抛 `IOException` 则回退栈内下一个，全部失败才向上抛出。
+Tika MIME 检测 → 构造 `ExtractionCandidate` → `resolveStack(mime)`（配置 routing 优先，否则内置 MIME→策略映射，再否则
+default-stack）→ 依序取用 `ContentExtractor` 策略（`PdfBox`/`Docx`/`Xlsx`/`Pptx`/`PlainText`/`TikaFallback`，各按
+`supports()` 命中）→ 单个策略抛 `IOException` 则回退栈内下一个，全部失败才向上抛出。
 
 ### 0.3 剩余待实施项（按优先级排序）
 
 所有设计阶段（Phase A2 / B / C / D，及 Phase R1+R2+R3）均已**代码完成并按阶段本地提交**（未 push）。收尾状态：
 
-1. **统一验证 ✅**：全反应堆 `./mvnw test` BUILD SUCCESS（Domain/Infra/App 109/Web 18）；V19 迁移经 `FlywayMigrationSmokeTest`（H2）+ 部署启动（MySQL 8.0）双库验证干净应用。
+1. **统一验证 ✅**：全反应堆 `./mvnw test` BUILD SUCCESS（Domain/Infra/App 109/Web 18）；V19 迁移经
+   `FlywayMigrationSmokeTest`（H2）+ 部署启动（MySQL 8.0）双库验证干净应用。
 2. **部署冒烟 ✅**：预构建镜像 → `--force-recreate knowledge-app` → 容器 healthy、`/actuator/health` 返回 UP，启动无异常。
-3. **观测落地 ✅**：已引入 `micrometer-registry-prometheus`（版本由 Spring Boot BOM 管理，落 `knowledge-web`）并在 `management.endpoints.web.exposure.include` 暴露 `/actuator/prometheus`；`ExtractionMetrics` 写入 `MeterRegistry` 的指标即可被 Prometheus 抓取，`docs/grafana/extraction-dashboard.json` 可直接导入。
-4. **视觉链路端到端联调（可选）**：`knowledge.extractor.vision.enabled=true` + 配置视觉模型 base-url/key 后，验证扫描件 hybrid 增强与 `kb_extraction_cache` 命中；默认关闭不影响主流程。
+3. **观测落地 ✅**：已引入 `micrometer-registry-prometheus`（版本由 Spring Boot BOM 管理，落 `knowledge-web`）并在
+   `management.endpoints.web.exposure.include` 暴露 `/actuator/prometheus`；`ExtractionMetrics` 写入 `MeterRegistry`
+   的指标即可被 Prometheus 抓取，`docs/grafana/extraction-dashboard.json` 可直接导入。
+4. **视觉链路端到端联调（可选）**：`knowledge.extractor.vision.enabled=true` + 配置视觉模型 base-url/key 后，验证扫描件
+   hybrid 增强与 `kb_extraction_cache` 命中；默认关闭不影响主流程。
 
 ---
 
@@ -231,21 +243,21 @@ gantt
 
 ### 2.2 新增文件清单
 
-| 层 | 路径 | 说明 |
-|---|---|---|
-| domain | `.../domain/gateway/ContentExtractor.java` | SPI |
-| domain | `.../domain/model/valueobject/ExtractionCandidate.java` | 路由输入参数对象 |
-| domain | `.../domain/model/valueobject/ExtractionConfig.java` | 全局配置 VO |
-| domain | `.../domain/enums/ExtractionStrategyEnum.java` | 策略枚举 |
-| infra | `.../infrastructure/extractor/PdfBoxExtractionStrategy.java` | 从 `PdfBoxExtractionService` 改名 + `implements ContentExtractor` |
-| infra | `.../infrastructure/extractor/DocxExtractionStrategy.java` | 同上 |
-| infra | `.../infrastructure/extractor/XlsxExtractionStrategy.java` | 同上 |
-| infra | `.../infrastructure/extractor/PptxExtractionStrategy.java` | 同上 |
-| infra | `.../infrastructure/extractor/PlainTextExtractionStrategy.java` | 同上 |
-| infra | `.../infrastructure/extractor/TikaFallbackExtractionStrategy.java` | 同上 |
-| infra | `.../infrastructure/extractor/CompositeExtractionService.java` | `@Primary` 顶替 |
-| infra | `.../infrastructure/config/ExtractorRoutingProperties.java` | `@ConfigurationProperties("knowledge.extractor")` |
-| test | `*StrategyTest.java` ×6 + `CompositeExtractionServiceTest.java` | 路由矩阵单测 |
+| 层      | 路径                                                                 | 说明                                                             |
+|--------|--------------------------------------------------------------------|----------------------------------------------------------------|
+| domain | `.../domain/gateway/ContentExtractor.java`                         | SPI                                                            |
+| domain | `.../domain/model/valueobject/ExtractionCandidate.java`            | 路由输入参数对象                                                       |
+| domain | `.../domain/model/valueobject/ExtractionConfig.java`               | 全局配置 VO                                                        |
+| domain | `.../domain/enums/ExtractionStrategyEnum.java`                     | 策略枚举                                                           |
+| infra  | `.../infrastructure/extractor/PdfBoxExtractionStrategy.java`       | 从 `PdfBoxExtractionService` 改名 + `implements ContentExtractor` |
+| infra  | `.../infrastructure/extractor/DocxExtractionStrategy.java`         | 同上                                                             |
+| infra  | `.../infrastructure/extractor/XlsxExtractionStrategy.java`         | 同上                                                             |
+| infra  | `.../infrastructure/extractor/PptxExtractionStrategy.java`         | 同上                                                             |
+| infra  | `.../infrastructure/extractor/PlainTextExtractionStrategy.java`    | 同上                                                             |
+| infra  | `.../infrastructure/extractor/TikaFallbackExtractionStrategy.java` | 同上                                                             |
+| infra  | `.../infrastructure/extractor/CompositeExtractionService.java`     | `@Primary` 顶替                                                  |
+| infra  | `.../infrastructure/config/ExtractorRoutingProperties.java`        | `@ConfigurationProperties("knowledge.extractor")`              |
+| test   | `*StrategyTest.java` ×6 + `CompositeExtractionServiceTest.java`    | 路由矩阵单测                                                         |
 
 ### 2.3 关键签名
 
@@ -377,7 +389,8 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 ### 2.4 具体拆分步骤
 
 1. 在 domain 加 §2.3 的 4 个新类型；
-2. 把现有 6 个 `*ExtractionService` 改名 `*ExtractionStrategy` 并 `implements ContentExtractor`；`priority()` 返回 10/20/30/40/50/60；
+2. 把现有 6 个 `*ExtractionService` 改名 `*ExtractionStrategy` 并 `implements ContentExtractor`；`priority()` 返回
+   10/20/30/40/50/60；
 3. 新增 `ExtractorRoutingProperties`；默认 routing 空 → 走内置 MIME→枚举映射；
 4. 新增 `CompositeExtractionService` 标 `@Primary`；删除 `DocumentExtractionService`；
 5. 测试拆到 6 个 `*StrategyTest` + 新增 `CompositeExtractionServiceTest`；
@@ -393,23 +406,24 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
 ### 3.1 目标
 
-- 新增 `VisionChatGateway` domain 端口 + `OpenAiCompatibleVisionChatGateway` 实现（复用 `langchain4j-open-ai`，不新增 GAV）；
+- 新增 `VisionChatGateway` domain 端口 + `OpenAiCompatibleVisionChatGateway` 实现（复用 `langchain4j-open-ai`，不新增
+  GAV）；
 - 新增 `VisionModelExtractionStrategy implements ContentExtractor`；
 - 新增 `PageRenderer` 工具类（PDFBox 3.x `PDFRenderer.renderImageWithDPI`）；
 - 默认 `enabled=false`，`routing` 里不含 VISION。
 
 ### 3.2 新增文件
 
-| 层 | 路径 |
-|---|---|
-| domain | `.../gateway/VisionChatGateway.java` |
-| domain | `.../model/valueobject/VisionChatRequest.java` |
-| infra | `.../llm/OpenAiCompatibleVisionChatGateway.java` |
-| infra | `.../extractor/VisionModelExtractionStrategy.java` |
-| infra | `.../extractor/PageRenderer.java` |
-| infra | `.../config/VisionModelConfig.java` |
-| infra | `.../config/InfraExecutorConfig.java` 加 `@Bean visionExecutor` |
-| test | `VisionModelExtractionStrategyTest.java` + `OpenAiCompatibleVisionChatGatewayTest.java` |
+| 层      | 路径                                                                                      |
+|--------|-----------------------------------------------------------------------------------------|
+| domain | `.../gateway/VisionChatGateway.java`                                                    |
+| domain | `.../model/valueobject/VisionChatRequest.java`                                          |
+| infra  | `.../llm/OpenAiCompatibleVisionChatGateway.java`                                        |
+| infra  | `.../extractor/VisionModelExtractionStrategy.java`                                      |
+| infra  | `.../extractor/PageRenderer.java`                                                       |
+| infra  | `.../config/VisionModelConfig.java`                                                     |
+| infra  | `.../config/InfraExecutorConfig.java` 加 `@Bean visionExecutor`                          |
+| test   | `VisionModelExtractionStrategyTest.java` + `OpenAiCompatibleVisionChatGatewayTest.java` |
 
 ### 3.3 关键签名
 
@@ -499,13 +513,13 @@ flowchart LR
 
 ### 3.5 测试矩阵
 
-| 维度 | 用例 |
-|---|---|
+| 维度          | 用例                                           |
+|-------------|----------------------------------------------|
 | supports 路由 | PDF + scanned / image 文件 / Office / 非视觉 MIME |
-| 图片源优先级 | ExtractedImage 有 → 用；无 → renderImageWithDPI |
-| 单页/多页/混合页 | mock gateway 返回文本 |
-| 超时/空返回/异常 | 降级不抛，只 warning |
-| Gateway 集成 | WireMock OpenAI → 3 图一次调用 → 断言 payload |
+| 图片源优先级      | ExtractedImage 有 → 用；无 → renderImageWithDPI  |
+| 单页/多页/混合页   | mock gateway 返回文本                            |
+| 超时/空返回/异常   | 降级不抛，只 warning                               |
+| Gateway 集成  | WireMock OpenAI → 3 图一次调用 → 断言 payload       |
 
 ---
 
@@ -519,14 +533,14 @@ flowchart LR
 
 ### 4.2 新增文件
 
-| 层 | 路径 |
-|---|---|
-| infra | `.../extractor/PdfHybridExtractionStrategy.java`（`@Order(5)`） |
-| domain | `.../gateway/ExtractionCacheRepository.java` |
-| infra | `.../persistence/gateway/ExtractionCacheRepositoryImpl.java` |
-| infra | `.../persistence/dataobject/ExtractionCacheDO.java` |
-| app | `.../executor/docingestion/ExtractEnhanceAsyncCmdExe.java` |
-| infra/resources | Flyway `V<next>__create_extraction_cache.sql` |
+| 层               | 路径                                                            |
+|-----------------|---------------------------------------------------------------|
+| infra           | `.../extractor/PdfHybridExtractionStrategy.java`（`@Order(5)`） |
+| domain          | `.../gateway/ExtractionCacheRepository.java`                  |
+| infra           | `.../persistence/gateway/ExtractionCacheRepositoryImpl.java`  |
+| infra           | `.../persistence/dataobject/ExtractionCacheDO.java`           |
+| app             | `.../executor/docingestion/ExtractEnhanceAsyncCmdExe.java`    |
+| infra/resources | Flyway `V<next>__create_extraction_cache.sql`                 |
 
 ### 4.3 `kb_extraction_cache` 表
 
@@ -548,6 +562,7 @@ CREATE TABLE kb_extraction_cache (
 ### 4.4 事务边界（红线 #8）
 
 `ExtractEnhanceAsyncCmdExe`：
+
 - **无 `@Transactional`**
 - `CompletableFuture.runAsync(() -> { ... }, visionExecutor)`
 - 视觉 HTTP 全在异步线程
@@ -703,47 +718,48 @@ knowledge:
 
 ## 7. 测试矩阵总览
 
-| 阶段 | 单元 | 集成 | 手工冒烟 |
-|---|---|---|---|
-| A2 | Composite 路由矩阵；`supports=false` 跳过；fallback 顺序 | `@SpringBootTest` bean 检查 | 上传 PDF/DOCX → 预览文本非空 → 确认入库 → 状态 INDEXED |
-| B | `supports` 矩阵；PageRenderer；Gateway mock | WireMock 假 OpenAI | 配 `vision.enabled=true` → 上传扫描件 → 日志有 `[vision]` |
-| C | Hybrid 融合 + 缓存 hit/miss + 熔断降级 | 端到端 reindex HYBRID → 二次同文件缓存 100% 命中 | 真实扫描件 → 观察 base + 增强差异 |
-| D | 端点参数校验；策略白名单；配额计数 | MockMvc `POST /reparse?strategy=VISION` | Admin UI → 202 → 状态变化 |
-| R | per-role HttpClient 隔离；熔断独立触发 | 模拟一 provider 超时另一不受影响 | 调低 vision timeout → 不影响 chat |
+| 阶段 | 单元                                             | 集成                                      | 手工冒烟                                             |
+|----|------------------------------------------------|-----------------------------------------|--------------------------------------------------|
+| A2 | Composite 路由矩阵；`supports=false` 跳过；fallback 顺序 | `@SpringBootTest` bean 检查               | 上传 PDF/DOCX → 预览文本非空 → 确认入库 → 状态 INDEXED         |
+| B  | `supports` 矩阵；PageRenderer；Gateway mock        | WireMock 假 OpenAI                       | 配 `vision.enabled=true` → 上传扫描件 → 日志有 `[vision]` |
+| C  | Hybrid 融合 + 缓存 hit/miss + 熔断降级                 | 端到端 reindex HYBRID → 二次同文件缓存 100% 命中    | 真实扫描件 → 观察 base + 增强差异                           |
+| D  | 端点参数校验；策略白名单；配额计数                              | MockMvc `POST /reparse?strategy=VISION` | Admin UI → 202 → 状态变化                            |
+| R  | per-role HttpClient 隔离；熔断独立触发                  | 模拟一 provider 超时另一不受影响                   | 调低 vision timeout → 不影响 chat                     |
 
 ---
 
 ## 8. 决策记录（ADR-lite）
 
-| # | 决策 | 理由 | 备选 |
-|---|---|---|---|
-| D1 | 分两 PR（A1 拆类 ✅ / A2 抽 SPI ✅） | 每 PR 独立可回滚，风险最小 | 一步到位：diff 巨大难 review |
-| D2 | `ExtractionResult` record 不动 | 下游 chunkDocument + 所有测试都吃它 | 加 pageProvenance 破坏测试 |
-| D3 | 视觉走 `langchain4j-open-ai` 内建多模态 | 无新 GAV；OpenAI 兼容协议 | 手写 HTTP：代码重复 |
-| D4 | 视觉默认 `enabled=false` | 灰度只需配置 | 默认开：需更多护栏 |
-| D5 | `async-after-preview` 默认增强 | 预览立即返回原生结果 | 仅 reindex：更保守 |
-| D6 | 图像源优先 ExtractedImage → PDFRenderer | 复用已抽图像 | 一律栅格化：内存翻倍 |
-| D7 | 缓存 key 加 `render_mode` | 防混缓存 | 只 checksum：静默错乱 |
-| D8 | 不动 `DocumentImageSupport` | 图像持久化与 OCR 语义正交 | 一起：耦合 |
-| D9 | CPU 本地优先 + 可选云端 + GPU 升级路径 | 无 GPU；PaddleOCR 成熟；改配置即升级 | 直接 GPU：成本高 |
-| D10 | 多模型"五独立" | 防一 provider 雪崩全崩 | 全局单例：省内存但脆弱 |
+| #   | 决策                                 | 理由                         | 备选                    |
+|-----|------------------------------------|----------------------------|-----------------------|
+| D1  | 分两 PR（A1 拆类 ✅ / A2 抽 SPI ✅）        | 每 PR 独立可回滚，风险最小            | 一步到位：diff 巨大难 review  |
+| D2  | `ExtractionResult` record 不动       | 下游 chunkDocument + 所有测试都吃它 | 加 pageProvenance 破坏测试 |
+| D3  | 视觉走 `langchain4j-open-ai` 内建多模态    | 无新 GAV；OpenAI 兼容协议         | 手写 HTTP：代码重复          |
+| D4  | 视觉默认 `enabled=false`               | 灰度只需配置                     | 默认开：需更多护栏             |
+| D5  | `async-after-preview` 默认增强         | 预览立即返回原生结果                 | 仅 reindex：更保守         |
+| D6  | 图像源优先 ExtractedImage → PDFRenderer | 复用已抽图像                     | 一律栅格化：内存翻倍            |
+| D7  | 缓存 key 加 `render_mode`             | 防混缓存                       | 只 checksum：静默错乱       |
+| D8  | 不动 `DocumentImageSupport`          | 图像持久化与 OCR 语义正交            | 一起：耦合                 |
+| D9  | CPU 本地优先 + 可选云端 + GPU 升级路径         | 无 GPU；PaddleOCR 成熟；改配置即升级  | 直接 GPU：成本高            |
+| D10 | 多模型"五独立"                           | 防一 provider 雪崩全崩           | 全局单例：省内存但脆弱           |
 
 ---
 
 ## 9. 里程碑与工时
 
-| 里程碑 | 交付物 | 工时 | 状态 |
-|---|---|---|---|
-| M1 · Phase A1 | 6 个 `*ExtractionService` + 委托 | 2d | ✅ 完成 |
-| M1' · 解析时机修正 | 上传不解析 + 预览触发解析 | 0.5d | ✅ 完成 |
-| M2 · Phase A2 | `ContentExtractor` SPI + `CompositeExtractionService` | 2d | ✅ 代码完成 |
-| M2' · Phase R1 | 三段配置 + per-role HttpClient + 密钥边界 | 2d | ✅ 代码完成 |
-| M3 · Phase B | `VisionChatGateway` + Strategy + PageRenderer | 4-5d | ✅ 代码完成 |
-| M3' · Phase R2 | Resilience4j 熔断 + Micrometer 观测 | 2d | ✅ 代码完成 |
-| M4 · Phase C | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 | 4-5d | ✅ 代码完成 |
-| M5 · Phase D+R3 | Admin reparse + 成本护栏 + dashboard | 2-3d | ✅ 代码完成 |
+| 里程碑             | 交付物                                                          | 工时   | 状态     |
+|-----------------|--------------------------------------------------------------|------|--------|
+| M1 · Phase A1   | 6 个 `*ExtractionService` + 委托                                | 2d   | ✅ 完成   |
+| M1' · 解析时机修正    | 上传不解析 + 预览触发解析                                               | 0.5d | ✅ 完成   |
+| M2 · Phase A2   | `ContentExtractor` SPI + `CompositeExtractionService`        | 2d   | ✅ 代码完成 |
+| M2' · Phase R1  | 三段配置 + per-role HttpClient + 密钥边界                            | 2d   | ✅ 代码完成 |
+| M3 · Phase B    | `VisionChatGateway` + Strategy + PageRenderer                | 4-5d | ✅ 代码完成 |
+| M3' · Phase R2  | Resilience4j 熔断 + Micrometer 观测                              | 2d   | ✅ 代码完成 |
+| M4 · Phase C    | `PdfHybridExtractionStrategy` + `kb_extraction_cache` + 异步增强 | 4-5d | ✅ 代码完成 |
+| M5 · Phase D+R3 | Admin reparse + 成本护栏 + dashboard                             | 2-3d | ✅ 代码完成 |
 
 **验收标准（Phase A 全完成后）**：
+
 1. `DocumentExtractionService` 被 `CompositeExtractionService` 顶替或删除；
 2. `ContentExtractor` 有 6 个实现，每个独立可测；
 3. 全 reactor `mvn test` BUILD SUCCESS；
@@ -754,14 +770,14 @@ knowledge:
 
 ## 10. 风险与缓解
 
-| 风险 | 影响 | 概率 | 缓解 |
-|---|---|---|---|
-| A2 SPI 化后 `List<ContentExtractor>` 顺序漂移 | 路由不确定 | 低 | `@Order` 硬编码 + 单测断言 |
-| 视觉模型返回非文本 | 页面文本丢失 | 中 | gateway schema 校验 + 空返回降级 warning |
-| 缓存键设计不当 | 静默错乱 | 中 | 键含 render_mode + 单测 |
-| 视觉异步任务拖垮 agentExecutor | 出卷卡顿 | 中 | visionExecutor 独立有界池 |
-| PDFBox 3.x OOM | 生产事故 | 低 | max-bytes 前置校验 + try-with-resources |
-| 视觉 provider 涨价/API 变更 | 成本/兼容 | 中 | VisionChatGateway 端口隔离，实现可换 |
+| 风险                                      | 影响     | 概率 | 缓解                                  |
+|-----------------------------------------|--------|----|-------------------------------------|
+| A2 SPI 化后 `List<ContentExtractor>` 顺序漂移 | 路由不确定  | 低  | `@Order` 硬编码 + 单测断言                 |
+| 视觉模型返回非文本                               | 页面文本丢失 | 中  | gateway schema 校验 + 空返回降级 warning   |
+| 缓存键设计不当                                 | 静默错乱   | 中  | 键含 render_mode + 单测                 |
+| 视觉异步任务拖垮 agentExecutor                  | 出卷卡顿   | 中  | visionExecutor 独立有界池                |
+| PDFBox 3.x OOM                          | 生产事故   | 低  | max-bytes 前置校验 + try-with-resources |
+| 视觉 provider 涨价/API 变更                   | 成本/兼容  | 中  | VisionChatGateway 端口隔离，实现可换         |
 
 ---
 
@@ -769,11 +785,11 @@ knowledge:
 
 ### 11.1 三档候选
 
-| 档位 | 方案 | 硬件 | 单页延迟 | 精度 | 运维 |
-|---|---|---|---|---|---|
-| CPU 本地 | PaddleOCR-VL CPU 版 | 4核8G+ | 5-15s | ~90% | 低 |
-| 云端 API | DashScope qwen-vl-plus | 无本地 | 2-8s | 95%+ | 按量 |
-| GPU 本地 | OvisOCR2 / PaddleOCR-VL vLLM | GPU | 1-3s | 96%+ | 高 |
+| 档位     | 方案                           | 硬件    | 单页延迟  | 精度   | 运维 |
+|--------|------------------------------|-------|-------|------|----|
+| CPU 本地 | PaddleOCR-VL CPU 版           | 4核8G+ | 5-15s | ~90% | 低  |
+| 云端 API | DashScope qwen-vl-plus       | 无本地   | 2-8s  | 95%+ | 按量 |
+| GPU 本地 | OvisOCR2 / PaddleOCR-VL vLLM | GPU   | 1-3s  | 96%+ | 高  |
 
 ### 11.2 推荐方案
 
@@ -791,53 +807,54 @@ golden-PDF 基准打分：20 页 OmniDocBench + 5 份真实扫描件；阈值 CE
 
 ### 12.1 五独立原则
 
-| 维度 | 粒度 | 理由 |
-|---|---|---|
-| HttpClient | per-role (chat/embed/vision) | dispatcher 隔离 |
-| Timeout | per-role | 出卷 120s / 向量 10s / 视觉 300s |
-| 线程池 | per-role | 互不争用 |
-| 熔断 | per-provider + per-role | 一崩不影响其他 |
-| 密钥 | per-role env var | 轮换 + 最小权限 |
+| 维度         | 粒度                           | 理由                         |
+|------------|------------------------------|----------------------------|
+| HttpClient | per-role (chat/embed/vision) | dispatcher 隔离              |
+| Timeout    | per-role                     | 出卷 120s / 向量 10s / 视觉 300s |
+| 线程池        | per-role                     | 互不争用                       |
+| 熔断         | per-provider + per-role      | 一崩不影响其他                    |
+| 密钥         | per-role env var             | 轮换 + 最小权限                  |
 
 ### 12.2 Per-role 连接参数
 
-| 角色 | Provider | connect | read | call | pool | HTTP | retry |
-|---|---|---|---|---|---|---|---|
-| Chat | DeepSeek | 5s | 120s | 180s | 8 | 1.1 | 3 |
-| Embedding | BGE-M3 | 2s | 10s | 15s | 32 | 2 | 5 |
-| Vision(CPU) | PaddleOCR | 3s | 30s | 60s | 4 | 1.1 | 2 |
-| Vision(Cloud) | DashScope | 3s | 60s | 120s | 8 | 1.1 | 3 |
-| Vision(GPU) | OvisOCR2 | 3s | 300s | 360s | 4 | 1.1 | 2 |
+| 角色            | Provider  | connect | read | call | pool | HTTP | retry |
+|---------------|-----------|---------|------|------|------|------|-------|
+| Chat          | DeepSeek  | 5s      | 120s | 180s | 8    | 1.1  | 3     |
+| Embedding     | BGE-M3    | 2s      | 10s  | 15s  | 32   | 2    | 5     |
+| Vision(CPU)   | PaddleOCR | 3s      | 30s  | 60s  | 4    | 1.1  | 2     |
+| Vision(Cloud) | DashScope | 3s      | 60s  | 120s | 8    | 1.1  | 3     |
+| Vision(GPU)   | OvisOCR2  | 3s      | 300s | 360s | 4    | 1.1  | 2     |
 
 ### 12.3 LangChain4j 陷阱
 
-`OpenAiChatModel.builder()` 不显式注入 `OkHttpClient` 时会各自 `new` → 看似隔离实则内存翻倍。正确做法：`@Bean` per-role + `@Qualifier` 注入。
+`OpenAiChatModel.builder()` 不显式注入 `OkHttpClient` 时会各自 `new` → 看似隔离实则内存翻倍。正确做法：`@Bean` per-role +
+`@Qualifier` 注入。
 
 ### 12.4 子阶段交付
 
-| 子阶段 | 交付物 | 前置依赖 |
-|---|---|---|
-| R1 (2d) | `LlmClientConfig` + 三段 `@ConfigurationProperties` + `.env` 密钥边界 | 可与 A2 并行 |
-| R2 (2d) | Resilience4j 熔断 + 重试 + Micrometer 指标 | B 之前完成 |
-| R3 (1.5d) | 成本护栏 + Grafana panel | 与 D 合并 |
+| 子阶段       | 交付物                                                             | 前置依赖     |
+|-----------|-----------------------------------------------------------------|----------|
+| R1 (2d)   | `LlmClientConfig` + 三段 `@ConfigurationProperties` + `.env` 密钥边界 | 可与 A2 并行 |
+| R2 (2d)   | Resilience4j 熔断 + 重试 + Micrometer 指标                            | B 之前完成   |
+| R3 (1.5d) | 成本护栏 + Grafana panel                                            | 与 D 合并   |
 
 ---
 
 ## 13. AGENTS.md 红线对照
 
-| 红线 | 方案合规 |
-|---|---|
-| **#1** 构造器注入 | 所有示例完整构造器；禁 `@Autowired` 字段 |
-| **#2** 禁魔法值 | `PRIORITY=70` 等抽为 `static final`；`HintKeys.*` 常量 |
-| **#3** 格式 | 4 空格缩进，≤120 字符，UTF-8/LF |
-| **#4** 日志 `@Slf4j` + `{}` | 禁回显 base64/token；tag 不放业务 ID |
-| **#5** SQL `#{}` | Flyway DDL 无参数化；Mapper XML 严格 `#{}` |
-| **#6** DO 不出 infra | `ExtractionCacheDO` 仅在 infra；domain 只暴露端口 |
-| **#7** domain 纯净 | SPI 在 `domain.gateway`；不依赖 app/infra |
-| **#8** LLM 不在事务内 | `ExtractEnhanceAsyncCmdExe` 无 `@Transactional` |
-| **#9** Javadoc | 公共类补齐 `@author mouhinU` + `@date` |
-| **#10** 不变更框架版本 | 复用 `langchain4j-open-ai`，不新增 GAV |
-| **#11** 方法体 ≤50 行，参数 ≤5 | 视觉策略拆 3 私有方法；`ExtractionCandidate` record 封装 |
+| 红线                        | 方案合规                                             |
+|---------------------------|--------------------------------------------------|
+| **#1** 构造器注入              | 所有示例完整构造器；禁 `@Autowired` 字段                      |
+| **#2** 禁魔法值               | `PRIORITY=70` 等抽为 `static final`；`HintKeys.*` 常量 |
+| **#3** 格式                 | 4 空格缩进，≤120 字符，UTF-8/LF                          |
+| **#4** 日志 `@Slf4j` + `{}` | 禁回显 base64/token；tag 不放业务 ID                     |
+| **#5** SQL `#{}`          | Flyway DDL 无参数化；Mapper XML 严格 `#{}`              |
+| **#6** DO 不出 infra        | `ExtractionCacheDO` 仅在 infra；domain 只暴露端口        |
+| **#7** domain 纯净          | SPI 在 `domain.gateway`；不依赖 app/infra             |
+| **#8** LLM 不在事务内          | `ExtractEnhanceAsyncCmdExe` 无 `@Transactional`   |
+| **#9** Javadoc            | 公共类补齐 `@author mouhinU` + `@date`                |
+| **#10** 不变更框架版本           | 复用 `langchain4j-open-ai`，不新增 GAV                 |
+| **#11** 方法体 ≤50 行，参数 ≤5   | 视觉策略拆 3 私有方法；`ExtractionCandidate` record 封装     |
 
 ---
 

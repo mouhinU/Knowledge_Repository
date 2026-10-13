@@ -13,46 +13,74 @@ public class ExamSession {
 
     private Long id;
 
-    /** 场次唯一标识（UUID） */
+    /**
+     * 场次唯一标识（UUID）
+     */
     private String sessionKey;
 
-    /** 考生 ID */
+    /**
+     * 考生 ID
+     */
     private Long studentId;
 
-    /** 关联的出卷历史 ID（可为空，表示即时生成） */
+    /**
+     * 关联的出卷历史 ID（可为空，表示即时生成）
+     */
     private Long examHistoryId;
 
-    /** 考试主题 */
+    /**
+     * 考试主题
+     */
     private String topic;
 
-    /** 难度：EASY / MEDIUM / HARD */
+    /**
+     * 难度：EASY / MEDIUM / HARD
+     */
     private String difficulty;
 
-    /** 考试时长（分钟），为空表示不限时 */
+    /**
+     * 考试时长（分钟），为空表示不限时
+     */
     private Integer durationMinutes;
 
-    /** 试卷原文（Markdown） */
+    /**
+     * 试卷原文（Markdown）
+     */
     private String examPaper;
 
-    /** 参考答案 */
+    /**
+     * 参考答案
+     */
     private String answerKey;
 
-    /** 结构化题目 JSON */
+    /**
+     * 结构化题目 JSON
+     */
     private String questionsJson;
 
-    /** 题型分布方案（ExamPlan JSON，从出卷历史继承），考试端据此按方案渲染题型与分值 */
+    /**
+     * 题型分布方案（ExamPlan JSON，从出卷历史继承），考试端据此按方案渲染题型与分值
+     */
     private String examPlan;
 
-    /** 总分 */
+    /**
+     * 总分
+     */
     private Integer totalScore;
 
-    /** AI 评分 */
+    /**
+     * AI 评分
+     */
     private Integer aiScore;
 
-    /** 最终成绩（人工复核后） */
+    /**
+     * 最终成绩（人工复核后）
+     */
     private Integer finalScore;
 
-    /** 状态：IN_PROGRESS / SUBMITTED / AI_GRADED / REVIEWED / PUBLISHED */
+    /**
+     * 状态：IN_PROGRESS / SUBMITTED / AI_GRADED / REVIEWED / PUBLISHED
+     */
     private String status;
 
     /**
@@ -62,16 +90,24 @@ public class ExamSession {
      */
     private boolean voided;
 
-    /** 开始答题时间 */
+    /**
+     * 开始答题时间
+     */
     private LocalDateTime startTime;
 
-    /** 交卷时间 */
+    /**
+     * 交卷时间
+     */
     private LocalDateTime submitTime;
 
-    /** 评分完成时间 */
+    /**
+     * 评分完成时间
+     */
     private LocalDateTime gradeTime;
 
-    /** 成绩发布时间 */
+    /**
+     * 成绩发布时间
+     */
     private LocalDateTime publishTime;
 
     private LocalDateTime createTime;
@@ -258,7 +294,9 @@ public class ExamSession {
 
     // ==================== 业务方法 ====================
 
-    /** 标记为已提交 */
+    /**
+     * 标记为已提交
+     */
     public void submit() {
         this.status = "SUBMITTED";
         this.submitTime = LocalDateTime.now();
@@ -274,20 +312,26 @@ public class ExamSession {
         this.status = "GRADING";
     }
 
-    /** 标记为 AI 评分完成 */
+    /**
+     * 标记为 AI 评分完成
+     */
     public void markAiGraded(int aiScore) {
         this.status = "AI_GRADED";
         this.aiScore = aiScore;
         this.gradeTime = LocalDateTime.now();
     }
 
-    /** 标记为人工复核完成 */
+    /**
+     * 标记为人工复核完成
+     */
     public void markReviewed(int finalScore) {
         this.status = "REVIEWED";
         this.finalScore = finalScore;
     }
 
-    /** 标记为已发布 */
+    /**
+     * 标记为已发布
+     */
     public void markPublished() {
         this.status = "PUBLISHED";
         this.publishTime = LocalDateTime.now();

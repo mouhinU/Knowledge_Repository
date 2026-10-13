@@ -1,31 +1,11 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.application.executor.platform.ArchiveTenantCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.ConfirmTenantDeletionCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.IssueDeleteApprovalCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.ReissueInviteCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantCreateCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantDeletionPreviewQryExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantGetQryExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantListQryExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantProvisionCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantResumeCmdExe;
-import com.mouhin.knowledge.repository.application.executor.platform.TenantSuspendCmdExe;
+import com.mouhin.knowledge.repository.application.executor.platform.*;
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
-import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
-import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantVO;
-import java.util.List;
+import com.mouhin.knowledge.repository.client.dto.*;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 平台端租户生命周期应用服务实现（app 层，仅分发到 Executor，COLA 红线 #8，P3-T1）。

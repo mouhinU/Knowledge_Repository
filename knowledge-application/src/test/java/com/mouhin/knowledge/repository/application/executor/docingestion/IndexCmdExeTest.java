@@ -1,29 +1,21 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.IndexDocumentCmd;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import java.util.List;
-import java.util.Optional;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 确认入库命令执行器单测：锁定文档不存在抛非法、INDEXED 门禁拒绝重复入库、成功链路（参数规范化 → 委托 processDocument → 缓存失效）。

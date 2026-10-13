@@ -5,13 +5,10 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.IndexCu
 import com.mouhin.knowledge.repository.application.executor.docingestion.PreviewFromDocumentQryExe;
 import com.mouhin.knowledge.repository.application.executor.docingestion.ReindexCmdExe;
 import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
-import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
-import com.mouhin.knowledge.repository.client.dto.DocumentVO;
-import com.mouhin.knowledge.repository.client.dto.IndexDocumentCmd;
-import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
-import com.mouhin.knowledge.repository.client.dto.PreviewResult;
-import java.util.List;
+import com.mouhin.knowledge.repository.client.dto.*;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 文档摄入应用服务实现（app 层，仅分发到执行器）

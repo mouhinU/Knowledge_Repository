@@ -6,12 +6,13 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantUsageDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantUsageMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 租户用量计量 JDBC 实现（P6-T1）。
@@ -30,6 +31,10 @@ public class TenantUsageRecorderImpl implements TenantUsageRecorder {
     public TenantUsageRecorderImpl(TenantUsageMapper mapper, TenantIdResolver tenantIdResolver) {
         this.mapper = mapper;
         this.tenantIdResolver = tenantIdResolver;
+    }
+
+    private static LocalDate currentPeriod() {
+        return LocalDate.now().withDayOfMonth(1);
     }
 
     @Override
@@ -65,7 +70,9 @@ public class TenantUsageRecorderImpl implements TenantUsageRecorder {
         return row != null ? row.getUsageValue() : 0L;
     }
 
-    /** 首次 seed：INSERT ... 唯一键冲突则 retry UPDATE。 */
+    /**
+     * 首次 seed：INSERT ... 唯一键冲突则 retry UPDATE。
+     */
     private void seedAndRetry(long tenantId, UsageMetric metric, LocalDate period, long amount) {
         try {
             TenantUsageDO seed = new TenantUsageDO();
@@ -80,9 +87,5 @@ public class TenantUsageRecorderImpl implements TenantUsageRecorder {
             // 并发 seed → 退化为 UPDATE
             mapper.atomicIncrement(tenantId, metric.code(), period, amount);
         }
-    }
-
-    private static LocalDate currentPeriod() {
-        return LocalDate.now().withDayOfMonth(1);
     }
 }

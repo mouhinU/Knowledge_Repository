@@ -1,7 +1,5 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.infrastructure.llm.LlmResilience;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
@@ -16,6 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Phase R1 三段式模型装配的容器接线测试。
  *
@@ -29,25 +29,6 @@ import org.springframework.context.annotation.Import;
  */
 @DisplayName("R1 多模型配置装配")
 class LlmClientConfigTest {
-
-    @Configuration
-    @EnableConfigurationProperties({
-        LlmChatProperties.class,
-        LlmEmbeddingProperties.class,
-        LlmResilienceProperties.class
-    })
-    @Import({
-        LlmClientConfig.class,
-        ChatModelConfig.class,
-        EmbeddingModelConfig.class,
-        LlmResilience.class
-    })
-    static class TestConfig {
-        @Bean
-        MeterRegistry meterRegistry() {
-            return new SimpleMeterRegistry();
-        }
-    }
 
     private final ApplicationContextRunner runner =
             new ApplicationContextRunner()
@@ -97,5 +78,24 @@ class LlmClientConfigTest {
                                     com.mouhin.knowledge.repository.domain.service
                                             .StreamingChatGateway.class);
                 });
+    }
+
+    @Configuration
+    @EnableConfigurationProperties({
+            LlmChatProperties.class,
+            LlmEmbeddingProperties.class,
+            LlmResilienceProperties.class
+    })
+    @Import({
+            LlmClientConfig.class,
+            ChatModelConfig.class,
+            EmbeddingModelConfig.class,
+            LlmResilience.class
+    })
+    static class TestConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
     }
 }

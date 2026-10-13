@@ -1,15 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
@@ -17,10 +7,14 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategy
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 异步入库命令执行器单测：执行体在 {@code CompletableFuture.runAsync} 中运行，断言统一用 Mockito {@code timeout(...)}。

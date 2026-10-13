@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
+
 import java.util.Optional;
 
 /**
@@ -26,7 +27,7 @@ public interface PlatformJwtService {
     /**
      * 签发平台端访问令牌。
      *
-     * @param operatorId 平台操作者唯一标识（写入 {@code sub} claim）
+     * @param operatorId   平台操作者唯一标识（写入 {@code sub} claim）
      * @param operatorName 平台操作者展示名（写入 {@code username} claim）
      * @return 已签名的令牌字符串（含过期时间）
      */

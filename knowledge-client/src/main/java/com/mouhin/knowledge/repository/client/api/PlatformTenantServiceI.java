@@ -1,17 +1,7 @@
 package com.mouhin.knowledge.repository.client.api;
 
-import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
-import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.client.dto.*;
+
 import java.util.List;
 
 /**
@@ -31,19 +21,29 @@ import java.util.List;
  */
 public interface PlatformTenantServiceI {
 
-    /** 创建租户（落 PENDING + 生成 UUID v4 provisionRequestId；开通由 {@link #provisionTenant} 驱动）。 */
+    /**
+     * 创建租户（落 PENDING + 生成 UUID v4 provisionRequestId；开通由 {@link #provisionTenant} 驱动）。
+     */
     TenantVO createTenant(TenantCreateCmd cmd);
 
-    /** 开通租户（PENDING/FAILED → PROVISIONING → ACTIVE/FAILED，步骤级幂等可重放，P3-T2）。 */
+    /**
+     * 开通租户（PENDING/FAILED → PROVISIONING → ACTIVE/FAILED，步骤级幂等可重放，P3-T2）。
+     */
     TenantProvisionVO provisionTenant(TenantProvisionCmd cmd);
 
-    /** 软停租户（ACTIVE → SUSPENDED）。 */
+    /**
+     * 软停租户（ACTIVE → SUSPENDED）。
+     */
     TenantVO suspendTenant(TenantStatusCmd cmd);
 
-    /** 恢复租户（SUSPENDED → ACTIVE）。 */
+    /**
+     * 恢复租户（SUSPENDED → ACTIVE）。
+     */
     TenantVO resumeTenant(TenantStatusCmd cmd);
 
-    /** 归档租户（ACTIVE/SUSPENDED → ARCHIVED，打保留期起点戳；P3-T5，S-4=方案 A）。 */
+    /**
+     * 归档租户（ACTIVE/SUSPENDED → ARCHIVED，打保留期起点戳；P3-T5，S-4=方案 A）。
+     */
     TenantVO archiveTenant(TenantArchiveCmd cmd);
 
     /**
@@ -60,7 +60,9 @@ public interface PlatformTenantServiceI {
      */
     TenantVO confirmDeletion(TenantDeleteCmd cmd);
 
-    /** 删除预览（dry-run，不删；返回保留期状态与各表待删行数；P3-T5）。 */
+    /**
+     * 删除预览（dry-run，不删；返回保留期状态与各表待删行数；P3-T5）。
+     */
     TenantDeletionPreviewVO previewDeletion(String tenantKey);
 
     /**
@@ -84,9 +86,13 @@ public interface PlatformTenantServiceI {
      */
     TenantReissueInviteVO reissueInvite(TenantReissueInviteCmd cmd);
 
-    /** 按业务键查询单个租户。 */
+    /**
+     * 按业务键查询单个租户。
+     */
     TenantVO getTenant(String tenantKey);
 
-    /** 列出全部租户。 */
+    /**
+     * 列出全部租户。
+     */
     List<TenantVO> listTenants();
 }

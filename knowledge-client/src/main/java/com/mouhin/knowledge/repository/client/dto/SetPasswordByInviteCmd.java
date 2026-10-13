@@ -19,9 +19,13 @@ import lombok.Setter;
 @Setter
 public class SetPasswordByInviteCmd {
 
-    /** 原始邀请码（Base64URL 无填充，43 字符），由 provision 响应体一次性下发。 */
+    /**
+     * 原始邀请码（Base64URL 无填充，43 字符），由 provision 响应体一次性下发。
+     */
     private String inviteCode;
 
-    /** 新密码明文；服务端以 BCrypt 哈希后落 {@code sys_user.password_hash}。 */
+    /**
+     * 新密码明文；服务端以 BCrypt 哈希后落 {@code sys_user.password_hash}。
+     */
     private String newPassword;
 }

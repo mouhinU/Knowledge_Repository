@@ -16,15 +16,23 @@ import lombok.Setter;
 @Setter
 public class TenantDeleteApprovalCmd {
 
-    /** 目标租户业务键。 */
+    /**
+     * 目标租户业务键。
+     */
     private String tenantKey;
 
-    /** 令牌有效期（小时）；{@code null} 或 ≤0 时用默认 24h。 */
+    /**
+     * 令牌有效期（小时）；{@code null} 或 ≤0 时用默认 24h。
+     */
     private Integer ttlHours;
 
-    /** 签发者标识（项目负责人，来自平台令牌 claim）。 */
+    /**
+     * 签发者标识（项目负责人，来自平台令牌 claim）。
+     */
     private String operatorId;
 
-    /** 签发者展示名（来自平台令牌 claim）。 */
+    /**
+     * 签发者展示名（来自平台令牌 claim）。
+     */
     private String operatorName;
 }

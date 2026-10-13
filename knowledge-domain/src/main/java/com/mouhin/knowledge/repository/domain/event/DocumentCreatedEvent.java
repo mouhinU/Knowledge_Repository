@@ -14,4 +14,5 @@ public record DocumentCreatedEvent(
         String ownerId,
         String departmentId,
         LocalDateTime occurredAt)
-        implements DomainEvent {}
+        implements DomainEvent {
+}

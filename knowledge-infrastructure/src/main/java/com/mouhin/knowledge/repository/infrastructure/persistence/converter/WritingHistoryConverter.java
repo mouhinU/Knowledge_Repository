@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Wri
  */
 public final class WritingHistoryConverter {
 
-    private WritingHistoryConverter() {}
+    private WritingHistoryConverter() {
+    }
 
     public static WritingHistory toDomain(WritingHistoryDO doObj) {
         if (doObj == null) {

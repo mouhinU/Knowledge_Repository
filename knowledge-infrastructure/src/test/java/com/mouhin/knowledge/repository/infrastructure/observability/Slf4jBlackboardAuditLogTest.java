@@ -1,11 +1,12 @@
 package com.mouhin.knowledge.repository.infrastructure.observability;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import java.time.Duration;
 import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Slf4jBlackboardAuditLog 单元测试

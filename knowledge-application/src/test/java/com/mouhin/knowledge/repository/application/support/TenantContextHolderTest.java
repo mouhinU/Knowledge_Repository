@@ -1,18 +1,14 @@
 package com.mouhin.knowledge.repository.application.support;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 /**
  * {@link TenantContextHolder} 单元测试（P1-T2）。
@@ -27,7 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("TenantContextHolder 开关门控 (P1-T2)")
 class TenantContextHolderTest {
 
-    @Mock private SaasProperties saasProperties;
+    @Mock
+    private SaasProperties saasProperties;
 
     private TenantContextHolder holder;
 
@@ -39,6 +36,21 @@ class TenantContextHolderTest {
     @AfterEach
     void tearDown() {
         TenantContext.clear();
+    }
+
+    @Test
+    @DisplayName("isEnabled 委托给配置")
+    void isEnabledDelegates() {
+        when(saasProperties.isEnabled()).thenReturn(true);
+        assertThat(holder.isEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("clear 无视开关，始终清除线程绑定")
+    void clearAlwaysWorks() {
+        TenantContext.set("acme");
+        holder.clear();
+        assertThat(TenantContext.get()).isNull();
     }
 
     @Nested
@@ -80,20 +92,5 @@ class TenantContextHolderTest {
             when(saasProperties.isEnabled()).thenReturn(true);
             assertThat(holder.getTenantId()).isEqualTo(TenantContext.DEFAULT_TENANT_KEY);
         }
-    }
-
-    @Test
-    @DisplayName("isEnabled 委托给配置")
-    void isEnabledDelegates() {
-        when(saasProperties.isEnabled()).thenReturn(true);
-        assertThat(holder.isEnabled()).isTrue();
-    }
-
-    @Test
-    @DisplayName("clear 无视开关，始终清除线程绑定")
-    void clearAlwaysWorks() {
-        TenantContext.set("acme");
-        holder.clear();
-        assertThat(TenantContext.get()).isNull();
     }
 }

@@ -19,41 +19,63 @@ import java.util.Objects;
  */
 public class TenantDeletionStep {
 
-    /** 步骤状态：执行中。 */
+    /**
+     * 步骤状态：执行中。
+     */
     public static final String STATUS_RUNNING = "RUNNING";
 
-    /** 步骤状态：成功。 */
+    /**
+     * 步骤状态：成功。
+     */
     public static final String STATUS_SUCCESS = "SUCCESS";
 
-    /** 步骤状态：失败（可通过 {@code attemptNo+1} 续跑）。 */
+    /**
+     * 步骤状态：失败（可通过 {@code attemptNo+1} 续跑）。
+     */
     public static final String STATUS_FAILED = "FAILED";
 
-    /** 步骤状态：跳过（本次续跑前次已 SUCCESS）。 */
+    /**
+     * 步骤状态：跳过（本次续跑前次已 SUCCESS）。
+     */
     public static final String STATUS_SKIPPED = "SKIPPED";
 
-    /** {@code errorDetail} 截断上限，与 DDL VARCHAR(2000) 对齐。 */
+    /**
+     * {@code errorDetail} 截断上限，与 DDL VARCHAR(2000) 对齐。
+     */
     public static final int ERROR_DETAIL_MAX_LENGTH = 2000;
 
     private Long stepId;
 
     private Long tenantId;
 
-    /** 删除请求 UUID v4（删除幂等键）。 */
+    /**
+     * 删除请求 UUID v4（删除幂等键）。
+     */
     private String deletionRequestId;
 
-    /** 步骤名（如 {@code PURGE_DB_ROWS} / {@code PURGE_VECTORS}）。 */
+    /**
+     * 步骤名（如 {@code PURGE_DB_ROWS} / {@code PURGE_VECTORS}）。
+     */
     private String stepName;
 
-    /** 第几次尝试，从 1 起；FAILED 续跑时 +1。 */
+    /**
+     * 第几次尝试，从 1 起；FAILED 续跑时 +1。
+     */
     private Integer attemptNo;
 
-    /** 步骤状态，见本类 {@code STATUS_*} 常量。 */
+    /**
+     * 步骤状态，见本类 {@code STATUS_*} 常量。
+     */
     private String status;
 
-    /** 本步影响行数（硬删审计用；成功时回填，失败/跳过可为 {@code null}）。 */
+    /**
+     * 本步影响行数（硬删审计用；成功时回填，失败/跳过可为 {@code null}）。
+     */
     private Long rowsAffected;
 
-    /** 失败原因，截断至 {@link #ERROR_DETAIL_MAX_LENGTH}。 */
+    /**
+     * 失败原因，截断至 {@link #ERROR_DETAIL_MAX_LENGTH}。
+     */
     private String errorDetail;
 
     private LocalDateTime startedAt;
@@ -63,16 +85,6 @@ public class TenantDeletionStep {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-
-    /** 是否已成功（续跑时的跳过判定）。 */
-    public boolean isSuccess() {
-        return STATUS_SUCCESS.equals(status);
-    }
-
-    /** 是否已失败。 */
-    public boolean isFailed() {
-        return STATUS_FAILED.equals(status);
-    }
 
     /**
      * 将 {@code errorDetail} 截断至 {@link #ERROR_DETAIL_MAX_LENGTH}，避免超出 DDL 列宽导致写入失败。
@@ -87,6 +99,20 @@ public class TenantDeletionStep {
         return raw.length() <= ERROR_DETAIL_MAX_LENGTH
                 ? raw
                 : raw.substring(0, ERROR_DETAIL_MAX_LENGTH);
+    }
+
+    /**
+     * 是否已成功（续跑时的跳过判定）。
+     */
+    public boolean isSuccess() {
+        return STATUS_SUCCESS.equals(status);
+    }
+
+    /**
+     * 是否已失败。
+     */
+    public boolean isFailed() {
+        return STATUS_FAILED.equals(status);
     }
 
     public Long getStepId() {

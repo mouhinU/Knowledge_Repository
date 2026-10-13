@@ -2,13 +2,14 @@ package com.mouhin.knowledge.repository.application.executor.examtaking;
 
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 交卷命令执行器（app 层用例，事务边界）
@@ -24,7 +25,9 @@ public class ExamSubmitCmdExe {
 
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
-    /** 交卷宽限期（秒） */
+    /**
+     * 交卷宽限期（秒）
+     */
     private static final int SUBMIT_GRACE_SECONDS = 30;
 
     private static final int SECONDS_PER_MINUTE = 60;

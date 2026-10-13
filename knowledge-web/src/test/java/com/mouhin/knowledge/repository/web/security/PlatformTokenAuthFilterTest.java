@@ -1,21 +1,22 @@
 package com.mouhin.knowledge.repository.web.security;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import jakarta.servlet.FilterChain;
-import java.time.Instant;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * {@link PlatformTokenAuthFilter} 平台端令牌鉴权过滤器单测（P3-T1 / T-4 方案 B）。

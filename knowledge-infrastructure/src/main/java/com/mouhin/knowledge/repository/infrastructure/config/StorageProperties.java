@@ -26,44 +26,68 @@ import org.springframework.stereotype.Component;
 @Setter
 public class StorageProperties {
 
-    /** 存储后端：{@code local}（默认）或 {@code minio}。 */
+    /**
+     * 存储后端：{@code local}（默认）或 {@code minio}。
+     */
     private String backend = "local";
 
-    /** 本地磁盘模式下的文档存储根目录。 */
+    /**
+     * 本地磁盘模式下的文档存储根目录。
+     */
     private String path = "./data/documents";
 
-    /** 本地磁盘模式下的考试配图存储根目录。 */
+    /**
+     * 本地磁盘模式下的考试配图存储根目录。
+     */
     private String examAssetPath = "./data/exam-assets";
 
-    /** MinIO 子配置。 */
+    /**
+     * MinIO 子配置。
+     */
     private Minio minio = new Minio();
 
-    /** MinIO 连接参数。 */
+    /**
+     * 当前是否使用 MinIO 后端。
+     */
+    public boolean isMinioBackend() {
+        return "minio".equalsIgnoreCase(backend);
+    }
+
+    /**
+     * MinIO 连接参数。
+     */
     @Getter
     @Setter
     public static class Minio {
 
-        /** MinIO 服务端地址（含 scheme），如 {@code http://localhost:9000}。 */
+        /**
+         * MinIO 服务端地址（含 scheme），如 {@code http://localhost:9000}。
+         */
         private String endpoint = "http://localhost:9000";
 
-        /** 访问密钥。 */
+        /**
+         * 访问密钥。
+         */
         private String accessKey = "minioadmin";
 
-        /** 秘密密钥。 */
+        /**
+         * 秘密密钥。
+         */
         private String secretKey = "minioadmin";
 
-        /** 存储桶名称。 */
+        /**
+         * 存储桶名称。
+         */
         private String bucket = "knowledge";
 
-        /** 区域（MinIO 单节点可忽略，集群模式需匹配）。 */
+        /**
+         * 区域（MinIO 单节点可忽略，集群模式需匹配）。
+         */
         private String region = "";
 
-        /** 启动时是否自动创建桶（{@code MakeBucketIfNotExists}）。 */
+        /**
+         * 启动时是否自动创建桶（{@code MakeBucketIfNotExists}）。
+         */
         private boolean autoCreateBucket = true;
-    }
-
-    /** 当前是否使用 MinIO 后端。 */
-    public boolean isMinioBackend() {
-        return "minio".equalsIgnoreCase(backend);
     }
 }

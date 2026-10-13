@@ -1,11 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.infrastructure.config.MyBatisPlusConfig;
@@ -13,7 +7,6 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Dep
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +23,10 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * P1-T10 · 跨租户负向端到端（Testcontainers MySQL）。
@@ -65,7 +62,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(classes = TenantIsolationIntegrationTest.TestConfig.class)
 class TenantIsolationIntegrationTest {
 
-    /** 与生产对齐：MySQL 8 镜像；utf8mb4 通过容器启动参数确保中文 name 列不截断。 */
+    /**
+     * 与生产对齐：MySQL 8 镜像；utf8mb4 通过容器启动参数确保中文 name 列不截断。
+     */
     @Container
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.0")
@@ -75,6 +74,16 @@ class TenantIsolationIntegrationTest {
                     .withCommand(
                             "--character-set-server=utf8mb4",
                             "--collation-server=utf8mb4_unicode_ci");
+    @Autowired
+    private DepartmentMapper departmentMapper;
+    @Autowired
+    private TenantMapper tenantMapper;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private TenantIdResolver tenantIdResolver;
+    private long defaultId;
+    private long acmeId;
 
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
@@ -90,26 +99,15 @@ class TenantIsolationIntegrationTest {
         registry.add("knowledge.saas.enabled", () -> "true");
     }
 
-    /**
-     * 最小可用 Spring 上下文：仅 DataSource / Flyway / MyBatis-Plus / 拦截器 / 租户解析器 / 两个测试用 Mapper。
-     *
-     * <p>{@code webEnvironment=NONE} 默认（未显式指定即为 MOCKING，无 embedded server）——本类通过 {@link
-     * SpringBootTest} 无参重载启动，不加载任何 web/security 栈；{@link EnableAutoConfiguration} 只让 DataSource
-     * 相关三件套 + MyBatis-Plus 自动装配生效。
-     */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({MyBatisPlusConfig.class, TenantIdResolver.class})
-    static class TestConfig {}
-
-    @Autowired private DepartmentMapper departmentMapper;
-    @Autowired private TenantMapper tenantMapper;
-    @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private TenantIdResolver tenantIdResolver;
-
-    private long defaultId;
-    private long acmeId;
+    private static void assertAllBelongTo(List<DepartmentDO> rows, long expectedTenant) {
+        assertTrue(!rows.isEmpty(), "结果集不应为空（应至少包含 seed 的本租户行）");
+        for (DepartmentDO row : rows) {
+            assertEquals(
+                    expectedTenant,
+                    row.getTenantId(),
+                    "行 id=" + row.getId() + " 的 tenant_id=" + row.getTenantId() + " 与绑定租户不符");
+        }
+    }
 
     @BeforeEach
     void seedSecondTenant() {
@@ -305,7 +303,9 @@ class TenantIsolationIntegrationTest {
     // helpers
     // ---------------------------------------------------------------------
 
-    /** 用 raw JDBC 落一行 sys_department，绕开 MP 拦截器，可控指定 tenant_id。 */
+    /**
+     * 用 raw JDBC 落一行 sys_department，绕开 MP 拦截器，可控指定 tenant_id。
+     */
     private long seedDepartmentRaw(String deptKey, String name, long tenantId) {
         jdbcTemplate.update(
                 "INSERT INTO sys_department (department_key, department_name, parent_id, tenant_id) "
@@ -317,13 +317,17 @@ class TenantIsolationIntegrationTest {
                 "SELECT id FROM sys_department WHERE department_key = ?", Long.class, deptKey);
     }
 
-    private static void assertAllBelongTo(List<DepartmentDO> rows, long expectedTenant) {
-        assertTrue(!rows.isEmpty(), "结果集不应为空（应至少包含 seed 的本租户行）");
-        for (DepartmentDO row : rows) {
-            assertEquals(
-                    expectedTenant,
-                    row.getTenantId(),
-                    "行 id=" + row.getId() + " 的 tenant_id=" + row.getTenantId() + " 与绑定租户不符");
-        }
+    /**
+     * 最小可用 Spring 上下文：仅 DataSource / Flyway / MyBatis-Plus / 拦截器 / 租户解析器 / 两个测试用 Mapper。
+     *
+     * <p>{@code webEnvironment=NONE} 默认（未显式指定即为 MOCKING，无 embedded server）——本类通过 {@link
+     * SpringBootTest} 无参重载启动，不加载任何 web/security 栈；{@link EnableAutoConfiguration} 只让 DataSource
+     * 相关三件套 + MyBatis-Plus 自动装配生效。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({MyBatisPlusConfig.class, TenantIdResolver.class})
+    static class TestConfig {
     }
 }

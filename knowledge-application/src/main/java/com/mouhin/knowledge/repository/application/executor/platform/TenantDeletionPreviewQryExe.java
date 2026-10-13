@@ -5,12 +5,13 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantDataPurgeGateway;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 平台端租户删除预览查询执行器（app 层用例，只读 dry-run，P3-T5）。
@@ -28,7 +29,9 @@ public class TenantDeletionPreviewQryExe {
     private final TenantGateway tenantGateway;
     private final TenantDataPurgeGateway tenantDataPurgeGateway;
 
-    /** S-4=方案 A 保留期天数（默认 30），与 {@code ConfirmTenantDeletionCmdExe} 同源配置。 */
+    /**
+     * S-4=方案 A 保留期天数（默认 30），与 {@code ConfirmTenantDeletionCmdExe} 同源配置。
+     */
     @Value("${knowledge.saas.tenant-deletion.retention-days:30}")
     private int retentionDays;
 

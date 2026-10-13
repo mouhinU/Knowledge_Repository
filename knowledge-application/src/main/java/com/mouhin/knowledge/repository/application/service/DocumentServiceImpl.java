@@ -1,20 +1,13 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import com.mouhin.knowledge.repository.application.executor.document.DocumentArchiveCmdExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentCategoryStatsQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentDeleteCmdExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentGetQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentListByDepartmentQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentListByOwnerQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentListByStatusQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentListQryExe;
-import com.mouhin.knowledge.repository.application.executor.document.DocumentStatsQryExe;
+import com.mouhin.knowledge.repository.application.executor.document.*;
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Service;
 
 /**
  * 文档管理应用服务实现（app 层，仅分发到 Executor）

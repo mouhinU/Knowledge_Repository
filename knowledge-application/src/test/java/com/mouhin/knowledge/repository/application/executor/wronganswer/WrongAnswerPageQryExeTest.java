@@ -1,17 +1,16 @@
 package com.mouhin.knowledge.repository.application.executor.wronganswer;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * 错题分页查询执行器单测：锁定页参归一（负页→0 / size≤0→10）、越界切片返回空页且 total 保持全量、 统计概览（主题数 / 考生数 / 最多题型 / 平均得分率 4

@@ -1,16 +1,17 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PlainTextExtractionStrategy} 测试：契约（name/priority/supports）+ 真实按段落提取。
@@ -23,7 +24,8 @@ class PlainTextExtractionStrategyTest {
 
     private final PlainTextExtractionStrategy strategy = new PlainTextExtractionStrategy();
 
-    @TempDir Path tempDir;
+    @TempDir
+    Path tempDir;
 
     private static ExtractionCandidate withMime(String mime) {
         return ExtractionCandidate.basic(Path.of("dummy"), 10L, "dummy", mime);

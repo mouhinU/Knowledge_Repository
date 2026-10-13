@@ -11,14 +11,15 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 
 /**
  * 仅上传文件用例执行器（app 层，不入库，不做文本提取）。

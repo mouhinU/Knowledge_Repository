@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-09-15
  */
 @Mapper
-public interface StudentMapper extends BaseMapper<StudentDO> {}
+public interface StudentMapper extends BaseMapper<StudentDO> {
+}

@@ -12,7 +12,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.upload.session")
 public class UploadSessionProperties {
 
-    /** 会话超时秒数，默认 7200（2 小时） */
+    /**
+     * 会话超时秒数，默认 7200（2 小时）
+     */
     private long sessionTtlSeconds = 7200L;
 
     public long getSessionTtlSeconds() {

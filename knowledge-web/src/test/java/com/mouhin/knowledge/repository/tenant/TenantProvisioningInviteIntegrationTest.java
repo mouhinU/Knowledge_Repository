@@ -1,7 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.application.executor.adminauth.InviteStatusQryExe;
 import com.mouhin.knowledge.repository.application.executor.adminauth.SetPasswordByInviteCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.ReissueInviteCmdExe;
@@ -12,33 +10,12 @@ import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.service.ProvisioningStateMachine;
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
-import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
-import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
-import com.mouhin.knowledge.repository.domain.gateway.SystemConfigGateway;
-import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
-import com.mouhin.knowledge.repository.domain.gateway.TenantProvisionStepGateway;
-import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
-import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.Department;
-import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
-import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
-import com.mouhin.knowledge.repository.domain.model.entity.User;
-import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
+import com.mouhin.knowledge.repository.client.dto.*;
+import com.mouhin.knowledge.repository.domain.gateway.*;
+import com.mouhin.knowledge.repository.domain.model.entity.*;
 import com.mouhin.knowledge.repository.infrastructure.observability.Slf4jPlatformAuditLog;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.DepartmentGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.SystemConfigGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantProvisionStepGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.UserGatewayImpl;
-import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.UserInviteGatewayImpl;
+import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.*;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -51,6 +28,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * P3-T3 租户开通 + 邀请式引导端到端集成测试（H2 MODE=MySQL，无需 Docker）。
@@ -81,6 +64,31 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(classes = TenantProvisioningInviteIntegrationTest.TestConfig.class)
 class TenantProvisioningInviteIntegrationTest {
 
+    @Autowired
+    private TenantGateway tenantGateway;
+    @Autowired
+    private TenantProvisionStepGateway stepGateway;
+    @Autowired
+    private SystemConfigGateway systemConfigGateway;
+    @Autowired
+    private DepartmentGateway departmentGateway;
+    @Autowired
+    private UserGateway userGateway;
+    @Autowired
+    private UserInviteGateway userInviteGateway;
+    @Autowired
+    private UserInviteService userInviteService;
+    @Autowired
+    private ProvisioningStateMachine stateMachine;
+    @Autowired
+    private SetPasswordByInviteCmdExe setPasswordExe;
+    @Autowired
+    private InviteStatusQryExe inviteStatusQryExe;
+    @Autowired
+    private ReissueInviteCmdExe reissueInviteCmdExe;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
         registry.add(
@@ -95,51 +103,6 @@ class TenantProvisioningInviteIntegrationTest {
         // 关闭 SaaS 拦截器：本用例验真实网关的显式租户 scoping，不依赖拦截器
         registry.add("knowledge.saas.enabled", () -> "false");
     }
-
-    /**
-     * 最小 Spring 上下文：DataSource / Flyway / MyBatis-Plus / 全部真实网关 / 三个 P3-T3 步骤 / 状态机 / 邀请服务 / 设密执行器。
-     */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({
-        TenantGatewayImpl.class,
-        TenantProvisionStepGatewayImpl.class,
-        SystemConfigGatewayImpl.class,
-        DepartmentGatewayImpl.class,
-        UserGatewayImpl.class,
-        UserInviteGatewayImpl.class,
-        TenantIdResolver.class,
-        Slf4jPlatformAuditLog.class,
-        ProvisioningStateMachine.class,
-        UserInviteService.class,
-        CopyDefaultSystemConfigStep.class,
-        CreateRootDepartmentStep.class,
-        CreateFirstAdminStep.class,
-        SetPasswordByInviteCmdExe.class,
-        InviteStatusQryExe.class,
-        ReissueInviteCmdExe.class
-    })
-    static class TestConfig {
-
-        @Bean
-        BCryptPasswordEncoder bCryptPasswordEncoder() {
-            return new BCryptPasswordEncoder();
-        }
-    }
-
-    @Autowired private TenantGateway tenantGateway;
-    @Autowired private TenantProvisionStepGateway stepGateway;
-    @Autowired private SystemConfigGateway systemConfigGateway;
-    @Autowired private DepartmentGateway departmentGateway;
-    @Autowired private UserGateway userGateway;
-    @Autowired private UserInviteGateway userInviteGateway;
-    @Autowired private UserInviteService userInviteService;
-    @Autowired private ProvisioningStateMachine stateMachine;
-    @Autowired private SetPasswordByInviteCmdExe setPasswordExe;
-    @Autowired private InviteStatusQryExe inviteStatusQryExe;
-    @Autowired private ReissueInviteCmdExe reissueInviteCmdExe;
-    @Autowired private BCryptPasswordEncoder passwordEncoder;
 
     private Tenant newPendingTenant(String key) {
         Tenant t = new Tenant();
@@ -338,5 +301,37 @@ class TenantProvisioningInviteIntegrationTest {
         assertThat(unknown.getTenantKeyHint()).isNull();
         assertThat(unknown.getUsernameHint()).isNull();
         assertThat(unknown.getExpiresAt()).isNull();
+    }
+
+    /**
+     * 最小 Spring 上下文：DataSource / Flyway / MyBatis-Plus / 全部真实网关 / 三个 P3-T3 步骤 / 状态机 / 邀请服务 / 设密执行器。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({
+            TenantGatewayImpl.class,
+            TenantProvisionStepGatewayImpl.class,
+            SystemConfigGatewayImpl.class,
+            DepartmentGatewayImpl.class,
+            UserGatewayImpl.class,
+            UserInviteGatewayImpl.class,
+            TenantIdResolver.class,
+            Slf4jPlatformAuditLog.class,
+            ProvisioningStateMachine.class,
+            UserInviteService.class,
+            CopyDefaultSystemConfigStep.class,
+            CreateRootDepartmentStep.class,
+            CreateFirstAdminStep.class,
+            SetPasswordByInviteCmdExe.class,
+            InviteStatusQryExe.class,
+            ReissueInviteCmdExe.class
+    })
+    static class TestConfig {
+
+        @Bean
+        BCryptPasswordEncoder bCryptPasswordEncoder() {
+            return new BCryptPasswordEncoder();
+        }
     }
 }

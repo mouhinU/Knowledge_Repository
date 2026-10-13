@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
  */
 public final class DocumentImageConverter {
 
-    private DocumentImageConverter() {}
+    private DocumentImageConverter() {
+    }
 
     public static DocumentImage toDomain(DocumentImageDO doObj) {
         if (doObj == null) {

@@ -1,20 +1,13 @@
 package com.mouhin.knowledge.repository.migration;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.sql.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 唯一键租户内化验证（P1-T5 验收）。
@@ -46,11 +39,11 @@ class TenantUniqueKeyDuplicationTest {
                 .load()
                 .migrate();
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                Statement st = conn.createStatement()) {
+             Statement st = conn.createStatement()) {
             // 默认租户由 V23 种子提供
             try (ResultSet rs =
-                    st.executeQuery(
-                            "SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'default'")) {
+                         st.executeQuery(
+                                 "SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'default'")) {
                 assertTrue(rs.next(), "默认租户种子缺失");
                 defaultTenantId = rs.getLong(1);
             }
@@ -59,7 +52,7 @@ class TenantUniqueKeyDuplicationTest {
                     "INSERT INTO sys_tenant (tenant_key, name, plan, status, data_region) "
                             + "VALUES ('acme', 'Acme', 'standard', 'ACTIVE', 'cn')");
             try (ResultSet rs =
-                    st.executeQuery("SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'acme'")) {
+                         st.executeQuery("SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'acme'")) {
                 assertTrue(rs.next(), "acme 租户插入失败");
                 acmeTenantId = rs.getLong(1);
             }
@@ -70,9 +63,9 @@ class TenantUniqueKeyDuplicationTest {
 
     private void insertCategory(String name, long tenantId) throws SQLException {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "INSERT INTO kb_category (name, sort_order, tenant_id) VALUES (?, 0, ?)")) {
+             PreparedStatement ps =
+                     conn.prepareStatement(
+                             "INSERT INTO kb_category (name, sort_order, tenant_id) VALUES (?, 0, ?)")) {
             ps.setString(1, name);
             ps.setLong(2, tenantId);
             ps.executeUpdate();
@@ -86,8 +79,8 @@ class TenantUniqueKeyDuplicationTest {
         assertDoesNotThrow(
                 () -> insertCategory("工作", acmeTenantId), "acme 租户应与 default 租户共用分类名 '工作'");
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                PreparedStatement ps =
-                        conn.prepareStatement("SELECT COUNT(*) FROM kb_category WHERE name = ?")) {
+             PreparedStatement ps =
+                     conn.prepareStatement("SELECT COUNT(*) FROM kb_category WHERE name = ?")) {
             ps.setString(1, "工作");
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());

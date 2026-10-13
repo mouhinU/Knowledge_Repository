@@ -1,15 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
@@ -21,12 +11,18 @@ import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 自定义分块入库命令执行器单测：锁定入参非空校验、文档不存在 / 已 INDEXED 门禁、全空白分块标记 FAILED 短路、 成功链路（saveBatch → storeChunks →

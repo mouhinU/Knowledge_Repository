@@ -6,12 +6,13 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * EmbeddingModel 用量采集装饰器（P6-T1）。

@@ -3,9 +3,10 @@ package com.mouhin.knowledge.repository.application.executor.system;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.SystemConfigDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.SystemConfig;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 系统配置列表查询执行器

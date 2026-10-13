@@ -1,13 +1,5 @@
 package com.mouhin.knowledge.repository.infrastructure.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
@@ -18,6 +10,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link TenantIdResolver} 单元测试（P1-T7）。
@@ -32,14 +29,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("TenantIdResolver 缓存/异常语义")
 class TenantIdResolverTest {
 
-    @Mock private TenantMapper tenantMapper;
+    @Mock
+    private TenantMapper tenantMapper;
 
     private TenantIdResolver resolver;
-
-    @BeforeEach
-    void setUp() {
-        resolver = new TenantIdResolver(tenantMapper);
-    }
 
     private static TenantDO activeRow(long id, String key) {
         TenantDO row = new TenantDO();
@@ -47,6 +40,11 @@ class TenantIdResolverTest {
         row.setTenantKey(key);
         row.setStatus(TenantDO.STATUS_ACTIVE);
         return row;
+    }
+
+    @BeforeEach
+    void setUp() {
+        resolver = new TenantIdResolver(tenantMapper);
     }
 
     @Nested

@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.provisioning;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,11 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p><b>属性键命名约定</b>：{@code provisioning.<name>}（如 {@link #ATTR_INVITE_INFO}），避免与将来其他用途冲突。
  *
- * @param tenant 目标租户聚合根（含 tenantId / tenantKey / status）
+ * @param tenant             目标租户聚合根（含 tenantId / tenantKey / status）
  * @param provisionRequestId 本次开通请求 UUID v4（S-5=方案 A 幂等键）
- * @param operatorId 操作者标识（平台端令牌携带）
- * @param operatorName 操作者显示名
- * @param attributes 步骤间共享的可写属性映射；由状态机在创建上下文时注入 {@link ConcurrentHashMap}
+ * @param operatorId         操作者标识（平台端令牌携带）
+ * @param operatorName       操作者显示名
+ * @param attributes         步骤间共享的可写属性映射；由状态机在创建上下文时注入 {@link ConcurrentHashMap}
  * @author mouhinU
  * @date 2026-10-08
  */
@@ -42,22 +43,26 @@ public record ProvisioningContext(
     /**
      * 便捷构造：为 attributes 注入默认 {@link ConcurrentHashMap}。
      *
-     * @param tenant 目标租户
+     * @param tenant             目标租户
      * @param provisionRequestId 幂等键
-     * @param operatorId 操作者 id
-     * @param operatorName 操作者名
+     * @param operatorId         操作者 id
+     * @param operatorName       操作者名
      */
     public ProvisioningContext(
             Tenant tenant, String provisionRequestId, String operatorId, String operatorName) {
         this(tenant, provisionRequestId, operatorId, operatorName, new ConcurrentHashMap<>());
     }
 
-    /** 便捷取租户主键。 */
+    /**
+     * 便捷取租户主键。
+     */
     public Long tenantId() {
         return tenant == null ? null : tenant.getTenantId();
     }
 
-    /** 便捷取租户业务键。 */
+    /**
+     * 便捷取租户业务键。
+     */
     public String tenantKey() {
         return tenant == null ? null : tenant.getTenantKey();
     }

@@ -25,12 +25,15 @@
         <!-- Panel 1: 配置管理（sys_config 相关：特性开关 + 考试参数 + 系统参数） -->
         <div class="tab-panel active" id="panel-config">
             <div id="config-section">
-                <div class="card"><div class="card-title">配置管理</div><p class="loading" style="font-size:13px">加载中...</p></div>
+                <div class="card">
+                    <div class="card-title">配置管理</div>
+                    <p class="loading" style="font-size:13px">加载中...</p></div>
             </div>
             <div class="card">
                 <div class="card-title">关于配置</div>
                 <p style="font-size:12.5px;color:var(--text-light);line-height:1.7;margin:0">
-                    所有配置采用三层获取策略：<strong>内存缓存</strong>（本次运行）→ <strong>数据库 sys_config 表</strong>（持久化）→ <strong>系统默认值</strong>（出厂兜底）。
+                    所有配置采用三层获取策略：<strong>内存缓存</strong>（本次运行）→ <strong>数据库 sys_config 表</strong>（持久化）→
+                    <strong>系统默认值</strong>（出厂兜底）。
                     页面修改即时生效并写入数据库，无需重启应用。特性开关用于控制核心功能启用/禁用，考试参数用于调节出卷与评分行为。
                 </p>
             </div>
@@ -53,10 +56,15 @@
                 <div class="table-wrap">
                     <table>
                         <thead>
-                            <tr><th scope="col">指标</th><th scope="col">数值</th></tr>
+                        <tr>
+                            <th scope="col">指标</th>
+                            <th scope="col">数值</th>
+                        </tr>
                         </thead>
                         <tbody id="sys-params">
-                        <tr><td class="loading" colspan="2">加载中...</td></tr>
+                        <tr>
+                            <td class="loading" colspan="2">加载中...</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>

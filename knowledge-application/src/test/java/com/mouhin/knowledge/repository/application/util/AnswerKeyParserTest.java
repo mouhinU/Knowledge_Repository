@@ -1,10 +1,11 @@
 package com.mouhin.knowledge.repository.application.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 标准答案与评分标准解析器回归测试。

@@ -4,14 +4,15 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+
+import java.util.Locale;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 租户键 ↔ 租户 id 双向解析器（P1-T7 + P1-T8，SaaS 租户脊柱）。
@@ -54,7 +55,9 @@ public class TenantIdResolver implements TenantDirectory {
     private final ConcurrentMap<String, Long> keyToId = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, String> idToKey = new ConcurrentHashMap<>();
 
-    /** key→status 缓存（P3-T4）：支撑 {@link #findStatusByKey(String)} 请求路径软拦，避免每请求回源 DB。 */
+    /**
+     * key→status 缓存（P3-T4）：支撑 {@link #findStatusByKey(String)} 请求路径软拦，避免每请求回源 DB。
+     */
     private final ConcurrentMap<String, String> keyToStatus = new ConcurrentHashMap<>();
 
     public TenantIdResolver(@Lazy TenantMapper tenantMapper) {
@@ -63,6 +66,10 @@ public class TenantIdResolver implements TenantDirectory {
         // 而该 interceptor 又依赖本 resolver，构成构造期循环（saas.enabled=true 才触发，P1-T10 首次暴露）。
         // 延迟解析 mapper，本 bean 得以先行构造，首次 resolve()/lookupKey() 时再拿到真实 mapper。
         this.tenantMapper = tenantMapper;
+    }
+
+    private static String canonicalKey(TenantDO row) {
+        return row.getTenantKey().trim().toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -128,7 +135,9 @@ public class TenantIdResolver implements TenantDirectory {
         return row;
     }
 
-    /** 按归一化 key 查库，未知返回 {@code null}（不抛）；供 {@link #loadByKey} 与 {@link #findStatusByKey} 共用。 */
+    /**
+     * 按归一化 key 查库，未知返回 {@code null}（不抛）；供 {@link #loadByKey} 与 {@link #findStatusByKey} 共用。
+     */
     private TenantDO selectByKey(String normalizedKey) {
         return tenantMapper.selectOne(
                 Wrappers.<TenantDO>lambdaQuery()
@@ -160,10 +169,6 @@ public class TenantIdResolver implements TenantDirectory {
         return row;
     }
 
-    private static String canonicalKey(TenantDO row) {
-        return row.getTenantKey().trim().toLowerCase(Locale.ROOT);
-    }
-
     /**
      * 查询租户当前状态（缓存加速；miss 回源 DB）。未知 / 空白 key 返回 {@link Optional#empty()}，<b>不抛</b>。
      *
@@ -189,7 +194,9 @@ public class TenantIdResolver implements TenantDirectory {
         return Optional.ofNullable(status);
     }
 
-    /** 显式失效某个 key 的全部缓存（键↔id 双向映射 + 状态）；P3-T4 生命周期写路径调用。 */
+    /**
+     * 显式失效某个 key 的全部缓存（键↔id 双向映射 + 状态）；P3-T4 生命周期写路径调用。
+     */
     @Override
     public void invalidateByKey(String tenantKey) {
         if (tenantKey == null) {
@@ -203,7 +210,9 @@ public class TenantIdResolver implements TenantDirectory {
         keyToStatus.remove(normalized);
     }
 
-    /** 显式失效某个 id 的全部缓存（键↔id 双向映射 + 状态）；P3-T4 生命周期写路径调用。 */
+    /**
+     * 显式失效某个 id 的全部缓存（键↔id 双向映射 + 状态）；P3-T4 生命周期写路径调用。
+     */
     @Override
     public void invalidateById(long tenantId) {
         String key = idToKey.remove(tenantId);
@@ -213,7 +222,9 @@ public class TenantIdResolver implements TenantDirectory {
         }
     }
 
-    /** 全量清空缓存（键↔id 双向映射 + 状态）；配置热更 / 测试隔离使用。 */
+    /**
+     * 全量清空缓存（键↔id 双向映射 + 状态）；配置热更 / 测试隔离使用。
+     */
     @Override
     public void invalidateAll() {
         keyToId.clear();

@@ -26,40 +26,52 @@ public class WrongAnswerAnalyzerAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT =
             """
-            你是一位教育诊断专家，擅长分析学生的错题模式并给出个性化改进建议。
-
-            任务：
-            1. 根据提供的试卷、标准答案和学生作答，识别答错的题目
-            2. 对每道错题进行分类：
-               - 知识盲点：完全不了解相关知识点
-               - 理解偏差：对概念有误解
-               - 粗心失误：知道方法但计算/审题出错
-               - 能力不足：需要更高层次的思维但未能完成
-            3. 归纳薄弱知识点（按出现频次排序）
-            4. 分析错误模式（是否集中在某类题型、某个知识领域、某种认知层级）
-            5. 给出个性化复习建议和推荐练习方向
-
-            输出格式（严格按以下 Markdown 结构）：
-            ## 错题清单
-            | 题号 | 考查知识点 | 错误类型 | 学生作答摘要 | 正确答案 |
-
-            ## 薄弱知识点
-            1. [知识点] — 错误 X 次
-            2. ...
-
-            ## 错误模式分析
-            （按题型/知识领域/认知层级的错误分布和规律）
-
-            ## 个性化复习建议
-            1. 重点复习：...
-            2. 推荐练习：...
-            3. 学习策略：...
-            """;
+                    你是一位教育诊断专家，擅长分析学生的错题模式并给出个性化改进建议。
+                    
+                    任务：
+                    1. 根据提供的试卷、标准答案和学生作答，识别答错的题目
+                    2. 对每道错题进行分类：
+                       - 知识盲点：完全不了解相关知识点
+                       - 理解偏差：对概念有误解
+                       - 粗心失误：知道方法但计算/审题出错
+                       - 能力不足：需要更高层次的思维但未能完成
+                    3. 归纳薄弱知识点（按出现频次排序）
+                    4. 分析错误模式（是否集中在某类题型、某个知识领域、某种认知层级）
+                    5. 给出个性化复习建议和推荐练习方向
+                    
+                    输出格式（严格按以下 Markdown 结构）：
+                    ## 错题清单
+                    | 题号 | 考查知识点 | 错误类型 | 学生作答摘要 | 正确答案 |
+                    
+                    ## 薄弱知识点
+                    1. [知识点] — 错误 X 次
+                    2. ...
+                    
+                    ## 错误模式分析
+                    （按题型/知识领域/认知层级的错误分布和规律）
+                    
+                    ## 个性化复习建议
+                    1. 重点复习：...
+                    2. 推荐练习：...
+                    3. 学习策略：...
+                    """;
 
     private final BlackboardAgentStreamer agentStreamer;
 
     public WrongAnswerAnalyzerAgent(BlackboardAgentStreamer agentStreamer) {
         this.agentStreamer = agentStreamer;
+    }
+
+    private static String truncate(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max) + "...";
+    }
+
+    private static void emitProgress(
+            BlackboardProgressCallback callback, BlackboardProgressEvent event) {
+        if (callback != null) {
+            callback.onProgress(event);
+        }
     }
 
     @Override
@@ -87,19 +99,19 @@ public class WrongAnswerAnalyzerAgent implements BlackboardAgent {
         String userPrompt =
                 String.format(
                         """
-                考试主题：%s
-
-                【试卷内容】
-                %s
-
-                【标准答案】
-                %s
-
-                【学生作答与考试信息】
-                %s
-
-                请分析学生的错题模式，识别薄弱知识点，并给出个性化复习建议。
-                """,
+                                考试主题：%s
+                                
+                                【试卷内容】
+                                %s
+                                
+                                【标准答案】
+                                %s
+                                
+                                【学生作答与考试信息】
+                                %s
+                                
+                                请分析学生的错题模式，识别薄弱知识点，并给出个性化复习建议。
+                                """,
                         blackboard.getQuestion(),
                         examPaper,
                         answerKey != null ? answerKey : "（标准答案未提供）",
@@ -128,7 +140,9 @@ public class WrongAnswerAnalyzerAgent implements BlackboardAgent {
         return "WrongAnswerAnalyzer";
     }
 
-    /** 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分） */
+    /**
+     * 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分）
+     */
     private Double calculateAnalysisScore(String analysis) {
         double score = Math.min(20.0, analysis.length() / 100.0 * 2.0);
         if (analysis.contains("错题清单")) score += 20.0;
@@ -136,17 +150,5 @@ public class WrongAnswerAnalyzerAgent implements BlackboardAgent {
         if (analysis.contains("错误模式分析")) score += 20.0;
         if (analysis.contains("复习建议")) score += 20.0;
         return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
-    }
-
-    private static String truncate(String text, int max) {
-        if (text == null) return "";
-        return text.length() <= max ? text : text.substring(0, max) + "...";
-    }
-
-    private static void emitProgress(
-            BlackboardProgressCallback callback, BlackboardProgressEvent event) {
-        if (callback != null) {
-            callback.onProgress(event);
-        }
     }
 }

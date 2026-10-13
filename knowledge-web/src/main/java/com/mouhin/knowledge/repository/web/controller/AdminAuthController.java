@@ -1,28 +1,17 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
-import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
-import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
-import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
-import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
-import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
+import com.mouhin.knowledge.repository.client.dto.*;
 import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 管理端认证控制器（adapter 层）。
@@ -41,12 +30,16 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class AdminAuthController {
 
-    /** 统一响应 map 的 error / message 字段名（java:S1192 抽公共 key）。 */
+    /**
+     * 统一响应 map 的 error / message 字段名（java:S1192 抽公共 key）。
+     */
     private static final String ERR_FIELD = "error";
 
     private static final String MSG_FIELD = "message";
 
-    /** ISO-8601 本地时间字符串格式，用于 {@code expiresAt} 序列化。 */
+    /**
+     * ISO-8601 本地时间字符串格式，用于 {@code expiresAt} 序列化。
+     */
     private static final DateTimeFormatter EXPIRES_AT_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
@@ -56,7 +49,9 @@ public class AdminAuthController {
         this.adminAuthService = adminAuthService;
     }
 
-    /** 管理端登录：用户名密码换取访问令牌。 */
+    /**
+     * 管理端登录：用户名密码换取访问令牌。
+     */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody AdminLoginCmd cmd) {
         try {
@@ -86,11 +81,13 @@ public class AdminAuthController {
         }
     }
 
-    /** 管理端登出：JWT 无状态，服务端仅审计，前端丢弃本地令牌。 */
+    /**
+     * 管理端登出：JWT 无状态，服务端仅审计，前端丢弃本地令牌。
+     */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = AdminTokenAuthFilter.TOKEN_HEADER, required = false)
-                    String headerToken,
+            String headerToken,
             @RequestBody(required = false) Map<String, String> body) {
         String token = headerToken;
         if (token == null && body != null) {
@@ -102,7 +99,9 @@ public class AdminAuthController {
         return ResponseEntity.ok(Map.of(MSG_FIELD, "已退出"));
     }
 
-    /** 获取当前登录者身份（令牌已由过滤器校验，直接取回属性）。 */
+    /**
+     * 获取当前登录者身份（令牌已由过滤器校验，直接取回属性）。
+     */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(HttpServletRequest request) {
         AdminPrincipalDTO principal = currentPrincipal(request);
@@ -117,7 +116,9 @@ public class AdminAuthController {
                         "admin", Boolean.TRUE.equals(principal.getAdmin())));
     }
 
-    /** 自助修改密码：以令牌身份为准，校验旧密码后设置新密码。 */
+    /**
+     * 自助修改密码：以令牌身份为准，校验旧密码后设置新密码。
+     */
     @PostMapping("/change-password")
     public ResponseEntity<Map<String, Object>> changePassword(
             @RequestBody AdminChangePasswordCmd cmd, HttpServletRequest request) {

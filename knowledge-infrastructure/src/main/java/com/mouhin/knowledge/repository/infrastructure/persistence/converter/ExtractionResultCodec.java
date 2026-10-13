@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +22,8 @@ public final class ExtractionResultCodec {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private ExtractionResultCodec() {}
+    private ExtractionResultCodec() {
+    }
 
     /**
      * 序列化为 JSON 文本。

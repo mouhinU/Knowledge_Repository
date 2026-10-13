@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.provisioning.step;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
 import com.mouhin.knowledge.repository.application.support.UserInviteService.InviteIssueResult;
@@ -24,13 +13,19 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningContext;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * P3-T3 三个开通步骤的单元测试：{@link CopyDefaultSystemConfigStep}（order=200）、{@link
@@ -134,9 +129,9 @@ class ProvisioningStepsTest {
             when(tg.findByTenantKey(TenantContext.DEFAULT_TENANT_KEY)).thenReturn(Optional.empty());
 
             assertThatThrownBy(
-                            () ->
-                                    new CopyDefaultSystemConfigStep(cfg, tg)
-                                            .execute(ctxFor(acmeTenant())))
+                    () ->
+                            new CopyDefaultSystemConfigStep(cfg, tg)
+                                    .execute(ctxFor(acmeTenant())))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Default tenant")
                     .hasMessageContaining(TenantContext.DEFAULT_TENANT_KEY);
@@ -332,7 +327,7 @@ class ProvisioningStepsTest {
             // saveWithTenant 不回填 id（模拟异常网关行为）
 
             assertThatThrownBy(
-                            () -> new CreateFirstAdminStep(ug, uis).execute(ctxFor(acmeTenant())))
+                    () -> new CreateFirstAdminStep(ug, uis).execute(ctxFor(acmeTenant())))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("id was not populated");
         }

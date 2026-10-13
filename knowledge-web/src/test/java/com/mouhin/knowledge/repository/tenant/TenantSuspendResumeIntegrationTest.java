@@ -1,9 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-
 import com.mouhin.knowledge.repository.application.executor.platform.TenantResumeCmdExe;
 import com.mouhin.knowledge.repository.application.executor.platform.TenantSuspendCmdExe;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
@@ -17,7 +13,6 @@ import com.mouhin.knowledge.repository.infrastructure.observability.Slf4jPlatfor
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.SystemConfigGatewayImpl;
 import com.mouhin.knowledge.repository.infrastructure.persistence.gateway.TenantGatewayImpl;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +25,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 /**
  * P3-T4 租户软停 / 恢复 + 缓存即时失效端到端集成测试（H2 MODE=MySQL，无需 Docker）。
@@ -57,6 +58,19 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(classes = TenantSuspendResumeIntegrationTest.TestConfig.class)
 class TenantSuspendResumeIntegrationTest {
 
+    @Autowired
+    private TenantGateway tenantGateway;
+    @Autowired
+    private TenantDirectory tenantDirectory;
+    @Autowired
+    private TenantIdResolver tenantIdResolver;
+    @Autowired
+    private SystemConfigService systemConfigService;
+    @Autowired
+    private TenantSuspendCmdExe suspendExe;
+    @Autowired
+    private TenantResumeCmdExe resumeExe;
+
     @DynamicPropertySource
     static void datasourceProps(DynamicPropertyRegistry registry) {
         registry.add(
@@ -70,35 +84,6 @@ class TenantSuspendResumeIntegrationTest {
         registry.add("spring.flyway.baseline-on-migrate", () -> "true");
         registry.add("knowledge.saas.enabled", () -> "false");
     }
-
-    /** 最小上下文：DataSource / Flyway / MyBatis-Plus / 真实网关 + 目录 + 配置服务 + 软停/恢复执行器。 */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({
-        TenantGatewayImpl.class,
-        TenantIdResolver.class,
-        Slf4jPlatformAuditLog.class,
-        SystemConfigGatewayImpl.class,
-        SystemConfigService.class,
-        TenantSuspendCmdExe.class,
-        TenantResumeCmdExe.class
-    })
-    static class TestConfig {
-
-        /** P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。 */
-        @Bean
-        ConfigInvalidationPublisher configInvalidationPublisher() {
-            return mock(ConfigInvalidationPublisher.class);
-        }
-    }
-
-    @Autowired private TenantGateway tenantGateway;
-    @Autowired private TenantDirectory tenantDirectory;
-    @Autowired private TenantIdResolver tenantIdResolver;
-    @Autowired private SystemConfigService systemConfigService;
-    @Autowired private TenantSuspendCmdExe suspendExe;
-    @Autowired private TenantResumeCmdExe resumeExe;
 
     @AfterEach
     void tearDown() {
@@ -171,5 +156,31 @@ class TenantSuspendResumeIntegrationTest {
         assertThat(configs).isNotNull();
         assertThat(tenantDirectory.findStatusByKey(key)).contains(Tenant.STATUS_ACTIVE);
         assertThat(tenant.getTenantId()).isNotNull();
+    }
+
+    /**
+     * 最小上下文：DataSource / Flyway / MyBatis-Plus / 真实网关 + 目录 + 配置服务 + 软停/恢复执行器。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({
+            TenantGatewayImpl.class,
+            TenantIdResolver.class,
+            Slf4jPlatformAuditLog.class,
+            SystemConfigGatewayImpl.class,
+            SystemConfigService.class,
+            TenantSuspendCmdExe.class,
+            TenantResumeCmdExe.class
+    })
+    static class TestConfig {
+
+        /**
+         * P4-T2: ConfigInvalidationPublisher 以 mock 顶替（测试环境无 Redis）。
+         */
+        @Bean
+        ConfigInvalidationPublisher configInvalidationPublisher() {
+            return mock(ConfigInvalidationPublisher.class);
+        }
     }
 }

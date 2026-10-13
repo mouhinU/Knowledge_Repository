@@ -8,11 +8,12 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
-import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * 邀请式设密命令执行器（P3-T3，app 层用例，事务边界）。
@@ -37,16 +38,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SetPasswordByInviteCmdExe {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "SET_PASSWORD_BY_INVITE";
 
-    /** 新密码最小长度；与既有 {@code AdminChangePasswordCmdExe} 的"非空"相比略收紧，防误设 1-2 位口令。 */
+    /**
+     * 新密码最小长度；与既有 {@code AdminChangePasswordCmdExe} 的"非空"相比略收紧，防误设 1-2 位口令。
+     */
     public static final int MIN_PASSWORD_LENGTH = 8;
 
-    /** 新密码最大长度；BCrypt 对 >72 字节输入直接抛异常（非截断），故上限与 BCrypt 硬限对齐为 72。 */
+    /**
+     * 新密码最大长度；BCrypt 对 >72 字节输入直接抛异常（非截断），故上限与 BCrypt 硬限对齐为 72。
+     */
     public static final int MAX_PASSWORD_LENGTH = 72;
 
-    /** 日志脱敏：hash 前缀可见长度。 */
+    /**
+     * 日志脱敏：hash 前缀可见长度。
+     */
     private static final int HASH_LOG_PREFIX = 8;
 
     private final UserInviteService userInviteService;
@@ -74,7 +83,7 @@ public class SetPasswordByInviteCmdExe {
      * @param cmd 命令（含 raw invite code 与新密码）
      * @return 结果 VO；仅回显 username / tenantKey / 提示消息，不含任何令牌
      * @throws IllegalArgumentException 入参缺失 / 邀请码无效 / 已过期 / 已使用 / 密码长度越界
-     * @throws IllegalStateException 目标用户不存在（数据不一致）
+     * @throws IllegalStateException    目标用户不存在（数据不一致）
      */
     @Transactional
     public SetPasswordByInviteVO execute(SetPasswordByInviteCmd cmd) {

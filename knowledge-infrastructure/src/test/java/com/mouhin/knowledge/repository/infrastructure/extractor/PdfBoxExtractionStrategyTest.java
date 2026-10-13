@@ -1,11 +1,12 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
-import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PdfBoxExtractionStrategy} 契约测试：策略标识、优先级与 MIME 路由谓词。

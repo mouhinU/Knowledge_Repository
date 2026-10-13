@@ -1,15 +1,16 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link ScorePlanValidator} 确定性校验单测。
@@ -24,7 +25,9 @@ class ScorePlanValidatorTest {
 
     // ==================== 辅助构建 ====================
 
-    /** 构建一个分值对齐的合法方案（Σ=满分），用于正向测试 */
+    /**
+     * 构建一个分值对齐的合法方案（Σ=满分），用于正向测试
+     */
     private static ExamPlan validPlan(int fullMark, List<TypePlan> types) {
         ExamPlan plan = new ExamPlan();
         plan.setTotalFullMark(fullMark);
@@ -37,7 +40,9 @@ class ScorePlanValidatorTest {
         return new TypePlan(key, label, count, perQuestion);
     }
 
-    /** 生成长度为 count、每题 val 分的 perQuestion 列表 */
+    /**
+     * 生成长度为 count、每题 val 分的 perQuestion 列表
+     */
     private static List<Integer> uniform(int count, int val) {
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -47,6 +52,24 @@ class ScorePlanValidatorTest {
     }
 
     // ==================== 硬校验（issues → pass=false） ====================
+
+    @Test
+    @DisplayName("renderReport 包含关键信息")
+    void renderReportContainsKeyInfo() {
+        ExamPlan plan =
+                validPlan(
+                        100,
+                        List.of(
+                                type("SINGLE_CHOICE", "单选题", 10, uniform(10, 3)),
+                                type("SHORT_ANSWER", "简答题", 3, uniform(3, 10))));
+        // 分值合计 = 30+30=60 ≠ 100，会有 issue
+        ScorePlanValidator.Result r = ScorePlanValidator.validate(plan);
+        String report = ScorePlanValidator.renderReport(plan, r);
+        assertTrue(report.contains("100"));
+        assertTrue(report.contains("60"));
+    }
+
+    // ==================== 软评估（suggestions） ====================
 
     @Nested
     @DisplayName("硬校验（阻断流水线）")
@@ -132,7 +155,7 @@ class ScorePlanValidatorTest {
         }
     }
 
-    // ==================== 软评估（suggestions） ====================
+    // ==================== renderReport ====================
 
     @Nested
     @DisplayName("软评估（建议不阻断）")
@@ -212,7 +235,7 @@ class ScorePlanValidatorTest {
                             List.of(
                                     type("SINGLE_CHOICE", "单选题", 40, uniform(40, 2)),
                                     type("TRUE_FALSE", "判断题", 40, uniform(40, 1)) // 80+40=120≠100
-                                    ));
+                            ));
             // 调整使分值对齐：40×1 + 40×1.5 = 100 → 用 20×2 + 60×1 = 100
             ExamPlan plan2 =
                     validPlan(
@@ -224,23 +247,5 @@ class ScorePlanValidatorTest {
             assertTrue(r.pass());
             assertTrue(r.suggestions().stream().anyMatch(s -> s.contains("题量偏多")), "应触发题量偏多建议");
         }
-    }
-
-    // ==================== renderReport ====================
-
-    @Test
-    @DisplayName("renderReport 包含关键信息")
-    void renderReportContainsKeyInfo() {
-        ExamPlan plan =
-                validPlan(
-                        100,
-                        List.of(
-                                type("SINGLE_CHOICE", "单选题", 10, uniform(10, 3)),
-                                type("SHORT_ANSWER", "简答题", 3, uniform(3, 10))));
-        // 分值合计 = 30+30=60 ≠ 100，会有 issue
-        ScorePlanValidator.Result r = ScorePlanValidator.validate(plan);
-        String report = ScorePlanValidator.renderReport(plan, r);
-        assertTrue(report.contains("100"));
-        assertTrue(report.contains("60"));
     }
 }

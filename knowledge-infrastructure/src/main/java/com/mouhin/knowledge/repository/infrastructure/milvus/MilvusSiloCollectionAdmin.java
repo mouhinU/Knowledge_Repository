@@ -7,12 +7,13 @@ import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.collection.request.DescribeCollectionReq;
 import io.milvus.v2.service.collection.response.DescribeCollectionResp;
 import io.milvus.v2.service.collection.response.ListCollectionsResp;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SILO 集合管理 Milvus SDK 实现（P3-T6，T-3=方案 A collection-only）。
@@ -33,20 +34,24 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
 public class MilvusSiloCollectionAdmin implements SiloCollectionAdmin {
 
-    /** 建连失败最大重试次数。 */
+    /**
+     * 建连失败最大重试次数。
+     */
     private static final int MAX_CONNECT_ATTEMPTS = 3;
 
-    /** 重试基础退避（毫秒）。 */
+    /**
+     * 重试基础退避（毫秒）。
+     */
     private static final long RETRY_BACKOFF_BASE_MS = 1000L;
 
     private final String host;
     private final int port;
     private final String databaseName;
-
-    /** 懒初始化 Milvus 客户端（首次调用时建连）。 */
-    private volatile MilvusClientV2 client;
-
     private final Object clientLock = new Object();
+    /**
+     * 懒初始化 Milvus 客户端（首次调用时建连）。
+     */
+    private volatile MilvusClientV2 client;
 
     public MilvusSiloCollectionAdmin(
             @Value("${knowledge.milvus.host:localhost}") String host,
@@ -138,7 +143,9 @@ public class MilvusSiloCollectionAdmin implements SiloCollectionAdmin {
                 resp.getNumOfPartitions() != null ? resp.getNumOfPartitions() : 0L);
     }
 
-    /** 双重检查锁懒初始化 {@link MilvusClientV2}。 */
+    /**
+     * 双重检查锁懒初始化 {@link MilvusClientV2}。
+     */
     private MilvusClientV2 getClient() {
         if (client == null) {
             synchronized (clientLock) {

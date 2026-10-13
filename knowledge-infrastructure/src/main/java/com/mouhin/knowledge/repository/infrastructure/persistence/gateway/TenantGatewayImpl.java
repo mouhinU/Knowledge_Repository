@@ -6,11 +6,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.TenantConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * 租户仓储实现（infrastructure 层，P3-T1 平台端生命周期管理的持久化落地）。
@@ -31,6 +32,14 @@ public class TenantGatewayImpl implements TenantGateway {
 
     public TenantGatewayImpl(TenantMapper tenantMapper) {
         this.tenantMapper = tenantMapper;
+    }
+
+    private static String normalize(String tenantKey) {
+        if (tenantKey == null) {
+            return null;
+        }
+        String trimmed = tenantKey.trim();
+        return trimmed.isEmpty() ? null : trimmed.toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -117,13 +126,5 @@ public class TenantGatewayImpl implements TenantGateway {
         doObj.setUpdateTime(LocalDateTime.now());
         tenantMapper.updateById(doObj);
         tenant.setUpdateTime(doObj.getUpdateTime());
-    }
-
-    private static String normalize(String tenantKey) {
-        if (tenantKey == null) {
-            return null;
-        }
-        String trimmed = tenantKey.trim();
-        return trimmed.isEmpty() ? null : trimmed.toLowerCase(Locale.ROOT);
     }
 }

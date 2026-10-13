@@ -1,15 +1,14 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 出卷契约校验器单测：锁定发布前硬关口的 PASS / FAIL 判定 —— 空卷、null 方案降级、题数 / 分值 / 题型分布对齐、 印刷题号唯一、答案规范（单选恰 1 字母 / 多选 ≥

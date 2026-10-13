@@ -4,10 +4,11 @@ import com.mouhin.knowledge.repository.application.converter.ExamGenerationConve
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
+import org.springframework.stereotype.Component;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Component;
 
 /**
  * 分页查询出卷历史执行器（records / total / page / size）
@@ -28,12 +29,16 @@ public class PageHistoryQryExe {
         this.examHistoryGateway = examHistoryGateway;
     }
 
-    /** 兼容旧签名：不带作用域 → 全局视图。 */
+    /**
+     * 兼容旧签名：不带作用域 → 全局视图。
+     */
     public Map<String, Object> execute(int page, int size) {
         return execute(page, size, null);
     }
 
-    /** P0-T3：带 {@link Permission} 作用域分页；{@code permission==null}/{@code admin=true} 视为全局。 */
+    /**
+     * P0-T3：带 {@link Permission} 作用域分页；{@code permission==null}/{@code admin=true} 视为全局。
+     */
     public Map<String, Object> execute(int page, int size, Permission permission) {
         int safePage = Math.max(page, 0);
         int safeSize = size > 0 ? size : 10;

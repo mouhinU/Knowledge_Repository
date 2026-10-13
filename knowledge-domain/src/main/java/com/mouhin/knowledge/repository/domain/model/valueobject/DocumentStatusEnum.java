@@ -8,18 +8,28 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public enum DocumentStatusEnum {
 
-    /** 已上传，等待处理 */
+    /**
+     * 已上传，等待处理
+     */
     UPLOADED,
 
-    /** 正在解析和分块 */
+    /**
+     * 正在解析和分块
+     */
     PROCESSING,
 
-    /** 已向量化并存入 Milvus */
+    /**
+     * 已向量化并存入 Milvus
+     */
     INDEXED,
 
-    /** 处理失败 */
+    /**
+     * 处理失败
+     */
     FAILED,
 
-    /** 已归档，不参与检索 */
+    /**
+     * 已归档，不参与检索
+     */
     ARCHIVED
 }

@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-09-02
  */
 @Mapper
-public interface DocumentChunkMapper extends BaseMapper<DocumentChunkDO> {}
+public interface DocumentChunkMapper extends BaseMapper<DocumentChunkDO> {
+}

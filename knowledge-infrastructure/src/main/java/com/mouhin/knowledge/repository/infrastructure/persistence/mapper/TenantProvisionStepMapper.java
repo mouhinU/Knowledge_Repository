@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-08
  */
 @Mapper
-public interface TenantProvisionStepMapper extends BaseMapper<TenantProvisionStepDO> {}
+public interface TenantProvisionStepMapper extends BaseMapper<TenantProvisionStepDO> {
+}

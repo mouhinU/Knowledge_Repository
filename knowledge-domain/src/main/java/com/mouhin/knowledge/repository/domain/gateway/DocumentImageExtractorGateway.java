@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;

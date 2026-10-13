@@ -9,10 +9,11 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeleteApproval;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 /**
  * 平台端删除审批令牌签发执行器（app 层用例，事务边界，P3-T5；S-4=方案 A 双人复核第一步）。
@@ -32,7 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class IssueDeleteApprovalCmdExe {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "TENANT_DELETE_APPROVAL_ISSUE";
 
     private final TenantGateway tenantGateway;

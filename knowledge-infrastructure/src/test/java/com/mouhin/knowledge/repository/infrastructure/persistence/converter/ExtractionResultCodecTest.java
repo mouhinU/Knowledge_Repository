@@ -1,13 +1,16 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** {@link ExtractionResultCodec} JSON 编解码往返测试（Phase C 持久缓存）。 */
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * {@link ExtractionResultCodec} JSON 编解码往返测试（Phase C 持久缓存）。
+ */
 @DisplayName("C 提取结果编解码")
 class ExtractionResultCodecTest {
 

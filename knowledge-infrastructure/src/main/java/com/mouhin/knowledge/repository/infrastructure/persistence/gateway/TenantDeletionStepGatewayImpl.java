@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.TenantDeletionStep;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.TenantDeletionStepConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDeletionStepDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.TenantDeletionStepMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * {@link TenantDeletionStepGateway} MyBatis-Plus 实现（P3-T5）。

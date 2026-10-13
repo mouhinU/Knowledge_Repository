@@ -3,8 +3,9 @@ package com.mouhin.knowledge.repository.application.executor.platform;
 import com.mouhin.knowledge.repository.application.converter.TenantVoConverter;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
-import java.util.List;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 平台端列出租户执行器（app 层用例，只读，P3-T1）。

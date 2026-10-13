@@ -27,20 +27,21 @@
             <div class="card">
                 <div class="card-title">写作输入</div>
                 <div class="writing-input-area">
-                    <textarea class="form-input" id="writing-question" aria-label="写作主题或问题"
+                    <textarea aria-label="写作主题或问题" class="form-input" id="writing-question"
                               placeholder="输入你的问题或写作主题，AI 将从知识库中检索相关内容并生成文章..."></textarea>
                     <button class="btn btn-primary" id="writing-generate-btn" onclick="generateArticle()"
                             style="align-self:flex-end;height:42px;white-space:nowrap">生成文章
                     </button>
                 </div>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                    <label class="form-label" style="margin:0;white-space:nowrap" for="writing-user">用户 ID</label>
+                    <label class="form-label" for="writing-user" style="margin:0;white-space:nowrap">用户 ID</label>
                     <input class="form-input" id="writing-user" style="width:160px" value="user-admin">
                     <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
                         <input checked id="writing-admin" type="checkbox"> 管理员模式
                     </label>
                     <div style="flex:1"></div>
-                    <label class="form-label" style="margin:0;white-space:nowrap" for="writing-category">知识分类</label>
+                    <label class="form-label" for="writing-category"
+                           style="margin:0;white-space:nowrap">知识分类</label>
                     <select class="form-input" id="writing-category" style="width:120px">
                         <option value="">全部分类</option>
                         <option value="工作">工作</option>
@@ -77,9 +78,9 @@
                 </div>
 
                 <div class="agent-panel" id="panel-researcher">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                         role="button"
+                         tabindex="0">
                         <span class="agent-name"><span class="agent-icon researcher">R</span> 研究员 (Researcher)</span>
                         <span class="agent-status pending" id="status-researcher">等待中</span>
                     </div>
@@ -88,16 +89,18 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-researcher">等待检索...</pre>
                         </details>
-                        <details class="agent-thinking" id="thinkingwrap-researcher"><summary>💭 思考过程</summary>
-                            <pre id="thinking-researcher"></pre></details>
+                        <details class="agent-thinking" id="thinkingwrap-researcher">
+                            <summary>💭 思考过程</summary>
+                            <pre id="thinking-researcher"></pre>
+                        </details>
                         <div class="agent-output-label">研究发现</div>
                         <pre id="output-researcher">等待执行...</pre>
                     </div>
                 </div>
                 <div class="agent-panel" id="panel-writer">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                         role="button"
+                         tabindex="0">
                         <span class="agent-name"><span class="agent-icon writer">W</span> 写手 (Writer)</span>
                         <span class="agent-status pending" id="status-writer">等待中</span>
                     </div>
@@ -106,16 +109,18 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-writer">等待研究员完成...</pre>
                         </details>
-                        <details class="agent-thinking" id="thinkingwrap-writer"><summary>💭 思考过程</summary>
-                            <pre id="thinking-writer"></pre></details>
+                        <details class="agent-thinking" id="thinkingwrap-writer">
+                            <summary>💭 思考过程</summary>
+                            <pre id="thinking-writer"></pre>
+                        </details>
                         <div class="agent-output-label">文章草稿</div>
                         <pre id="output-writer">等待执行...</pre>
                     </div>
                 </div>
                 <div class="agent-panel" id="panel-reviewer">
-                    <div class="agent-panel-header" role="button" tabindex="0"
-                         onclick="this.parentElement.classList.toggle('open')"
-                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}">
+                    <div class="agent-panel-header" onclick="this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"
+                         role="button"
+                         tabindex="0">
                         <span class="agent-name"><span class="agent-icon reviewer">V</span> 审核员 (Reviewer)</span>
                         <span class="agent-status pending" id="status-reviewer">等待中</span>
                     </div>
@@ -124,8 +129,10 @@
                             <summary>输入物料</summary>
                             <pre class="agent-materials-content" id="materials-content-reviewer">等待写手完成...</pre>
                         </details>
-                        <details class="agent-thinking" id="thinkingwrap-reviewer"><summary>💭 思考过程</summary>
-                            <pre id="thinking-reviewer"></pre></details>
+                        <details class="agent-thinking" id="thinkingwrap-reviewer">
+                            <summary>💭 思考过程</summary>
+                            <pre id="thinking-reviewer"></pre>
+                        </details>
                         <div class="agent-output-label">审核结果</div>
                         <pre id="output-reviewer">等待执行...</pre>
                     </div>
@@ -139,7 +146,8 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
                         <div class="card-title" style="margin:0">生成结果</div>
                         <div style="display:flex;gap:8px">
-                            <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程</button>
+                            <button class="btn btn-outline btn-sm" onclick="toggleThinkingPanels()">展开/收起思考过程
+                            </button>
                             <button class="btn btn-primary btn-sm" onclick="copyArticle()">复制文章</button>
                         </div>
                     </div>
@@ -168,7 +176,9 @@
                         </tr>
                         </thead>
                         <tbody id="writing-history-list">
-                        <tr><td class="loading" colspan="5">加载中...</td></tr>
+                        <tr>
+                            <td class="loading" colspan="5">加载中...</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -178,9 +188,9 @@
 </div>
 
 <!-- 节点详情弹窗 -->
-<div class="node-modal-overlay" id="node-modal-overlay" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeNodeModal()"
-     onkeydown="if(event.key==='Escape')closeNodeModal()">
+<div class="node-modal-overlay" id="node-modal-overlay" onclick="if(event.target===this)closeNodeModal()" onkeydown="if(event.key==='Escape')closeNodeModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="node-modal">
         <div class="node-modal-header">
             <div class="node-modal-title">
@@ -221,9 +231,9 @@
 </div>
 
 <!-- 历史详情弹窗 -->
-<div class="history-modal-overlay" id="history-modal-overlay" role="presentation" tabindex="-1"
-     onclick="if(event.target===this)closeHistoryModal()"
-     onkeydown="if(event.key==='Escape')closeHistoryModal()">
+<div class="history-modal-overlay" id="history-modal-overlay" onclick="if(event.target===this)closeHistoryModal()" onkeydown="if(event.key==='Escape')closeHistoryModal()"
+     role="presentation"
+     tabindex="-1">
     <div class="history-modal">
         <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
         <div id="history-detail-content"></div>

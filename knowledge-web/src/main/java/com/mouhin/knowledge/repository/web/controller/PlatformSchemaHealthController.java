@@ -5,7 +5,6 @@ import com.mouhin.knowledge.repository.application.service.TenantSchemaRunner.Sc
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +12,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * 平台端 SILO schema 健康体检控制器（adapter 层，P3-T6）。
@@ -63,7 +64,9 @@ public class PlatformSchemaHealthController {
         return ResponseEntity.ok(result.toResponseMap());
     }
 
-    /** 手工触发一次完整 schema 对齐巡检（与 GET 等价，但审计动作名为 {@code SILO_SCHEMA_CHECK_MANUAL}）。 */
+    /**
+     * 手工触发一次完整 schema 对齐巡检（与 GET 等价，但审计动作名为 {@code SILO_SCHEMA_CHECK_MANUAL}）。
+     */
     @PostMapping("/check")
     public ResponseEntity<Map<String, Object>> triggerCheck(HttpServletRequest request) {
         String operator = resolveOperator(request);
@@ -72,7 +75,9 @@ public class PlatformSchemaHealthController {
         return ResponseEntity.ok(result.toResponseMap());
     }
 
-    /** 从请求属性中提取平台令牌操作者（镜像 {@code PlatformTenantController} 模式）。 */
+    /**
+     * 从请求属性中提取平台令牌操作者（镜像 {@code PlatformTenantController} 模式）。
+     */
     private String resolveOperator(HttpServletRequest request) {
         Object payload = request.getAttribute(PlatformTokenAuthFilter.PRINCIPAL_ATTRIBUTE);
         if (payload instanceof PlatformTokenPayload p) {

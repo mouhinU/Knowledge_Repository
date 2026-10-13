@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,8 @@ public interface WritingHistoryGateway {
 
     Optional<WritingHistory> findBySessionId(String sessionId);
 
-    /** 按创建时间倒序查询历史记录 */
+    /**
+     * 按创建时间倒序查询历史记录
+     */
     List<WritingHistory> listRecent(int limit);
 }

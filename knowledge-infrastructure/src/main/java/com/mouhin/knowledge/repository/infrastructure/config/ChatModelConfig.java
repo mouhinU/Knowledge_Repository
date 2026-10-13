@@ -8,11 +8,12 @@ import com.mouhin.knowledge.repository.infrastructure.llm.ResilientStreamingChat
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 /**
  * Chat 角色模型装配（Phase R1 三段式）。
@@ -28,7 +29,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class ChatModelConfig {
 
-    /** Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端，并套 {@code chat} 角色熔断/重试。 */
+    /**
+     * Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端，并套 {@code chat} 角色熔断/重试。
+     */
     @Bean("delegateChatModel")
     public ChatModel chatModel(
             LlmChatProperties chat,

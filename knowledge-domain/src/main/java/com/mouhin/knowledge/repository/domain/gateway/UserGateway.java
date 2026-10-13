@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.User;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -36,7 +37,9 @@ public interface UserGateway {
 
     List<User> listAll();
 
-    /** 查找用户在指定文档上拥有的角色列表 */
+    /**
+     * 查找用户在指定文档上拥有的角色列表
+     */
     List<String> findRoleKeysByUserIdAndDocumentId(Long userId, Long documentId);
 
     void save(User user);
@@ -47,7 +50,7 @@ public interface UserGateway {
      * <p>行为等同 {@link #save(User)}，但强制写入指定 {@code tenantId}，不依赖 {@code TenantContext} / MyBatis-Plus
      * 拦截器；主键回填 {@code user.id}。
      *
-     * @param user 用户实体（其内部 tenantKey 字段仅供 domain 层读；写库以本参数 tenantId 为准）
+     * @param user     用户实体（其内部 tenantKey 字段仅供 domain 层读；写库以本参数 tenantId 为准）
      * @param tenantId 目标租户 id
      */
     void saveWithTenant(User user, long tenantId);

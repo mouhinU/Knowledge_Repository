@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 /**
  * 解析结果持久缓存数据对象（Phase C，表 {@code kb_extraction_cache}）。
@@ -26,7 +27,9 @@ public class ExtractionCacheDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 租户归属列（P4-T3 起）：由 {@code TenantLineInnerInterceptor} 自动注入，不参与业务键拼装。 */
+    /**
+     * 租户归属列（P4-T3 起）：由 {@code TenantLineInnerInterceptor} 自动注入，不参与业务键拼装。
+     */
     @TableField("tenant_id")
     private Long tenantId;
 

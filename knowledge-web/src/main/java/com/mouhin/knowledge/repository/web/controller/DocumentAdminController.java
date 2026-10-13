@@ -6,20 +6,16 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.IndexCu
 import com.mouhin.knowledge.repository.application.executor.docingestion.ReindexAsyncCmdExe;
 import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
-import com.mouhin.knowledge.repository.client.dto.ChunkingRequest;
-import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
-import com.mouhin.knowledge.repository.client.dto.DocumentVO;
-import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
-import com.mouhin.knowledge.repository.client.dto.PreviewDocumentQuery;
-import com.mouhin.knowledge.repository.client.dto.PreviewResult;
+import com.mouhin.knowledge.repository.client.dto.*;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.service.ExtractionStrategyStackParser;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 文档管理控制器
@@ -32,7 +28,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class DocumentAdminController {
 
-    /** 异步任务响应 map 的公共 key（java:S1192 抽常量防 4×3 处漂移）。 */
+    /**
+     * 异步任务响应 map 的公共 key（java:S1192 抽常量防 4×3 处漂移）。
+     */
     private static final String FIELD_DOCUMENT_KEY = "documentKey";
 
     private static final String FIELD_STATUS = "status";
@@ -63,13 +61,17 @@ public class DocumentAdminController {
         this.indexProgressStore = indexProgressStore;
     }
 
-    /** 获取文档详情 */
+    /**
+     * 获取文档详情
+     */
     @GetMapping("/{documentKey}")
     public ResponseEntity<DocumentVO> getDocument(@PathVariable String documentKey) {
         return ResponseEntity.ok(documentService.getDocument(documentKey));
     }
 
-    /** 按所有者查询文档列表 */
+    /**
+     * 按所有者查询文档列表
+     */
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<DocumentVO>> listByOwner(
             @PathVariable String ownerId,
@@ -78,7 +80,9 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByOwner(ownerId, page, size));
     }
 
-    /** 按部门查询文档列表 */
+    /**
+     * 按部门查询文档列表
+     */
     @GetMapping("/department/{departmentId}")
     public ResponseEntity<List<DocumentVO>> listByDepartment(
             @PathVariable String departmentId,
@@ -87,13 +91,17 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByDepartment(departmentId, page, size));
     }
 
-    /** 查询全部文档列表 */
+    /**
+     * 查询全部文档列表
+     */
     @GetMapping("/list")
     public ResponseEntity<List<DocumentVO>> listAll() {
         return ResponseEntity.ok(documentService.listDocuments());
     }
 
-    /** 按状态查询文档列表 */
+    /**
+     * 按状态查询文档列表
+     */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<DocumentVO>> listByStatus(@PathVariable String status) {
         DocumentStatusEnum statusEnum;
@@ -105,19 +113,25 @@ public class DocumentAdminController {
         return ResponseEntity.ok(documentService.listByStatus(statusEnum.name()));
     }
 
-    /** 获取知识库统计 */
+    /**
+     * 获取知识库统计
+     */
     @GetMapping("/stats")
     public ResponseEntity<KnowledgeStatsVO> getStats() {
         return ResponseEntity.ok(documentService.getStats());
     }
 
-    /** 获取各分类文档数量统计 */
+    /**
+     * 获取各分类文档数量统计
+     */
     @GetMapping("/category-stats")
     public ResponseEntity<Map<String, Long>> getCategoryStats() {
         return ResponseEntity.ok(documentService.getCategoryStats());
     }
 
-    /** 归档文档 */
+    /**
+     * 归档文档
+     */
     @PutMapping("/{documentKey}/archive")
     public ResponseEntity<Map<String, String>> archive(@PathVariable String documentKey) {
         documentService.archive(documentKey);
@@ -207,7 +221,9 @@ public class DocumentAdminController {
                 .body(Map.of(FIELD_DOCUMENT_KEY, documentKey, FIELD_STATUS, "ENQUEUED"));
     }
 
-    /** 解析预览（基于已上传文档，不入库） */
+    /**
+     * 解析预览（基于已上传文档，不入库）
+     */
     @GetMapping("/{documentKey}/preview")
     public ResponseEntity<PreviewResult> preview(
             @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
@@ -226,7 +242,9 @@ public class DocumentAdminController {
         return ResponseEntity.ok(result);
     }
 
-    /** 确认入库（异步，通过 SSE 推送进度） */
+    /**
+     * 确认入库（异步，通过 SSE 推送进度）
+     */
     @PostMapping("/{documentKey}/index")
     public ResponseEntity<Map<String, Object>> indexDocument(
             @PathVariable String documentKey, ChunkingRequest chunkingRequest) {
@@ -255,7 +273,9 @@ public class DocumentAdminController {
                         "Indexing started. Connect to SSE for progress."));
     }
 
-    /** 使用自定义分块入库（异步，通过 SSE 推送进度） */
+    /**
+     * 使用自定义分块入库（异步，通过 SSE 推送进度）
+     */
     @PostMapping("/{documentKey}/index-custom")
     public ResponseEntity<Map<String, Object>> indexWithCustomChunks(
             @PathVariable String documentKey, @RequestBody List<CustomChunkInput> customChunks) {
@@ -278,13 +298,17 @@ public class DocumentAdminController {
                         "Indexing started. Connect to SSE for progress."));
     }
 
-    /** 入库进度 SSE 端点 */
+    /**
+     * 入库进度 SSE 端点
+     */
     @GetMapping("/{documentKey}/index/progress")
     public SseEmitter indexProgress(@PathVariable String documentKey) {
         return indexProgressStore.createEmitter(documentKey);
     }
 
-    /** 删除文档 */
+    /**
+     * 删除文档
+     */
     @DeleteMapping("/{documentKey}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable String documentKey) {
         documentService.delete(documentKey);

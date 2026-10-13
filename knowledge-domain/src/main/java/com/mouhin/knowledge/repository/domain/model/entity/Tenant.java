@@ -24,45 +24,71 @@ import java.util.Objects;
  */
 public class Tenant {
 
-    /** 状态：已创建但尚未开通（P3-T2 起点）。 */
+    /**
+     * 状态：已创建但尚未开通（P3-T2 起点）。
+     */
     public static final String STATUS_PENDING = "PENDING";
 
-    /** 状态：开通中（步骤逐条落 {@code sys_tenant_provision_step}）。 */
+    /**
+     * 状态：开通中（步骤逐条落 {@code sys_tenant_provision_step}）。
+     */
     public static final String STATUS_PROVISIONING = "PROVISIONING";
 
-    /** 状态：正常。 */
+    /**
+     * 状态：正常。
+     */
     public static final String STATUS_ACTIVE = "ACTIVE";
 
-    /** 状态：已软停（租户侧请求返 403 TENANT_SUSPENDED，平台侧仍可管理）。 */
+    /**
+     * 状态：已软停（租户侧请求返 403 TENANT_SUSPENDED，平台侧仍可管理）。
+     */
     public static final String STATUS_SUSPENDED = "SUSPENDED";
 
-    /** 状态：已归档（保留期内可恢复；S-4 保留期起点见 {@link #archivedAt}）。 */
+    /**
+     * 状态：已归档（保留期内可恢复；S-4 保留期起点见 {@link #archivedAt}）。
+     */
     public static final String STATUS_ARCHIVED = "ARCHIVED";
 
-    /** 状态：删除中（ARCHIVED 过保留期 + 双人复核通过后由 reconciler 认领，硬删进行时的中间态）。 */
+    /**
+     * 状态：删除中（ARCHIVED 过保留期 + 双人复核通过后由 reconciler 认领，硬删进行时的中间态）。
+     */
     public static final String STATUS_DELETING = "DELETING";
 
-    /** 状态：已删除（终态）。 */
+    /**
+     * 状态：已删除（终态）。
+     */
     public static final String STATUS_DELETED = "DELETED";
 
-    /** 状态：开通失败（可通过 {@code provisionRequestId} + attempt_no+1 重放）。 */
+    /**
+     * 状态：开通失败（可通过 {@code provisionRequestId} + attempt_no+1 重放）。
+     */
     public static final String STATUS_FAILED = "FAILED";
 
     private Long tenantId;
 
-    /** 租户业务键（全局唯一，小写，用于子域名 / 集合命名 / 令牌 claim）。 */
+    /**
+     * 租户业务键（全局唯一，小写，用于子域名 / 集合命名 / 令牌 claim）。
+     */
     private String tenantKey;
 
-    /** 租户展示名。 */
+    /**
+     * 租户展示名。
+     */
     private String name;
 
-    /** 套餐标识（如 FREE / STANDARD / ENTERPRISE）。 */
+    /**
+     * 套餐标识（如 FREE / STANDARD / ENTERPRISE）。
+     */
     private String plan;
 
-    /** 生命周期状态，取值见本类 {@code STATUS_*} 常量。 */
+    /**
+     * 生命周期状态，取值见本类 {@code STATUS_*} 常量。
+     */
     private String status;
 
-    /** 数据驻留区（如 cn-hangzhou），用于 SILO placement 决策（P3-T6）。 */
+    /**
+     * 数据驻留区（如 cn-hangzhou），用于 SILO placement 决策（P3-T6）。
+     */
     private String dataRegion;
 
     /**
@@ -77,10 +103,14 @@ public class Tenant {
      */
     private String deletionRequestId;
 
-    /** 归档时间（S-4=方案 A 的 30 天保留期起点）；非归档态为 {@code null}。 */
+    /**
+     * 归档时间（S-4=方案 A 的 30 天保留期起点）；非归档态为 {@code null}。
+     */
     private LocalDateTime archivedAt;
 
-    /** 硬删完成时间（DELETED 终态戳）；未完成为 {@code null}。 */
+    /**
+     * 硬删完成时间（DELETED 终态戳）；未完成为 {@code null}。
+     */
     private LocalDateTime deletedAt;
 
     private LocalDateTime createTime;
@@ -89,27 +119,37 @@ public class Tenant {
 
     // ==================== 业务方法 ====================
 
-    /** 是否为待开通态。 */
+    /**
+     * 是否为待开通态。
+     */
     public boolean isPending() {
         return STATUS_PENDING.equals(status);
     }
 
-    /** 是否为开通中态。 */
+    /**
+     * 是否为开通中态。
+     */
     public boolean isProvisioning() {
         return STATUS_PROVISIONING.equals(status);
     }
 
-    /** 是否为正常态。 */
+    /**
+     * 是否为正常态。
+     */
     public boolean isActive() {
         return STATUS_ACTIVE.equals(status);
     }
 
-    /** 是否为软停态。 */
+    /**
+     * 是否为软停态。
+     */
     public boolean isSuspended() {
         return STATUS_SUSPENDED.equals(status);
     }
 
-    /** 是否为开通失败态。 */
+    /**
+     * 是否为开通失败态。
+     */
     public boolean isFailed() {
         return STATUS_FAILED.equals(status);
     }
@@ -119,7 +159,7 @@ public class Tenant {
      * PROVISIONING → PROVISIONING}（同请求进程内恢复，视为幂等）。
      *
      * @param requestId 本次开通请求 UUID v4；不可为 {@code null} 或空白
-     * @throws IllegalStateException 当前状态是 ACTIVE / SUSPENDED / ARCHIVED / DELETED
+     * @throws IllegalStateException    当前状态是 ACTIVE / SUSPENDED / ARCHIVED / DELETED
      * @throws IllegalArgumentException {@code requestId} 为空
      */
     public void beginProvisioning(String requestId) {
@@ -199,17 +239,23 @@ public class Tenant {
         this.status = STATUS_ACTIVE;
     }
 
-    /** 是否为归档态。 */
+    /**
+     * 是否为归档态。
+     */
     public boolean isArchived() {
         return STATUS_ARCHIVED.equals(status);
     }
 
-    /** 是否为删除中态。 */
+    /**
+     * 是否为删除中态。
+     */
     public boolean isDeleting() {
         return STATUS_DELETING.equals(status);
     }
 
-    /** 是否为已删除终态。 */
+    /**
+     * 是否为已删除终态。
+     */
     public boolean isDeleted() {
         return STATUS_DELETED.equals(status);
     }
@@ -220,7 +266,7 @@ public class Tenant {
      * <p>归档是软删——保留期内数据仍在，可经 {@link #restore()} 恢复；过保留期 + 双人复核后才由 reconciler 硬删。
      *
      * @param archivedAt 归档时间戳；不可为 {@code null}
-     * @throws IllegalStateException 当前状态不是 ACTIVE / SUSPENDED
+     * @throws IllegalStateException    当前状态不是 ACTIVE / SUSPENDED
      * @throws IllegalArgumentException {@code archivedAt} 为 {@code null}
      */
     public void archive(LocalDateTime archivedAt) {
@@ -256,7 +302,7 @@ public class Tenant {
      * <p>调用方（{@code ConfirmTenantDeletionCmdExe}）须先校验保留期已过 + 双人复核令牌有效；本方法只负责状态机合法性。
      *
      * @param requestId 本次删除请求 UUID v4；不可为 {@code null} 或空白
-     * @throws IllegalStateException 当前状态不是 ARCHIVED
+     * @throws IllegalStateException    当前状态不是 ARCHIVED
      * @throws IllegalArgumentException {@code requestId} 为空
      */
     public void markDeleting(String requestId) {
@@ -275,7 +321,7 @@ public class Tenant {
      * 删除完成：{@code DELETING → DELETED}（终态），并打 {@link #deletedAt} 戳。
      *
      * @param deletedAt 硬删完成时间戳；不可为 {@code null}
-     * @throws IllegalStateException 当前状态不是 DELETING
+     * @throws IllegalStateException    当前状态不是 DELETING
      * @throws IllegalArgumentException {@code deletedAt} 为 {@code null}
      */
     public void markDeleted(LocalDateTime deletedAt) {

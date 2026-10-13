@@ -1,14 +1,5 @@
 package com.mouhin.knowledge.repository.application.support;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.exception.QuotaExceededException;
 import com.mouhin.knowledge.repository.domain.exception.ThrottleRequiredException;
 import com.mouhin.knowledge.repository.domain.gateway.TenantPlanLimitGateway;
@@ -16,13 +7,20 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaPolicy;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantPlanLimit;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
-import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link QuotaGuard} 单测（P6-T3）。

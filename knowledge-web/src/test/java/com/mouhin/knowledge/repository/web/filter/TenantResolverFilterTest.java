@@ -1,22 +1,19 @@
 package com.mouhin.knowledge.repository.web.filter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.application.config.SaasProperties;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import jakarta.servlet.FilterChain;
+import org.junit.jupiter.api.*;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link TenantResolverFilter} 单元测试（P1-T3）。
@@ -30,6 +27,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 @DisplayName("TenantResolverFilter 租户解析 (P1-T3)")
 class TenantResolverFilterTest {
 
+    private static final String SENTINEL = "<<chain-not-run>>";
     private SaasProperties saasProperties;
     private StubTenantDirectory directory;
     private TenantResolverFilter filter;
@@ -46,7 +44,9 @@ class TenantResolverFilterTest {
         TenantContext.clear();
     }
 
-    /** 记录链执行时上下文里生效的租户（用于断言"确实在下游可见"）。 */
+    /**
+     * 记录链执行时上下文里生效的租户（用于断言"确实在下游可见"）。
+     */
     private String runCapturing(MockHttpServletRequest request, MockHttpServletResponse response) {
         String[] captured = {SENTINEL};
         FilterChain recording = (rq, rs) -> captured[0] = String.valueOf(TenantContext.get());
@@ -58,12 +58,56 @@ class TenantResolverFilterTest {
         return captured[0];
     }
 
-    private static final String SENTINEL = "<<chain-not-run>>";
-
     private MockHttpServletRequest apiRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/documents");
         request.setRequestURI("/api/documents");
         return request;
+    }
+
+    /**
+     * 可控状态桩：默认任意 key 返回 {@code ACTIVE}（既有解析用例据此保持放行）； 单测可 {@link #setStatus} 覆盖某 key 为
+     * SUSPENDED，或用哨兵 {@link #UNKNOWN} 表示"未知租户"（返回 empty）。失效方法为空操作（本桩无缓存）。
+     */
+    static class StubTenantDirectory implements TenantDirectory {
+
+        /**
+         * 哨兵：令 {@link #findStatusByKey} 返回 {@link Optional#empty()}（模拟未知租户）。
+         */
+        static final String UNKNOWN = "<<UNKNOWN>>";
+
+        private final Map<String, String> statuses = new HashMap<>();
+        private final String defaultStatus = Tenant.STATUS_ACTIVE;
+
+        void setStatus(String tenantKey, String status) {
+            statuses.put(tenantKey.trim().toLowerCase(java.util.Locale.ROOT), status);
+        }
+
+        @Override
+        public Optional<String> findStatusByKey(String tenantKey) {
+            if (tenantKey == null || tenantKey.isBlank()) {
+                return Optional.empty();
+            }
+            String key = tenantKey.trim().toLowerCase(java.util.Locale.ROOT);
+            String status = statuses.getOrDefault(key, defaultStatus);
+            return UNKNOWN.equals(status) || status == null
+                    ? Optional.empty()
+                    : Optional.of(status);
+        }
+
+        @Override
+        public void invalidateByKey(String tenantKey) {
+            // no-op：桩无缓存
+        }
+
+        @Override
+        public void invalidateById(long tenantId) {
+            // no-op
+        }
+
+        @Override
+        public void invalidateAll() {
+            // no-op
+        }
     }
 
     @Nested
@@ -304,50 +348,6 @@ class TenantResolverFilterTest {
 
             assertThat(runCapturing(request, response)).isEqualTo("ghost");
             assertThat(response.getStatus()).isEqualTo(200);
-        }
-    }
-
-    /**
-     * 可控状态桩：默认任意 key 返回 {@code ACTIVE}（既有解析用例据此保持放行）； 单测可 {@link #setStatus} 覆盖某 key 为
-     * SUSPENDED，或用哨兵 {@link #UNKNOWN} 表示"未知租户"（返回 empty）。失效方法为空操作（本桩无缓存）。
-     */
-    static class StubTenantDirectory implements TenantDirectory {
-
-        /** 哨兵：令 {@link #findStatusByKey} 返回 {@link Optional#empty()}（模拟未知租户）。 */
-        static final String UNKNOWN = "<<UNKNOWN>>";
-
-        private final Map<String, String> statuses = new HashMap<>();
-        private final String defaultStatus = Tenant.STATUS_ACTIVE;
-
-        void setStatus(String tenantKey, String status) {
-            statuses.put(tenantKey.trim().toLowerCase(java.util.Locale.ROOT), status);
-        }
-
-        @Override
-        public Optional<String> findStatusByKey(String tenantKey) {
-            if (tenantKey == null || tenantKey.isBlank()) {
-                return Optional.empty();
-            }
-            String key = tenantKey.trim().toLowerCase(java.util.Locale.ROOT);
-            String status = statuses.getOrDefault(key, defaultStatus);
-            return UNKNOWN.equals(status) || status == null
-                    ? Optional.empty()
-                    : Optional.of(status);
-        }
-
-        @Override
-        public void invalidateByKey(String tenantKey) {
-            // no-op：桩无缓存
-        }
-
-        @Override
-        public void invalidateById(long tenantId) {
-            // no-op
-        }
-
-        @Override
-        public void invalidateAll() {
-            // no-op
         }
     }
 }

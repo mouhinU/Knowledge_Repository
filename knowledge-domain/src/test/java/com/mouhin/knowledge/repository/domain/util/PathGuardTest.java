@@ -1,14 +1,15 @@
 package com.mouhin.knowledge.repository.domain.util;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.io.IOException;
-import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link PathGuard} 单元测试：锁定扩展名白名单、路径穿越防护、多根白名单三类不变式。
@@ -62,17 +63,17 @@ class PathGuardTest {
         @DisplayName("不变式：sanitize 结果永远以点开头且仅含字母数字，最长 11")
         void invariantNeverCarriesSeparators() {
             String[] inputs = {
-                null,
-                "",
-                "noext",
-                "a.b",
-                "foo.pdf",
-                "evil/../../x",
-                "foo\\bar\\baz",
-                "foo.\0",
-                "foo.p df",
-                "a." + "x".repeat(50),
-                "multi.dot.name.tar.gz",
+                    null,
+                    "",
+                    "noext",
+                    "a.b",
+                    "foo.pdf",
+                    "evil/../../x",
+                    "foo\\bar\\baz",
+                    "foo.\0",
+                    "foo.p df",
+                    "a." + "x".repeat(50),
+                    "multi.dot.name.tar.gz",
             };
             for (String in : inputs) {
                 String ext = PathGuard.sanitizeExtension(in);

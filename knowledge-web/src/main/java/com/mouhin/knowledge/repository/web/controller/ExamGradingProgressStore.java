@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 考试评分进度存储与 SSE 推送
@@ -31,10 +32,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class ExamGradingProgressStore {
 
-    /** SSE 超时：10 分钟 */
+    /**
+     * SSE 超时：10 分钟
+     */
     private static final long SSE_TIMEOUT_MS = 600_000L;
 
-    /** 每场考试的 SSE 连接（同一 streamId 只允许一个客户端） */
+    /**
+     * 每场考试的 SSE 连接（同一 streamId 只允许一个客户端）
+     */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**
@@ -76,7 +81,7 @@ public class ExamGradingProgressStore {
      *
      * <p>批量评分时同一 SSE 通道会承载多个场次的进度事件，前端按 sessionId 分派到对应卡片。
      *
-     * @param streamId SSE 通道 ID
+     * @param streamId  SSE 通道 ID
      * @param sessionId 若不为 null，事件 payload 中会附带 sessionId
      * @return 评分进度回调
      */
@@ -183,7 +188,7 @@ public class ExamGradingProgressStore {
     /**
      * 推送批量收尾事件并关闭 SSE 通道
      *
-     * @param streamId SSE 通道 ID
+     * @param streamId     SSE 通道 ID
      * @param sessionCount 本次批量评分覆盖的场次数
      */
     public void emitBatchComplete(String streamId, int sessionCount) {

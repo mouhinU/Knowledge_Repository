@@ -1,32 +1,17 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.client.api.PlatformTenantServiceI;
-import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
-import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantDeletionPreviewVO;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
-import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
-import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.client.dto.*;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 平台端租户生命周期控制器（adapter 层，P3-T1 / T-4 方案 B）。
@@ -52,7 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class PlatformTenantController {
 
-    /** 请求体字段名（抽常量防多处漂移，java:S1192）。 */
+    /**
+     * 请求体字段名（抽常量防多处漂移，java:S1192）。
+     */
     private static final String FIELD_TENANT_KEY = "tenantKey";
 
     private static final String FIELD_NAME = "name";
@@ -68,6 +55,27 @@ public class PlatformTenantController {
 
     public PlatformTenantController(PlatformTenantServiceI platformTenantService) {
         this.platformTenantService = platformTenantService;
+    }
+
+    private static String stringOf(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    /**
+     * 防御性解析整型请求体字段：非数值 / 缺省返回 {@code null}，由服务层回落默认值（不因脏输入 400）。
+     */
+    private static Integer intOf(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @GetMapping
@@ -196,7 +204,9 @@ public class PlatformTenantController {
         return cmd;
     }
 
-    /** 从过滤器落下的平台令牌载荷读取操作者身份，注入命令（缺载荷时留空，由审计侧记为未知）。 */
+    /**
+     * 从过滤器落下的平台令牌载荷读取操作者身份，注入命令（缺载荷时留空，由审计侧记为未知）。
+     */
     private void applyOperator(
             HttpServletRequest request,
             java.util.function.Consumer<String> idSetter,
@@ -205,25 +215,6 @@ public class PlatformTenantController {
         if (attr instanceof PlatformTokenPayload payload) {
             idSetter.accept(payload.operatorId());
             nameSetter.accept(payload.operatorName());
-        }
-    }
-
-    private static String stringOf(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    /** 防御性解析整型请求体字段：非数值 / 缺省返回 {@code null}，由服务层回落默认值（不因脏输入 400）。 */
-    private static Integer intOf(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        try {
-            return Integer.parseInt(String.valueOf(value).trim());
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 }

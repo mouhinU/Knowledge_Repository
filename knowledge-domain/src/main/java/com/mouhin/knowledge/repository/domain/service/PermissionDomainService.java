@@ -2,10 +2,11 @@ package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import java.util.Arrays;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 权限领域服务
@@ -83,7 +84,9 @@ public class PermissionDomainService {
         return expression;
     }
 
-    /** 检查用户是否有权访问指定文档 */
+    /**
+     * 检查用户是否有权访问指定文档
+     */
     public boolean hasAccess(
             Permission permission,
             DocumentVisibilityEnum visibility,
@@ -96,15 +99,16 @@ public class PermissionDomainService {
 
         return switch (visibility) {
             case PUBLIC -> true;
-            case INTERNAL ->
-                    permission.getDepartmentId() != null
-                            && permission.getDepartmentId().equals(documentDepartmentId);
+            case INTERNAL -> permission.getDepartmentId() != null
+                    && permission.getDepartmentId().equals(documentDepartmentId);
             case RESTRICTED -> checkRoleAccess(permission.getRoles(), documentAllowedRoles);
             case PRIVATE -> permission.getUserId().equals(documentOwnerId);
         };
     }
 
-    /** 检查用户角色是否在文档允许的角色列表中 */
+    /**
+     * 检查用户角色是否在文档允许的角色列表中
+     */
     private boolean checkRoleAccess(String userRoles, String documentAllowedRoles) {
         if (userRoles == null || documentAllowedRoles == null) {
             return false;
@@ -121,7 +125,9 @@ public class PermissionDomainService {
                                         .anyMatch(allowed -> allowed.equals(role)));
     }
 
-    /** 转义 Milvus 表达式中的特殊字符 */
+    /**
+     * 转义 Milvus 表达式中的特殊字符
+     */
     private String escapeMilvusValue(String value) {
         if (value == null) {
             return "";

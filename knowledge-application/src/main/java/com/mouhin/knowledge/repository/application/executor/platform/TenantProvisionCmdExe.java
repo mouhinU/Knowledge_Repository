@@ -9,9 +9,10 @@ import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantKey;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * 租户开通命令执行器（app 层用例，P3-T2）。
@@ -29,7 +30,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class TenantProvisionCmdExe {
 
-    /** 审计动作名。 */
+    /**
+     * 审计动作名。
+     */
     public static final String ACTION = "TENANT_PROVISION";
 
     private final TenantGateway tenantGateway;
@@ -51,7 +54,7 @@ public class TenantProvisionCmdExe {
      * @param cmd 开通命令
      * @return 开通结果 VO
      * @throws IllegalArgumentException 租户不存在
-     * @throws IllegalStateException 租户处于不可开通态（ACTIVE 幂等返回、SUSPENDED/ARCHIVED/DELETED 拒绝）
+     * @throws IllegalStateException    租户处于不可开通态（ACTIVE 幂等返回、SUSPENDED/ARCHIVED/DELETED 拒绝）
      */
     public TenantProvisionVO execute(TenantProvisionCmd cmd) {
         String operator = cmd.getOperatorId();
@@ -95,7 +98,7 @@ public class TenantProvisionCmdExe {
      * 决定本次请求 id：显式传入优先 → 租户库中已有 id → 新造 UUID v4。
      *
      * @param requested 调用方传入（可为 {@code null}/空白）
-     * @param tenant 目标租户
+     * @param tenant    目标租户
      * @return 非空 UUID v4 字符串
      */
     private String resolveRequestId(String requested, Tenant tenant) {

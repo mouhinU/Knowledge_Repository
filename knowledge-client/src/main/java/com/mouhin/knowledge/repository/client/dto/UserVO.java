@@ -22,6 +22,8 @@ public class UserVO {
     private Boolean admin;
     private String createdTime;
 
-    /** 账号状态：ACTIVE / DISABLED。不含密码等敏感字段。 */
+    /**
+     * 账号状态：ACTIVE / DISABLED。不含密码等敏感字段。
+     */
     private String status;
 }

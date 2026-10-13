@@ -1,23 +1,17 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * 出卷期切分支撑单测：锁定「试卷 Markdown → 结构化题目行」主干 —— 印刷题号 / 题型 / 分值 / 选项序列化与 答案键按题序绑定、空白卷回空列表、落库幂等（先删后插）与
@@ -29,42 +23,42 @@ import org.mockito.ArgumentCaptor;
 @DisplayName("出卷期切分支撑 (ExamQuestionSplitSupport)")
 class ExamQuestionSplitSupportTest {
 
-    private final ExamQuestionGateway questionGateway = mock(ExamQuestionGateway.class);
-    private final ExamQuestionSplitSupport support = new ExamQuestionSplitSupport(questionGateway);
-
-    /** 单选 2 题 + 判断 1 题的最小可解析卷面（复用 ExamPaperParserTest 的成熟格式）。 */
+    /**
+     * 单选 2 题 + 判断 1 题的最小可解析卷面（复用 ExamPaperParserTest 的成熟格式）。
+     */
     private static final String PAPER =
             """
-            # 单元测试卷
-
-            ## 一、我会选（单选题）（共2题，每题2分，共4分）
-
-            **1.** 下列哪个是单韵母？（2分）
-            A. b
-            B. a
-            C. m
-            D. f
-
-            **2.** 下列哪个是声母？（2分）
-            A. o
-            B. i
-            C. d
-            D. ü
-
-            ## 二、我会判（判断题）（共1题，每题2分，共2分）
-
-            **3.** “a”是单韵母。（2分）
-            """;
-
+                    # 单元测试卷
+                    
+                    ## 一、我会选（单选题）（共2题，每题2分，共4分）
+                    
+                    **1.** 下列哪个是单韵母？（2分）
+                    A. b
+                    B. a
+                    C. m
+                    D. f
+                    
+                    **2.** 下列哪个是声母？（2分）
+                    A. o
+                    B. i
+                    C. d
+                    D. ü
+                    
+                    ## 二、我会判（判断题）（共1题，每题2分，共2分）
+                    
+                    **3.** “a”是单韵母。（2分）
+                    """;
     private static final String ANSWER_KEY =
             """
-            ## 一、单选题
-            1. 答案：B
-            2. 答案：C
-
-            ## 二、判断题
-            3. 答案：正确
-            """;
+                    ## 一、单选题
+                    1. 答案：B
+                    2. 答案：C
+                    
+                    ## 二、判断题
+                    3. 答案：正确
+                    """;
+    private final ExamQuestionGateway questionGateway = mock(ExamQuestionGateway.class);
+    private final ExamQuestionSplitSupport support = new ExamQuestionSplitSupport(questionGateway);
 
     @Test
     @DisplayName("splitAndBind：题号 / 题型 / 分值 / 选项 JSON 与答案键按题序绑定，不落库")

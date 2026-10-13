@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 索引进度 SSE 推送管理
@@ -20,10 +21,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class IndexProgressStore {
 
-    /** SSE 超时：5 分钟 */
+    /**
+     * SSE 超时：5 分钟
+     */
     private static final long SSE_TIMEOUT = 300_000L;
 
-    /** 每个文档的 SSE 发射器 */
+    /**
+     * 每个文档的 SSE 发射器
+     */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     /**

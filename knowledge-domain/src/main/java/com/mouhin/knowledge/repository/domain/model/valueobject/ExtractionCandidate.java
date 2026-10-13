@@ -11,13 +11,13 @@ import java.util.Map;
  * ContentExtractor#supports} 与 {@code extract}。{@code nativeHints} / {@code embeddedImages} 为 Phase
  * C（PDF 混合）与 Phase B（视觉）预留，A2 阶段可为空。
  *
- * @param filePath 已归一化的绝对路径
- * @param fileSize 字节数
- * @param fileName 原始文件名
- * @param mimeType Tika 检测出的 MIME 类型
- * @param nativeHints 预扫描提示（PDF：totalPages / ocrRecommended / perPageTextLens），可空
+ * @param filePath       已归一化的绝对路径
+ * @param fileSize       字节数
+ * @param fileName       原始文件名
+ * @param mimeType       Tika 检测出的 MIME 类型
+ * @param nativeHints    预扫描提示（PDF：totalPages / ocrRecommended / perPageTextLens），可空
  * @param embeddedImages 预取嵌入图（可空）
- * @param config 合并后的解析配置
+ * @param config         合并后的解析配置
  * @author mouhinU
  * @date 2026-09-23
  */

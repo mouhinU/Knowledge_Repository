@@ -26,25 +26,20 @@ public class BlackboardAgentStreamer {
     /**
      * 以流式方式执行一次单轮对话，并把输出/思考增量转发到进度回调。
      *
-     * @param agentName Agent 名称（前端据此定位渲染面板）
-     * @param systemPrompt 系统提示词
-     * @param userPrompt 用户提示词
+     * @param agentName        Agent 名称（前端据此定位渲染面板）
+     * @param systemPrompt     系统提示词
+     * @param userPrompt       用户提示词
      * @param progressCallback 进度回调，可为 null
      * @return 模型完整回答文本
      */
-    public String stream(
-            String agentName,
-            String systemPrompt,
-            String userPrompt,
-            BlackboardProgressCallback progressCallback) {
-        return streamingChatGateway.streamCompletion(
-                systemPrompt,
-                userPrompt,
+    public String stream(String agentName, String systemPrompt, String userPrompt, BlackboardProgressCallback progressCallback) {
+        return streamingChatGateway.streamCompletion(systemPrompt, userPrompt,
                 (kind, delta) -> {
                     if (progressCallback != null && delta != null && !delta.isEmpty()) {
                         progressCallback.onProgress(
                                 BlackboardProgressEvent.tokenDelta(agentName, kind, delta));
                     }
-                });
+                }
+        );
     }
 }

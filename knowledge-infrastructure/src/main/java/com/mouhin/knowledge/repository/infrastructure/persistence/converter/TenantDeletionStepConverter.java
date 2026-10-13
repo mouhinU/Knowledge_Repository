@@ -13,9 +13,12 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Ten
  */
 public final class TenantDeletionStepConverter {
 
-    private TenantDeletionStepConverter() {}
+    private TenantDeletionStepConverter() {
+    }
 
-    /** DO → domain entity；{@code null} 输入返回 {@code null}。 */
+    /**
+     * DO → domain entity；{@code null} 输入返回 {@code null}。
+     */
     public static TenantDeletionStep toDomain(TenantDeletionStepDO source) {
         if (source == null) {
             return null;
@@ -36,7 +39,9 @@ public final class TenantDeletionStepConverter {
         return target;
     }
 
-    /** domain entity → DO；{@code null} 输入返回 {@code null}。 */
+    /**
+     * domain entity → DO；{@code null} 输入返回 {@code null}。
+     */
     public static TenantDeletionStepDO toDO(TenantDeletionStep source) {
         if (source == null) {
             return null;

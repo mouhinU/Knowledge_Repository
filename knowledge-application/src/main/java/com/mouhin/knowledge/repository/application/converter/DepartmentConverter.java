@@ -15,9 +15,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.Department;
  */
 public final class DepartmentConverter {
 
-    private DepartmentConverter() {}
+    private DepartmentConverter() {
+    }
 
-    /** 领域实体 → 扁平 VO（parentId null 归一为 0） */
+    /**
+     * 领域实体 → 扁平 VO（parentId null 归一为 0）
+     */
     public static DepartmentVO toVO(Department dept) {
         DepartmentVO vo = new DepartmentVO();
         vo.setId(dept.getId());
@@ -27,7 +30,9 @@ public final class DepartmentConverter {
         return vo;
     }
 
-    /** 领域实体 → 树节点 VO（children 由调用方组装） */
+    /**
+     * 领域实体 → 树节点 VO（children 由调用方组装）
+     */
     public static DepartmentTreeNodeVO toTreeNode(Department dept) {
         DepartmentTreeNodeVO node = new DepartmentTreeNodeVO();
         node.setId(dept.getId());

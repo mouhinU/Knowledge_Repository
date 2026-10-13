@@ -9,4 +9,5 @@ package com.mouhin.knowledge.repository.client.dto;
  * @author mouhinU
  * @date 2026-09-17
  */
-public record CustomChunkInput(int chunkIndex, int startPage, int endPage, String content) {}
+public record CustomChunkInput(int chunkIndex, int startPage, int endPage, String content) {
+}

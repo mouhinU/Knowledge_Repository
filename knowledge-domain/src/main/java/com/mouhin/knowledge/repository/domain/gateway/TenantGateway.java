@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,13 +19,19 @@ import java.util.Optional;
  */
 public interface TenantGateway {
 
-    /** 按数值主键查询租户。 */
+    /**
+     * 按数值主键查询租户。
+     */
     Optional<Tenant> findById(Long tenantId);
 
-    /** 按业务键（小写归一后）查询租户。 */
+    /**
+     * 按业务键（小写归一后）查询租户。
+     */
     Optional<Tenant> findByTenantKey(String tenantKey);
 
-    /** 列出全部租户（平台端管理视图，租户数量级 ≤ 千，暂不分页）。 */
+    /**
+     * 列出全部租户（平台端管理视图，租户数量级 ≤ 千，暂不分页）。
+     */
     List<Tenant> listAll();
 
     /**
@@ -32,7 +39,7 @@ public interface TenantGateway {
      * 条。
      *
      * @param status 状态取值，见 {@code Tenant.STATUS_*}
-     * @param limit 单轮批量上限（&le;0 视为不分页上限，实现方须自我保护）
+     * @param limit  单轮批量上限（&le;0 视为不分页上限，实现方须自我保护）
      * @return 命中租户列表；无命中返回空列表
      */
     List<Tenant> listByStatus(String status, int limit);
@@ -42,7 +49,7 @@ public interface TenantGateway {
      * {@code limit} 条。
      *
      * @param cutoff 保留期截止点（{@code archivedAt < cutoff} 视为已到期）
-     * @param limit 单轮批量上限
+     * @param limit  单轮批量上限
      * @return 到期归档租户列表；无命中返回空列表
      */
     List<Tenant> listArchivedBefore(LocalDateTime cutoff, int limit);
@@ -57,15 +64,19 @@ public interface TenantGateway {
      * <p>只扫描 {@code ACTIVE} 状态——跳过 {@code ARCHIVED} / {@code DELETING} / {@code PENDING} 等非活跃态，
      * 避免对归档/删除中的租户执行无效业务操作。
      *
-     * @param lastId 上一轮最后一条的 tenantId（首轮传 0）
+     * @param lastId    上一轮最后一条的 tenantId（首轮传 0）
      * @param batchSize 单轮批量上限（&le;0 视为 100）
      * @return 命中租户列表，按 tenantId 升序；无命中返回空列表
      */
     List<Tenant> listActiveByCursor(long lastId, int batchSize);
 
-    /** 新增租户，回填自增主键到入参实体。 */
+    /**
+     * 新增租户，回填自增主键到入参实体。
+     */
     void save(Tenant tenant);
 
-    /** 更新租户（含状态流转后的落库）。 */
+    /**
+     * 更新租户（含状态流转后的落库）。
+     */
     void update(Tenant tenant);
 }

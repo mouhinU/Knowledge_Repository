@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningContext;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningStep;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 /**
  * 拷贝默认系统配置步骤（P3-T3，order=200）。
@@ -33,14 +34,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class CopyDefaultSystemConfigStep implements ProvisioningStep {
 
-    private static final Logger log = LoggerFactory.getLogger(CopyDefaultSystemConfigStep.class);
-
-    /** 步骤名常量，落 {@code sys_tenant_provision_step.step_name}，须稳定不可改名。 */
+    /**
+     * 步骤名常量，落 {@code sys_tenant_provision_step.step_name}，须稳定不可改名。
+     */
     public static final String STEP_NAME = "COPY_DEFAULT_SYS_CONFIG";
-
-    /** 排序权重：在 {@code ValidateTenantStep(100)} 之后、根部门创建之前。 */
+    /**
+     * 排序权重：在 {@code ValidateTenantStep(100)} 之后、根部门创建之前。
+     */
     public static final int STEP_ORDER = 200;
-
+    private static final Logger log = LoggerFactory.getLogger(CopyDefaultSystemConfigStep.class);
     private final SystemConfigGateway systemConfigGateway;
     private final TenantGateway tenantGateway;
 

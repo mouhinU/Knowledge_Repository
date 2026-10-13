@@ -13,7 +13,8 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
  */
 public final class ExamGenerationConverter {
 
-    private ExamGenerationConverter() {}
+    private ExamGenerationConverter() {
+    }
 
     public static ExamHistoryDTO toHistoryDTO(ExamHistory history) {
         if (history == null) {

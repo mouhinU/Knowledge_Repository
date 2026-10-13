@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link ExamContractValidator} 出处/位置类记忆题确定性门禁单测。

@@ -1,38 +1,28 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.event.DocumentCreatedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 上传并处理命令执行器单测：锁定空文件拒绝、checksum 去重短路、成功链路（落库 → 发布创建事件 → 委托处理流水线 → 清理临时文件）。
@@ -43,8 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 @DisplayName("上传并处理命令执行器 (UploadAndProcessCmdExe)")
 class UploadAndProcessCmdExeTest {
 
-    @TempDir Path tmp;
-
     private final DocumentIngestionSupport support = mock(DocumentIngestionSupport.class);
     private final DocumentGateway documentGateway = mock(DocumentGateway.class);
     private final DocumentExtractionGateway documentExtractionService =
@@ -53,6 +41,8 @@ class UploadAndProcessCmdExeTest {
     private final UploadAndProcessCmdExe exe =
             new UploadAndProcessCmdExe(
                     null, support, documentGateway, documentExtractionService, eventPublisher);
+    @TempDir
+    Path tmp;
 
     private MultipartFile stubFile() {
         MultipartFile file = mock(MultipartFile.class);
@@ -82,27 +72,27 @@ class UploadAndProcessCmdExeTest {
         when(empty.isEmpty()).thenReturn(true);
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        empty,
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                empty,
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("File must not be empty");
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        null,
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                null,
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("File must not be empty");
         verify(support, never()).saveToTemp(any());
@@ -122,15 +112,15 @@ class UploadAndProcessCmdExeTest {
         when(documentGateway.findByFileChecksum("md5-dup")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        file,
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                file,
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Duplicate file detected")
                 .hasMessageContaining("old-key");
@@ -156,16 +146,16 @@ class UploadAndProcessCmdExeTest {
         when(support.copyToStorage(tempFile, "note.pdf")).thenReturn(storedObject);
         when(support.newDocumentKey()).thenReturn("key-1");
         when(support.buildDocument(
-                        eq("key-1"),
-                        eq(file),
-                        eq(permanentFile.toString()),
-                        eq("u-1"),
-                        eq("d-1"),
-                        eq(DocumentVisibilityEnum.INTERNAL),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                eq("key-1"),
+                eq(file),
+                eq(permanentFile.toString()),
+                eq("u-1"),
+                eq("d-1"),
+                eq(DocumentVisibilityEnum.INTERNAL),
+                any(),
+                any(),
+                any(),
+                any()))
                 .thenReturn(stubbedDocument("key-1"));
 
         ExtractionResult result = new ExtractionResult(List.of("text"), 1, false, "md5-new", "pdf");
@@ -202,15 +192,15 @@ class UploadAndProcessCmdExeTest {
                 .thenThrow(new IOException("corrupted pdf"));
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        file,
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                file,
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Failed to extract text from PDF");
         verify(documentGateway, never()).save(any());
@@ -234,28 +224,28 @@ class UploadAndProcessCmdExeTest {
         Document invalid = stubbedDocument("key-2");
         invalid.setOwnerId(" ");
         when(support.buildDocument(
-                        anyString(),
-                        any(),
-                        anyString(),
-                        anyString(),
-                        anyString(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                anyString(),
+                any(),
+                anyString(),
+                anyString(),
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
                 .thenReturn(invalid);
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        file,
-                                        " ",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                file,
+                                " ",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ownerId must not be blank");
         verify(documentGateway, never()).save(any());

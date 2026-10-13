@@ -3,9 +3,10 @@ package com.mouhin.knowledge.repository.infrastructure.observability;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AgentConfidence;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * 基于 SLF4J 的黑板审计日志实现
@@ -131,7 +132,9 @@ public class Slf4jBlackboardAuditLog implements BlackboardAuditLog {
         log.info(sb.toString());
     }
 
-    /** 清理日志内容，防止日志注入：先截断再转义，避免转义后长度膨胀导致截断错位 */
+    /**
+     * 清理日志内容，防止日志注入：先截断再转义，避免转义后长度膨胀导致截断错位
+     */
     private String sanitize(String text) {
         if (text == null) {
             return "";

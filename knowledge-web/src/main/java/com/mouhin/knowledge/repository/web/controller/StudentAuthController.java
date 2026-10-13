@@ -4,11 +4,12 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 考生认证控制器
@@ -27,7 +28,9 @@ public class StudentAuthController {
         this.studentService = studentService;
     }
 
-    /** 考生注册 */
+    /**
+     * 考生注册
+     */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody StudentRegisterCmd cmd) {
         try {
@@ -42,7 +45,9 @@ public class StudentAuthController {
         }
     }
 
-    /** 考生登录 */
+    /**
+     * 考生登录
+     */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody StudentLoginCmd cmd) {
         try {
@@ -53,7 +58,9 @@ public class StudentAuthController {
         }
     }
 
-    /** 退出登录 */
+    /**
+     * 退出登录
+     */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken,
@@ -68,7 +75,9 @@ public class StudentAuthController {
         return ResponseEntity.ok(Map.of("message", "已退出"));
     }
 
-    /** 验证令牌（获取当前考生信息） */
+    /**
+     * 验证令牌（获取当前考生信息）
+     */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(
             @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {

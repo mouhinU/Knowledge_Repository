@@ -1,17 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.knowledge;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.client.dto.SearchCmd;
 import com.mouhin.knowledge.repository.client.dto.SearchResponseVO;
@@ -20,12 +8,18 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 知识库语义检索查询执行器单测：锁定空查询短路、默认参数归一（max=10 / minScore=0.5）、应用层分类二次过滤、 文档名补全与 null 归一 / score 4 位小数取整的
@@ -71,7 +65,7 @@ class KnowledgeSearchQryExeTest {
     void defaultsNormalizedAndPermissionPassed() {
         when(permissionDomainService.buildFilterExpression(any())).thenReturn("filter-expr");
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
 
         exe.execute(cmd("向量检索"));
@@ -92,7 +86,7 @@ class KnowledgeSearchQryExeTest {
     void explicitParamsWin() {
         when(permissionDomainService.buildFilterExpression(any())).thenReturn(null);
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
         SearchCmd c = cmd("q");
         c.setMaxResults(3);
@@ -109,7 +103,7 @@ class KnowledgeSearchQryExeTest {
     void categoryFilterHandledAtMilvusLevel() {
         when(permissionDomainService.buildFilterExpression(any())).thenReturn(null);
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(
                         List.of(
                                 new SearchResult("a", "k1", "A.pdf", 1, 0, 0.9, "数学"),
@@ -128,7 +122,7 @@ class KnowledgeSearchQryExeTest {
     void voAssemblyNormalizesNulls() {
         when(permissionDomainService.buildFilterExpression(any())).thenReturn(null);
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(
                         List.of(
                                 new SearchResult("正文", "key-1", null, null, null, 0.123456789),

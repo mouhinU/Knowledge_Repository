@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
+
 import java.util.Optional;
 
 /**
@@ -14,18 +15,28 @@ import java.util.Optional;
  */
 public interface StudentSessionGateway {
 
-    /** 新增一条会话记录；持久化后回填 {@code id}。 */
+    /**
+     * 新增一条会话记录；持久化后回填 {@code id}。
+     */
     void save(StudentSession session);
 
-    /** 按令牌查询会话（不校验有效性）。 */
+    /**
+     * 按令牌查询会话（不校验有效性）。
+     */
     Optional<StudentSession> findByToken(String token);
 
-    /** 按令牌查询「当前有效」会话：{@code revoked_at IS NULL AND expires_at > now()}。 */
+    /**
+     * 按令牌查询「当前有效」会话：{@code revoked_at IS NULL AND expires_at > now()}。
+     */
     Optional<StudentSession> findActiveByToken(String token);
 
-    /** 撤销指定令牌：置 {@code revoked_at = NOW()}；令牌不存在时静默。 */
+    /**
+     * 撤销指定令牌：置 {@code revoked_at = NOW()}；令牌不存在时静默。
+     */
     void revoke(String token);
 
-    /** 撤销某考生的所有活跃会话（管理员禁用账号或改密场景使用）。 */
+    /**
+     * 撤销某考生的所有活跃会话（管理员禁用账号或改密场景使用）。
+     */
     int revokeAllByStudentId(Long studentId);
 }

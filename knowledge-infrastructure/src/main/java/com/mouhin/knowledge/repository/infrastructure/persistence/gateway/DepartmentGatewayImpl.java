@@ -5,12 +5,13 @@ import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Department;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DepartmentDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.DepartmentMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * 部门仓储实现。

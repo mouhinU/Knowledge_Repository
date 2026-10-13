@@ -3,28 +3,20 @@ package com.mouhin.knowledge.repository.infrastructure.extractor;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.gateway.ExtractionCacheRepository;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCacheKey;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.infrastructure.config.HybridExtractionProperties;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
 import com.mouhin.knowledge.repository.infrastructure.observability.ExtractionMetrics;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import java.util.*;
 
 /**
  * PDF 混合解析策略（Phase C，默认关闭）：PDFBox 文本层为主，视觉模型按页补全疑似扫描 / 低文本页。
@@ -45,7 +37,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PdfHybridExtractionStrategy implements ContentExtractor {
 
-    /** 路由优先级：混合策略优先于纯 PDFBox，接管 PDF 解析入口。 */
+    /**
+     * 路由优先级：混合策略优先于纯 PDFBox，接管 PDF 解析入口。
+     */
     private static final int PRIORITY = 5;
 
     private static final Set<String> SUPPORTED_MIME_TYPES = Set.of("application/pdf");
@@ -118,7 +112,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         return result;
     }
 
-    /** 依 trigger 选出待增强页，逐页识别并按 merge 合并回文本层；返回新的分页文本列表。 */
+    /**
+     * 依 trigger 选出待增强页，逐页识别并按 merge 合并回文本层；返回新的分页文本列表。
+     */
     private List<String> enhance(
             ExtractionCandidate candidate, ExtractionResult base, List<String> notes) {
         List<String> texts = new ArrayList<>(base.pageTexts());
@@ -129,7 +125,7 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         long deadline =
                 System.nanoTime()
                         + Duration.ofSeconds(Math.max(props.getMaxTotalSecondsPerDoc(), 1))
-                                .toNanos();
+                        .toNanos();
         int degraded = 0;
         boolean enforce =
                 HybridExtractionProperties.Budget.ENFORCEMENT_ENFORCE.equals(
@@ -157,7 +153,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         return texts;
     }
 
-    /** 选出需要视觉补全的 0 基页索引，受 max-pages-per-doc 上限约束。 */
+    /**
+     * 选出需要视觉补全的 0 基页索引，受 max-pages-per-doc 上限约束。
+     */
     private List<Integer> selectPages(ExtractionResult base, List<String> texts) {
         String trigger = props.getTrigger();
         List<Integer> out = new ArrayList<>();
@@ -181,7 +179,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         return base.likelyScanned() && lowText;
     }
 
-    /** 单页识别：取图（嵌入优先否则栅格化）→ 调视觉网关；异常/超限降级返回 null，不抛出。 */
+    /**
+     * 单页识别：取图（嵌入优先否则栅格化）→ 调视觉网关；异常/超限降级返回 null，不抛出。
+     */
     private String recognizePage(ExtractionCandidate candidate, int pageIndex) {
         VisionChatRequest.ImagePayload image = imageFor(candidate, pageIndex);
         if (image == null) {
@@ -201,7 +201,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         }
     }
 
-    /** 解析单页图像源：优先命中该页嵌入图，否则栅格化整页；字节超限或不可得返回 null。 */
+    /**
+     * 解析单页图像源：优先命中该页嵌入图，否则栅格化整页；字节超限或不可得返回 null。
+     */
     private VisionChatRequest.ImagePayload imageFor(ExtractionCandidate candidate, int pageIndex) {
         if (props.isPreferEmbeddedImages()) {
             ExtractedImage embedded = embeddedForPage(candidate, pageIndex);
@@ -245,7 +247,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
         return (mime == null || mime.isBlank()) ? DEFAULT_IMAGE_MIME : mime;
     }
 
-    /** 按 merge 方式把视觉文本并入文本层：replace_all 覆盖 / append 追加 / replace_lowtext 仅补低文本页。 */
+    /**
+     * 按 merge 方式把视觉文本并入文本层：replace_all 覆盖 / append 追加 / replace_lowtext 仅补低文本页。
+     */
     private String mergePage(String baseText, String visionText) {
         String merge = props.getMerge();
         if (ExtractionConfigMerge.REPLACE_ALL.equals(merge)) {
@@ -303,9 +307,9 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
      * 对齐）。
      */
     private static final class ExtractionConfigMerge {
-        private ExtractionConfigMerge() {}
-
         private static final String APPEND = "append";
         private static final String REPLACE_ALL = "replace_all";
+        private ExtractionConfigMerge() {
+        }
     }
 }

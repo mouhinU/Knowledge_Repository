@@ -5,12 +5,13 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
-import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 考生登录命令执行器（app 层用例，事务边界）
@@ -25,10 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class StudentLoginCmdExe {
 
-    /** 令牌有效期：24 小时 */
+    /**
+     * 令牌有效期：24 小时
+     */
     private static final int TOKEN_VALIDITY_HOURS = 24;
 
-    /** 有效账号状态 */
+    /**
+     * 有效账号状态
+     */
     private static final String STATUS_ACTIVE = "ACTIVE";
 
     private final StudentGateway studentGateway;

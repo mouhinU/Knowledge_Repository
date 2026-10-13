@@ -1,8 +1,5 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantPlacementDO;
 import dev.langchain4j.data.segment.TextSegment;
@@ -14,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link EmbeddingStoreRouter} 单元测试（P2-T1）。
@@ -30,7 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("EmbeddingStoreRouter Phase 2 恒单 store")
 class EmbeddingStoreRouterTest {
 
-    @Mock private EmbeddingStore<TextSegment> poolStore;
+    @Mock
+    private EmbeddingStore<TextSegment> poolStore;
 
     private EmbeddingStoreRouter router;
 
@@ -112,10 +113,10 @@ class EmbeddingStoreRouterTest {
         @DisplayName("tenantKey 与 {@link TenantContext#DEFAULT_TENANT_KEY} 一致时正常路由")
         void explicitDefaultTenantKey() {
             assertThat(
-                            router.route(
-                                    TenantContext.DEFAULT_TENANT_KEY,
-                                    TenantPlacementDO.PLACEMENT_POOL,
-                                    poolStore))
+                    router.route(
+                            TenantContext.DEFAULT_TENANT_KEY,
+                            TenantPlacementDO.PLACEMENT_POOL,
+                            poolStore))
                     .isSameAs(poolStore);
         }
 

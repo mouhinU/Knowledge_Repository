@@ -7,11 +7,12 @@ import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaAction;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaCheckResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantPlanLimit;
-import java.time.LocalDate;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 配额前置拦截（P6-T3）。
@@ -39,7 +40,7 @@ public class QuotaGuard {
      * 前置检查所有已配置 metric 的配额。
      *
      * @param tenantKey 归一化租户键
-     * @throws QuotaExceededException 当最严策略为 BLOCK 时
+     * @throws QuotaExceededException    当最严策略为 BLOCK 时
      * @throws ThrottleRequiredException 当最严策略为 THROTTLE 时
      */
     public void check(String tenantKey) {
@@ -83,13 +84,12 @@ public class QuotaGuard {
         switch (result.action()) {
             case BLOCK -> throw new QuotaExceededException(result);
             case THROTTLE -> throw new ThrottleRequiredException(result);
-            case ALERT ->
-                    log.warn(
-                            "[quota] ALERT tenant={} metric={} quota={} current={}",
-                            result.tenantKey(),
-                            result.metric(),
-                            result.quota(),
-                            result.currentUsage());
+            case ALERT -> log.warn(
+                    "[quota] ALERT tenant={} metric={} quota={} current={}",
+                    result.tenantKey(),
+                    result.metric(),
+                    result.quota(),
+                    result.currentUsage());
             default -> {
                 // PASS, no-op
             }

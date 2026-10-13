@@ -17,7 +17,7 @@ public record LlmProfile(
     /**
      * 紧凑构造器——{@code apiKey} 与 {@code baseUrl} 为必填。
      *
-     * @param apiKey 解密后的 API Key 明文
+     * @param apiKey  解密后的 API Key 明文
      * @param baseUrl LLM API base URL
      */
     public LlmProfile {

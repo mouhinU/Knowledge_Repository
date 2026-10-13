@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.client.api;
 
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.client.dto.KnowledgeStatsVO;
+
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,9 @@ public interface DocumentServiceI {
 
     List<DocumentVO> listDocuments();
 
-    /** 按状态查询（status 为枚举大写名，适配层已完成合法性校验）。 */
+    /**
+     * 按状态查询（status 为枚举大写名，适配层已完成合法性校验）。
+     */
     List<DocumentVO> listByStatus(String status);
 
     KnowledgeStatsVO getStats();

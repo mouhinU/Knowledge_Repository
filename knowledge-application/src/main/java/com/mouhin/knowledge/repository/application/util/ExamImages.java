@@ -2,9 +2,10 @@ package com.mouhin.knowledge.repository.application.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 看图题配图 assetKey 解析工具（app 层共享）。
@@ -21,7 +22,8 @@ public final class ExamImages {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private ExamImages() {}
+    private ExamImages() {
+    }
 
     /**
      * 解析 {@code images_json}（assetKey 字符串数组）为有序列表；逐个 trim 并跳过空白项。
@@ -35,7 +37,8 @@ public final class ExamImages {
         }
         try {
             List<String> raw =
-                    OBJECT_MAPPER.readValue(imagesJson, new TypeReference<List<String>>() {});
+                    OBJECT_MAPPER.readValue(imagesJson, new TypeReference<List<String>>() {
+                    });
             List<String> keys = new ArrayList<>();
             for (String k : raw) {
                 if (k != null && !k.isBlank()) {

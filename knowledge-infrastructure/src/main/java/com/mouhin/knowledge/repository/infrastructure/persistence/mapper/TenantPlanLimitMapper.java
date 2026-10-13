@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-12
  */
 @Mapper
-public interface TenantPlanLimitMapper extends BaseMapper<TenantPlanLimitDO> {}
+public interface TenantPlanLimitMapper extends BaseMapper<TenantPlanLimitDO> {
+}

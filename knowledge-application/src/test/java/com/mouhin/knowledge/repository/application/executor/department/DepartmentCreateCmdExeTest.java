@@ -1,11 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.department;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DepartmentGateway;
@@ -13,6 +7,10 @@ import com.mouhin.knowledge.repository.domain.model.entity.Department;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 /**
  * 新增部门命令执行器单测：锁定 departmentKey 由 UUID 生成、parentId 直传（顶层 null 保留在 DO 层）、 VO 中 parentId null→0 归一化契约。

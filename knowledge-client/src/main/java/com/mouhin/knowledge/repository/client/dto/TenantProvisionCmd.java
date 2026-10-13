@@ -18,15 +18,23 @@ import lombok.Setter;
 @Setter
 public class TenantProvisionCmd {
 
-    /** 目标租户业务键（路径变量注入）。 */
+    /**
+     * 目标租户业务键（路径变量注入）。
+     */
     private String tenantKey;
 
-    /** 开通请求 UUID v4；留空则复用租户已有请求 id（重放语义）。 */
+    /**
+     * 开通请求 UUID v4；留空则复用租户已有请求 id（重放语义）。
+     */
     private String provisionRequestId;
 
-    /** 操作者标识（平台端令牌携带）。 */
+    /**
+     * 操作者标识（平台端令牌携带）。
+     */
     private String operatorId;
 
-    /** 操作者显示名。 */
+    /**
+     * 操作者显示名。
+     */
     private String operatorName;
 }

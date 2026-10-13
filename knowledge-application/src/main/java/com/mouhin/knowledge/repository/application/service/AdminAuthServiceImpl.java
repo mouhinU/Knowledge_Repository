@@ -2,20 +2,9 @@ package com.mouhin.knowledge.repository.application.service;
 
 import com.alibaba.cola.dto.Response;
 import com.alibaba.cola.dto.SingleResponse;
-import com.mouhin.knowledge.repository.application.executor.adminauth.AdminChangePasswordCmdExe;
-import com.mouhin.knowledge.repository.application.executor.adminauth.AdminLoginCmdExe;
-import com.mouhin.knowledge.repository.application.executor.adminauth.AdminLogoutCmdExe;
-import com.mouhin.knowledge.repository.application.executor.adminauth.AdminValidateTokenQryExe;
-import com.mouhin.knowledge.repository.application.executor.adminauth.InviteStatusQryExe;
-import com.mouhin.knowledge.repository.application.executor.adminauth.SetPasswordByInviteCmdExe;
+import com.mouhin.knowledge.repository.application.executor.adminauth.*;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
-import com.mouhin.knowledge.repository.client.dto.AdminChangePasswordCmd;
-import com.mouhin.knowledge.repository.client.dto.AdminLoginCmd;
-import com.mouhin.knowledge.repository.client.dto.AdminLoginResultDTO;
-import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
-import com.mouhin.knowledge.repository.client.dto.InviteStatusVO;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
-import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
+import com.mouhin.knowledge.repository.client.dto.*;
 import org.springframework.stereotype.Service;
 
 /**

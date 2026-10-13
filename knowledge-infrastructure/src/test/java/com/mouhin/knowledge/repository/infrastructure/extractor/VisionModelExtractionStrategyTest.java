@@ -1,23 +1,11 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.infrastructure.config.LlmVisionProperties;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,7 +13,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
-/** {@link VisionModelExtractionStrategy} 契约测试（Phase B）。 */
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
+
+/**
+ * {@link VisionModelExtractionStrategy} 契约测试（Phase B）。
+ */
 @DisplayName("B 视觉策略")
 class VisionModelExtractionStrategyTest {
 
@@ -42,7 +43,7 @@ class VisionModelExtractionStrategyTest {
         props = new LlmVisionProperties();
         strategy = new VisionModelExtractionStrategy(gateway, pageRenderer, props);
         realFile = Files.createTempFile("scan", ".pdf");
-        Files.write(realFile, new byte[] {1, 2, 3, 4});
+        Files.write(realFile, new byte[]{1, 2, 3, 4});
     }
 
     private ExtractionCandidate pdfScannedWithEmbedded(List<ExtractedImage> images) {
@@ -61,6 +62,11 @@ class VisionModelExtractionStrategyTest {
     void identity() {
         assertThat(strategy.name()).isEqualTo("VISION");
         assertThat(strategy.priority()).isEqualTo(70);
+    }
+
+    private ExtractionCandidate candidateOf(String mime) {
+        return new ExtractionCandidate(
+                Path.of("/tmp/x"), 1L, "x", mime, Map.of(), List.of(), ExtractionConfig.defaults());
     }
 
     @Nested
@@ -105,7 +111,8 @@ class VisionModelExtractionStrategyTest {
     @DisplayName("extract 执行")
     class Extract {
 
-        @TempDir Path dir;
+        @TempDir
+        Path dir;
 
         @Test
         @DisplayName("优先用嵌入图，逐页调视觉并汇总文本")
@@ -113,7 +120,7 @@ class VisionModelExtractionStrategyTest {
             props.setEnabled(true);
             when(gateway.chatWithImages(any())).thenReturn("  第1页文字  ");
             ExtractedImage img =
-                    new ExtractedImage(new byte[] {1, 2, 3}, "image/png", 10, 10, 1, 0);
+                    new ExtractedImage(new byte[]{1, 2, 3}, "image/png", 10, 10, 1, 0);
             ExtractionResult result = strategy.extract(pdfScannedWithEmbedded(List.of(img, img)));
             assertThat(result.pageTexts()).containsExactly("第1页文字", "第1页文字");
             assertThat(result.likelyScanned()).isTrue();
@@ -127,7 +134,7 @@ class VisionModelExtractionStrategyTest {
             props.setEnabled(true);
             when(pageRenderer.pageCount(any())).thenReturn(2);
             when(pageRenderer.renderPageToPng(any(), anyInt(), anyInt()))
-                    .thenReturn(new byte[] {9, 9});
+                    .thenReturn(new byte[]{9, 9});
             when(gateway.chatWithImages(any())).thenReturn("页文本");
             ExtractionResult result = strategy.extract(pdfScannedWithEmbedded(List.of()));
             assertThat(result.pageTexts()).containsExactly("页文本", "页文本");
@@ -139,7 +146,7 @@ class VisionModelExtractionStrategyTest {
         void degradesOnFailures() throws IOException {
             props.setEnabled(true);
             when(gateway.chatWithImages(any())).thenThrow(new RuntimeException("timeout"));
-            ExtractedImage img = new ExtractedImage(new byte[] {1}, "image/png", 1, 1, 1, 0);
+            ExtractedImage img = new ExtractedImage(new byte[]{1}, "image/png", 1, 1, 1, 0);
             ExtractionResult result = strategy.extract(pdfScannedWithEmbedded(List.of(img)));
             assertThat(result.pageTexts()).isEmpty();
             assertThat(result.detectedFormat()).isEqualTo("empty");
@@ -150,7 +157,7 @@ class VisionModelExtractionStrategyTest {
         void extractsImageFile() throws IOException {
             props.setEnabled(true);
             Path png = dir.resolve("a.png");
-            Files.write(png, new byte[] {5, 6, 7});
+            Files.write(png, new byte[]{5, 6, 7});
             when(gateway.chatWithImages(any())).thenReturn("图中文字");
             ExtractionCandidate candidate =
                     new ExtractionCandidate(
@@ -173,7 +180,7 @@ class VisionModelExtractionStrategyTest {
             ExtractionConfig tight =
                     new ExtractionConfig(20, 200, 2, 150, ExtractionConfig.MERGE_APPEND, 60, 300);
             ExtractedImage big =
-                    new ExtractedImage(new byte[] {1, 2, 3, 4}, "image/png", 1, 1, 1, 0);
+                    new ExtractedImage(new byte[]{1, 2, 3, 4}, "image/png", 1, 1, 1, 0);
             ExtractionCandidate candidate =
                     new ExtractionCandidate(
                             Path.of("/tmp/scan.pdf"),
@@ -187,10 +194,5 @@ class VisionModelExtractionStrategyTest {
             assertThat(result.detectedFormat()).isEqualTo("empty");
             verify(gateway, never()).chatWithImages(any());
         }
-    }
-
-    private ExtractionCandidate candidateOf(String mime) {
-        return new ExtractionCandidate(
-                Path.of("/tmp/x"), 1L, "x", mime, Map.of(), List.of(), ExtractionConfig.defaults());
     }
 }

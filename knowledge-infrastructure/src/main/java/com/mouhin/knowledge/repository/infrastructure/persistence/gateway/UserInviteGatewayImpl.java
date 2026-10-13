@@ -6,11 +6,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.UserInviteConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.UserInviteDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserInviteMapper;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * {@link UserInviteGateway} 实现（P3-T3，基础设施层持久化）。

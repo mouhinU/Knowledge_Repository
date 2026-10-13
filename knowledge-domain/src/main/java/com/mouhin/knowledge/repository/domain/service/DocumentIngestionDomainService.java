@@ -7,13 +7,14 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkWindow;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 /**
  * 文档摄入领域服务
@@ -27,13 +28,19 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class DocumentIngestionDomainService {
 
-    /** 增强句子分割正则： - 中英文句号、问号、叹号、分号、冒号 - 省略号（中英文） - 换行符（作为弱句子边界） - 避免在缩写、数字中间断开 */
+    /**
+     * 增强句子分割正则： - 中英文句号、问号、叹号、分号、冒号 - 省略号（中英文） - 换行符（作为弱句子边界） - 避免在缩写、数字中间断开
+     */
     private static final Pattern SENTENCE_BOUNDARY = Pattern.compile("(?<=[.。!！?？;；…\\n])\\s+");
 
-    /** 中文句子结尾标点 */
+    /**
+     * 中文句子结尾标点
+     */
     private static final Pattern CHINESE_SENTENCE_END = Pattern.compile("[.。!！?？;；…]+\\s*");
 
-    /** 列表项模式：数字编号、字母编号、中文编号 */
+    /**
+     * 列表项模式：数字编号、字母编号、中文编号
+     */
     private static final Pattern LIST_ITEM_PATTERN =
             Pattern.compile(
                     "^\\s*(\\d+[.、)）]|\\([0-9]+\\)|[a-zA-Z][.、)）]|[-•·]\\s|[一二三四五六七八九十]+[、.．])");
@@ -42,8 +49,8 @@ public class DocumentIngestionDomainService {
      * 将文本内容按配置分块，并附加文档权限元数据
      *
      * @param document 文档聚合根
-     * @param pages 按页提取的文本列表（index 0 = page 1）
-     * @param config 分块配置
+     * @param pages    按页提取的文本列表（index 0 = page 1）
+     * @param config   分块配置
      * @return 分块列表
      */
     public List<DocumentChunk> chunkDocument(
@@ -501,24 +508,28 @@ public class DocumentIngestionDomainService {
 
     // ==================== PAGE 策略 ====================
 
-    /** 查找段落范围：返回 List of [start, end] */
+    /**
+     * 查找段落范围：返回 List of [start, end]
+     */
     private List<int[]> findParagraphRanges(String text) {
         List<int[]> ranges = new ArrayList<>();
         Pattern paraPattern =
                 Pattern.compile("(?:^|\\n\\s*\\n)\\s*(.+?)(?=\\n\\s*\\n|$)", Pattern.DOTALL);
         Matcher matcher = paraPattern.matcher(text);
         while (matcher.find()) {
-            ranges.add(new int[] {matcher.start(1), matcher.end(1)});
+            ranges.add(new int[]{matcher.start(1), matcher.end(1)});
         }
         if (ranges.isEmpty() && !text.isBlank()) {
-            ranges.add(new int[] {0, text.length()});
+            ranges.add(new int[]{0, text.length()});
         }
         return ranges;
     }
 
     // ==================== PARAGRAPH 策略 ====================
 
-    /** 按字符集分割文本（用于句子边界分割） */
+    /**
+     * 按字符集分割文本（用于句子边界分割）
+     */
     private String[] splitByCharSet(String text, String charSet) {
         String regex = "(?<=[" + Pattern.quote(charSet) + "])\\s*";
         return text.split(regex);
@@ -526,7 +537,9 @@ public class DocumentIngestionDomainService {
 
     // ==================== 工具方法 ====================
 
-    /** 增强句子分割 */
+    /**
+     * 增强句子分割
+     */
     private List<String> splitSentences(String text) {
         List<String> sentences = new ArrayList<>();
         // 先按段落/换行分割
@@ -548,7 +561,9 @@ public class DocumentIngestionDomainService {
         return sentences;
     }
 
-    /** 对超长文本进行句子级切分 */
+    /**
+     * 对超长文本进行句子级切分
+     */
     private List<RawChunk> splitLongText(
             String text,
             int maxTokens,
@@ -610,7 +625,9 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    /** 强制字符切分（带页码追踪） */
+    /**
+     * 强制字符切分（带页码追踪）
+     */
     private List<RawChunk> forceSplitWithPages(
             String text, int maxChars, int overlapChars, List<int[]> charPageMap) {
         List<RawChunk> result = new ArrayList<>();
@@ -631,7 +648,9 @@ public class DocumentIngestionDomainService {
         return result;
     }
 
-    /** 根据字符位置查找页码 */
+    /**
+     * 根据字符位置查找页码
+     */
     private int lookupPage(List<int[]> charPageMap, int charIndex) {
         if (charPageMap == null || charPageMap.isEmpty()) {
             return 1;
@@ -640,14 +659,18 @@ public class DocumentIngestionDomainService {
         return charPageMap.get(idx)[1];
     }
 
-    /** 查找重叠起始位置 */
+    /**
+     * 查找重叠起始位置
+     */
     private int findOverlapStart(ChunkWindow window) {
         int overlapChars =
                 Math.min(window.overlapTokens() * 3, window.chunkEnd() - window.chunkStart());
         return window.chunkEnd() - overlapChars;
     }
 
-    /** 构建分块对象，附加权限元数据 */
+    /**
+     * 构建分块对象，附加权限元数据
+     */
     private DocumentChunk buildChunk(
             Document document, int chunkIndex, int startPage, int endPage, String content) {
         DocumentChunk chunk = new DocumentChunk();
@@ -731,7 +754,7 @@ public class DocumentIngestionDomainService {
      *
      * <p>FIXED_SIZE / RECURSIVE / SENTENCE / PARAGRAPH 四种策略共用此合并骨架；PAGE 不合并。
      *
-     * @param pages 带页码的文本段列表（已由 {@link #chunkDocument} 过滤空白页并按 1-based 编号）
+     * @param pages     带页码的文本段列表（已由 {@link #chunkDocument} 过滤空白页并按 1-based 编号）
      * @param separator 页与页之间插入的分隔符：段落/固定/递归用 {@code \n\n}，句子级用 {@code \n}
      * @return 合并文本 + 字符→页码映射（{@code charPageMap.get(i)[1]} 即位置 i 的页码）
      */
@@ -745,18 +768,27 @@ public class DocumentIngestionDomainService {
             int pageStart = merged.length();
             merged.append(pt.text());
             for (int i = pageStart; i < merged.length(); i++) {
-                charPageMap.add(new int[] {i, pt.pageNumber()});
+                charPageMap.add(new int[]{i, pt.pageNumber()});
             }
         }
         return new MergedPages(merged.toString(), charPageMap);
     }
 
-    /** 页面合并中间产物：整体文本 + 每字符页码映射，供下游 chunk 使用。 */
-    private record MergedPages(String text, List<int[]> charPageMap) {}
+    /**
+     * 页面合并中间产物：整体文本 + 每字符页码映射，供下游 chunk 使用。
+     */
+    private record MergedPages(String text, List<int[]> charPageMap) {
+    }
 
-    /** 带页码信息的文本段 */
-    private record PageText(String text, int pageNumber) {}
+    /**
+     * 带页码信息的文本段
+     */
+    private record PageText(String text, int pageNumber) {
+    }
 
-    /** 带页码信息的分块中间表示 */
-    private record RawChunk(String content, int startPage, int endPage) {}
+    /**
+     * 带页码信息的分块中间表示
+     */
+    private record RawChunk(String content, int startPage, int endPage) {
+    }
 }

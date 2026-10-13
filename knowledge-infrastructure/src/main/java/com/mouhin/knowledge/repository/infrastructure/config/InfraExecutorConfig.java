@@ -1,14 +1,11 @@
 package com.mouhin.knowledge.repository.infrastructure.config;
 
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.*;
 
 /**
  * 基础设施层异步执行器装配（Phase B 起）。
@@ -35,7 +32,9 @@ public class InfraExecutorConfig {
     private static final long KEEP_ALIVE_SECONDS = 60L;
     private static final int QUEUE_CAPACITY = 64;
 
-    /** 视觉异步增强专用有界线程池（已包一层 {@link TenantContext} 快照传播）。 */
+    /**
+     * 视觉异步增强专用有界线程池（已包一层 {@link TenantContext} 快照传播）。
+     */
     @Bean("visionExecutor")
     public Executor visionExecutor() {
         log.info(

@@ -1,51 +1,29 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
-import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
-import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
-import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
-import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
-import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
-import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
-import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
-import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
-import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
-import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
-import com.mouhin.knowledge.repository.domain.service.QualityGate;
-import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
-import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
+import com.mouhin.knowledge.repository.domain.gateway.*;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
+import com.mouhin.knowledge.repository.domain.service.*;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 出卷支撑组件单测（主干抽样，不穷举 7-Agent 流水线）：锁定同步出题 generateExam 的 LLM 直通与空结果兜底、 generateDistribution
@@ -84,30 +62,8 @@ class ExamGenerationSupportTest {
     private final List<QualityGate> qualityGates = List.of();
     private final AgentDecoratorRegistrar registrar =
             new AgentDecoratorRegistrar(auditLog, metrics);
-
-    private ExamGenerationSupport support;
     private final Permission permission = new Permission("u-1", "d-1", null, false);
-
-    /** 记录进度事件并在终态（COMPLETED / ERROR）放行的测试回调。 */
-    private static final class Recorder implements BlackboardProgressCallback {
-        final List<BlackboardProgressEvent> events =
-                Collections.synchronizedList(new ArrayList<>());
-        final CountDownLatch terminal = new CountDownLatch(1);
-
-        @Override
-        public void onProgress(BlackboardProgressEvent event) {
-            events.add(event);
-            if ("COMPLETED".equals(event.getType()) || "ERROR".equals(event.getType())) {
-                terminal.countDown();
-            }
-        }
-
-        List<BlackboardProgressEvent> ofType(String type) {
-            synchronized (events) {
-                return events.stream().filter(e -> type.equals(e.getType())).toList();
-            }
-        }
-    }
+    private ExamGenerationSupport support;
 
     @BeforeEach
     void setUp() {
@@ -148,7 +104,7 @@ class ExamGenerationSupportTest {
     @DisplayName("同步出题：检索 → 组装提示词 → 返回 LLM 卷面原文")
     void generateExamReturnsLlmOutput() {
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of(new SearchResult("知识点：古诗", "d-1", "教材", 2, 0, 0.9)));
         when(chatModel.chat(any(ChatRequest.class)))
                 .thenReturn(
@@ -165,7 +121,7 @@ class ExamGenerationSupportTest {
     @DisplayName("同步出题：LLM 返回空白 → 兜底失败文案而非抛断（可重试语义）")
     void generateExamBlankLlmFallsBack() {
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenReturn(List.of());
         when(chatModel.chat(any(ChatRequest.class)))
                 .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from("   ")).build());
@@ -179,7 +135,7 @@ class ExamGenerationSupportTest {
     @DisplayName("分布方案生成：检索异常吞断降级，knowledgeHint 以 null 继续委托分布 Agent")
     void generateDistributionSwallowsSearchFailure() {
         when(authorizedSearch.searchAuthorized(
-                        anyString(), anyInt(), anyDouble(), any(), any(), any()))
+                anyString(), anyInt(), anyDouble(), any(), any(), any()))
                 .thenThrow(new RuntimeException("milvus down"));
         ExamPlan plan = new ExamPlan();
         when(distributionAgent.generate(eq("数学"), eq("MEDIUM"), eq("PRIMARY"), isNull()))
@@ -244,6 +200,29 @@ class ExamGenerationSupportTest {
         assertTrue(
                 errors.get(0).getErrorMessage().contains("并发上限"),
                 "实际：" + errors.get(0).getErrorMessage());
+    }
+
+    /**
+     * 记录进度事件并在终态（COMPLETED / ERROR）放行的测试回调。
+     */
+    private static final class Recorder implements BlackboardProgressCallback {
+        final List<BlackboardProgressEvent> events =
+                Collections.synchronizedList(new ArrayList<>());
+        final CountDownLatch terminal = new CountDownLatch(1);
+
+        @Override
+        public void onProgress(BlackboardProgressEvent event) {
+            events.add(event);
+            if ("COMPLETED".equals(event.getType()) || "ERROR".equals(event.getType())) {
+                terminal.countDown();
+            }
+        }
+
+        List<BlackboardProgressEvent> ofType(String type) {
+            synchronized (events) {
+                return events.stream().filter(e -> type.equals(e.getType())).toList();
+            }
+        }
     }
 
     // 其他分支待补：executeExamPipeline 七步并行流水线的逐 Agent 编排（依赖大量打桩矩阵，主干已由上列用例与收敛测试锚定）。

@@ -20,24 +20,38 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "knowledge.llm.embedding")
 public class LlmEmbeddingProperties {
 
-    /** 供应商标识（仅用于状态展示与日志）。 */
+    /**
+     * 供应商标识（仅用于状态展示与日志）。
+     */
     private String provider = "ollama";
 
-    /** OpenAI 兼容 base-url。 */
+    /**
+     * OpenAI 兼容 base-url。
+     */
     private String baseUrl = "http://localhost:11434/v1";
 
-    /** 访问密钥（ollama 可为占位符）。 */
+    /**
+     * 访问密钥（ollama 可为占位符）。
+     */
     private String apiKey = "ollama";
 
-    /** 模型名。 */
+    /**
+     * 模型名。
+     */
     private String modelName = "bge-m3";
 
-    /** TCP 建连超时（秒）。 */
+    /**
+     * TCP 建连超时（秒）。
+     */
     private int connectTimeoutSeconds = 2;
 
-    /** 单次读超时（秒）。 */
+    /**
+     * 单次读超时（秒）。
+     */
     private int readTimeoutSeconds = 10;
 
-    /** 整次调用超时（秒）。 */
+    /**
+     * 整次调用超时（秒）。
+     */
     private int callTimeoutSeconds = 15;
 }

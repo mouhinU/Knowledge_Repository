@@ -89,10 +89,20 @@
             <div class="table-wrap">
                 <table>
                     <thead>
-                    <tr><th>主题</th><th>难度</th><th>分类</th><th>质量分</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+                    <tr>
+                        <th>主题</th>
+                        <th>难度</th>
+                        <th>分类</th>
+                        <th>质量分</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
                     </thead>
                     <tbody id="pending-list">
-                    <tr><td colspan="7" class="loading">加载中...</td></tr>
+                    <tr>
+                        <td class="loading" colspan="7">加载中...</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -101,16 +111,19 @@
         <!-- 校对详情（选中某份试卷后展开） -->
         <div class="card" id="detail-card" style="display:none">
             <div class="card-head">
-                <div class="card-title" style="margin:0" id="detail-title">试卷校对详情</div>
+                <div class="card-title" id="detail-title" style="margin:0">试卷校对详情</div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                     <button class="btn btn-outline btn-sm" onclick="closeDetail()">返回列表</button>
-                    <button class="btn btn-outline btn-sm" onclick="doResplit()" title="按试卷原文重新切分回灌">重新切分</button>
-                    <button class="btn btn-primary btn-sm" id="approve-btn" onclick="doApprove()">校对通过并发布</button>
+                    <button class="btn btn-outline btn-sm" onclick="doResplit()" title="按试卷原文重新切分回灌">
+                        重新切分
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="approve-btn" onclick="doApprove()">校对通过并发布
+                    </button>
                 </div>
             </div>
-            <div id="detail-summary" class="pr-summary"></div>
-            <div id="detail-validation" class="pr-validation"></div>
-            <div id="detail-questions" class="pr-questions"></div>
+            <div class="pr-summary" id="detail-summary"></div>
+            <div class="pr-validation" id="detail-validation"></div>
+            <div class="pr-questions" id="detail-questions"></div>
         </div>
     </div>
 </div>

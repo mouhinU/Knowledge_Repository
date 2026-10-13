@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,7 +16,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 简单 HTTP ScoringModel 实现，调用 Cohere 兼容的 reranker 端点。
@@ -71,6 +72,14 @@ public class SimpleHttpScoringModel implements ScoringModel {
                         .version(HttpClient.Version.HTTP_1_1)
                         .followRedirects(HttpClient.Redirect.NORMAL)
                         .build();
+    }
+
+    private static List<Double> fillWithDefault(int count, double defaultValue) {
+        List<Double> scores = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            scores.add(defaultValue);
+        }
+        return scores;
     }
 
     @Override
@@ -175,13 +184,5 @@ public class SimpleHttpScoringModel implements ScoringModel {
             log.error("Failed to parse reranker response: {}", e.getMessage());
             return fillWithDefault(expectedCount, 0.5);
         }
-    }
-
-    private static List<Double> fillWithDefault(int count, double defaultValue) {
-        List<Double> scores = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            scores.add(defaultValue);
-        }
-        return scores;
     }
 }

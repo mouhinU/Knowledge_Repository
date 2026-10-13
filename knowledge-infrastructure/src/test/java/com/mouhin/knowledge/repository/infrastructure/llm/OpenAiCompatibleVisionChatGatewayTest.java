@@ -1,11 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.llm;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -15,10 +17,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link OpenAiCompatibleVisionChatGateway} 集成测试（Phase B）。
@@ -32,13 +33,13 @@ import org.junit.jupiter.api.Test;
 @DisplayName("B 视觉网关")
 class OpenAiCompatibleVisionChatGatewayTest {
 
-    private HttpServer server;
-    private String baseUrl;
     private final AtomicReference<String> lastBody = new AtomicReference<>();
     private final AtomicReference<String> lastAuth = new AtomicReference<>();
     private final AtomicInteger responseStatus = new AtomicInteger(200);
     private final AtomicReference<String> responseBody =
             new AtomicReference<>("{\"choices\":[{\"message\":{\"content\":\"hello ocr\"}}]}");
+    private HttpServer server;
+    private String baseUrl;
 
     @BeforeEach
     void startServer() throws IOException {

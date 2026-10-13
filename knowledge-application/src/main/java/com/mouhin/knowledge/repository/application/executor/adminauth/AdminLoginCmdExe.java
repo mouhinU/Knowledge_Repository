@@ -6,11 +6,12 @@ import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
-import java.util.List;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 管理端登录命令执行器（app 层用例）。
@@ -98,7 +99,9 @@ public class AdminLoginCmdExe {
         return result;
     }
 
-    /** 查询用户角色 key 列表；user.id 缺失或查询异常时降级为空列表，避免登录被角色子系统拖垮。 */
+    /**
+     * 查询用户角色 key 列表；user.id 缺失或查询异常时降级为空列表，避免登录被角色子系统拖垮。
+     */
     private List<String> loadRoles(User user) {
         if (user.getId() == null) {
             return List.of();

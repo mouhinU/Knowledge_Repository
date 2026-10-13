@@ -2,9 +2,10 @@ package com.mouhin.knowledge.repository.application.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.*;
 
 /**
  * 试卷内容校验 Agent
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
  *   <li>各题分值之和应为正（为 0 时视为配置异常，阻断）；
  *   <li>题干重复检测（warning）。
  * </ol>
- *
+ * <p>
  * 校验不通过（存在阻断性 error）时，调用方应阻止开考。
  *
  * @author mouhinU
@@ -128,7 +129,8 @@ public class ExamContentValidatorAgent {
             return List.of();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>() {
+            });
         } catch (Exception e) {
             log.warn("校验 Agent：questionsJson 解析失败: {}", e.getMessage());
             return List.of();

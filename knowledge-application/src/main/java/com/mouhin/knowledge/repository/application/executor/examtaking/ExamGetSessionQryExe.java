@@ -4,8 +4,9 @@ import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 /**
  * 考试场次详情查询执行器（app 层用例）
@@ -36,7 +37,7 @@ public class ExamGetSessionQryExe {
                         && (questionsJson == null || !questionsJson.contains("sectionLabel"));
         if (session.getExamPaper() != null
                 && ((questionsJson != null && support.needsReparse(questionsJson))
-                        || planUpgradeNeeded)) {
+                || planUpgradeNeeded)) {
             questionsJson = ExamPaperParser.parseToJson(session.getExamPaper(), planJson);
             session.setQuestionsJson(questionsJson);
             session.setUpdateTime(LocalDateTime.now());

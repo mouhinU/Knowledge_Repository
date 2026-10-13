@@ -1,18 +1,16 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
+import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
-import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
-import java.util.Optional;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.*;
 
 /**
  * 触发同步评分执行器单测：锁定「仅 SUBMITTED 可触发评分」的入口门禁与分派行为—— （1）SUBMITTED 场次 → 分派 {@code gradeExamInternal} 执行认领

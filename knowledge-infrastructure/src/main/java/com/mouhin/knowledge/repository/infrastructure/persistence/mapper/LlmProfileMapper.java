@@ -11,4 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 2026-10-11
  */
 @Mapper
-public interface LlmProfileMapper extends BaseMapper<LlmProfileDO> {}
+public interface LlmProfileMapper extends BaseMapper<LlmProfileDO> {
+}

@@ -12,7 +12,9 @@
 
     <artifactId>knowledge-client</artifactId>
     <name>Knowledge Client</name>
-    <description>Client layer: external contract - Service interfaces + Command/Query/Response DTOs. Must not depend on domain/infrastructure.</description>
+    <description>Client layer: external contract - Service interfaces + Command/Query/Response DTOs. Must not depend on
+        domain/infrastructure.
+    </description>
 
     <dependencies>
         <!-- Jackson annotations only (for response DTO serialization control); no domain dependency allowed -->

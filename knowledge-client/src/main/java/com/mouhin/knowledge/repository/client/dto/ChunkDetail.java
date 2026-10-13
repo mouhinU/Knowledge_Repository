@@ -15,4 +15,5 @@ public record ChunkDetail(
         int tokenCount,
         int charCount,
         String preview,
-        String content) {}
+        String content) {
+}

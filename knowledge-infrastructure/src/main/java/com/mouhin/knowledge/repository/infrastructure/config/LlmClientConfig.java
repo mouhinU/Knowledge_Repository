@@ -2,10 +2,11 @@ package com.mouhin.knowledge.repository.infrastructure.config;
 
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 /**
  * 多模型 per-role HTTP 客户端治理（Phase R1 · 五独立原则）。
@@ -23,7 +24,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class LlmClientConfig {
 
-    /** Chat 角色 HTTP 客户端构造器：connect / read 取自 {@link LlmChatProperties}。 */
+    /**
+     * Chat 角色 HTTP 客户端构造器：connect / read 取自 {@link LlmChatProperties}。
+     */
     @Bean("chatHttpClientBuilder")
     public HttpClientBuilder chatHttpClientBuilder(LlmChatProperties chat) {
         log.info(
@@ -35,7 +38,9 @@ public class LlmClientConfig {
                 .readTimeout(Duration.ofSeconds(chat.getReadTimeoutSeconds()));
     }
 
-    /** Embedding 角色 HTTP 客户端构造器：短超时快速失败，与 chat 隔离。 */
+    /**
+     * Embedding 角色 HTTP 客户端构造器：短超时快速失败，与 chat 隔离。
+     */
     @Bean("embeddingHttpClientBuilder")
     public HttpClientBuilder embeddingHttpClientBuilder(LlmEmbeddingProperties embedding) {
         log.info(

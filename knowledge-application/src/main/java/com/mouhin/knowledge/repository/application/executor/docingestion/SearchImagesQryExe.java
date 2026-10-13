@@ -4,9 +4,10 @@ import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 全局配图检索查询执行器（app 层，看图题配图 · 阶段 2）。
@@ -21,37 +22,15 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SearchImagesQryExe {
 
-    /** 单页上限，防止前端误传超大 limit 拖垮查询。 */
+    /**
+     * 单页上限，防止前端误传超大 limit 拖垮查询。
+     */
     private static final int MAX_LIMIT = 200;
 
     private final DocumentImageSupport documentImageSupport;
 
     public SearchImagesQryExe(DocumentImageSupport documentImageSupport) {
         this.documentImageSupport = documentImageSupport;
-    }
-
-    public SearchResult execute(SearchImagesQuery query) {
-        String keyword = query.getKeyword();
-        String documentKey = query.getDocumentKey();
-        int safeLimit = Math.max(1, Math.min(query.getLimit(), MAX_LIMIT));
-        int safeOffset = Math.max(0, query.getOffset());
-        List<ExamDocumentImageVO> records =
-                documentImageSupport
-                        .searchImages(
-                                trimToNull(keyword), trimToNull(documentKey), safeLimit, safeOffset)
-                        .stream()
-                        .map(SearchImagesQryExe::toVO)
-                        .toList();
-        long total = documentImageSupport.countImages(trimToNull(keyword), trimToNull(documentKey));
-        log.debug(
-                "全局配图检索 [keyword={}, documentKey={}, limit={}, offset={}, hit={}, total={}]",
-                keyword,
-                documentKey,
-                safeLimit,
-                safeOffset,
-                records.size(),
-                total);
-        return new SearchResult(records, total);
     }
 
     private static ExamDocumentImageVO toVO(DocumentImageHit hit) {
@@ -79,11 +58,36 @@ public class SearchImagesQryExe {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    public SearchResult execute(SearchImagesQuery query) {
+        String keyword = query.getKeyword();
+        String documentKey = query.getDocumentKey();
+        int safeLimit = Math.max(1, Math.min(query.getLimit(), MAX_LIMIT));
+        int safeOffset = Math.max(0, query.getOffset());
+        List<ExamDocumentImageVO> records =
+                documentImageSupport
+                        .searchImages(
+                                trimToNull(keyword), trimToNull(documentKey), safeLimit, safeOffset)
+                        .stream()
+                        .map(SearchImagesQryExe::toVO)
+                        .toList();
+        long total = documentImageSupport.countImages(trimToNull(keyword), trimToNull(documentKey));
+        log.debug(
+                "全局配图检索 [keyword={}, documentKey={}, limit={}, offset={}, hit={}, total={}]",
+                keyword,
+                documentKey,
+                safeLimit,
+                safeOffset,
+                records.size(),
+                total);
+        return new SearchResult(records, total);
+    }
+
     /**
      * 检索结果分页封装。
      *
      * @param records 当前页配图列表
-     * @param total 同条件命中总数
+     * @param total   同条件命中总数
      */
-    public record SearchResult(List<ExamDocumentImageVO> records, long total) {}
+    public record SearchResult(List<ExamDocumentImageVO> records, long total) {
+    }
 }

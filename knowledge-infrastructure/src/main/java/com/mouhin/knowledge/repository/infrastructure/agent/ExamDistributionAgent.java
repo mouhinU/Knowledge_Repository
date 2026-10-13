@@ -8,10 +8,11 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 题型分布方案 Agent（多阶段，支持轮次循环重生成）
@@ -37,7 +38,9 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    /** 允许的内核题型 */
+    /**
+     * 允许的内核题型
+     */
     private static final List<String> ALLOWED_KEYS =
             List.of(
                     "SINGLE_CHOICE",
@@ -52,6 +55,29 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
     public ExamDistributionAgent(BlackboardAgentStreamer agentStreamer) {
         this.agentStreamer = agentStreamer;
     }
+
+    private static String text(JsonNode node, String field) {
+        return node != null && node.has(field) && !node.get(field).isNull()
+                ? node.get(field).asText("").trim()
+                : null;
+    }
+
+    private static String difficultyLabel(String difficulty) {
+        return switch (difficulty != null ? difficulty : "MEDIUM") {
+            case "EASY" -> "简单";
+            case "HARD" -> "困难";
+            default -> "中等";
+        };
+    }
+
+    private static String trim(String s, int max) {
+        if (s == null) {
+            return "";
+        }
+        return s.length() > max ? s.substring(0, max) + "..." : s;
+    }
+
+    // ==================== 方案修正（保留向后兼容，新流程不再使用） ====================
 
     @Override
     public ExamPlan generate(
@@ -105,8 +131,8 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         String input1 =
                 String.format("主题：%s｜学段：%s｜难度：%s｜满分：%d 分", topic, levelLabel, diffLabel, fullMark)
                         + ((knowledgeHint != null && !knowledgeHint.isBlank())
-                                ? "\n参考知识点：" + trim(knowledgeHint, 300)
-                                : "");
+                        ? "\n参考知识点：" + trim(knowledgeHint, 300)
+                        : "");
         String think1 = "作为命题专家，依据学科常规结构与学段，在 6 类内核题型中挑选贴合的题型组合。";
         emitRunning(callback, pfx + "classify", input1, think1);
 
@@ -230,7 +256,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         return plan;
     }
 
-    // ==================== 方案修正（保留向后兼容，新流程不再使用） ====================
+    // ==================== 阶段①②：题型分类 + 题量 ====================
 
     @Override
     public ExamPlan adjustPlan(
@@ -280,31 +306,31 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
         String systemPrompt =
                 """
-                你是资深命题专家，负责修正一份"题型分布方案"使其更合理。
-                内核题型只有 6 类，key 必须严格取自：
-                SINGLE_CHOICE(单选)、MULTI_CHOICE(多选)、TRUE_FALSE(判断)、FILL_BLANK(填空)、SHORT_ANSWER(简答)、ESSAY(论述/解答/作文类主观题)。
-                修正规则：
-                1. 各题型 perQuestion 数组长度必须等于 count；
-                2. 所有 perQuestion 分值之和必须恰好等于满分；
-                3. 每个 perQuestion 值 >= 1；
-                4. 尽量保留原方案的题型和显示名，只调整数量与分值；
-                5. 客观题（单选/多选/判断）每题分值较低（2-5分），主观题（简答/论述）每题分值较高（5-25分）。
-                只输出 JSON，不要任何解释文字或代码块围栏。JSON 结构：
-                {"types":[{"key":"SINGLE_CHOICE","label":"单选题","count":10,"perQuestion":[3,3,3,3,3,3,3,3,3,3]}]}
-                """;
+                        你是资深命题专家，负责修正一份"题型分布方案"使其更合理。
+                        内核题型只有 6 类，key 必须严格取自：
+                        SINGLE_CHOICE(单选)、MULTI_CHOICE(多选)、TRUE_FALSE(判断)、FILL_BLANK(填空)、SHORT_ANSWER(简答)、ESSAY(论述/解答/作文类主观题)。
+                        修正规则：
+                        1. 各题型 perQuestion 数组长度必须等于 count；
+                        2. 所有 perQuestion 分值之和必须恰好等于满分；
+                        3. 每个 perQuestion 值 >= 1；
+                        4. 尽量保留原方案的题型和显示名，只调整数量与分值；
+                        5. 客观题（单选/多选/判断）每题分值较低（2-5分），主观题（简答/论述）每题分值较高（5-25分）。
+                        只输出 JSON，不要任何解释文字或代码块围栏。JSON 结构：
+                        {"types":[{"key":"SINGLE_CHOICE","label":"单选题","count":10,"perQuestion":[3,3,3,3,3,3,3,3,3,3]}]}
+                        """;
         String userPrompt =
                 String.format(
                         """
-                考试主题/科目：%s
-                学段：%s
-                本卷满分：%d 分
-
-                当前方案：
-                %s
-                %s
-                %s
-                请修正方案使所有问题得到修复，并尽量满足改进建议。只输出 JSON。
-                """,
+                                考试主题/科目：%s
+                                学段：%s
+                                本卷满分：%d 分
+                                
+                                当前方案：
+                                %s
+                                %s
+                                %s
+                                请修正方案使所有问题得到修复，并尽量满足改进建议。只输出 JSON。
+                                """,
                         topic,
                         ScoreRuleEngine.levelLabel(level),
                         fullMark,
@@ -384,6 +410,8 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         return adjusted;
     }
 
+    // ==================== 阶段④：结构化合理性评估 ====================
+
     private void emitRunning(
             BlackboardProgressCallback cb, String agent, String input, String thinking) {
         if (cb == null) {
@@ -399,6 +427,8 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                         .build());
     }
 
+    // ==================== 兜底默认结构 ====================
+
     private void emitDone(BlackboardProgressCallback cb, String agent, String result) {
         if (cb == null) {
             return;
@@ -406,7 +436,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         cb.onProgress(BlackboardProgressEvent.agentCompleted(agent, result));
     }
 
-    // ==================== 阶段①②：题型分类 + 题量 ====================
+    // ==================== LLM 调用与 JSON 解析 ====================
 
     private List<TypePlan> classifyAndCount(
             String topic,
@@ -420,13 +450,13 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         boolean hasPrev = prevEvaluationNotes != null && !prevEvaluationNotes.isEmpty();
         String systemPrompt =
                 """
-                你是资深命题专家，负责为一份考试确定"题型构成"和"每种题型题量"。
-                内核题型只有 6 类，key 必须严格取自：
-                SINGLE_CHOICE(单选)、MULTI_CHOICE(多选)、TRUE_FALSE(判断)、FILL_BLANK(填空)、SHORT_ANSWER(简答)、ESSAY(论述/解答/作文类主观题)。
-                你可以为不同科目给题型起更贴切的显示名 label（如数学的 SHORT_ANSWER 显示为"解答题"、语文的 ESSAY 显示为"作文"、英语的 SHORT_ANSWER 显示为"阅读理解"），但 key 必须用上面 6 类之一。
-                只输出 JSON，不要任何解释文字或代码块围栏。JSON 结构：
-                {"types":[{"key":"SINGLE_CHOICE","label":"单选题","count":10,"reason":"覆盖基础概念辨析"}]}
-                """;
+                        你是资深命题专家，负责为一份考试确定"题型构成"和"每种题型题量"。
+                        内核题型只有 6 类，key 必须严格取自：
+                        SINGLE_CHOICE(单选)、MULTI_CHOICE(多选)、TRUE_FALSE(判断)、FILL_BLANK(填空)、SHORT_ANSWER(简答)、ESSAY(论述/解答/作文类主观题)。
+                        你可以为不同科目给题型起更贴切的显示名 label（如数学的 SHORT_ANSWER 显示为"解答题"、语文的 ESSAY 显示为"作文"、英语的 SHORT_ANSWER 显示为"阅读理解"），但 key 必须用上面 6 类之一。
+                        只输出 JSON，不要任何解释文字或代码块围栏。JSON 结构：
+                        {"types":[{"key":"SINGLE_CHOICE","label":"单选题","count":10,"reason":"覆盖基础概念辨析"}]}
+                        """;
         String hint =
                 (knowledgeHint != null && !knowledgeHint.isBlank())
                         ? "\n参考知识点：\n" + trim(knowledgeHint, 600)
@@ -446,20 +476,20 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         String userPrompt =
                 String.format(
                         """
-                考试主题/科目：%s
-                学段：%s
-                难度：%s
-                本卷满分：%d 分
-                %s
-                %s
-                请依据学科特点与学段选择合适的题型组合并确定每种题型的题量。要求：
-                - 至少 2 种题型，题型要贴合该学科常规考试结构（客观题+主观题搭配）；
-                - 题量与满分匹配（题多则每题分值小，主观题少而分值高）；
-                - 低学段/易难度以客观题为主，高学段/难难度增加主观题比重；
-                - 每种题型的 count 应结合该科目的考试特点：如语文/英语阅读和写作占比高，数学选择填空占比高，物理/化学实验题和计算题比重大；
-                - 各题型题量比例要合理，避免某类题型过多或过少（如主观题不宜超过总题量的 40%%，选择题不宜低于总题量的 30%%）；%s
-                - 只输出上述 JSON。
-                """,
+                                考试主题/科目：%s
+                                学段：%s
+                                难度：%s
+                                本卷满分：%d 分
+                                %s
+                                %s
+                                请依据学科特点与学段选择合适的题型组合并确定每种题型的题量。要求：
+                                - 至少 2 种题型，题型要贴合该学科常规考试结构（客观题+主观题搭配）；
+                                - 题量与满分匹配（题多则每题分值小，主观题少而分值高）；
+                                - 低学段/易难度以客观题为主，高学段/难难度增加主观题比重；
+                                - 每种题型的 count 应结合该科目的考试特点：如语文/英语阅读和写作占比高，数学选择填空占比高，物理/化学实验题和计算题比重大；
+                                - 各题型题量比例要合理，避免某类题型过多或过少（如主观题不宜超过总题量的 40%%，选择题不宜低于总题量的 30%%）；%s
+                                - 只输出上述 JSON。
+                                """,
                         topic,
                         ScoreRuleEngine.levelLabel(level),
                         difficultyLabel(difficulty),
@@ -494,8 +524,6 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         }
         return plans;
     }
-
-    // ==================== 阶段④：结构化合理性评估 ====================
 
     private List<String> evaluate(
             String topic,
@@ -548,70 +576,70 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
         String systemPrompt =
                 """
-                你是命题质检专家。按以下固定维度和量化标准评估"题型分布方案"，每个维度独立判定 PASS 或 FAIL。
-
-                ## 评估维度与通过标准
-
-                1. **总题量**：是否在学段合理区间内
-                   - 小学低年级(1-2年级)：15-30道
-                   - 小学高年级(3-6年级)：20-35道
-                   - 初中：22-35道
-                   - 高中：18-30道
-
-                2. **题型占比**：任一题型分值占比是否在 10%-45% 之间
-                   - 计算：该题型小计分 / 满分 × 100%%
-                   - 所有题型都须在 10%-45% 范围内
-
-                3. **单题分值**：各题型每题分值是否符合常规
-                   - 选择/判断：1-3分
-                   - 填空：2-4分
-                   - 解答/计算：4-15分
-                   - 论述/作文：10-25分
-
-                4. **客观/主观比**：客观题(单选+多选+判断)分值占比是否在 30%-65%
-                   - 计算：客观题小计 / 满分 × 100%%
-
-                5. **分值匹配**：所有小题分值之和是否恰好等于满分
-                   - 必须严格相等
-
-                6. **题型适配**：题型选择是否贴合该学科和学段的考试常规
-                   - 如一年级不宜有大量阅读理解类主观题，物理化学须有实验/计算题
-
-                ## 判定规则
-
-                - 所有维度 PASS → overallVerdict = "PASS"
-                - 任一维度 FAIL → overallVerdict = "FAIL"，在对应 detail 中写明具体数值差距和改进目标值
-
-                ## 上一轮反馈检查
-
-                如果提供了上一轮反馈，需逐条判断：
-                - "已解决"：当前方案已按建议调整到位
-                - "未解决"：当前方案仍未落实该建议，说明原因
-
-                ## 输出格式
-
-                只输出 JSON，不要任何解释文字或代码块围栏：
-                {"overallVerdict":"PASS或FAIL","dimensions":[{"name":"维度名","verdict":"PASS或FAIL","detail":"具体数值与判断依据"}],"resolvedFeedback":["已解决的反馈描述"],"suggestions":["仍需改进的具体建议，须包含明确数值目标"]}
-
-                若所有维度通过且无未解决反馈，返回：
-                {"overallVerdict":"PASS","dimensions":[...全PASS...],"resolvedFeedback":[...],"suggestions":[]}
-                """;
+                        你是命题质检专家。按以下固定维度和量化标准评估"题型分布方案"，每个维度独立判定 PASS 或 FAIL。
+                        
+                        ## 评估维度与通过标准
+                        
+                        1. **总题量**：是否在学段合理区间内
+                           - 小学低年级(1-2年级)：15-30道
+                           - 小学高年级(3-6年级)：20-35道
+                           - 初中：22-35道
+                           - 高中：18-30道
+                        
+                        2. **题型占比**：任一题型分值占比是否在 10%-45% 之间
+                           - 计算：该题型小计分 / 满分 × 100%%
+                           - 所有题型都须在 10%-45% 范围内
+                        
+                        3. **单题分值**：各题型每题分值是否符合常规
+                           - 选择/判断：1-3分
+                           - 填空：2-4分
+                           - 解答/计算：4-15分
+                           - 论述/作文：10-25分
+                        
+                        4. **客观/主观比**：客观题(单选+多选+判断)分值占比是否在 30%-65%
+                           - 计算：客观题小计 / 满分 × 100%%
+                        
+                        5. **分值匹配**：所有小题分值之和是否恰好等于满分
+                           - 必须严格相等
+                        
+                        6. **题型适配**：题型选择是否贴合该学科和学段的考试常规
+                           - 如一年级不宜有大量阅读理解类主观题，物理化学须有实验/计算题
+                        
+                        ## 判定规则
+                        
+                        - 所有维度 PASS → overallVerdict = "PASS"
+                        - 任一维度 FAIL → overallVerdict = "FAIL"，在对应 detail 中写明具体数值差距和改进目标值
+                        
+                        ## 上一轮反馈检查
+                        
+                        如果提供了上一轮反馈，需逐条判断：
+                        - "已解决"：当前方案已按建议调整到位
+                        - "未解决"：当前方案仍未落实该建议，说明原因
+                        
+                        ## 输出格式
+                        
+                        只输出 JSON，不要任何解释文字或代码块围栏：
+                        {"overallVerdict":"PASS或FAIL","dimensions":[{"name":"维度名","verdict":"PASS或FAIL","detail":"具体数值与判断依据"}],"resolvedFeedback":["已解决的反馈描述"],"suggestions":["仍需改进的具体建议，须包含明确数值目标"]}
+                        
+                        若所有维度通过且无未解决反馈，返回：
+                        {"overallVerdict":"PASS","dimensions":[...全PASS...],"resolvedFeedback":[...],"suggestions":[]}
+                        """;
 
         String userPrompt =
                 String.format(
                         """
-                考试主题/科目：%s
-                学段：%s
-                难度：%s
-                目标满分：%d 分
-                当前总题量：%d 道
-                平均每道题分值：%.1f 分
-
-                【当前题型分布方案】
-                %s
-                %s
-                请按固定维度逐项评估，输出 JSON。
-                """,
+                                考试主题/科目：%s
+                                学段：%s
+                                难度：%s
+                                目标满分：%d 分
+                                当前总题量：%d 道
+                                平均每道题分值：%.1f 分
+                                
+                                【当前题型分布方案】
+                                %s
+                                %s
+                                请按固定维度逐项评估，输出 JSON。
+                                """,
                         topic,
                         ScoreRuleEngine.levelLabel(level),
                         difficultyLabel(difficulty),
@@ -683,8 +711,6 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         return notes;
     }
 
-    // ==================== 兜底默认结构 ====================
-
     private List<TypePlan> defaultStructure() {
         List<TypePlan> plans = new ArrayList<>();
         plans.add(new TypePlan("SINGLE_CHOICE", "单选题", 5, new ArrayList<>()));
@@ -695,8 +721,6 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         plans.add(new TypePlan("ESSAY", "论述题", 2, new ArrayList<>()));
         return plans;
     }
-
-    // ==================== LLM 调用与 JSON 解析 ====================
 
     private JsonNode streamJson(
             String agentName,
@@ -727,26 +751,5 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
             }
         }
         return null;
-    }
-
-    private static String text(JsonNode node, String field) {
-        return node != null && node.has(field) && !node.get(field).isNull()
-                ? node.get(field).asText("").trim()
-                : null;
-    }
-
-    private static String difficultyLabel(String difficulty) {
-        return switch (difficulty != null ? difficulty : "MEDIUM") {
-            case "EASY" -> "简单";
-            case "HARD" -> "困难";
-            default -> "中等";
-        };
-    }
-
-    private static String trim(String s, int max) {
-        if (s == null) {
-            return "";
-        }
-        return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 }

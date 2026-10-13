@@ -5,6 +5,11 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandid
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionStrategyEnum;
 import com.mouhin.knowledge.repository.infrastructure.extraction.ExtractionSupport;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -12,10 +17,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.springframework.stereotype.Component;
 
 /**
  * Word 解析策略（DOCX / DOC）。
@@ -29,10 +30,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DocxExtractionStrategy implements ContentExtractor {
 
-    /** 每 section 最大段落数（近似页面）。 */
+    /**
+     * 每 section 最大段落数（近似页面）。
+     */
     private static final int PARAGRAPHS_PER_SECTION = 30;
 
-    /** 本策略命中的 MIME 类型。 */
+    /**
+     * 本策略命中的 MIME 类型。
+     */
     private static final Set<String> SUPPORTED_MIME_TYPES =
             Set.of(
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -57,7 +62,7 @@ public class DocxExtractionStrategy implements ContentExtractor {
     public ExtractionResult extract(ExtractionCandidate candidate) throws IOException {
         Path filePath = candidate.filePath();
         try (InputStream is = Files.newInputStream(filePath);
-                XWPFDocument document = new XWPFDocument(is)) {
+             XWPFDocument document = new XWPFDocument(is)) {
 
             List<XWPFParagraph> paragraphs = document.getParagraphs();
             List<String> sections = buildSections(paragraphs);

@@ -3,10 +3,11 @@ package com.mouhin.knowledge.repository.infrastructure.milvus;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantPlacementDO;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 /**
  * Milvus EmbeddingStore 路由持有器（P2-T1，Phase 2 方案 b 骨架）。
@@ -34,10 +35,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class EmbeddingStoreProvider {
 
-    /** Phase 2 唯一 store（LangChain4j 4 列 schema + {@code knowledge_chunks} 集合）。 */
+    /**
+     * Phase 2 唯一 store（LangChain4j 4 列 schema + {@code knowledge_chunks} 集合）。
+     */
     private final EmbeddingStore<TextSegment> poolStore;
 
-    /** 路由策略；Phase 2 恒返回 {@link #poolStore}，Phase 3 换入 SILO 分片实现。 */
+    /**
+     * 路由策略；Phase 2 恒返回 {@link #poolStore}，Phase 3 换入 SILO 分片实现。
+     */
     private final EmbeddingStoreRouter router;
 
     public EmbeddingStoreProvider(

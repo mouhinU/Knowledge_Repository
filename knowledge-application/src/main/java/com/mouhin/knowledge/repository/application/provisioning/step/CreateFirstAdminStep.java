@@ -7,12 +7,13 @@ import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.User;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningContext;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningStep;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 建租户首位 admin 步骤（P3-T3，order=400，最后一步）。
@@ -51,17 +52,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class CreateFirstAdminStep implements ProvisioningStep {
 
-    private static final Logger log = LoggerFactory.getLogger(CreateFirstAdminStep.class);
-
-    /** 步骤名常量。 */
+    /**
+     * 步骤名常量。
+     */
     public static final String STEP_NAME = "CREATE_FIRST_ADMIN";
-
-    /** 排序权重：所有开通步骤最后执行（依赖前序 sys_config / 根部门已就位）。 */
+    /**
+     * 排序权重：所有开通步骤最后执行（依赖前序 sys_config / 根部门已就位）。
+     */
     public static final int STEP_ORDER = 400;
-
-    /** 首位 admin username 后缀，与 tenantKey 拼接：{@code acme + "-admin" = "acme-admin"}。 */
+    /**
+     * 首位 admin username 后缀，与 tenantKey 拼接：{@code acme + "-admin" = "acme-admin"}。
+     */
     public static final String ADMIN_USERNAME_SUFFIX = "-admin";
-
     /**
      * 邀请 URL 前缀（相对路径，前端 host 由 caller 决定）。
      *
@@ -70,8 +72,10 @@ public class CreateFirstAdminStep implements ProvisioningStep {
      * 邀请式设密<b>回访</b>子切片在其上叠加"进入页面先只读预检查邀请码状态 + 四态引导 + 剩余时间倒计时"， URL 常量保持不变以兼容已发送的旧链接。
      */
     public static final String INVITE_URL_PREFIX = "/set-password.html?code=";
-
-    /** 邀请 TTL；与 {@link UserInviteService#DEFAULT_TTL} 对齐。 */
+    private static final Logger log = LoggerFactory.getLogger(CreateFirstAdminStep.class);
+    /**
+     * 邀请 TTL；与 {@link UserInviteService#DEFAULT_TTL} 对齐。
+     */
     private static final Duration INVITE_TTL = UserInviteService.DEFAULT_TTL;
 
     private final UserGateway userGateway;
@@ -128,7 +132,9 @@ public class CreateFirstAdminStep implements ProvisioningStep {
                 result.invite().getInviteId());
     }
 
-    /** 命中即复用，未命中则新建（首位 admin 幂等语义）。 */
+    /**
+     * 命中即复用，未命中则新建（首位 admin 幂等语义）。
+     */
     private User findOrCreateAdmin(Long tenantId, String username) {
         Optional<User> existing = userGateway.findByUsernameAndTenant(username, tenantId);
         if (existing.isPresent()) {

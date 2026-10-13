@@ -1,26 +1,22 @@
 package com.mouhin.knowledge.repository.web.security;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.alibaba.cola.dto.SingleResponse;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
 import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import jakarta.servlet.FilterChain;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * 管理端令牌鉴权过滤器单元测试。

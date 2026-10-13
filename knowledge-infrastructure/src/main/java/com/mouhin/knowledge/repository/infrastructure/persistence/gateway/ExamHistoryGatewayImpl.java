@@ -7,9 +7,10 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamHistoryConverter;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamHistoryDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.ExamHistoryMapper;
+import org.springframework.stereotype.Repository;
+
 import java.util.List;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * AI 出卷历史仓储实现
@@ -24,16 +25,24 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
-    /** MyBatis-Plus .last() 前缀（java:S1192 抽常量防 4 处 SQL_LIMIT_PREFIX 漂移）。 */
+    /**
+     * MyBatis-Plus .last() 前缀（java:S1192 抽常量防 4 处 SQL_LIMIT_PREFIX 漂移）。
+     */
     private static final String SQL_LIMIT_PREFIX = "LIMIT ";
 
-    /** 作用域两侧皆空时的兜底谓词：永假条件，避免跨租户全表命中。 */
+    /**
+     * 作用域两侧皆空时的兜底谓词：永假条件，避免跨租户全表命中。
+     */
     private static final String SQL_NEVER_TRUE = "1 = 0";
 
     private final ExamHistoryMapper examHistoryMapper;
 
     public ExamHistoryGatewayImpl(ExamHistoryMapper examHistoryMapper) {
         this.examHistoryMapper = examHistoryMapper;
+    }
+
+    private static boolean isNotBlank(String s) {
+        return s != null && !s.isBlank();
     }
 
     @Override
@@ -127,14 +136,14 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         return examHistoryMapper.selectCount(null);
     }
 
+    // ==================== P0-T3 作用域查询 ====================
+
     @Override
     public void deleteBySessionId(String sessionId) {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getSessionId, sessionId);
         examHistoryMapper.delete(wrapper);
     }
-
-    // ==================== P0-T3 作用域查询 ====================
 
     @Override
     public List<ExamHistory> listPageScoped(int limit, int offset, Permission permission) {
@@ -216,9 +225,5 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         } else {
             wrapper.eq(ExamHistoryDO::getDepartmentId, permission.getDepartmentId());
         }
-    }
-
-    private static boolean isNotBlank(String s) {
-        return s != null && !s.isBlank();
     }
 }

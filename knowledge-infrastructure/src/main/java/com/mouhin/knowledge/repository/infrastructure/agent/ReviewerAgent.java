@@ -23,21 +23,21 @@ public class ReviewerAgent implements BlackboardAgent {
 
     private static final String SYSTEM_PROMPT =
             """
-            你是一个严格的文章审核编辑。你的任务是审核文章草稿的质量，并提供修改后的最终版本。
-
-            审核维度：
-            1. 准确性：内容是否与知识片段一致，有无编造或曲解
-            2. 完整性：是否充分回答了用户的问题
-            3. 逻辑性：文章结构是否清晰，论述是否连贯
-            4. 可读性：语言是否流畅，格式是否规范
-
-            输出要求：
-            先输出审核意见（以 "## 审核意见" 开头），包含各维度评价和改进建议。
-            然后输出 "## 质量评分"，给出 0-100 的整数分数。
-            最后输出 "## 最终文章"，给出修改后的完整文章（Markdown 格式）。
-
-            如果文章质量已经足够好（80分以上），最终文章可以保持原样或做微调。
-            """;
+                    你是一个严格的文章审核编辑。你的任务是审核文章草稿的质量，并提供修改后的最终版本。
+                    
+                    审核维度：
+                    1. 准确性：内容是否与知识片段一致，有无编造或曲解
+                    2. 完整性：是否充分回答了用户的问题
+                    3. 逻辑性：文章结构是否清晰，论述是否连贯
+                    4. 可读性：语言是否流畅，格式是否规范
+                    
+                    输出要求：
+                    先输出审核意见（以 "## 审核意见" 开头），包含各维度评价和改进建议。
+                    然后输出 "## 质量评分"，给出 0-100 的整数分数。
+                    最后输出 "## 最终文章"，给出修改后的完整文章（Markdown 格式）。
+                    
+                    如果文章质量已经足够好（80分以上），最终文章可以保持原样或做微调。
+                    """;
 
     private final BlackboardAgentStreamer agentStreamer;
 
@@ -55,7 +55,7 @@ public class ReviewerAgent implements BlackboardAgent {
         String materials =
                 (draft != null && !draft.isBlank())
                         ? "写手的文章草稿：\n\n"
-                                + (draft.length() > 500 ? draft.substring(0, 500) + "..." : draft)
+                        + (draft.length() > 500 ? draft.substring(0, 500) + "..." : draft)
                         : "（无草稿）";
         emitProgress(
                 progressCallback,
@@ -88,18 +88,18 @@ public class ReviewerAgent implements BlackboardAgent {
         String userPrompt =
                 String.format(
                         """
-                        用户的问题：%s
-
-                        研究员的知识发现：
-
-                        %s
-
-                        写手的文章草稿：
-
-                        %s
-
-                        请审核这篇文章并输出最终版本。
-                        """,
+                                用户的问题：%s
+                                
+                                研究员的知识发现：
+                                
+                                %s
+                                
+                                写手的文章草稿：
+                                
+                                %s
+                                
+                                请审核这篇文章并输出最终版本。
+                                """,
                         blackboard.getQuestion(), blackboard.getKeyFindings(), draft);
 
         String reviewOutput =
@@ -127,7 +127,9 @@ public class ReviewerAgent implements BlackboardAgent {
         }
     }
 
-    /** 从 Markdown 文本中提取指定标题下的内容 */
+    /**
+     * 从 Markdown 文本中提取指定标题下的内容
+     */
     private String extractSection(String text, String sectionTitle) {
         if (text == null) {
             return null;
@@ -153,7 +155,9 @@ public class ReviewerAgent implements BlackboardAgent {
         return text.substring(start, end).trim();
     }
 
-    /** 从审核输出中提取质量评分 */
+    /**
+     * 从审核输出中提取质量评分
+     */
     private int extractScore(String text) {
         if (text == null) {
             return 0;

@@ -1,21 +1,14 @@
 package com.mouhin.knowledge.repository.migration;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import java.sql.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * {@code kb_extraction_cache} 租户内化验证（P4-T3 验收，V30）。
@@ -44,7 +37,9 @@ class ExtractionCacheTenantScopeMigrationTest {
     private static final String USER = "sa";
     private static final String PASSWORD = "";
 
-    /** 业务键：文件摘要 + 策略 + 模型 + 提示词摘要 + 渲染模式，跨租户复用同一组值以验证唯一键租户内化。 */
+    /**
+     * 业务键：文件摘要 + 策略 + 模型 + 提示词摘要 + 渲染模式，跨租户复用同一组值以验证唯一键租户内化。
+     */
     private static final String CHECKSUM = "a".repeat(32);
 
     private static final String STRATEGY = "VISION";
@@ -63,11 +58,11 @@ class ExtractionCacheTenantScopeMigrationTest {
                 .load()
                 .migrate();
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                Statement st = conn.createStatement()) {
+             Statement st = conn.createStatement()) {
             // 默认租户由 V23 种子提供
             try (ResultSet rs =
-                    st.executeQuery(
-                            "SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'default'")) {
+                         st.executeQuery(
+                                 "SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'default'")) {
                 assertTrue(rs.next(), "默认租户种子缺失");
                 defaultTenantId = rs.getLong(1);
             }
@@ -76,7 +71,7 @@ class ExtractionCacheTenantScopeMigrationTest {
                     "INSERT INTO sys_tenant (tenant_key, name, plan, status, data_region) "
                             + "VALUES ('acme', 'Acme', 'standard', 'ACTIVE', 'cn')");
             try (ResultSet rs =
-                    st.executeQuery("SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'acme'")) {
+                         st.executeQuery("SELECT tenant_id FROM sys_tenant WHERE tenant_key = 'acme'")) {
                 assertTrue(rs.next(), "acme 租户插入失败");
                 acmeTenantId = rs.getLong(1);
             }
@@ -89,7 +84,7 @@ class ExtractionCacheTenantScopeMigrationTest {
     @DisplayName("V30 已为 kb_extraction_cache 增加 tenant_id 列")
     void tenantIdColumnExists() throws SQLException {
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                Statement st = conn.createStatement()) {
+             Statement st = conn.createStatement()) {
             st.execute("SELECT tenant_id FROM kb_extraction_cache WHERE 1 = 0");
         }
     }
@@ -101,10 +96,10 @@ class ExtractionCacheTenantScopeMigrationTest {
         assertDoesNotThrow(
                 () -> insertCache(acmeTenantId, "acme 结果"), "acme 租户应以相同业务键共存（不再撞旧全局唯一键，修复跨租户覆盖）");
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "SELECT COUNT(*) FROM kb_extraction_cache "
-                                        + "WHERE checksum = ? AND strategy = ?")) {
+             PreparedStatement ps =
+                     conn.prepareStatement(
+                             "SELECT COUNT(*) FROM kb_extraction_cache "
+                                     + "WHERE checksum = ? AND strategy = ?")) {
             ps.setString(1, CHECKSUM);
             ps.setString(2, STRATEGY);
             try (ResultSet rs = ps.executeQuery()) {
@@ -126,7 +121,7 @@ class ExtractionCacheTenantScopeMigrationTest {
                     "同租户重复业务键应违反 UNIQUE(tenant_id, checksum, strategy, model_name, prompt_hash, render_mode)");
         } finally {
             try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
-                    Statement st = conn.createStatement()) {
+                 Statement st = conn.createStatement()) {
                 st.executeUpdate(
                         "DELETE FROM kb_extraction_cache WHERE tenant_id = " + probeTenant);
             }
@@ -142,10 +137,10 @@ class ExtractionCacheTenantScopeMigrationTest {
     private void insertCacheForTenant(Connection conn, long tenantId, String payload)
             throws SQLException {
         try (PreparedStatement ps =
-                conn.prepareStatement(
-                        "INSERT INTO kb_extraction_cache "
-                                + "(checksum, strategy, model_name, prompt_hash, render_mode, result_json, tenant_id) "
-                                + "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+                     conn.prepareStatement(
+                             "INSERT INTO kb_extraction_cache "
+                                     + "(checksum, strategy, model_name, prompt_hash, render_mode, result_json, tenant_id) "
+                                     + "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
             ps.setString(1, CHECKSUM);
             ps.setString(2, STRATEGY);
             ps.setString(3, MODEL);

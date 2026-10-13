@@ -23,5 +23,6 @@ public final class ParserUtils {
     public static final Pattern OPTION_SPLIT_PATTERN =
             Pattern.compile("([A-Da-d])\\s*+[.、．]\\s*+(.*?)(?=\\s++[A-Da-d]\\s*+[.、．]|$)");
 
-    private ParserUtils() {}
+    private ParserUtils() {
+    }
 }

@@ -6,10 +6,11 @@ import com.mouhin.knowledge.repository.domain.gateway.SecretCipher;
 import com.mouhin.knowledge.repository.domain.model.valueobject.LlmProfile;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.LlmProfileDO;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.LlmProfileMapper;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * 租户 LLM 配置持久化实现（P4-T4）。

@@ -4,10 +4,11 @@ import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantPlacementDO;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import java.util.Locale;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * EmbeddingStore 路由策略（P2-T1 骨架）。
@@ -29,6 +30,19 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class EmbeddingStoreRouter {
 
+    private static String normalisePlacement(String placement) {
+        if (placement == null || placement.isBlank()) {
+            return TenantPlacementDO.PLACEMENT_POOL;
+        }
+        String upper = placement.trim().toUpperCase(Locale.ROOT);
+        if (TenantPlacementDO.PLACEMENT_POOL.equals(upper)
+                || TenantPlacementDO.PLACEMENT_SILO.equals(upper)) {
+            return upper;
+        }
+        // 未知值一律回退 POOL：Phase 2 SILO 未落地，宁可误降级也不允许 NPE / 未定义分支
+        return TenantPlacementDO.PLACEMENT_POOL;
+    }
+
     /**
      * 按租户与放置策略选择目标 store。
      *
@@ -36,7 +50,7 @@ public class EmbeddingStoreRouter {
      * 3 打开 SILO 时只替换本方法内部实现，调用点与 {@link EmbeddingStoreProvider} 均无需改动。
      *
      * @param tenantKey 租户业务键；当前 Phase 2 不参与决策，仅记录 debug 日志便于后续迁移；{@code null} 视为 {@link
-     *     TenantContext#DEFAULT_TENANT_KEY}
+     *                  TenantContext#DEFAULT_TENANT_KEY}
      * @param placement 放置策略字面量（{@code POOL} / {@code SILO}）；未知或 {@code null} 归一为 {@code POOL}
      * @param poolStore 共享集合（POOL）实例，由 {@link EmbeddingStoreProvider} 传入
      * @return Phase 2 恒为 {@code poolStore}
@@ -59,18 +73,5 @@ public class EmbeddingStoreRouter {
         //     return siloStoreRegistry.computeIfAbsent(effectiveKey, this::createSiloStore);
         // }
         return poolStore;
-    }
-
-    private static String normalisePlacement(String placement) {
-        if (placement == null || placement.isBlank()) {
-            return TenantPlacementDO.PLACEMENT_POOL;
-        }
-        String upper = placement.trim().toUpperCase(Locale.ROOT);
-        if (TenantPlacementDO.PLACEMENT_POOL.equals(upper)
-                || TenantPlacementDO.PLACEMENT_SILO.equals(upper)) {
-            return upper;
-        }
-        // 未知值一律回退 POOL：Phase 2 SILO 未落地，宁可误降级也不允许 NPE / 未定义分支
-        return TenantPlacementDO.PLACEMENT_POOL;
     }
 }

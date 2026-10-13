@@ -17,10 +17,6 @@ public enum UsageMetric {
         this.code = code;
     }
 
-    public String code() {
-        return code;
-    }
-
     /**
      * 按 code 反查枚举。
      *
@@ -35,5 +31,9 @@ public enum UsageMetric {
             }
         }
         throw new IllegalArgumentException("Unknown metric: " + code);
+    }
+
+    public String code() {
+        return code;
     }
 }

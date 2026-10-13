@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.domain.service;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,13 +30,14 @@ import java.util.Set;
  */
 public final class ExamContractValidator {
 
-    private ExamContractValidator() {}
+    private ExamContractValidator() {
+    }
 
     /**
      * 校验切分结果。
      *
      * @param questions 切分产出的结构化题目行
-     * @param plan 题型分布方案（可为 null；缺省时跳过题数/分值/分布对齐，仅校验答案规范与编号）
+     * @param plan      题型分布方案（可为 null；缺省时跳过题数/分值/分布对齐，仅校验答案规范与编号）
      * @return 校验结果（issues 非空即不通过）
      */
     public static Result validate(List<ExamQuestion> questions, ExamPlan plan) {
@@ -54,9 +56,10 @@ public final class ExamContractValidator {
         return new Result(issues.isEmpty(), issues);
     }
 
-    /** 1. 题数对齐：切分题数须等于方案总题量。 */
-    private static void checkCountAlignment(
-            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
+    /**
+     * 1. 题数对齐：切分题数须等于方案总题量。
+     */
+    private static void checkCountAlignment(List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
         if (plan != null
                 && plan.totalQuestions() > 0
                 && questions.size() != plan.totalQuestions()) {
@@ -64,9 +67,10 @@ public final class ExamContractValidator {
         }
     }
 
-    /** 3. 分值合计对齐：题目满分之和须等于方案总分值。 */
-    private static void checkScoreSumAlignment(
-            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
+    /**
+     * 3. 分值合计对齐：题目满分之和须等于方案总分值。
+     */
+    private static void checkScoreSumAlignment(List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
         int sumScore = 0;
         for (ExamQuestion q : questions) {
             sumScore += q.getMaxScore() == null ? 0 : q.getMaxScore();
@@ -76,9 +80,10 @@ public final class ExamContractValidator {
         }
     }
 
-    /** 2. 分题型数量对齐：逐题型的切分数量须等于方案该题型题量。 */
-    private static void checkTypeCounts(
-            List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
+    /**
+     * 2. 分题型数量对齐：逐题型的切分数量须等于方案该题型题量。
+     */
+    private static void checkTypeCounts(List<ExamQuestion> questions, ExamPlan plan, List<String> issues) {
         if (plan == null || plan.getTypes() == null) {
             return;
         }
@@ -97,7 +102,9 @@ public final class ExamContractValidator {
         }
     }
 
-    /** 4. 印刷题号非空且全局唯一。 */
+    /**
+     * 4. 印刷题号非空且全局唯一。
+     */
     private static void checkQuestionNumbers(List<ExamQuestion> questions, List<String> issues) {
         Set<Integer> numbers = new HashSet<>();
         for (ExamQuestion q : questions) {
@@ -113,14 +120,18 @@ public final class ExamContractValidator {
         }
     }
 
-    /** 5/6/7. 逐题答案规范与选项校验（含出处/位置类记忆题的内容确定性复核）。 */
+    /**
+     * 5/6/7. 逐题答案规范与选项校验（含出处/位置类记忆题的内容确定性复核）。
+     */
     private static void checkAnswersPerQuestion(List<ExamQuestion> questions, List<String> issues) {
         for (ExamQuestion q : questions) {
             checkSingleQuestion(q, issues);
         }
     }
 
-    /** 校验单题：先复核元记忆题，再按题型校验答案规范与选项。 */
+    /**
+     * 校验单题：先复核元记忆题，再按题型校验答案规范与选项。
+     */
     private static void checkSingleQuestion(ExamQuestion q, List<String> issues) {
         Integer num = q.getQuestionNumber();
         String tag = num != null ? ("第 " + num + " 题") : "（无题号题）";
@@ -161,7 +172,9 @@ public final class ExamContractValidator {
         }
     }
 
-    /** 渲染校验报告为 Markdown（供校对视图 / 日志展示）。 */
+    /**
+     * 渲染校验报告为 Markdown（供校对视图 / 日志展示）。
+     */
     public static String renderReport(Result result) {
         StringBuilder sb = new StringBuilder();
         if (result.pass()) {
@@ -194,8 +207,9 @@ public final class ExamContractValidator {
     /**
      * 契约校验结果。
      *
-     * @param pass 是否通过（issues 为空）
+     * @param pass   是否通过（issues 为空）
      * @param issues 问题清单（不通过项）
      */
-    public record Result(boolean pass, List<String> issues) {}
+    public record Result(boolean pass, List<String> issues) {
+    }
 }

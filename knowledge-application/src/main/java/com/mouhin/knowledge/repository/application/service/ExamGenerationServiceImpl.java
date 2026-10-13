@@ -10,9 +10,10 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.ListH
 import com.mouhin.knowledge.repository.application.executor.examgeneration.PageHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
-import org.springframework.stereotype.Service;
 
 /**
  * AI 试卷生成应用服务实现（app 层，仅分发到执行器）
@@ -26,6 +27,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class ExamGenerationServiceImpl implements ExamGenerationServiceI {
 
+    /**
+     * 分页结果 Map 中记录集合的键（与 {@link PageHistoryQryExe} 输出契约一致）
+     */
+    private static final String KEY_RECORDS = "records";
+    /**
+     * 分页结果 Map 中总记录数的键
+     */
+    private static final String KEY_TOTAL = "total";
+    /**
+     * 分页结果 Map 中页码的键
+     */
+    private static final String KEY_PAGE = "page";
+    /**
+     * 分页结果 Map 中每页数量的键
+     */
+    private static final String KEY_SIZE = "size";
     private final ListHistoryQryExe listHistoryQryExe;
     private final PageHistoryQryExe pageHistoryQryExe;
     private final GetHistoryBySessionIdQryExe getHistoryBySessionIdQryExe;
@@ -42,17 +59,15 @@ public class ExamGenerationServiceImpl implements ExamGenerationServiceI {
         this.deleteHistoryCmdExe = deleteHistoryCmdExe;
     }
 
-    /** 分页结果 Map 中记录集合的键（与 {@link PageHistoryQryExe} 输出契约一致） */
-    private static final String KEY_RECORDS = "records";
-
-    /** 分页结果 Map 中总记录数的键 */
-    private static final String KEY_TOTAL = "total";
-
-    /** 分页结果 Map 中页码的键 */
-    private static final String KEY_PAGE = "page";
-
-    /** 分页结果 Map 中每页数量的键 */
-    private static final String KEY_SIZE = "size";
+    /**
+     * 将分页 Map 中的数值字段安全转换为 int。
+     *
+     * @param value Map 中读取的原始值（可能为 Number 或 null）
+     * @return int 值；null 时返回 0
+     */
+    private static int toInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
+    }
 
     @Override
     public MultiResponse<ExamHistoryDTO> listHistory(int limit) {
@@ -79,15 +94,5 @@ public class ExamGenerationServiceImpl implements ExamGenerationServiceI {
     public Response deleteHistory(String sessionId) {
         deleteHistoryCmdExe.execute(sessionId);
         return Response.buildSuccess();
-    }
-
-    /**
-     * 将分页 Map 中的数值字段安全转换为 int。
-     *
-     * @param value Map 中读取的原始值（可能为 Number 或 null）
-     * @return int 值；null 时返回 0
-     */
-    private static int toInt(Object value) {
-        return value instanceof Number number ? number.intValue() : 0;
     }
 }

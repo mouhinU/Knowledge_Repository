@@ -3,9 +3,10 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.dataobject;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 /**
  * 租户 LLM 配置数据对象（P4-T4）。
@@ -24,24 +25,38 @@ public class LlmProfileDO {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 所属租户 id（UNIQUE 约束）。 */
+    /**
+     * 所属租户 id（UNIQUE 约束）。
+     */
     private Long tenantId;
 
-    /** API Key（密文或明文，取决于 knowledge.secret.cipher.mode）。 */
+    /**
+     * API Key（密文或明文，取决于 knowledge.secret.cipher.mode）。
+     */
     private String apiKey;
 
-    /** LLM API base URL。 */
+    /**
+     * LLM API base URL。
+     */
     private String baseUrl;
 
-    /** 对话模型名称。 */
+    /**
+     * 对话模型名称。
+     */
     private String model;
 
-    /** 向量模型名称。 */
+    /**
+     * 向量模型名称。
+     */
     private String embeddingModel;
 
-    /** 向量维度。 */
+    /**
+     * 向量维度。
+     */
     private Integer dimension;
 
-    /** 最后更新时间。 */
+    /**
+     * 最后更新时间。
+     */
     private LocalDateTime updatedAt;
 }

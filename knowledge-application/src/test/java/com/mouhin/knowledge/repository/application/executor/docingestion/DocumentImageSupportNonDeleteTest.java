@@ -1,19 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
@@ -23,6 +9,12 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -30,11 +22,10 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 文档配图支撑非删除路径单测：锁定「抽取 → SHA-256 去重 → 落盘 → 持久化」主干（含按文档去重、 抽取异常吞断、源路径越界拒绝）、回填前置校验、按句柄回读二进制的 assetRoot
@@ -47,16 +38,24 @@ import org.mockito.ArgumentCaptor;
 @DisplayName("文档配图支撑：抽取去重与回读 (DocumentImageSupport, 非删除路径)")
 class DocumentImageSupportNonDeleteTest {
 
-    @TempDir Path root;
-
     private final DocumentImageExtractorGateway extractor =
             mock(DocumentImageExtractorGateway.class);
     private final DocumentImageGateway imageGateway = mock(DocumentImageGateway.class);
     private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
-
+    @TempDir
+    Path root;
     private Path assetRoot;
     private Path storageRoot;
     private DocumentImageSupport support;
+
+    private static String sha256Hex(byte[] bytes) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+        StringBuilder sb = new StringBuilder();
+        for (byte b : digest) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
 
     @BeforeEach
     void setUp() throws IOException {
@@ -119,15 +118,6 @@ class DocumentImageSupportNonDeleteTest {
 
     private ExtractedImage image(byte[] bytes, String mime) {
         return new ExtractedImage(bytes, mime, 10, 20, 3, 1);
-    }
-
-    private static String sha256Hex(byte[] bytes) throws Exception {
-        byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : digest) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
     }
 
     @Test

@@ -5,17 +5,13 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.ListDoc
 import com.mouhin.knowledge.repository.application.executor.docingestion.SearchImagesQryExe;
 import com.mouhin.knowledge.repository.client.dto.ExamDocumentImageVO;
 import com.mouhin.knowledge.repository.client.dto.SearchImagesQuery;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 看图题配图管理端接口（adapter 层）。
@@ -47,7 +43,9 @@ public class AdminDocumentImageController {
         this.searchImagesQryExe = searchImagesQryExe;
     }
 
-    /** 列出某文档已入库的全部配图（含展示 URL、尺寸、页序）。 */
+    /**
+     * 列出某文档已入库的全部配图（含展示 URL、尺寸、页序）。
+     */
     @GetMapping("/document/{documentId}")
     public ResponseEntity<List<ExamDocumentImageVO>> listByDocument(@PathVariable Long documentId) {
         return ResponseEntity.ok(listDocumentImagesQryExe.execute(documentId));
@@ -75,7 +73,9 @@ public class AdminDocumentImageController {
         return ResponseEntity.ok(body);
     }
 
-    /** 对已入库文档按持久存储路径回填一次图片提取（幂等：文档内 SHA-256 去重）。 */
+    /**
+     * 对已入库文档按持久存储路径回填一次图片提取（幂等：文档内 SHA-256 去重）。
+     */
     @PostMapping("/document/{documentId}/backfill")
     public ResponseEntity<Map<String, Object>> backfill(@PathVariable Long documentId) {
         try {

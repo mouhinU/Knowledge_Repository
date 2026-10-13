@@ -19,7 +19,9 @@ public class SystemStatusVO {
     private MilvusInfo milvus;
     private KnowledgeBaseStats knowledgeBase;
 
-    /** Embedding 模型信息 */
+    /**
+     * Embedding 模型信息
+     */
     @Getter
     @Setter
     public static class EmbeddingInfo {
@@ -27,7 +29,9 @@ public class SystemStatusVO {
         private String modelClass;
     }
 
-    /** Milvus 连接信息 */
+    /**
+     * Milvus 连接信息
+     */
     @Getter
     @Setter
     public static class MilvusInfo {
@@ -37,7 +41,9 @@ public class SystemStatusVO {
         private String status;
     }
 
-    /** 知识库统计 */
+    /**
+     * 知识库统计
+     */
     @Getter
     @Setter
     public static class KnowledgeBaseStats {

@@ -16,7 +16,8 @@ import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
  */
 public final class ExamTakingConverter {
 
-    private ExamTakingConverter() {}
+    private ExamTakingConverter() {
+    }
 
     public static ExamSessionDTO toSessionDTO(ExamSession session) {
         ExamSessionDTO dto = new ExamSessionDTO();

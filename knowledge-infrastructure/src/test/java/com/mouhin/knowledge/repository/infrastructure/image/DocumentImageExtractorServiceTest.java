@@ -1,23 +1,23 @@
 package com.mouhin.knowledge.repository.infrastructure.image;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import javax.imageio.ImageIO;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 文档图片提取服务回归测试。
@@ -33,13 +33,24 @@ class DocumentImageExtractorServiceTest {
 
     private final DocumentImageExtractorService service = new DocumentImageExtractorService();
 
+    private static byte[] makePng(int w, int h, Color color) throws Exception {
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setColor(color);
+        g.fillRect(0, 0, w, h);
+        g.dispose();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", baos);
+        return baos.toByteArray();
+    }
+
     @Test
     @DisplayName("DOCX 内联一张 PNG → 提取到该图（尺寸 + MIME 正确）")
     void extractPngFromDocx(@TempDir Path tmp) throws Exception {
         byte[] png = makePng(300, 200, Color.BLUE);
         Path docx = tmp.resolve("with-image.docx");
         try (XWPFDocument doc = new XWPFDocument();
-                OutputStream os = Files.newOutputStream(docx)) {
+             OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
             XWPFRun run = p.createRun();
             run.setText("看图写话");
@@ -68,7 +79,7 @@ class DocumentImageExtractorServiceTest {
         byte[] tiny = makePng(20, 20, Color.RED);
         Path docx = tmp.resolve("only-tiny.docx");
         try (XWPFDocument doc = new XWPFDocument();
-                OutputStream os = Files.newOutputStream(docx)) {
+             OutputStream os = Files.newOutputStream(docx)) {
             XWPFParagraph p = doc.createParagraph();
             p.createRun()
                     .addPicture(
@@ -92,16 +103,5 @@ class DocumentImageExtractorServiceTest {
         Path txt = tmp.resolve("plain.txt");
         Files.writeString(txt, "no images here");
         assertThat(service.extractImages(txt, "plain.txt")).as("非图片承载格式返回空列表").isEmpty();
-    }
-
-    private static byte[] makePng(int w, int h, Color color) throws Exception {
-        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        g.setColor(color);
-        g.fillRect(0, 0, w, h);
-        g.dispose();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(img, "png", baos);
-        return baos.toByteArray();
     }
 }

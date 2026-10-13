@@ -1,19 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.ChunkDetail;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.PageDetail;
@@ -24,21 +10,9 @@ import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +20,17 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 文档摄入共享支撑单测：锁定分块策略解析回退（无效值 → FIXED_SIZE）、处理流水线的状态机与事件发布 （UPLOADED→PROCESSING→INDEXED，空分块 / 异常回退
@@ -65,7 +50,8 @@ class DocumentIngestionSupportTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final ObjectStorageGateway objectStorageGateway = mock(ObjectStorageGateway.class);
 
-    @TempDir Path storageDir;
+    @TempDir
+    Path storageDir;
 
     private DocumentIngestionSupport support;
 
@@ -246,12 +232,12 @@ class DocumentIngestionSupportTest {
         Files.write(source, "x".getBytes(StandardCharsets.UTF_8));
         try {
             String[] malicious = {
-                "foo.pdf/../../etc/passwd",
-                "evil.pdf\\..\\..\\windows\\win.ini",
-                "with.nul\0txt",
-                "/abs/path/file.bin",
-                "noextension",
-                "shell.pdf$(rm -rf /)",
+                    "foo.pdf/../../etc/passwd",
+                    "evil.pdf\\..\\..\\windows\\win.ini",
+                    "with.nul\0txt",
+                    "/abs/path/file.bin",
+                    "noextension",
+                    "shell.pdf$(rm -rf /)",
             };
             for (String originalName : malicious) {
                 String safeKey =

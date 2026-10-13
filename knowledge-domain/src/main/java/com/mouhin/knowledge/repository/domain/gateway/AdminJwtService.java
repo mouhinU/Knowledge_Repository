@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -27,9 +28,9 @@ public interface AdminJwtService {
     /**
      * 签发管理端访问令牌（不带角色 claim 的旧签名，兼容 1 个版本）。
      *
-     * @param userKey 用户唯一标识
+     * @param userKey  用户唯一标识
      * @param username 用户名
-     * @param admin 是否超级管理员
+     * @param admin    是否超级管理员
      * @return 已签名的令牌字符串（含过期时间）
      */
     String issue(String userKey, String username, boolean admin);
@@ -37,10 +38,10 @@ public interface AdminJwtService {
     /**
      * 签发管理端访问令牌，携带 {@code roles} claim（P0-T2 主用途，不带 tenantKey）。
      *
-     * @param userKey 用户唯一标识
+     * @param userKey  用户唯一标识
      * @param username 用户名
-     * @param admin 是否超级管理员
-     * @param roles 用户角色 key 列表；{@code null} 视为空
+     * @param admin    是否超级管理员
+     * @param roles    用户角色 key 列表；{@code null} 视为空
      * @return 已签名的令牌字符串
      */
     default String issue(String userKey, String username, boolean admin, List<String> roles) {
@@ -51,10 +52,10 @@ public interface AdminJwtService {
     /**
      * 签发管理端访问令牌，同时携带 {@code roles} 与 {@code tenantKey} claim（P1-T8 主用途）。
      *
-     * @param userKey 用户唯一标识
-     * @param username 用户名
-     * @param admin 是否超级管理员
-     * @param roles 用户角色 key 列表；{@code null} 视为空
+     * @param userKey   用户唯一标识
+     * @param username  用户名
+     * @param admin     是否超级管理员
+     * @param roles     用户角色 key 列表；{@code null} 视为空
      * @param tenantKey 所属租户 key；{@code null}/blank 由实现方归一为 {@code default}
      * @return 已签名的令牌字符串
      */

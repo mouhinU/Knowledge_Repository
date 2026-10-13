@@ -1,7 +1,5 @@
 package com.mouhin.knowledge.repository.tenant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
@@ -16,16 +14,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -41,6 +30,13 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.milvus.MilvusContainer;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * P2-T5 · 向量跨租户负向端到端（Testcontainers Milvus + Testcontainers MySQL）。
@@ -88,25 +84,15 @@ import org.testcontainers.milvus.MilvusContainer;
 @SpringBootTest(classes = MilvusTenantIsolationTest.TestConfig.class)
 class MilvusTenantIsolationTest {
 
-    /** Milvus standalone 内部 gRPC 端口（容器视角固定），{@code MILVUS.getMappedPort()} 映射到宿主随机端口。 */
-    private static final int MILVUS_INTERNAL_PORT = 19530;
-
     /**
-     * Milvus EVENTUAL 一致性轮询间隔（毫秒）。LangChain4j {@code MilvusEmbeddingStore} 默认 {@code
-     * ConsistencyLevel.EVENTUAL}：{@code addAll} 返回后向量落在 growing segment，QueryNode 需等 timetick
-     * 消息追上才可见。本机一般 &lt;100ms，CI 冷启动 + 资源受限可放大到数秒。 200ms 折中：单次轮询开销足够小， 30s 窗口内最多 150 次不会挤占 CI 时长。
+     * 与生产对齐：Milvus 2.5.4 standalone（内置 etcd + 本地文件存储，无外部依赖）。
      */
-    private static final long CONSISTENCY_POLL_INTERVAL_MS = 200L;
-
-    /** EVENTUAL 一致性等待超时（毫秒）。到点仍未达到期望条数即把最后一次结果交给 AssertJ 报错。 */
-    private static final long CONSISTENCY_TIMEOUT_MS = 30_000L;
-
-    /** 与生产对齐：Milvus 2.5.4 standalone（内置 etcd + 本地文件存储，无外部依赖）。 */
     @Container
     static final MilvusContainer MILVUS =
             new MilvusContainer("milvusdb/milvus:v2.5.4").withReuse(false);
-
-    /** 与 P1-T10 同基线：MySQL 8 + utf8mb4，承载 {@code sys_tenant} 元数据。 */
+    /**
+     * 与 P1-T10 同基线：MySQL 8 + utf8mb4，承载 {@code sys_tenant} 元数据。
+     */
     @Container
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.0")
@@ -116,6 +102,31 @@ class MilvusTenantIsolationTest {
                     .withCommand(
                             "--character-set-server=utf8mb4",
                             "--collation-server=utf8mb4_unicode_ci");
+    /**
+     * Milvus standalone 内部 gRPC 端口（容器视角固定），{@code MILVUS.getMappedPort()} 映射到宿主随机端口。
+     */
+    private static final int MILVUS_INTERNAL_PORT = 19530;
+    /**
+     * Milvus EVENTUAL 一致性轮询间隔（毫秒）。LangChain4j {@code MilvusEmbeddingStore} 默认 {@code
+     * ConsistencyLevel.EVENTUAL}：{@code addAll} 返回后向量落在 growing segment，QueryNode 需等 timetick
+     * 消息追上才可见。本机一般 &lt;100ms，CI 冷启动 + 资源受限可放大到数秒。 200ms 折中：单次轮询开销足够小， 30s 窗口内最多 150 次不会挤占 CI 时长。
+     */
+    private static final long CONSISTENCY_POLL_INTERVAL_MS = 200L;
+    /**
+     * EVENTUAL 一致性等待超时（毫秒）。到点仍未达到期望条数即把最后一次结果交给 AssertJ 报错。
+     */
+    private static final long CONSISTENCY_TIMEOUT_MS = 30_000L;
+    @Autowired
+    private MilvusVectorStoreService vectorStore;
+    @Autowired
+    private TenantMapper tenantMapper;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private TenantIdResolver tenantIdResolver;
+    private long defaultTenantId;
+    private long acmeTenantId;
+    private long betaTenantId;
 
     @DynamicPropertySource
     static void bindDynamicProperties(DynamicPropertyRegistry registry) {
@@ -139,56 +150,6 @@ class MilvusTenantIsolationTest {
         registry.add("knowledge.milvus.database-name", () -> "default");
     }
 
-    /**
-     * 最小可用上下文：DataSource + Flyway + MyBatis-Plus 拦截器 + TenantIdResolver + Milvus 三件套（Config /
-     * Provider / Router / Service）。EmbeddingModel 由本类 {@link
-     * TestConfig#deterministicEmbeddingModel()} 覆盖真实 {@code EmbeddingModelConfig} 的 OpenAI 版（后者需要外部
-     * HTTP，测试不可用）。
-     */
-    @Configuration
-    @EnableAutoConfiguration
-    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
-    @Import({
-        MyBatisPlusConfig.class,
-        TenantIdResolver.class,
-        MilvusConfig.class,
-        EmbeddingStoreRouter.class,
-        EmbeddingStoreProvider.class,
-        MilvusVectorStoreService.class,
-    })
-    static class TestConfig {
-
-        /**
-         * 常量向量 {@code [1,0,0,0]}，dim=4。相同向量 → 相似度恒为 1.0 → 排序稳定，断言只看条数 + 前缀。
-         *
-         * <p>{@code @Primary} 保证当 classpath 上出现真实 {@code EmbeddingModelConfig}（通过
-         * {@code @EnableAutoConfiguration} 拾取）时本 bean 优先。
-         */
-        @Bean
-        @Primary
-        EmbeddingModel deterministicEmbeddingModel() {
-            return new EmbeddingModel() {
-                @Override
-                public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
-                    List<Embedding> out = new ArrayList<>(segments.size());
-                    for (int i = 0; i < segments.size(); i++) {
-                        out.add(Embedding.from(new float[] {1f, 0f, 0f, 0f}));
-                    }
-                    return Response.from(out);
-                }
-            };
-        }
-    }
-
-    @Autowired private MilvusVectorStoreService vectorStore;
-    @Autowired private TenantMapper tenantMapper;
-    @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private TenantIdResolver tenantIdResolver;
-
-    private long defaultTenantId;
-    private long acmeTenantId;
-    private long betaTenantId;
-
     @BeforeAll
     static void warnIfDockerMissing() {
         // 由 @Testcontainers(disabledWithoutDocker=true) 已保证有 Docker 才进入；此处仅记录 endpoint
@@ -197,6 +158,36 @@ class MilvusTenantIsolationTest {
                         + MILVUS.getEndpoint()
                         + ", MySQL jdbc="
                         + MYSQL.getJdbcUrl());
+    }
+
+    private static DocumentChunk chunkFor(String documentKey, int index, String tenantKey) {
+        DocumentChunk c = new DocumentChunk();
+        c.setChunkKey(UUID.randomUUID().toString());
+        c.setTenantKey(tenantKey);
+        c.setDocumentKey(documentKey);
+        c.setDocumentName(documentKey + ".pdf");
+        c.setDocumentId(1L);
+        c.setChunkIndex(index);
+        c.setStartPage(1);
+        c.setEndPage(1);
+        c.setContent("P2-T5 内容片段 #" + index);
+        c.setFileType("pdf");
+        c.setTags("p2t5");
+        c.setCategory("其他");
+        c.setDepartmentId("d-p2t5");
+        c.setVisibility("INTERNAL");
+        c.setAllowedRoles("[]");
+        c.setOwnerId("u-p2t5");
+        return c;
+    }
+
+    private static void sleepQuietly(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待 Milvus 最终一致性时被中断", ie);
+        }
     }
 
     @BeforeEach
@@ -231,7 +222,7 @@ class MilvusTenantIsolationTest {
      * document_key LIKE} 反查该表拿 keys 再逐条删，但本测试类只向 Milvus 写、不向 {@code kb_document_chunk}
      * 写，反查恒为空集，跨测试污染长期无人察觉（{@code unboundContextFallsBackToDefault} 遗留 5 条 acme 会漂到下一次 acme 检索）。
      *
-     * @param tenantId 数值租户主键
+     * @param tenantId  数值租户主键
      * @param tenantKey 用于轮询删除可见性的租户业务键（走 {@link TenantContext#callWithTenant}）
      */
     private void clearTenantVectorsAndWait(long tenantId, String tenantKey) {
@@ -273,27 +264,6 @@ class MilvusTenantIsolationTest {
                 "SELECT tenant_id FROM sys_tenant WHERE tenant_key = ?", Long.class, key);
     }
 
-    private static DocumentChunk chunkFor(String documentKey, int index, String tenantKey) {
-        DocumentChunk c = new DocumentChunk();
-        c.setChunkKey(UUID.randomUUID().toString());
-        c.setTenantKey(tenantKey);
-        c.setDocumentKey(documentKey);
-        c.setDocumentName(documentKey + ".pdf");
-        c.setDocumentId(1L);
-        c.setChunkIndex(index);
-        c.setStartPage(1);
-        c.setEndPage(1);
-        c.setContent("P2-T5 内容片段 #" + index);
-        c.setFileType("pdf");
-        c.setTags("p2t5");
-        c.setCategory("其他");
-        c.setDepartmentId("d-p2t5");
-        c.setVisibility("INTERNAL");
-        c.setAllowedRoles("[]");
-        c.setOwnerId("u-p2t5");
-        return c;
-    }
-
     private List<DocumentChunk> buildSet(String prefix, int n, String tenantKey) {
         List<DocumentChunk> chunks = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
@@ -315,7 +285,7 @@ class MilvusTenantIsolationTest {
      * 冷启动）实测 {@code storeChunks(100)} 立即 {@code search} 只拿到 5/0 条，本机 P2-T5 交付时（{@code
      * c702fce}）未复现——本机 Milvus 容器 warm + 资源充足， EVENTUAL 窗口 &lt;100ms 被时序掩盖。
      *
-     * @param tenantKey 检索上下文租户，走 {@link TenantContext#callWithTenant}
+     * @param tenantKey    检索上下文租户，走 {@link TenantContext#callWithTenant}
      * @param expectedSize 期望至少达到的命中条数
      * @return 最后一次 {@code search} 的结果（大小 &ge; expectedSize 或超时快照）
      */
@@ -339,19 +309,6 @@ class MilvusTenantIsolationTest {
         }
     }
 
-    private static void sleepQuietly(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("等待 Milvus 最终一致性时被中断", ie);
-        }
-    }
-
-    // ---------------------------------------------------------------------
-    // 1. 单租户召回非空：A 建 100 → A 检索命中 100
-    // ---------------------------------------------------------------------
-
     @Test
     @DisplayName("单租户召回非空：A 建 100 向量后 A 上下文检索命中 100 条（EVENTUAL 一致性等待）")
     void sameTenantRecallIsNonEmpty() {
@@ -371,7 +328,7 @@ class MilvusTenantIsolationTest {
     }
 
     // ---------------------------------------------------------------------
-    // 2. 跨租户负向：A 建 100 + B 建 100，B 检索 A 内容为空，反之亦然
+    // 1. 单租户召回非空：A 建 100 → A 检索命中 100
     // ---------------------------------------------------------------------
 
     @Test
@@ -414,7 +371,7 @@ class MilvusTenantIsolationTest {
     }
 
     // ---------------------------------------------------------------------
-    // 3. 关闭态（未 ThreadLocal 绑定）行为等价：走 default，不抛
+    // 2. 跨租户负向：A 建 100 + B 建 100，B 检索 A 内容为空，反之亦然
     // ---------------------------------------------------------------------
 
     @Test
@@ -435,7 +392,7 @@ class MilvusTenantIsolationTest {
     }
 
     // ---------------------------------------------------------------------
-    // 4. tenant_id 与 resolver 结果一致（元数据自检）
+    // 3. 关闭态（未 ThreadLocal 绑定）行为等价：走 default，不抛
     // ---------------------------------------------------------------------
 
     @Test
@@ -448,5 +405,50 @@ class MilvusTenantIsolationTest {
         assertThat(defaultTenantId).isEqualTo(1L);
         // sys_tenant 表存在性自检（TenantMapper 走的是 IGNORE_TABLES 白名单，能全表读到）
         assertThat(tenantMapper.selectCount(null)).isGreaterThanOrEqualTo(3L);
+    }
+
+    // ---------------------------------------------------------------------
+    // 4. tenant_id 与 resolver 结果一致（元数据自检）
+    // ---------------------------------------------------------------------
+
+    /**
+     * 最小可用上下文：DataSource + Flyway + MyBatis-Plus 拦截器 + TenantIdResolver + Milvus 三件套（Config /
+     * Provider / Router / Service）。EmbeddingModel 由本类 {@link
+     * TestConfig#deterministicEmbeddingModel()} 覆盖真实 {@code EmbeddingModelConfig} 的 OpenAI 版（后者需要外部
+     * HTTP，测试不可用）。
+     */
+    @Configuration
+    @EnableAutoConfiguration
+    @MapperScan("com.mouhin.knowledge.repository.infrastructure.persistence.mapper")
+    @Import({
+            MyBatisPlusConfig.class,
+            TenantIdResolver.class,
+            MilvusConfig.class,
+            EmbeddingStoreRouter.class,
+            EmbeddingStoreProvider.class,
+            MilvusVectorStoreService.class,
+    })
+    static class TestConfig {
+
+        /**
+         * 常量向量 {@code [1,0,0,0]}，dim=4。相同向量 → 相似度恒为 1.0 → 排序稳定，断言只看条数 + 前缀。
+         *
+         * <p>{@code @Primary} 保证当 classpath 上出现真实 {@code EmbeddingModelConfig}（通过
+         * {@code @EnableAutoConfiguration} 拾取）时本 bean 优先。
+         */
+        @Bean
+        @Primary
+        EmbeddingModel deterministicEmbeddingModel() {
+            return new EmbeddingModel() {
+                @Override
+                public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
+                    List<Embedding> out = new ArrayList<>(segments.size());
+                    for (int i = 0; i < segments.size(); i++) {
+                        out.add(Embedding.from(new float[]{1f, 0f, 0f, 0f}));
+                    }
+                    return Response.from(out);
+                }
+            };
+        }
     }
 }

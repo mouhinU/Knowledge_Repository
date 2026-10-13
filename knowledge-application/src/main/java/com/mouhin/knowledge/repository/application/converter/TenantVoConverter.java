@@ -13,9 +13,12 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
  */
 public final class TenantVoConverter {
 
-    private TenantVoConverter() {}
+    private TenantVoConverter() {
+    }
 
-    /** 领域实体 → VO；入参为 {@code null} 时返回 {@code null}。 */
+    /**
+     * 领域实体 → VO；入参为 {@code null} 时返回 {@code null}。
+     */
     public static TenantVO toVO(Tenant tenant) {
         if (tenant == null) {
             return null;

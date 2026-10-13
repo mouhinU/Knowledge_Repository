@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.client.api;
 
 import com.mouhin.knowledge.repository.client.dto.SystemConfigDTO;
 import com.mouhin.knowledge.repository.client.dto.SystemStatusVO;
+
 import java.util.List;
 
 /**
@@ -12,15 +13,23 @@ import java.util.List;
  */
 public interface SystemConfigServiceI {
 
-    /** 获取系统状态概览（Embedding 模型 / Milvus 连接 / 知识库统计） */
+    /**
+     * 获取系统状态概览（Embedding 模型 / Milvus 连接 / 知识库统计）
+     */
     SystemStatusVO getSystemStatus();
 
-    /** 查询全部系统配置（特性开关 + 运行时参数） */
+    /**
+     * 查询全部系统配置（特性开关 + 运行时参数）
+     */
     List<SystemConfigDTO> listConfigs();
 
-    /** 更新单个配置值 */
+    /**
+     * 更新单个配置值
+     */
     void updateConfig(String configKey, String configValue);
 
-    /** 手工失效指定租户的配置缓存（P4-T2 · 管理端点，仅本租户作用域） */
+    /**
+     * 手工失效指定租户的配置缓存（P4-T2 · 管理端点，仅本租户作用域）
+     */
     void invalidateTenantConfig(String tenantKey);
 }

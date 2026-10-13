@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Stu
  */
 public final class StudentSessionConverter {
 
-    private StudentSessionConverter() {}
+    private StudentSessionConverter() {
+    }
 
     public static StudentSession toDomain(StudentSessionDO doObj) {
         if (doObj == null) {

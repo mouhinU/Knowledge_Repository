@@ -11,12 +11,13 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * LLM 调用韧性执行器（Phase R2）。
@@ -34,10 +35,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LlmResilience {
 
-    /** 角色 → 熔断器。 */
+    /**
+     * 角色 → 熔断器。
+     */
     private final Map<String, CircuitBreaker> circuitBreakers = new LinkedHashMap<>();
 
-    /** 角色 → 重试器（可能为空表示不重试）。 */
+    /**
+     * 角色 → 重试器（可能为空表示不重试）。
+     */
     private final Map<String, Retry> retries = new LinkedHashMap<>();
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -61,9 +66,9 @@ public class LlmResilience {
     /**
      * 以指定角色的熔断 + 重试 + 计时包裹执行一次调用。
      *
-     * @param role 角色标识（chat / chat-stream / embedding / vision）
+     * @param role   角色标识（chat / chat-stream / embedding / vision）
      * @param action 实际调用（抛非受检异常表示失败）
-     * @param <T> 返回类型
+     * @param <T>    返回类型
      * @return 调用结果
      */
     public <T> T run(String role, Supplier<T> action) {

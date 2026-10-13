@@ -1,15 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.event.DocumentCreatedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
@@ -17,15 +7,22 @@ import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * 分片组装文件入库命令执行器单测：锁定文件缺失异常包装、MD5 去重短路、成功链路（UPLOADED 落库 + visibility null→INTERNAL 归一 + 图片抽取容错 +
@@ -36,8 +33,6 @@ import org.springframework.context.ApplicationEventPublisher;
  */
 @DisplayName("分片组装文件入库命令执行器 (UploadFromFileCmdExe)")
 class UploadFromFileCmdExeTest {
-
-    @TempDir Path tmp;
 
     private final DocumentIngestionSupport support = mock(DocumentIngestionSupport.class);
     private final DocumentGateway documentGateway = mock(DocumentGateway.class);
@@ -53,10 +48,12 @@ class UploadFromFileCmdExeTest {
                     documentExtractionService,
                     eventPublisher,
                     documentImageSupport);
+    @TempDir
+    Path tmp;
 
     private Path assembledFile() throws IOException {
         Path file = tmp.resolve("assembled.pdf");
-        Files.write(file, new byte[] {1, 2, 3, 4});
+        Files.write(file, new byte[]{1, 2, 3, 4});
         return file;
     }
 
@@ -66,16 +63,16 @@ class UploadFromFileCmdExeTest {
         Path ghost = tmp.resolve("not-exist.pdf");
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        ghost,
-                                        "x.pdf",
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                ghost,
+                                "x.pdf",
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Failed to get file size");
         verify(documentGateway, never()).save(any());
@@ -91,16 +88,16 @@ class UploadFromFileCmdExeTest {
         when(documentGateway.findByFileChecksum("md5-dup")).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(
-                        () ->
-                                exe.execute(
-                                        file,
-                                        "assembled.pdf",
-                                        "u-1",
-                                        "d-1",
-                                        DocumentVisibilityEnum.INTERNAL,
-                                        null,
-                                        null,
-                                        null))
+                () ->
+                        exe.execute(
+                                file,
+                                "assembled.pdf",
+                                "u-1",
+                                "d-1",
+                                DocumentVisibilityEnum.INTERNAL,
+                                null,
+                                null,
+                                null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Duplicate file detected")
                 .hasMessageContaining("dup-key");

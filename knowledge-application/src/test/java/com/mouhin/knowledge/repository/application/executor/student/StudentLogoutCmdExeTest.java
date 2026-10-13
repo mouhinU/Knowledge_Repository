@@ -1,23 +1,18 @@
 package com.mouhin.knowledge.repository.application.executor.student;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 考生退出登录命令执行器单测：核心断言 —— 令牌存在时同时撤销会话表 + 清空 legacy 快照； 令牌缺失静默幂等；P0-T5 追加：会话表命中即调 revoke(token)，不依赖

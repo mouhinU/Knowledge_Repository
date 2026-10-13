@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.client.dto.DepartmentCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentTreeNodeVO;
 import com.mouhin.knowledge.repository.client.dto.DepartmentUpdateCmd;
 import com.mouhin.knowledge.repository.client.dto.DepartmentVO;
+
 import java.util.List;
 
 /**
@@ -16,15 +17,23 @@ import java.util.List;
  */
 public interface DepartmentServiceI {
 
-    /** 部门列表 */
+    /**
+     * 部门列表
+     */
     List<DepartmentVO> listDepartments();
 
-    /** 部门树 */
+    /**
+     * 部门树
+     */
     List<DepartmentTreeNodeVO> getDepartmentTree();
 
-    /** 新增部门 */
+    /**
+     * 新增部门
+     */
     DepartmentVO createDepartment(DepartmentCreateCmd cmd);
 
-    /** 修改部门 */
+    /**
+     * 修改部门
+     */
     DepartmentVO updateDepartment(DepartmentUpdateCmd cmd);
 }

@@ -8,11 +8,12 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Use
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserMapper;
 import com.mouhin.knowledge.repository.infrastructure.persistence.mapper.UserRoleMapper;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /**
  * 用户仓储实现。

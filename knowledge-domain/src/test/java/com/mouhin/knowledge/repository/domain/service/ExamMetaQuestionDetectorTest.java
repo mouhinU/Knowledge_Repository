@@ -1,12 +1,11 @@
 package com.mouhin.knowledge.repository.domain.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * {@link ExamMetaQuestionDetector} 确定性检测单测。
@@ -58,21 +57,21 @@ class ExamMetaQuestionDetectorTest {
     void scansMarkdownQuestionLines() {
         String md =
                 """
-                # 一年级语文期末试卷
-
-                ## 一、我会选（单选题）
-
-                **6.** 《小小的船》是第几单元的课文？（2分）
-                A. 第一单元
-                B. 第六单元
-
-                **1.** 下列哪个是单韵母？（2分）
-                A. b
-                B. a
-
-                第几页这句话只是卷首说明，不带题号，不应被扫描。
-                **16.** 《小小的船》是第几单元的课文？（2分）
-                """;
+                        # 一年级语文期末试卷
+                        
+                        ## 一、我会选（单选题）
+                        
+                        **6.** 《小小的船》是第几单元的课文？（2分）
+                        A. 第一单元
+                        B. 第六单元
+                        
+                        **1.** 下列哪个是单韵母？（2分）
+                        A. b
+                        B. a
+                        
+                        第几页这句话只是卷首说明，不带题号，不应被扫描。
+                        **16.** 《小小的船》是第几单元的课文？（2分）
+                        """;
         List<String> hits = ExamMetaQuestionDetector.scanMarkdown(md);
         assertEquals(2, hits.size(), "第6、16题命中，题号1与无题号说明行不命中");
         assertTrue(hits.get(0).contains("《小小的船》是第几单元"));

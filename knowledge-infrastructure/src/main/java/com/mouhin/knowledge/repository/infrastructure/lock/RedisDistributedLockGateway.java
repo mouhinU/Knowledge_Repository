@@ -1,12 +1,13 @@
 package com.mouhin.knowledge.repository.infrastructure.lock;
 
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * 基于 Redis {@code SET NX EX} 的分布式锁实现（P5-T5 · S-5 方案 A）。
@@ -29,7 +30,9 @@ import org.springframework.stereotype.Component;
         matchIfMissing = true)
 public class RedisDistributedLockGateway implements DistributedLockGateway {
 
-    /** Lua 脚本：仅当 ownerId 匹配时删除 key（原子操作，防止误删他实例的锁） */
+    /**
+     * Lua 脚本：仅当 ownerId 匹配时删除 key（原子操作，防止误删他实例的锁）
+     */
     private static final String UNLOCK_SCRIPT =
             "if redis.call('get', KEYS[1]) == ARGV[1] then "
                     + "  return redis.call('del', KEYS[1]) "

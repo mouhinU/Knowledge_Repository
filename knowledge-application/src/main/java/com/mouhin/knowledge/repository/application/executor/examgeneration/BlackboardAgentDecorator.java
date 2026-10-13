@@ -36,6 +36,7 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
 
     @Override
     public void execute(BlackboardState blackboard, BlackboardProgressCallback progressCallback) {
+
         String agentName = delegate.getName();
         BlackboardPhase phase = blackboard.getPhase();
         Instant start = Instant.now();
@@ -72,7 +73,6 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
         return delegate.getName();
     }
 
-    /** 返回被装饰的原始 Agent（测试 / 高级场景可用）。 */
     public BlackboardAgent getDelegate() {
         return delegate;
     }

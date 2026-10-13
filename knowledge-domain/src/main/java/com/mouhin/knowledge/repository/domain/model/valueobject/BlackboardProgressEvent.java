@@ -12,85 +12,139 @@ import java.time.Instant;
  */
 public class BlackboardProgressEvent {
 
-    /** 事件类型：PHASE / AGENT_OUTPUT / AGENT_TOKEN / COMPLETED / ERROR */
+    /**
+     * 事件类型：PHASE / AGENT_OUTPUT / AGENT_TOKEN / COMPLETED / ERROR
+     */
     private final String type;
 
-    /** 当前阶段 */
+    /**
+     * 当前阶段
+     */
     private final BlackboardPhase phase;
 
-    /** Agent 名称（researcher / writer / reviewer） */
+    /**
+     * Agent 名称（researcher / writer / reviewer）
+     */
     private final String agentName;
 
-    /** Agent 状态（running / done / failed） */
+    /**
+     * Agent 状态（running / done / failed）
+     */
     private final String agentStatus;
 
-    /** Token 增量类型（仅 AGENT_TOKEN 事件）：output（正式输出）/ thinking（思考链） */
+    /**
+     * Token 增量类型（仅 AGENT_TOKEN 事件）：output（正式输出）/ thinking（思考链）
+     */
     private final String kind;
 
-    /** Token 增量内容（仅 AGENT_TOKEN 事件） */
+    /**
+     * Token 增量内容（仅 AGENT_TOKEN 事件）
+     */
     private final String delta;
 
-    /** Agent 输出内容 */
+    /**
+     * Agent 输出内容
+     */
     private final String output;
 
-    /** 人类可读消息 */
+    /**
+     * 人类可读消息
+     */
     private final String message;
 
-    /** 最终文章（仅 COMPLETED 事件） */
+    /**
+     * 最终文章（仅 COMPLETED 事件）
+     */
     private final String finalArticle;
 
-    /** 关键发现（仅 COMPLETED 事件） */
+    /**
+     * 关键发现（仅 COMPLETED 事件）
+     */
     private final String keyFindings;
 
-    /** 文章草稿（仅 COMPLETED 事件） */
+    /**
+     * 文章草稿（仅 COMPLETED 事件）
+     */
     private final String draftArticle;
 
-    /** 审核反馈（仅 COMPLETED 事件） */
+    /**
+     * 审核反馈（仅 COMPLETED 事件）
+     */
     private final String reviewFeedback;
 
-    /** 质量评分（仅 COMPLETED 事件，保留两位小数） */
+    /**
+     * 质量评分（仅 COMPLETED 事件，保留两位小数）
+     */
     private final double qualityScore;
 
-    /** 节点分数（仅 AGENT_OUTPUT done 事件，0-100，保留两位小数，可空） */
+    /**
+     * 节点分数（仅 AGENT_OUTPUT done 事件，0-100，保留两位小数，可空）
+     */
     private final Double agentScore;
 
-    /** Agent 置信度（仅 AGENT_OUTPUT done 事件，可空） */
+    /**
+     * Agent 置信度（仅 AGENT_OUTPUT done 事件，可空）
+     */
     private final AgentConfidence confidence;
 
-    /** 检索到的知识片段数 */
+    /**
+     * 检索到的知识片段数
+     */
     private final int retrievedChunks;
 
-    /** 错误信息（仅 ERROR 事件） */
+    /**
+     * 错误信息（仅 ERROR 事件）
+     */
     private final String errorMessage;
 
-    /** 输入物料信息（仅 AGENT_OUTPUT running 事件） */
+    /**
+     * 输入物料信息（仅 AGENT_OUTPUT running 事件）
+     */
     private final String materials;
 
-    /** 试卷内容（仅出卷 COMPLETED 事件） */
+    /**
+     * 试卷内容（仅出卷 COMPLETED 事件）
+     */
     private final String examPaper;
 
-    /** 标准答案（仅出卷 COMPLETED 事件） */
+    /**
+     * 标准答案（仅出卷 COMPLETED 事件）
+     */
     private final String answerKey;
 
-    /** 试卷审核反馈（仅出卷 COMPLETED 事件） */
+    /**
+     * 试卷审核反馈（仅出卷 COMPLETED 事件）
+     */
     private final String examReviewFeedback;
 
-    /** 难度校准评估（仅出卷 COMPLETED 事件） */
+    /**
+     * 难度校准评估（仅出卷 COMPLETED 事件）
+     */
     private final String difficultyAssessment;
 
-    /** 查重报告（仅出卷 COMPLETED 事件） */
+    /**
+     * 查重报告（仅出卷 COMPLETED 事件）
+     */
     private final String deduplicationReport;
 
-    /** 题型分布方案 JSON（仅分布 COMPLETED 事件） */
+    /**
+     * 题型分布方案 JSON（仅分布 COMPLETED 事件）
+     */
     private final String distributionPlan;
 
-    /** 当前生成轮次（1-based，仅出卷重试轮的 PHASE 事件携带；首轮为 null 表示不显示） */
+    /**
+     * 当前生成轮次（1-based，仅出卷重试轮的 PHASE 事件携带；首轮为 null 表示不显示）
+     */
     private final Integer round;
 
-    /** 最大生成轮次（含首轮的总轮数，仅出卷重试轮的 PHASE 事件携带） */
+    /**
+     * 最大生成轮次（含首轮的总轮数，仅出卷重试轮的 PHASE 事件携带）
+     */
     private final Integer maxRound;
 
-    /** 事件时间戳 */
+    /**
+     * 事件时间戳
+     */
     private final Instant timestamp;
 
     private BlackboardProgressEvent(Builder builder) {
@@ -123,7 +177,9 @@ public class BlackboardProgressEvent {
         this.timestamp = Instant.now();
     }
 
-    /** 创建阶段变更事件 */
+    /**
+     * 创建阶段变更事件
+     */
     public static BlackboardProgressEvent phaseChanged(BlackboardPhase phase, String message) {
         return new Builder().type("PHASE").phase(phase).message(message).build();
     }
@@ -131,9 +187,9 @@ public class BlackboardProgressEvent {
     /**
      * 创建"改进重试轮"阶段事件：在出卷流水线因质量分不达标触发重新生成时下发， 携带当前轮次（1-based）与总轮数，供前端显示"第 N / 共 M 轮"。
      *
-     * @param phase 当前阶段（通常为 WRITING，表示重新开始编写）
-     * @param message 人类可读提示
-     * @param round 当前轮次（1-based）
+     * @param phase    当前阶段（通常为 WRITING，表示重新开始编写）
+     * @param message  人类可读提示
+     * @param round    当前轮次（1-based）
      * @param maxRound 总轮数（含首轮）
      * @return 阶段事件
      */
@@ -148,7 +204,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建 Agent 状态变更事件（无输出） */
+    /**
+     * 创建 Agent 状态变更事件（无输出）
+     */
     public static BlackboardProgressEvent agentStarted(String agentName, String message) {
         return new Builder()
                 .type("AGENT_OUTPUT")
@@ -158,7 +216,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建 Agent 状态变更事件（含输入物料） */
+    /**
+     * 创建 Agent 状态变更事件（含输入物料）
+     */
     public static BlackboardProgressEvent agentStartedWithMaterials(
             String agentName, String message, String materials) {
         return new Builder()
@@ -170,12 +230,16 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建 Agent 完成事件（含输出） */
+    /**
+     * 创建 Agent 完成事件（含输出）
+     */
     public static BlackboardProgressEvent agentCompleted(String agentName, String output) {
         return agentCompleted(agentName, output, null);
     }
 
-    /** 创建 Agent 完成事件（含输出与节点分数） */
+    /**
+     * 创建 Agent 完成事件（含输出与节点分数）
+     */
     public static BlackboardProgressEvent agentCompleted(
             String agentName, String output, Double agentScore) {
         return new Builder()
@@ -187,7 +251,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建 Agent 完成事件（含输出、节点分数与置信度） */
+    /**
+     * 创建 Agent 完成事件（含输出、节点分数与置信度）
+     */
     public static BlackboardProgressEvent agentCompleted(
             String agentName, String output, Double agentScore, AgentConfidence confidence) {
         return new Builder()
@@ -222,8 +288,8 @@ public class BlackboardProgressEvent {
      * #agentCompleted(String, String)} 并存：token 流负责实时逐字，完成时的 AGENT_OUTPUT(done) 负责最终收敛。
      *
      * @param agentName Agent 名称
-     * @param kind 增量类型：output（正式输出）/ thinking（思考链）
-     * @param delta 增量文本片段
+     * @param kind      增量类型：output（正式输出）/ thinking（思考链）
+     * @param delta     增量文本片段
      */
     public static BlackboardProgressEvent tokenDelta(String agentName, String kind, String delta) {
         return new Builder()
@@ -234,7 +300,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建整体完成事件 */
+    /**
+     * 创建整体完成事件
+     */
     public static BlackboardProgressEvent completed(
             BlackboardState blackboard, int retrievedChunks) {
         return new Builder()
@@ -249,7 +317,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建出卷完成事件 */
+    /**
+     * 创建出卷完成事件
+     */
     public static BlackboardProgressEvent examCompleted(
             BlackboardState blackboard, int retrievedChunks) {
         return new Builder()
@@ -265,7 +335,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建题型分布方案完成事件（两步式流程第一步产出） */
+    /**
+     * 创建题型分布方案完成事件（两步式流程第一步产出）
+     */
     public static BlackboardProgressEvent distributionCompleted(String planJson) {
         return new Builder()
                 .type("COMPLETED")
@@ -274,7 +346,9 @@ public class BlackboardProgressEvent {
                 .build();
     }
 
-    /** 创建错误事件 */
+    /**
+     * 创建错误事件
+     */
     public static BlackboardProgressEvent error(String errorMessage) {
         return new Builder()
                 .type("ERROR")
@@ -393,7 +467,9 @@ public class BlackboardProgressEvent {
         return timestamp;
     }
 
-    /** Builder 模式构建事件 */
+    /**
+     * Builder 模式构建事件
+     */
     public static class Builder {
         private String type;
         private BlackboardPhase phase;

@@ -1,8 +1,9 @@
 package com.mouhin.knowledge.repository.client.dto;
 
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 /**
  * 系统配置 DTO（client 层契约）
@@ -14,7 +15,9 @@ import lombok.Setter;
 @Setter
 public class SystemConfigDTO {
 
-    /** 主键 */
+    /**
+     * 主键
+     */
     private Long id;
 
     /**
@@ -24,24 +27,38 @@ public class SystemConfigDTO {
      */
     private Long tenantId;
 
-    /** 配置键 */
+    /**
+     * 配置键
+     */
     private String configKey;
 
-    /** 配置值 */
+    /**
+     * 配置值
+     */
     private String configValue;
 
-    /** 值类型：STRING / INTEGER / BOOLEAN / DECIMAL */
+    /**
+     * 值类型：STRING / INTEGER / BOOLEAN / DECIMAL
+     */
     private String valueType;
 
-    /** 配置说明 */
+    /**
+     * 配置说明
+     */
     private String description;
 
-    /** 分组 */
+    /**
+     * 分组
+     */
     private String category;
 
-    /** 是否允许页面编辑 */
+    /**
+     * 是否允许页面编辑
+     */
     private Boolean editable;
 
-    /** 更新时间 */
+    /**
+     * 更新时间
+     */
     private LocalDateTime updateTime;
 }

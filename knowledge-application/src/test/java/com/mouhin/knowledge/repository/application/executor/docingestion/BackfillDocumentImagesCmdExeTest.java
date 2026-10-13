@@ -1,18 +1,16 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
+import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.mouhin.knowledge.repository.domain.gateway.DocumentGateway;
-import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
-import java.util.Optional;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.*;
 
 /**
  * 文档图片回填命令执行器单测：锁定 documentId 空校验、文档不存在异常、成功回填返回新增数并透传文档实体。

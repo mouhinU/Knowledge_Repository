@@ -13,7 +13,9 @@ import java.util.Objects;
  */
 public class SystemConfig {
 
-    /** 主键 */
+    /**
+     * 主键
+     */
     private Long id;
 
     /**
@@ -25,28 +27,44 @@ public class SystemConfig {
      */
     private Long tenantId;
 
-    /** 配置键（全局唯一） */
+    /**
+     * 配置键（全局唯一）
+     */
     private String configKey;
 
-    /** 配置值 */
+    /**
+     * 配置值
+     */
     private String configValue;
 
-    /** 值类型：STRING / INTEGER / BOOLEAN / DECIMAL */
+    /**
+     * 值类型：STRING / INTEGER / BOOLEAN / DECIMAL
+     */
     private String valueType;
 
-    /** 配置说明 */
+    /**
+     * 配置说明
+     */
     private String description;
 
-    /** 分组：feature-toggle / exam / system */
+    /**
+     * 分组：feature-toggle / exam / system
+     */
     private String category;
 
-    /** 是否允许页面编辑 */
+    /**
+     * 是否允许页面编辑
+     */
     private Boolean editable;
 
-    /** 创建时间 */
+    /**
+     * 创建时间
+     */
     private LocalDateTime createTime;
 
-    /** 更新时间 */
+    /**
+     * 更新时间
+     */
     private LocalDateTime updateTime;
 
     public SystemConfig() {
@@ -137,7 +155,9 @@ public class SystemConfig {
 
     // ---- 类型安全的取值方法 ----
 
-    /** 按 valueType 解析为 boolean（仅 BOOLEAN 类型有效） */
+    /**
+     * 按 valueType 解析为 boolean（仅 BOOLEAN 类型有效）
+     */
     public boolean asBoolean(boolean fallback) {
         if (!"BOOLEAN".equalsIgnoreCase(valueType) || configValue == null) {
             return fallback;
@@ -145,7 +165,9 @@ public class SystemConfig {
         return Boolean.parseBoolean(configValue.trim());
     }
 
-    /** 按 valueType 解析为 int */
+    /**
+     * 按 valueType 解析为 int
+     */
     public int asInt(int fallback) {
         if (configValue == null || configValue.isBlank()) {
             return fallback;
@@ -157,7 +179,9 @@ public class SystemConfig {
         }
     }
 
-    /** 按 valueType 解析为 String */
+    /**
+     * 按 valueType 解析为 String
+     */
     public String asString(String fallback) {
         return configValue != null ? configValue : fallback;
     }

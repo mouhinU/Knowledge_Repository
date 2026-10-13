@@ -11,7 +11,8 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Exa
  */
 public final class ExamSessionConverter {
 
-    private ExamSessionConverter() {}
+    private ExamSessionConverter() {
+    }
 
     public static ExamSession toDomain(ExamSessionDO doObj) {
         if (doObj == null) {

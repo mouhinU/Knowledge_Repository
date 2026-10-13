@@ -1,9 +1,10 @@
 package com.mouhin.knowledge.repository.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 /**
  * 单条错题记录视图对象

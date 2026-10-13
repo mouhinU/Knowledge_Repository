@@ -1,18 +1,14 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
-import java.util.concurrent.RejectedExecutionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.RejectedExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 异步评分执行器单测：本执行器是 SSE 通道场景下的「异步分派入口」， 只负责把 (sessionId, callback) 原样转交给 {@link

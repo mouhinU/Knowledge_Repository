@@ -6,10 +6,6 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaCheckResult
 import com.mouhin.knowledge.repository.web.security.AdminAuthRequiredException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,6 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 全局异常处理器
@@ -30,17 +31,41 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /** 统一错误响应 map 的 timestamp 字段名（java:S1192 抽常量防多处漂移）。 */
+    /**
+     * 统一错误响应 map 的 timestamp 字段名（java:S1192 抽常量防多处漂移）。
+     */
     private static final String FIELD_TIMESTAMP = "timestamp";
 
-    /** 统一错误响应 map 的 errorCode 字段名。 */
+    /**
+     * 统一错误响应 map 的 errorCode 字段名。
+     */
     private static final String FIELD_ERROR_CODE = "errorCode";
 
-    /** 统一错误响应 map 的 errorMessage 字段名。 */
+    /**
+     * 统一错误响应 map 的 errorMessage 字段名。
+     */
     private static final String FIELD_ERROR_MESSAGE = "errorMessage";
 
-    /** 未知路由对外返回的通用提示；请求路径只落到日志、不回显到响应体（防信息泄露 java:S2092 家族）。 */
+    /**
+     * 未知路由对外返回的通用提示；请求路径只落到日志、不回显到响应体（防信息泄露 java:S2092 家族）。
+     */
     private static final String MSG_NOT_FOUND = "资源不存在";
+
+    /**
+     * 统一错误响应组装；只此一处 Map.of，消除各 handler 的构造重复（java:DuplicatedBlocks）。
+     */
+    private static ResponseEntity<Map<String, Object>> error(
+            HttpStatus status, String code, String message) {
+        return ResponseEntity.status(status)
+                .body(
+                        Map.of(
+                                FIELD_ERROR_CODE,
+                                code,
+                                FIELD_ERROR_MESSAGE,
+                                message,
+                                FIELD_TIMESTAMP,
+                                LocalDateTime.now().toString()));
+    }
 
     /**
      * 管理端身份缺失 / 非管理员主体：统一映射为 HTTP 401，附 {@code WWW-Authenticate} 提示前端跳登录。 与 {@link
@@ -135,19 +160,5 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error: {}", e.getMessage(), e);
         return error(
                 HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred");
-    }
-
-    /** 统一错误响应组装；只此一处 Map.of，消除各 handler 的构造重复（java:DuplicatedBlocks）。 */
-    private static ResponseEntity<Map<String, Object>> error(
-            HttpStatus status, String code, String message) {
-        return ResponseEntity.status(status)
-                .body(
-                        Map.of(
-                                FIELD_ERROR_CODE,
-                                code,
-                                FIELD_ERROR_MESSAGE,
-                                message,
-                                FIELD_TIMESTAMP,
-                                LocalDateTime.now().toString()));
     }
 }

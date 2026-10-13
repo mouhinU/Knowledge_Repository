@@ -10,6 +10,9 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentImageHit
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,8 +21,6 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 文档图片落盘 / 读取 / 回填共享支撑（app 层）。
@@ -47,11 +48,11 @@ public class DocumentImageSupport {
             DocumentImageGateway imageGateway,
             ObjectStorageGateway objectStorageGateway,
             @org.springframework.beans.factory.annotation.Value(
-                            "${knowledge.storage.exam-asset-path:./data/exam-assets}")
-                    String assetDir,
+                    "${knowledge.storage.exam-asset-path:./data/exam-assets}")
+            String assetDir,
             @org.springframework.beans.factory.annotation.Value(
-                            "${knowledge.storage.path:./data/documents}")
-                    String storageDir) {
+                    "${knowledge.storage.path:./data/documents}")
+            String storageDir) {
         this.extractor = extractor;
         this.imageGateway = imageGateway;
         this.objectStorageGateway = objectStorageGateway;
@@ -198,12 +199,16 @@ public class DocumentImageSupport {
         return extractAndPersist(doc, source);
     }
 
-    /** 按对外句柄查找图片元数据。 */
+    /**
+     * 按对外句柄查找图片元数据。
+     */
     public Optional<DocumentImage> findByAssetKey(String assetKey) {
         return imageGateway.findByAssetKey(assetKey);
     }
 
-    /** 回读图片二进制；文件缺失 / 越权访问时返回空。 */
+    /**
+     * 回读图片二进制；文件缺失 / 越权访问时返回空。
+     */
     public Optional<byte[]> readBytes(DocumentImage image) {
         if (image == null || image.getStoragePath() == null) {
             return Optional.empty();
@@ -221,7 +226,9 @@ public class DocumentImageSupport {
         }
     }
 
-    /** 列出某文档全部图片。 */
+    /**
+     * 列出某文档全部图片。
+     */
     public List<DocumentImage> listByDocument(Document doc) {
         if (doc == null || doc.getId() == null) {
             return List.of();
@@ -229,13 +236,17 @@ public class DocumentImageSupport {
         return imageGateway.listByDocumentId(doc.getId());
     }
 
-    /** 全局图片检索（校对页选图），命中项携带来源文档名。 */
+    /**
+     * 全局图片检索（校对页选图），命中项携带来源文档名。
+     */
     public List<DocumentImageHit> searchImages(
             String keyword, String documentKey, int limit, int offset) {
         return imageGateway.search(keyword, documentKey, limit, offset);
     }
 
-    /** 统计全局图片检索同条件命中总数。 */
+    /**
+     * 统计全局图片检索同条件命中总数。
+     */
     public long countImages(String keyword, String documentKey) {
         return imageGateway.countSearch(keyword, documentKey);
     }

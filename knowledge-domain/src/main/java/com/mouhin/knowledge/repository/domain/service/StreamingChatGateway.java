@@ -10,30 +10,36 @@ package com.mouhin.knowledge.repository.domain.service;
  */
 public interface StreamingChatGateway {
 
-    /** 增量类型：正常回答内容 */
+    /**
+     * 增量类型：正常回答内容
+     */
     String KIND_OUTPUT = "output";
 
-    /** 增量类型：思考链 / 推理内容 */
+    /**
+     * 增量类型：思考链 / 推理内容
+     */
     String KIND_THINKING = "thinking";
 
     /**
      * 以流式方式发起一次单轮对话（system + user），阻塞直到模型输出结束。
      *
      * @param systemPrompt 系统提示词
-     * @param userPrompt 用户提示词
-     * @param handler 增量回调，可为 null（不需要流式时）；由底层线程调用
+     * @param userPrompt   用户提示词
+     * @param handler      增量回调，可为 null（不需要流式时）；由底层线程调用
      * @return 模型返回的完整回答文本（不含思考链）
      */
     String streamCompletion(String systemPrompt, String userPrompt, StreamDeltaHandler handler);
 
-    /** 流式增量回调。 */
+    /**
+     * 流式增量回调。
+     */
     @FunctionalInterface
     interface StreamDeltaHandler {
 
         /**
          * 收到一段增量。
          *
-         * @param kind {@link #KIND_OUTPUT} 或 {@link #KIND_THINKING}
+         * @param kind  {@link #KIND_OUTPUT} 或 {@link #KIND_THINKING}
          * @param delta 本次增量文本片段
          */
         void onDelta(String kind, String delta);

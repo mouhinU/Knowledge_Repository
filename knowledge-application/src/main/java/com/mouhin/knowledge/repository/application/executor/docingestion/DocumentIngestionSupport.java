@@ -11,16 +11,15 @@ import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingConfig;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
-import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
-import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
+import com.mouhin.knowledge.repository.domain.model.valueobject.*;
 import com.mouhin.knowledge.repository.domain.service.DocumentIngestionDomainService;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import com.mouhin.knowledge.repository.domain.util.PathGuard;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -30,10 +29,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 文档摄入共享支撑（app 层）
@@ -70,7 +65,9 @@ public class DocumentIngestionSupport {
         this.objectStorageGateway = objectStorageGateway;
     }
 
-    /** 解析分块策略枚举，无效值回退为 FIXED_SIZE（原适配层 resolveStrategy 逻辑下沉至 app 层）。 */
+    /**
+     * 解析分块策略枚举，无效值回退为 FIXED_SIZE（原适配层 resolveStrategy 逻辑下沉至 app 层）。
+     */
     public ChunkingStrategyEnum resolveStrategy(String strategy) {
         if (strategy == null || strategy.isBlank()) {
             return ChunkingStrategyEnum.FIXED_SIZE;
@@ -82,7 +79,9 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /** 依据分块参数构建 ChunkingConfig（strategy 为空回退 FIXED_SIZE）。 */
+    /**
+     * 依据分块参数构建 ChunkingConfig（strategy 为空回退 FIXED_SIZE）。
+     */
     public ChunkingConfig buildConfig(int chunkSize, int overlap, ChunkingStrategyEnum strategy) {
         return new ChunkingConfig(
                 chunkSize,
@@ -92,12 +91,16 @@ public class DocumentIngestionSupport {
                 true);
     }
 
-    /** 处理文档：分块 → 向量化 → 存储（无进度回调）。 */
+    /**
+     * 处理文档：分块 → 向量化 → 存储（无进度回调）。
+     */
     public void processDocument(Document document, ExtractionResult result) {
         processDocument(document, result, null);
     }
 
-    /** 处理文档：分块 → 向量化 → 存储（带进度回调）。 */
+    /**
+     * 处理文档：分块 → 向量化 → 存储（带进度回调）。
+     */
     public void processDocument(
             Document document, ExtractionResult result, IndexProgressCallback callback) {
         try {
@@ -164,7 +167,9 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /** 构建上传文档聚合（默认分块配置，后续入库时可覆盖）。 */
+    /**
+     * 构建上传文档聚合（默认分块配置，后续入库时可覆盖）。
+     */
     public Document buildDocument(
             String documentKey,
             MultipartFile file,
@@ -194,7 +199,9 @@ public class DocumentIngestionSupport {
         return document;
     }
 
-    /** 生成新的文档唯一标识。 */
+    /**
+     * 生成新的文档唯一标识。
+     */
     public String newDocumentKey() {
         return UUID.randomUUID().toString();
     }
@@ -224,7 +231,7 @@ public class DocumentIngestionSupport {
                             java.nio.file.attribute.PosixFilePermission.OWNER_WRITE,
                             java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE);
             java.nio.file.attribute.FileAttribute<
-                            java.util.Set<java.nio.file.attribute.PosixFilePermission>>
+                    java.util.Set<java.nio.file.attribute.PosixFilePermission>>
                     attrs = java.nio.file.attribute.PosixFilePermissions.asFileAttribute(ownerOnly);
             return Files.createTempDirectory(prefix, attrs);
         } catch (UnsupportedOperationException nonPosix) {
@@ -253,7 +260,7 @@ public class DocumentIngestionSupport {
      * <p>P5-T1 重构：原先直接 {@code Files.copy} 到本地磁盘，现委托给对象存储端口， 支持本地磁盘 / MinIO 双驱动配置切换。返回 {@link
      * StoredObject}，调用方取 {@link StoredObject#storageKey()} 存入 DB {@code storage_path} 列。
      *
-     * @param sourceFile 临时文件路径（上传后暂存位置）
+     * @param sourceFile   临时文件路径（上传后暂存位置）
      * @param originalName 原始文件名
      * @return 存储句柄
      * @throws IOException 存储失败
@@ -299,7 +306,9 @@ public class DocumentIngestionSupport {
         }
     }
 
-    /** 清理文本中的控制字符，避免 JSON 序列化失败。保留换行 / 回车 / 制表符，移除其他 ASCII 控制字符。 */
+    /**
+     * 清理文本中的控制字符，避免 JSON 序列化失败。保留换行 / 回车 / 制表符，移除其他 ASCII 控制字符。
+     */
     public String sanitizeForJson(String text) {
         if (text == null || text.isEmpty()) {
             return text;
@@ -314,7 +323,9 @@ public class DocumentIngestionSupport {
         return sb.toString();
     }
 
-    /** 组装页明细（1 起始页号 / 清洗后字符数 / 前 500 字符预览）。 */
+    /**
+     * 组装页明细（1 起始页号 / 清洗后字符数 / 前 500 字符预览）。
+     */
     public List<PageDetail> buildPages(List<String> pageTexts) {
         List<PageDetail> pages = new ArrayList<>();
         for (int i = 0; i < pageTexts.size(); i++) {
@@ -331,14 +342,16 @@ public class DocumentIngestionSupport {
         return pages;
     }
 
-    /** 组装分块明细（前 300 字符预览 + 全文）。 */
+    /**
+     * 组装分块明细（前 300 字符预览 + 全文）。
+     */
     public List<ChunkDetail> buildChunkDetails(List<DocumentChunk> chunks) {
         List<ChunkDetail> chunkDetails = new ArrayList<>();
         for (DocumentChunk chunk : chunks) {
             String preview =
                     chunk.getContent() != null
                             ? chunk.getContent()
-                                    .substring(0, Math.min(chunk.getContent().length(), 300))
+                            .substring(0, Math.min(chunk.getContent().length(), 300))
                             : "";
             chunkDetails.add(
                     new ChunkDetail(

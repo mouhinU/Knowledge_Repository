@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
@@ -19,15 +8,21 @@ import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.transaction.support.TransactionTemplate;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.transaction.support.TransactionTemplate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * 重新入库命令执行器单测：锁定文档不存在 / 存储文件缺失两条前置门禁，以及成功链路的执行顺序—— Milvus 清向量（事务外）→ 短事务内清分块 + 状态回退 UPLOADED + 专用清列
@@ -40,9 +35,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 class ReindexCmdExeTest {
 
     private static final String KEY = "doc-key-reindex";
-
-    @TempDir Path tmp;
-
     private final DocumentIngestionSupport support = mock(DocumentIngestionSupport.class);
     private final DocumentGateway documentGateway = mock(DocumentGateway.class);
     private final DocumentChunkGateway chunkGateway = mock(DocumentChunkGateway.class);
@@ -58,6 +50,8 @@ class ReindexCmdExeTest {
                     vectorStoreService,
                     documentExtractionService,
                     transactionTemplate);
+    @TempDir
+    Path tmp;
 
     private Document indexedDoc(Path storage) {
         Document doc = new Document();
@@ -109,7 +103,7 @@ class ReindexCmdExeTest {
     @DisplayName("成功链路：清旧向量 → 短事务清分块/回退 UPLOADED/清 error_message → 重抽取 → processDocument")
     void successClearsThenReprocesses() throws IOException {
         Path stored = tmp.resolve("stored.pdf");
-        Files.write(stored, new byte[] {1, 2, 3});
+        Files.write(stored, new byte[]{1, 2, 3});
         Document doc = indexedDoc(stored);
         ExtractionResult result =
                 new ExtractionResult(List.of("page text"), 1, false, "md5", "pdf");
@@ -133,7 +127,7 @@ class ReindexCmdExeTest {
     @DisplayName("重抽取 IO 异常 → 包装 'Failed to re-extract text'，不再 processDocument")
     void reExtractFailureWrapped() throws IOException {
         Path stored = tmp.resolve("stored2.pdf");
-        Files.write(stored, new byte[] {1});
+        Files.write(stored, new byte[]{1});
         indexedDoc(stored);
         when(documentExtractionService.extractText(any(), anyLong(), anyString()))
                 .thenThrow(new IOException("broken"));
@@ -148,7 +142,7 @@ class ReindexCmdExeTest {
     @DisplayName("清旧向量先于短事务执行（DB 连接不被 Milvus 抖动拖住）")
     void vectorDeleteHappensBeforeShortTransaction() throws IOException {
         Path stored = tmp.resolve("stored3.pdf");
-        Files.write(stored, new byte[] {1});
+        Files.write(stored, new byte[]{1});
         indexedDoc(stored);
         when(documentExtractionService.extractText(any(), anyLong(), anyString()))
                 .thenReturn(new ExtractionResult(List.of("page text"), 1, false, "md5", "pdf"));

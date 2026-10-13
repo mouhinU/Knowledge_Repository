@@ -1,16 +1,5 @@
 package com.mouhin.knowledge.repository.application.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.StepOutcome;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -19,11 +8,16 @@ import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantProvisionStep;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningContext;
 import com.mouhin.knowledge.repository.domain.provisioning.ProvisioningStep;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * {@link ProvisioningStateMachine} 编排单测（P3-T2）。
@@ -41,7 +35,9 @@ class ProvisioningStateMachineTest {
     private TenantProvisionStepGateway stepGateway;
     private PlatformAuditLog auditLog;
 
-    /** 记录步骤是否被真正执行（用于断言跳过语义）。 */
+    /**
+     * 记录步骤是否被真正执行（用于断言跳过语义）。
+     */
     private int stepAExecutions;
 
     private int stepBExecutions;

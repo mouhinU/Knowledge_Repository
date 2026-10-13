@@ -1,11 +1,12 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
-import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * {@link PptxExtractionStrategy} 契约测试。
@@ -33,10 +34,10 @@ class PptxExtractionStrategyTest {
     @DisplayName("PPTX 与旧版 ms-powerpoint 命中，xlsx 不命中")
     void supports() {
         assertThat(
-                        strategy.supports(
-                                withMime(
-                                        "application/vnd.openxmlformats-officedocument"
-                                                + ".presentationml.presentation")))
+                strategy.supports(
+                        withMime(
+                                "application/vnd.openxmlformats-officedocument"
+                                        + ".presentationml.presentation")))
                 .isTrue();
         assertThat(strategy.supports(withMime("application/vnd.ms-powerpoint"))).isTrue();
         assertThat(strategy.supports(withMime("application/vnd.ms-excel"))).isFalse();
