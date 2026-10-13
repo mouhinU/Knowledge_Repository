@@ -151,6 +151,8 @@ docker rmi "${PRE_FLATTEN_TAG}" >/dev/null 2>&1 || true
 docker tag "${FLAT_TAG}" "${IMAGE_NAME}:${APP_VERSION}"
 FLAT_SIZE=$(docker images --format "{{.Size}}" "${FLAT_TAG}" | head -1)
 echo ">>> 扁平化完成: ${FLAT_TAG} (${FLAT_SIZE})"
+# -flat 仅为扁平化中间产物，正式版本号已指向同一镜像，清理多余 tag
+docker rmi "${FLAT_TAG}" >/dev/null 2>&1 || true
 
 # ============================================================
 # 重启应用（非 build-only 模式）
