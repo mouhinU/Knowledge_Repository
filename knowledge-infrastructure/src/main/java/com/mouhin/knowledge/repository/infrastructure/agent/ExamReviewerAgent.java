@@ -1,15 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ExamMetaQuestionDetector;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 试卷审核 Agent
@@ -26,15 +26,13 @@ import java.util.List;
 @Slf4j
 public class ExamReviewerAgent implements BlackboardAgent {
 
-    /**
-     * 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。
-     */
+    /** 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。 */
     private static final int DETECTOR_SCORE_CAP = 70;
 
     private static final String SYSTEM_PROMPT =
             """
                     你是一位资深的教育评估专家，负责审核考试试卷的质量。
-                    
+
                     请从以下 6 个维度审核试卷，每个维度独立打分（0-100）：
                     1. 知识准确性（权重 25%%）：题目和答案是否与知识点一致，有无事实错误
                     2. 题目表述（权重 15%%）：题目是否清晰无歧义，选项是否合理
@@ -42,11 +40,11 @@ public class ExamReviewerAgent implements BlackboardAgent {
                     4. 题型合理性（权重 15%%）：各题型的设置是否恰当，题量是否合理；发现「出处/位置类」记忆题（考查某知识点在第几单元/第几课/第几页/哪一章/出自哪篇哪一段等教材编排位置）须判为缺陷并在改进建议中逐条列出、要求替换为就内容实质（字音字形、词义语法、内容理解、阅读表达等）设问
                     5. 难度适当性（权重 10%%）：难度是否符合要求，梯度是否合理
                     6. 格式规范性（权重 10%%）：排版、编号、分值标注是否规范
-                    
+
                     输出格式（严格按以下 Markdown 结构）：
                     ## 审核意见
                     （详细的审核意见，按维度逐条分析）
-                    
+
                     ## 评分明细
                     - 知识准确性：X
                     - 题目表述：X
@@ -54,23 +52,22 @@ public class ExamReviewerAgent implements BlackboardAgent {
                     - 题型合理性：X
                     - 难度适当性：X
                     - 格式规范性：X
-                    
+
                     ## 质量评分
                     （加权总分，一个 0-100 的整数，计算方式：知识准确性×0.25 + 题目表述×0.15 + 知识点覆盖×0.25 + 题型合理性×0.15 + 难度适当性×0.10 + 格式规范性×0.10）
-                    
+
                     ## 改进建议
                     （如有需要改进的地方，列出具体建议）
                     """;
-    /**
-     * 六维度权重，顺序：知识准确性 / 题目表述 / 知识点覆盖 / 题型合理性 / 难度适当性 / 格式规范性
-     */
+
+    /** 六维度权重，顺序：知识准确性 / 题目表述 / 知识点覆盖 / 题型合理性 / 难度适当性 / 格式规范性 */
     private static final double[] WEIGHTS = {0.25, 0.15, 0.25, 0.15, 0.10, 0.10};
-    /**
-     * 六维度名称，顺序与 WEIGHTS 一致
-     */
+
+    /** 六维度名称，顺序与 WEIGHTS 一致 */
     private static final String[] DIMENSIONS = {
-            "知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"
+        "知识准确性", "题目表述", "知识点覆盖", "题型合理性", "难度适当性", "格式规范性"
     };
+
     private final BlackboardAgentStreamer agentStreamer;
 
     public ExamReviewerAgent(BlackboardAgentStreamer agentStreamer) {
@@ -91,14 +88,15 @@ public class ExamReviewerAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "exam-reviewer", "正在审核试卷质量...", materials));
+                        AgentNames.AGENT_EXAM_REVIEWER, "正在审核试卷质量...", materials));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setExamReviewFeedback("试卷为空，无法审核。");
             blackboard.setQualityScore(0);
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("exam-reviewer", "试卷为空，无法审核。"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_EXAM_REVIEWER, "试卷为空，无法审核。"));
             return;
         }
 
@@ -109,20 +107,24 @@ public class ExamReviewerAgent implements BlackboardAgent {
                 String.format(
                         """
                                 考试主题：%s
-                                
+
                                 【试卷内容】
                                 %s
-                                
+
                                 【标准答案】
                                 %s
                                 %s
-                                
+
                                 请审核试卷质量。
                                 """,
                         blackboard.getQuestion(), examPaper, answerKey, knowledgeContext);
 
         String reviewOutput =
-                agentStreamer.stream("exam-reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
+                agentStreamer.stream(
+                        AgentNames.AGENT_EXAM_REVIEWER,
+                        SYSTEM_PROMPT,
+                        userPrompt,
+                        progressCallback);
 
         if (reviewOutput == null || reviewOutput.isBlank()) {
             log.error("[ExamReviewer] LLM 返回空审核结果");
@@ -141,7 +143,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(
-                        "exam-reviewer",
+                        AgentNames.AGENT_EXAM_REVIEWER,
                         blackboard.getExamReviewFeedback(),
                         blackboard.getQualityScore()));
         log.info("[ExamReviewer] 审核完成，评分：{}", blackboard.getQualityScore());
@@ -152,7 +154,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
      * 打回重写，并把命中题目与改写要求追加进审核反馈。已有更低分则不抬升。
      *
      * @param blackboard 黑板状态
-     * @param examPaper  试卷 Markdown（LLM 刚产出的正文）
+     * @param examPaper 试卷 Markdown（LLM 刚产出的正文）
      */
     private void applyDeterministicMetaRecallCheck(BlackboardState blackboard, String examPaper) {
         List<String> metaHits = ExamMetaQuestionDetector.scanMarkdown(examPaper);
@@ -296,7 +298,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
     /**
      * 从评分明细段落中提取指定维度的分数
      *
-     * @param section   评分明细文本
+     * @param section 评分明细文本
      * @param dimension 维度名称
      * @return 分数（0-100），未找到时返回 -1
      */
@@ -341,6 +343,6 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     @Override
     public String getName() {
-        return "ExamReviewer";
+        return AgentNames.DISPLAY_EXAM_REVIEWER;
     }
 }

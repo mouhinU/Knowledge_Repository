@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -25,14 +26,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExamKnowledgeDedupAgent implements BlackboardAgent {
 
-    private static final String AGENT_NAME = "exam-kp-dedup";
+    private static final String AGENT_NAME = AgentNames.AGENT_EXAM_KP_DEDUP;
 
     private static final String SYSTEM_PROMPT =
             """
                     你是命题质检与考点去重专家。你的任务是审查一份试卷，找出考查相同或高度相似考点的题目，删除重复的，并生成替补新题。
-                    
+
                     ## 工作步骤
-                    
+
                     1. **提取考点**：逐题阅读，为每道题标注其考查的核心知识点（用简洁短语表示，如"勾股定理的直接应用""一元二次方程的求根公式"）。
                     2. **识别重复**：比较所有题目的考点标注，找出考查相同或高度相似知识点的题目对。"高度相似"指解题所需的核心概念和思维路径基本一致，即使题目表述不同。
                     3. **保留与删除**：对于每组重复题，保留最先出现的那道（按题号），标记其余为"重复题"待删除。
@@ -43,9 +44,9 @@ public class ExamKnowledgeDedupAgent implements BlackboardAgent {
                        - 考查的知识点必须与保留的题目不同（这是核心要求）
                        - 新题的考点应在原试卷知识点范围内
                     5. **重组试卷**：输出完整的修订试卷，包含所有保留题和替补新题，按原格式排列，题号全局连续。
-                    
+
                     ## 输出要求
-                    
+
                     - 先输出一个简要的"去重报告"（用 HTML 注释包裹，不会显示给用户），格式：
                       <!-- 去重报告：共检查 N 题，发现 M 组重复考点，删除 K 题并替补 K 题 -->
                       <!-- 重复详情：第 X 题与第 Y 题考查相同考点"..."，保留第 X 题，替换第 Y 题 -->
@@ -89,10 +90,10 @@ public class ExamKnowledgeDedupAgent implements BlackboardAgent {
                 String.format(
                         """
                                 考试主题/科目：%s
-                                
+
                                 【当前试卷内容】
                                 %s
-                                
+
                                 请执行考点去重：提取每题考点 → 识别重复 → 删除重复题并生成替补 → 输出修订后的完整试卷。
                                 如果没有重复考点，直接输出原试卷。
                                 """,
@@ -164,9 +165,7 @@ public class ExamKnowledgeDedupAgent implements BlackboardAgent {
                 progressCallback, BlackboardProgressEvent.agentCompleted(AGENT_NAME, resultText));
     }
 
-    /**
-     * 从 LLM 输出中提取所有 HTML 注释里的去重报告摘要。
-     */
+    /** 从 LLM 输出中提取所有 HTML 注释里的去重报告摘要。 */
     private String extractDedupSummary(String revisedPaper) {
         StringBuilder summary = new StringBuilder();
         // 捕获所有 HTML 注释（LLM 可能输出多条：去重报告 + 重复详情）
@@ -235,9 +234,7 @@ public class ExamKnowledgeDedupAgent implements BlackboardAgent {
         return false;
     }
 
-    /**
-     * 粗略统计试卷中的题目数量（按 "**N.**" 或换行后 "N. " 模式匹配）。
-     */
+    /** 粗略统计试卷中的题目数量（按 "**N.**" 或换行后 "N. " 模式匹配）。 */
     private int countQuestions(String paper) {
         java.util.regex.Matcher m =
                 java.util.regex.Pattern.compile("\\*\\*\\d+\\.\\*\\*|\\n\\d+\\.\\s").matcher(paper);
@@ -248,7 +245,7 @@ public class ExamKnowledgeDedupAgent implements BlackboardAgent {
 
     @Override
     public String getName() {
-        return "ExamKnowledgeDedup";
+        return AgentNames.DISPLAY_EXAM_KP_DEDUP;
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

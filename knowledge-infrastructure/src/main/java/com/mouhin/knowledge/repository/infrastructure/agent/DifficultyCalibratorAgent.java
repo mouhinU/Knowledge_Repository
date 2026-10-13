@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -27,7 +28,7 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
     private static final String SYSTEM_PROMPT =
             """
                     你是一位教育测量学专家，精通 Bloom 教育目标分类学（修订版）。
-                    
+
                     任务：
                     1. 逐题分析并标注每道题的认知层级：
                        - 记忆（Remember）：回忆事实、术语、基本概念
@@ -36,26 +37,26 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
                        - 分析（Analyze）：分解信息、识别关系、推断因果
                        - 评价（Evaluate）：判断、论证、批判、评估
                        - 创造（Create）：设计、构建、规划、生成新方案
-                    
+
                     2. 统计各认知层级的题目数量和占比
                     3. 与目标难度对应的理想分布对比：
                        - 简单：记忆 30% + 理解 40% + 应用 20% + 分析 10%
                        - 中等：理解 25% + 应用 35% + 分析 25% + 评价 15%
                        - 困难：应用 25% + 分析 30% + 评价 25% + 创造 20%
                     4. 标注偏差超过 10% 的层级，给出调整建议
-                    
+
                     输出格式（严格按以下 Markdown 结构）：
                     ## Bloom 分类明细
                     | 题号 | 题目摘要 | 认知层级 | 判定依据 |
                     |------|---------|---------|---------|
-                    
+
                     ## 层级分布
                     | 认知层级 | 题数 | 占比 | 理想占比 | 偏差 |
                     |---------|------|------|---------|------|
-                    
+
                     ## 校准结论
                     （整体评价：分布是否符合目标难度要求）
-                    
+
                     ## 调整建议
                     （如有偏差过大的层级，给出具体调整建议；否则写"分布合理，无需调整"）
                     """;
@@ -90,13 +91,16 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "bloom-calibrator", "正在按 Bloom 分类逐题标注认知层级...", truncate(examPaper, 400)));
+                        AgentNames.AGENT_BLOOM_CALIBRATOR,
+                        "正在按 Bloom 分类逐题标注认知层级...",
+                        truncate(examPaper, 400)));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setBloomClassification("试卷为空，无法进行 Bloom 分类。");
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("bloom-calibrator", "试卷为空"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_BLOOM_CALIBRATOR, "试卷为空"));
             return;
         }
 
@@ -112,17 +116,20 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
                         """
                                 考试主题：%s
                                 目标难度：%s
-                                
+
                                 【试卷内容】
                                 %s
-                                
+
                                 请按 Bloom 教育目标分类学逐题标注认知层级，并评估分布是否与目标难度匹配。
                                 """,
                         blackboard.getQuestion(), difficultyDesc, examPaper);
 
         String classification =
                 agentStreamer.stream(
-                        "bloom-calibrator", SYSTEM_PROMPT, userPrompt, progressCallback);
+                        AgentNames.AGENT_BLOOM_CALIBRATOR,
+                        SYSTEM_PROMPT,
+                        userPrompt,
+                        progressCallback);
 
         if (classification == null || classification.isBlank()) {
             log.error("[BloomCalibrator] LLM 返回空分类结果");
@@ -135,18 +142,16 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(
-                        "bloom-calibrator", classification, agentScore));
+                        AgentNames.AGENT_BLOOM_CALIBRATOR, classification, agentScore));
         log.info("[BloomCalibrator] Bloom 分类完成，长度：{} 字符", classification.length());
     }
 
     @Override
     public String getName() {
-        return "DifficultyCalibrator";
+        return AgentNames.DISPLAY_DIFFICULTY_CALIBRATOR;
     }
 
-    /**
-     * 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分）
-     */
+    /** 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分） */
     private Double calculateBloomScore(String classification) {
         double score = Math.min(20.0, classification.length() / 100.0 * 2.0);
         if (classification.contains("Bloom 分类明细") || classification.contains("分类明细")) score += 20.0;

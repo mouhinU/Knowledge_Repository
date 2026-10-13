@@ -1,15 +1,15 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 知识缺口分析 Agent
@@ -28,26 +28,26 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
     private static final String SYSTEM_PROMPT =
             """
                     你是一位知识可信度审核专家，负责检查试卷中的每道题是否能从知识库中找到依据。
-                    
+
                     任务：
                     1. 逐一分析试卷中的每道题目，检查其考查的知识点是否在提供的知识片段中有明确依据
                     2. 对于找不到知识库依据的题目，标记为"⚠️ 无依据"并说明理由
                     3. 对于有依据的题目，标记为"✅ 有依据"并指出对应的知识片段编号
                     4. 统计整体知识覆盖率（有依据题数 / 总题数）
                     5. 如果覆盖率低于 70%，给出警告和补充建议
-                    
+
                     输出格式（严格按以下 Markdown 结构）：
                     ## 逐题核查
                     | 题号 | 考查知识点 | 依据状态 | 对应片段 |
                     |------|-----------|---------|---------|
                     | 1    | ...       | ✅/⚠️   | #N / 无 |
-                    
+
                     ## 覆盖率统计
                     有依据：X / Y 题（Z%）
-                    
+
                     ## 风险提示
                     （覆盖率低于 70% 时给出警告，否则写"知识覆盖率达标，无显著幻觉风险"）
-                    
+
                     ## 补充建议
                     （如有无依据题目，建议补充哪些方面的知识；否则写"无需补充"）
                     """;
@@ -82,13 +82,16 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "knowledge-gap-analyzer", "正在核查每道题的知识库依据...", truncate(examPaper, 400)));
+                        AgentNames.AGENT_KNOWLEDGE_GAP_ANALYZER,
+                        "正在核查每道题的知识库依据...",
+                        truncate(examPaper, 400)));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setKnowledgeGapReport("试卷为空，无法进行知识缺口分析。");
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("knowledge-gap-analyzer", "试卷为空"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_KNOWLEDGE_GAP_ANALYZER, "试卷为空"));
             return;
         }
 
@@ -97,20 +100,23 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
                 String.format(
                         """
                                 考试主题：%s
-                                
+
                                 【知识库片段】
                                 %s
-                                
+
                                 【试卷内容】
                                 %s
-                                
+
                                 请逐题核查试卷中每道题是否有知识库依据，并输出分析报告。
                                 """,
                         blackboard.getQuestion(), knowledgeContext, examPaper);
 
         String report =
                 agentStreamer.stream(
-                        "knowledge-gap-analyzer", SYSTEM_PROMPT, userPrompt, progressCallback);
+                        AgentNames.AGENT_KNOWLEDGE_GAP_ANALYZER,
+                        SYSTEM_PROMPT,
+                        userPrompt,
+                        progressCallback);
 
         if (report == null || report.isBlank()) {
             log.error("[KnowledgeGap] LLM 返回空分析结果");
@@ -122,13 +128,13 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(
-                        "knowledge-gap-analyzer", report, agentScore));
+                        AgentNames.AGENT_KNOWLEDGE_GAP_ANALYZER, report, agentScore));
         log.info("[KnowledgeGap] 知识缺口分析完成，长度：{} 字符", report.length());
     }
 
     @Override
     public String getName() {
-        return "KnowledgeGapAnalyzer";
+        return AgentNames.DISPLAY_KNOWLEDGE_GAP_ANALYZER;
     }
 
     private String buildKnowledgeContext(List<SearchResult> chunks) {
@@ -147,9 +153,7 @@ public class KnowledgeGapAnalyzerAgent implements BlackboardAgent {
         return sb.toString();
     }
 
-    /**
-     * 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分）
-     */
+    /** 启发式评分：结构完整性（四部分各 20 分）+ 长度（上限 20 分） */
     private Double calculateGapScore(String report) {
         double score = Math.min(20.0, report.length() / 100.0 * 2.0);
         if (report.contains("逐题核查")) score += 20.0;

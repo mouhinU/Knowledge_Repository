@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -23,15 +24,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExamWriterAgent implements BlackboardAgent {
 
-    /**
-     * 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。
-     */
+    /** 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。 */
     private static final int MIN_VALID_EXAM_LENGTH = 200;
 
     private static final String SYSTEM_PROMPT =
             """
                     你是一位资深教育考试专家，擅长根据知识内容编写高质量的考试试卷。
-                    
+
                     出题原则：
                     1. 题目必须基于提供的知识点，不得超出知识范围
                     2. 题目表述清晰准确，避免歧义
@@ -41,7 +40,7 @@ public class ExamWriterAgent implements BlackboardAgent {
                     6. 题目序号全局连续编排（1, 2, 3, ...），禁止分节重新从 1 起号，分值标注清晰
                     7. 只考知识内容本身的理解与运用，严禁命制「出处/位置类」记忆题：不得考查某知识点「在第几单元 / 第几课 / 第几页 / 哪一章 / 哪个章节 / 出自哪篇课文的哪一段」等教材编排位置信息；语文、英语等偏记忆理解的科目尤其如此，应就字音字形、词义语法、课文内容理解、阅读与表达运用等实质设问，而非让学生背编排位置
                     8. 出题前先在脑中列出本卷要覆盖的考点清单，每写完一题就核对是否与前面的题考查了同一考点；若重复，立即调整考查角度或替换为新考点，确保全卷考点不重复
-                    
+
                     输出格式要求：
                     - 使用 Markdown 格式
                     - 试卷标题后紧跟一行考试时长信息，格式为：**考试时间：XX分钟**
@@ -84,14 +83,16 @@ public class ExamWriterAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "exam-writer", isRetry ? "正在根据审核意见改进试卷..." : "正在根据知识点编写试卷...", materials));
+                        AgentNames.AGENT_EXAM_WRITER,
+                        isRetry ? "正在根据审核意见改进试卷..." : "正在根据知识点编写试卷...",
+                        materials));
 
         if (findings == null || findings.isBlank() || findings.contains("未找到")) {
             String fallback = "# " + topic + " 考试试卷\n\n> 提示：知识库中未找到足够的相关内容，试卷基于 AI 通用知识生成。\n\n";
             blackboard.setExamPaper(fallback);
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("exam-writer", fallback));
+                    BlackboardProgressEvent.agentCompleted(AgentNames.AGENT_EXAM_WRITER, fallback));
             log.warn("[ExamWriter] 知识点不足，使用回退方案");
             return;
         }
@@ -107,7 +108,8 @@ public class ExamWriterAgent implements BlackboardAgent {
                         isRetry);
 
         String examPaper =
-                agentStreamer.stream("exam-writer", SYSTEM_PROMPT, userPrompt, progressCallback);
+                agentStreamer.stream(
+                        AgentNames.AGENT_EXAM_WRITER, SYSTEM_PROMPT, userPrompt, progressCallback);
 
         // 快速失败：空或异常简短的试卷说明模型未真正产出内容（多为推理模型思考链耗尽
         // token 预算）。此前会写成占位文本让流水线空转多轮，现直接抛异常中止并回报错误。
@@ -117,7 +119,9 @@ public class ExamWriterAgent implements BlackboardAgent {
             String msg = "试卷编写失败：模型未产出有效内容（可能是思考链耗尽 token 预算），请重试或调大流式 max-tokens";
             log.error(
                     "[ExamWriter] LLM 返回空/过短试卷，长度：{}", examPaper == null ? 0 : examPaper.length());
-            emitProgress(progressCallback, BlackboardProgressEvent.agentFailed("exam-writer", msg));
+            emitProgress(
+                    progressCallback,
+                    BlackboardProgressEvent.agentFailed(AgentNames.AGENT_EXAM_WRITER, msg));
             throw new RuntimeException(msg);
         }
 
@@ -125,7 +129,8 @@ public class ExamWriterAgent implements BlackboardAgent {
         Double agentScore = calculateWriterScore(examPaper);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-writer", examPaper, agentScore));
+                BlackboardProgressEvent.agentCompleted(
+                        AgentNames.AGENT_EXAM_WRITER, examPaper, agentScore));
         log.info(
                 "[ExamWriter] 试卷编写完成，长度：{} 字符{}，得分：{}",
                 examPaper.length(),
@@ -152,9 +157,7 @@ public class ExamWriterAgent implements BlackboardAgent {
         return Math.round(Math.min(100.0, score) * 100.0) / 100.0;
     }
 
-    /**
-     * 组装发送给试卷编写 Agent 的用户提示词（首轮 / 改进轮两种模板）。
-     */
+    /** 组装发送给试卷编写 Agent 的用户提示词（首轮 / 改进轮两种模板）。 */
     private String buildUserPrompt(
             String topic,
             String difficulty,
@@ -183,12 +186,12 @@ public class ExamWriterAgent implements BlackboardAgent {
                             题型分布：%s
                             %s
                             以下是相关知识点：
-                            
+
                             %s
-                            
+
                             【上一轮审核意见】
                             %s
-                            
+
                             请根据以上审核意见中的改进建议，重新编写一份高质量的考试试卷。
                             重点解决审核中指出的问题，保持优点，修正不足。
                             每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
@@ -207,9 +210,9 @@ public class ExamWriterAgent implements BlackboardAgent {
                         题型分布：%s
                         %s
                         以下是相关知识点：
-                        
+
                         %s
-                        
+
                         请根据以上知识点和要求，编写一份完整的考试试卷。
                         每道题的分值必须严格按照分值分配方案执行。只输出试卷，不要输出答案。
                         """,
@@ -218,7 +221,7 @@ public class ExamWriterAgent implements BlackboardAgent {
 
     @Override
     public String getName() {
-        return "ExamWriter";
+        return AgentNames.DISPLAY_EXAM_WRITER;
     }
 
     private void emitProgress(BlackboardProgressCallback callback, BlackboardProgressEvent event) {

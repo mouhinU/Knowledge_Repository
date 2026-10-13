@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -25,7 +26,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
     private static final String SYSTEM_PROMPT =
             """
                     你是一位考试答案编写专家，负责为试卷生成标准答案和评分标准。
-                    
+
                     要求：
                     1. 答案必须准确无误，基于提供的知识点
                     2. 选择题直接给出正确选项
@@ -36,7 +37,7 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
                     7. 每题标注分值分配
                     8. 多选题答案用纯字母无分隔拼接（如 AC、ABD），不加逗号或空格
                     9. 题号与试卷完全一致且全局连续（试卷第 1 题对应答案第 1 题），禁止分节重新起号
-                    
+
                     输出格式：
                     - 使用 Markdown 格式
                     - 按题型分节，与试卷结构对应
@@ -67,13 +68,14 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "answer-generator", "正在为试卷生成标准答案...", materials));
+                        AgentNames.AGENT_ANSWER_GENERATOR, "正在为试卷生成标准答案...", materials));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setAnswerKey("试卷为空，无法生成答案。");
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("answer-generator", "试卷为空，无法生成答案。"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_ANSWER_GENERATOR, "试卷为空，无法生成答案。"));
             return;
         }
 
@@ -84,19 +86,22 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
                 String.format(
                         """
                                 考试主题：%s
-                                
+
                                 以下是需要生成答案的试卷：
-                                
+
                                 %s
                                 %s
-                                
+
                                 请为每道题生成标准答案和评分标准。
                                 """,
                         blackboard.getQuestion(), examPaper, knowledgeContext);
 
         String answerKey =
                 agentStreamer.stream(
-                        "answer-generator", SYSTEM_PROMPT, userPrompt, progressCallback);
+                        AgentNames.AGENT_ANSWER_GENERATOR,
+                        SYSTEM_PROMPT,
+                        userPrompt,
+                        progressCallback);
 
         if (answerKey == null || answerKey.isBlank()) {
             log.error("[AnswerKeyGenerator] LLM 返回空答案");
@@ -107,13 +112,14 @@ public class AnswerKeyGeneratorAgent implements BlackboardAgent {
         Double agentScore = calculateAnswerScore(examPaper, answerKey);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("answer-generator", answerKey, agentScore));
+                BlackboardProgressEvent.agentCompleted(
+                        AgentNames.AGENT_ANSWER_GENERATOR, answerKey, agentScore));
         log.info("[AnswerKeyGenerator] 答案生成完成，长度：{} 字符，得分：{}", answerKey.length(), agentScore);
     }
 
     @Override
     public String getName() {
-        return "AnswerKeyGenerator";
+        return AgentNames.DISPLAY_ANSWER_KEY_GENERATOR;
     }
 
     /**

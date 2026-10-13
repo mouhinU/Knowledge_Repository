@@ -1,17 +1,17 @@
 package com.mouhin.knowledge.repository.application.service;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.gateway.*;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeletionStep;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 租户删除对账器（app 层，P3-T5；S-4=方案 A 硬删执行引擎）。
@@ -47,24 +47,16 @@ import java.util.Map;
 @ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
 public class TenantDeletionReconciler {
 
-    /**
-     * 审计动作名。
-     */
+    /** 审计动作名。 */
     public static final String ACTION = "TENANT_DELETE";
 
-    /**
-     * 步骤名：清空 DB 业务行。
-     */
+    /** 步骤名：清空 DB 业务行。 */
     public static final String STEP_PURGE_DB_ROWS = "PURGE_DB_ROWS";
 
-    /**
-     * 步骤名：清空 Milvus 向量。
-     */
+    /** 步骤名：清空 Milvus 向量。 */
     public static final String STEP_PURGE_VECTORS = "PURGE_VECTORS";
 
-    /**
-     * 单轮扫描的 DELETING 租户上限。
-     */
+    /** 单轮扫描的 DELETING 租户上限。 */
     private static final int DEFAULT_BATCH_SIZE = 20;
 
     private final TenantGateway tenantGateway;
@@ -119,9 +111,7 @@ public class TenantDeletionReconciler {
         }
     }
 
-    /**
-     * 对单个 DELETING 租户执行两步硬删 + 终态迁移（步骤级幂等，可续跑）。
-     */
+    /** 对单个 DELETING 租户执行两步硬删 + 终态迁移（步骤级幂等，可续跑）。 */
     void runDeletion(Tenant tenant) {
         String requestId = tenant.getDeletionRequestId();
         if (requestId == null || requestId.isBlank()) {
@@ -165,7 +155,7 @@ public class TenantDeletionReconciler {
         tenantGateway.update(tenant);
         tenantDirectory.invalidateByKey(tenant.getTenantKey());
         auditLog.logTenantAction(
-                "system",
+                AgentNames.ACTOR_SYSTEM,
                 ACTION,
                 tenant.getTenantKey(),
                 "SUCCESS",
@@ -229,16 +219,14 @@ public class TenantDeletionReconciler {
 
     private void auditFailure(Tenant tenant, String stepName, String errorDetail) {
         auditLog.logTenantAction(
-                "system",
+                AgentNames.ACTOR_SYSTEM,
                 ACTION,
                 tenant.getTenantKey(),
                 "FAILED",
                 "step=" + stepName + " error=" + errorDetail);
     }
 
-    /**
-     * 组装异常摘要：类型 + message，避免 NPE 时无信息。
-     */
+    /** 组装异常摘要：类型 + message，避免 NPE 时无信息。 */
     private String describe(RuntimeException ex) {
         String msg = ex.getMessage();
         return ex.getClass().getSimpleName() + (msg == null ? "" : ": " + msg);
@@ -248,9 +236,7 @@ public class TenantDeletionReconciler {
         return batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE;
     }
 
-    /**
-     * 删除步骤副作用；返回影响行数（无可计数时 {@code null}）。
-     */
+    /** 删除步骤副作用；返回影响行数（无可计数时 {@code null}）。 */
     @FunctionalInterface
     interface DeletionAction {
         Long run();
@@ -259,11 +245,10 @@ public class TenantDeletionReconciler {
     /**
      * 步骤结果快照。
      *
-     * @param status       SUCCESS / FAILED / SKIPPED
+     * @param status SUCCESS / FAILED / SKIPPED
      * @param rowsAffected 影响行数（可空）
-     * @param errorDetail  失败原因（仅 FAILED 非空）
-     * @param attemptNo    本次尝试序号
+     * @param errorDetail 失败原因（仅 FAILED 非空）
+     * @param attemptNo 本次尝试序号
      */
-    record StepOutcome(String status, Long rowsAffected, String errorDetail, int attemptNo) {
-    }
+    record StepOutcome(String status, Long rowsAffected, String errorDetail, int attemptNo) {}
 }

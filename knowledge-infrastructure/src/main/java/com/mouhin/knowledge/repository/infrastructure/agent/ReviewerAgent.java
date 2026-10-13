@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -24,18 +25,18 @@ public class ReviewerAgent implements BlackboardAgent {
     private static final String SYSTEM_PROMPT =
             """
                     你是一个严格的文章审核编辑。你的任务是审核文章草稿的质量，并提供修改后的最终版本。
-                    
+
                     审核维度：
                     1. 准确性：内容是否与知识片段一致，有无编造或曲解
                     2. 完整性：是否充分回答了用户的问题
                     3. 逻辑性：文章结构是否清晰，论述是否连贯
                     4. 可读性：语言是否流畅，格式是否规范
-                    
+
                     输出要求：
                     先输出审核意见（以 "## 审核意见" 开头），包含各维度评价和改进建议。
                     然后输出 "## 质量评分"，给出 0-100 的整数分数。
                     最后输出 "## 最终文章"，给出修改后的完整文章（Markdown 格式）。
-                    
+
                     如果文章质量已经足够好（80分以上），最终文章可以保持原样或做微调。
                     """;
 
@@ -55,19 +56,20 @@ public class ReviewerAgent implements BlackboardAgent {
         String materials =
                 (draft != null && !draft.isBlank())
                         ? "写手的文章草稿：\n\n"
-                        + (draft.length() > 500 ? draft.substring(0, 500) + "..." : draft)
+                                + (draft.length() > 500 ? draft.substring(0, 500) + "..." : draft)
                         : "（无草稿）";
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "reviewer", "正在审核文章质量...", materials));
+                        AgentNames.AGENT_REVIEWER, "正在审核文章质量...", materials));
 
         if (draft == null || draft.isBlank()) {
             blackboard.setFinalArticle("无法生成文章：草稿为空。");
             blackboard.setQualityScore(0);
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("reviewer", "无法生成文章：草稿为空。"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_REVIEWER, "无法生成文章：草稿为空。"));
             log.warn("[Reviewer] 无草稿，跳过审核");
             return;
         }
@@ -80,7 +82,8 @@ public class ReviewerAgent implements BlackboardAgent {
             blackboard.advanceTo(BlackboardPhase.COMPLETED);
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("reviewer", "知识库检索结果为空，无法进行质量审核。"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_REVIEWER, "知识库检索结果为空，无法进行质量审核。"));
             log.info("[Reviewer] 信息不足模板，跳过 LLM 审核");
             return;
         }
@@ -89,21 +92,22 @@ public class ReviewerAgent implements BlackboardAgent {
                 String.format(
                         """
                                 用户的问题：%s
-                                
+
                                 研究员的知识发现：
-                                
+
                                 %s
-                                
+
                                 写手的文章草稿：
-                                
+
                                 %s
-                                
+
                                 请审核这篇文章并输出最终版本。
                                 """,
                         blackboard.getQuestion(), blackboard.getKeyFindings(), draft);
 
         String reviewOutput =
-                agentStreamer.stream("reviewer", SYSTEM_PROMPT, userPrompt, progressCallback);
+                agentStreamer.stream(
+                        AgentNames.AGENT_REVIEWER, SYSTEM_PROMPT, userPrompt, progressCallback);
 
         // 解析审核结果
         blackboard.setReviewFeedback(extractSection(reviewOutput, "审核意见"));
@@ -117,7 +121,8 @@ public class ReviewerAgent implements BlackboardAgent {
 
         blackboard.advanceTo(BlackboardPhase.COMPLETED);
         emitProgress(
-                progressCallback, BlackboardProgressEvent.agentCompleted("reviewer", reviewOutput));
+                progressCallback,
+                BlackboardProgressEvent.agentCompleted(AgentNames.AGENT_REVIEWER, reviewOutput));
         log.info("[Reviewer] 审核完成，质量评分：{}", blackboard.getQualityScore());
     }
 
@@ -127,9 +132,7 @@ public class ReviewerAgent implements BlackboardAgent {
         }
     }
 
-    /**
-     * 从 Markdown 文本中提取指定标题下的内容
-     */
+    /** 从 Markdown 文本中提取指定标题下的内容 */
     private String extractSection(String text, String sectionTitle) {
         if (text == null) {
             return null;
@@ -155,9 +158,7 @@ public class ReviewerAgent implements BlackboardAgent {
         return text.substring(start, end).trim();
     }
 
-    /**
-     * 从审核输出中提取质量评分
-     */
+    /** 从审核输出中提取质量评分 */
     private int extractScore(String text) {
         if (text == null) {
             return 0;
@@ -188,6 +189,6 @@ public class ReviewerAgent implements BlackboardAgent {
 
     @Override
     public String getName() {
-        return "Reviewer";
+        return AgentNames.DISPLAY_REVIEWER;
     }
 }

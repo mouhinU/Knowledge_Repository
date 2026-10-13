@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -8,12 +9,11 @@ import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
 import com.mouhin.knowledge.repository.domain.service.BlackboardProgressCallback;
 import com.mouhin.knowledge.repository.domain.service.ScorePlanValidator;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 分值校验与评估 Agent
@@ -36,9 +36,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ExamScoringAgent implements BlackboardAgent {
 
-    /**
-     * 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式
-     */
+    /** 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式 */
     private static final Pattern QUESTION_PATTERN =
             Pattern.compile("(单选题|多选题|判断题|填空题|简答题|论述题)\\s*(\\d+)\\s*[道题个]");
 
@@ -56,8 +54,7 @@ public class ExamScoringAgent implements BlackboardAgent {
                 skipValidation ? "正在写入分值方案（Node 2 已校验通过）..." : "正在校验题型分布方案的总分与分值分布...";
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentStartedWithMaterials(
-                        "exam-scoring", startMessage, materials));
+                BlackboardProgressEvent.agentStartedWithMaterials(AgentNames.AGENT_EXAM_SCORING, startMessage, materials));
         log.info(
                 "[ExamScoring] 开始执行，主题：{}，学段：{}，题型配置：{}，skipValidation={}",
                 topic,
@@ -86,7 +83,8 @@ public class ExamScoringAgent implements BlackboardAgent {
             String output = "### 分值方案（Node 2 已校验，直接写入）\n\n" + schemeText;
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("exam-scoring", output, 100.0));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_EXAM_SCORING, output, 100.0));
             log.info(
                     "[ExamScoring] 跳过校验（Node 2 已通过），直接写入 scheme [topic='{}', fullMark={}]",
                     topic,
@@ -101,7 +99,8 @@ public class ExamScoringAgent implements BlackboardAgent {
         if (!result.pass()) {
             // 先输出报告，让 UI 展示"输入 / 原始思考 / 建议"三段
             emitProgress(
-                    progressCallback, BlackboardProgressEvent.agentFailed("exam-scoring", report));
+                    progressCallback,
+                    BlackboardProgressEvent.agentFailed(AgentNames.AGENT_EXAM_SCORING, report));
             String error =
                     "分值校验未通过，共 "
                             + result.issues().size()
@@ -120,7 +119,8 @@ public class ExamScoringAgent implements BlackboardAgent {
         Double agentScore = result.suggestions().isEmpty() ? 100.0 : 90.0;
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-scoring", finalOutput, agentScore));
+                BlackboardProgressEvent.agentCompleted(
+                        AgentNames.AGENT_EXAM_SCORING, finalOutput, agentScore));
         if (!result.suggestions().isEmpty()) {
             log.info(
                     "[ExamScoring] 校验通过但含 {} 条优化建议 [topic='{}']",
@@ -131,18 +131,16 @@ public class ExamScoringAgent implements BlackboardAgent {
         }
     }
 
-    /**
-     * 无方案且无 questionConfig 时统一走异常路径阻断流水线
-     */
+    /** 无方案且无 questionConfig 时统一走异常路径阻断流水线 */
     private void failPipeline(
             BlackboardProgressCallback callback, String report, String materials) {
-        emitProgress(callback, BlackboardProgressEvent.agentFailed("exam-scoring", report));
+        emitProgress(
+                callback,
+                BlackboardProgressEvent.agentFailed(AgentNames.AGENT_EXAM_SCORING, report));
         throw new IllegalStateException("分值校验未通过：方案与题型配置均为空，无法确定试卷结构");
     }
 
-    /**
-     * 描述本 Agent 的输入物料（供 SSE 面板"输入"区块展示）
-     */
+    /** 描述本 Agent 的输入物料（供 SSE 面板"输入"区块展示） */
     private String describeInput(ExamPlan plan, String questionConfig) {
         StringBuilder sb = new StringBuilder();
         sb.append("主题输入源：");
@@ -192,6 +190,6 @@ public class ExamScoringAgent implements BlackboardAgent {
 
     @Override
     public String getName() {
-        return "ExamScoring";
+        return AgentNames.DISPLAY_EXAM_SCORING;
     }
 }

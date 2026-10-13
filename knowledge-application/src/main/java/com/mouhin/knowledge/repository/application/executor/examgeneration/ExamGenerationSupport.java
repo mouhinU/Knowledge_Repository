@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSuppo
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
@@ -51,7 +52,7 @@ public class ExamGenerationSupport {
     private static final double DEFAULT_MIN_SCORE = 0.3;
 
     /** Agent 规划校验 span 名（java:S1192：抽常量防 5 处字面量漂移）。 */
-    private static final String SPAN_NAME_PLAN_VALIDATOR = "exam-plan-validator";
+    private static final String SPAN_NAME_PLAN_VALIDATOR = AgentNames.AGENT_EXAM_PLAN_VALIDATOR;
 
     private static final int MAX_REVIEW_RETRIES = 2;
 
@@ -90,7 +91,7 @@ public class ExamGenerationSupport {
     private final List<QualityGate> qualityGates;
 
     private final ExecutorService agentExecutor =
-            AgentExecutorFactory.newTenantAwareAgentPool("exam-gen");
+            AgentExecutorFactory.newTenantAwareAgentPool(AgentNames.POOL_EXAM_GEN);
 
     public ExamGenerationSupport(
             @Qualifier("examResearcherAgent") BlackboardAgent examResearcherAgent,
@@ -247,7 +248,8 @@ public class ExamGenerationSupport {
 
         try {
             Instant pipelineStart = Instant.now();
-            auditLog.logAgentStart(sessionId, "pipeline", BlackboardPhase.INIT, topic);
+            auditLog.logAgentStart(
+                    sessionId, AgentNames.PIPELINE_EXAM, BlackboardPhase.INIT, topic);
 
             // 1. 知识库检索
             emit(
@@ -322,14 +324,16 @@ public class ExamGenerationSupport {
             Duration researchDuration = Duration.between(researchStart, Instant.now());
             auditLog.logAgentComplete(
                     sessionId,
-                    "researcher+scoring",
+                    AgentNames.PIPELINE_RESEARCHER_SCORING,
                     BlackboardPhase.RESEARCH,
                     researchDuration,
                     null,
                     null,
                     "并行研究+分值校验完成");
-            metrics.recordAgentDuration("researcher", BlackboardPhase.RESEARCH, researchDuration);
-            metrics.incrementAgentCount("researcher", BlackboardPhase.RESEARCH, "COMPLETE");
+            metrics.recordAgentDuration(
+                    AgentNames.AGENT_RESEARCHER, BlackboardPhase.RESEARCH, researchDuration);
+            metrics.incrementAgentCount(
+                    AgentNames.AGENT_RESEARCHER, BlackboardPhase.RESEARCH, "COMPLETE");
 
             // 3-5. 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
             // 低分自动重试，最多 MAX_REVIEW_RETRIES 次；
@@ -520,8 +524,12 @@ public class ExamGenerationSupport {
             blackboard.markFailed(friendly);
 
             auditLog.logAgentFailed(
-                    sessionId, "pipeline", BlackboardPhase.FAILED, Duration.ZERO, friendly);
-            metrics.incrementAgentCount("pipeline", BlackboardPhase.FAILED, "ERROR");
+                    sessionId,
+                    AgentNames.PIPELINE_EXAM,
+                    BlackboardPhase.FAILED,
+                    Duration.ZERO,
+                    friendly);
+            metrics.incrementAgentCount(AgentNames.PIPELINE_EXAM, BlackboardPhase.FAILED, "ERROR");
 
             // 保存失败记录
             saveHistory(

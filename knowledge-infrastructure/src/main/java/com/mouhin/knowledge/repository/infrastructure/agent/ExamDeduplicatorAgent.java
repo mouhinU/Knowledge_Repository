@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -25,20 +26,20 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
     private static final String SYSTEM_PROMPT =
             """
                     你是一位试卷查重专家，负责检查试卷中是否存在重复或高度相似的题目。
-                    
+
                     检查维度：
                     1. 知识点重复：不同题目是否考查了完全相同的知识点
                     2. 题目相似：是否有题目在表述或考查角度上高度相似
                     3. 选项重叠：选择题的选项之间是否有不合理的内容重叠
                     4. 答案一致：不同题目的答案是否实质上相同
-                    
+
                     输出格式（严格按以下 Markdown 结构）：
                     ## 查重结果
                     （列出发现的重复或相似题目对，说明重复原因）
-                    
+
                     ## 重复率评估
                     （给出整体重复率百分比估计）
-                    
+
                     ## 建议
                     （如有重复，给出替换或修改建议）
                     """;
@@ -65,13 +66,14 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentStartedWithMaterials(
-                        "exam-deduplicator", "正在检查试卷重复内容...", materials));
+                        AgentNames.AGENT_EXAM_DEDUPLICATOR, "正在检查试卷重复内容...", materials));
 
         if (examPaper == null || examPaper.isBlank()) {
             blackboard.setDeduplicationReport("试卷为空，无法进行查重。");
             emitProgress(
                     progressCallback,
-                    BlackboardProgressEvent.agentCompleted("exam-deduplicator", "试卷为空，无法查重。"));
+                    BlackboardProgressEvent.agentCompleted(
+                            AgentNames.AGENT_EXAM_DEDUPLICATOR, "试卷为空，无法查重。"));
             return;
         }
 
@@ -82,18 +84,21 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
                 String.format(
                         """
                                 考试主题：%s
-                                
+
                                 【试卷内容】
                                 %s
                                 %s
-                                
+
                                 请检查试卷中是否存在重复或高度相似的题目。
                                 """,
                         blackboard.getQuestion(), examPaper, answerContext);
 
         String report =
                 agentStreamer.stream(
-                        "exam-deduplicator", SYSTEM_PROMPT, userPrompt, progressCallback);
+                        AgentNames.AGENT_EXAM_DEDUPLICATOR,
+                        SYSTEM_PROMPT,
+                        userPrompt,
+                        progressCallback);
 
         if (report == null || report.isBlank()) {
             log.error("[ExamDeduplicator] LLM 返回空查重报告");
@@ -104,13 +109,14 @@ public class ExamDeduplicatorAgent implements BlackboardAgent {
         Double agentScore = calculateDeduplicatorScore(report);
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentCompleted("exam-deduplicator", report, agentScore));
+                BlackboardProgressEvent.agentCompleted(
+                        AgentNames.AGENT_EXAM_DEDUPLICATOR, report, agentScore));
         log.info("[ExamDeduplicator] 查重完成，长度：{} 字符，得分：{}", report.length(), agentScore);
     }
 
     @Override
     public String getName() {
-        return "ExamDeduplicator";
+        return AgentNames.DISPLAY_EXAM_DEDUPLICATOR;
     }
 
     /**

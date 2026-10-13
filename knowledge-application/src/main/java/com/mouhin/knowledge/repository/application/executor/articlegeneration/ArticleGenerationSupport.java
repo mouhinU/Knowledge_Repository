@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.Agent
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
+import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
@@ -70,7 +71,7 @@ public class ArticleGenerationSupport {
     private final SystemConfigService systemConfigService;
 
     private final ExecutorService agentExecutor =
-            AgentExecutorFactory.newTenantAwareAgentPool("article-gen");
+            AgentExecutorFactory.newTenantAwareAgentPool(AgentNames.POOL_ARTICLE_GEN);
 
     public ArticleGenerationSupport(
             @Qualifier("researcherAgent") BlackboardAgent researcherAgent,
@@ -172,7 +173,8 @@ public class ArticleGenerationSupport {
 
         try {
             Instant pipelineStart = Instant.now();
-            auditLog.logAgentStart(sessionId, "article-pipeline", BlackboardPhase.INIT, question);
+            auditLog.logAgentStart(
+                    sessionId, AgentNames.PIPELINE_ARTICLE, BlackboardPhase.INIT, question);
 
             // 1. 知识库检索
             if (callback != null) {
@@ -271,11 +273,12 @@ public class ArticleGenerationSupport {
             blackboard.markFailed(e.getMessage());
             auditLog.logAgentFailed(
                     sessionId,
-                    "article-pipeline",
+                    AgentNames.PIPELINE_ARTICLE,
                     BlackboardPhase.FAILED,
                     Duration.ZERO,
                     e.getMessage());
-            metrics.incrementAgentCount("article-pipeline", BlackboardPhase.FAILED, "ERROR");
+            metrics.incrementAgentCount(
+                    AgentNames.PIPELINE_ARTICLE, BlackboardPhase.FAILED, "ERROR");
 
             // 保存失败记录
             saveHistory(sessionId, question, permission, blackboard, 0, e.getMessage());
