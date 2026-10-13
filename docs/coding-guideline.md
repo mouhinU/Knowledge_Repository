@@ -112,6 +112,61 @@
 - DO/DTO/VO 等 POJO 类不要设定任何属性默认值。
 - 循环体内字符串连接使用 `StringBuilder.append`。
 
+### 4.1 POJO Lombok 注解使用
+
+- **基础 Java 对象（DO / DTO / VO / Cmd / Query 等）的 getter / setter 优先使用 Lombok 注解生成**，不手写样板存取方法，与
+  §九 `@Slf4j`、[architecture-decisions.md](architecture-decisions.md) §7 构造器注入保持统一口径。
+- **禁止直接使用 `@Data`**。`@Data` 是 `@Getter` + `@Setter` + `@ToString` + `@EqualsAndHashCode` +
+  `@RequiredArgsConstructor` 的组合注解，会隐式生成 `equals` / `hashCode` / `toString`，带来三类风险：
+    - **`hashCode` 不稳定**：字段可变时对象放入 `Set` / `Map` key 后行为异常；持久化实体尤甚。
+    - **`toString` 越界**：递归打印关联对象造成性能损耗，或连带输出敏感字段（口令 / 令牌 / 身份证）导致泄密（见
+      [security-guideline.md](security-guideline.md) §6）。
+    - **语义隐式漂移**：后续新增字段会静默改变 `equals` / `hashCode` / `toString` 的参与范围，破坏既有契约。
+- **按需选用单一注解，用多少声明多少**：
+
+  | 需求                     | 注解                                                                 |
+  |------------------------|--------------------------------------------------------------------|
+  | 仅读访问                   | `@Getter`                                                          |
+  | 读 + 写                  | `@Getter` + `@Setter`                                              |
+  | 不可变值对象                 | `@Value`（全 `final` + 全参构造 + getter，无 setter）                       |
+  | 构造器                    | `@NoArgsConstructor` / `@AllArgsConstructor` / `@RequiredArgsConstructor`（配合 `final` 字段做构造器注入） |
+  | 确需 equals / hashCode   | 显式 `@EqualsAndHashCode`，用 `of` 或 `onlyExplicitlyIncluded` 明确参与字段，禁止隐式全字段纳入 |
+  | 确需 toString            | 显式 `@ToString`，用 `exclude` 排除敏感字段与大字段                              |
+  | 链式赋值                   | `@Accessors(chain = true)`                                         |
+
+- **正例**：
+
+```java
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * 文档展示对象（web 层 VO）
+ *
+ * @author mouhinU
+ * @date 2026-10-13 20:45:00
+ */
+@Getter
+@Setter
+public class DocumentVO {
+    private String documentKey;
+    private String fileName;
+    private Boolean deleted; // 布尔不加 is 前缀（§1.3）
+}
+```
+
+- **反例**：
+
+```java
+// 禁止：@Data 隐式生成 equals/hashCode/toString，语义不可控且可能泄露敏感字段
+@Data
+public class DocumentVO {
+    private String documentKey;
+    private String fileName;
+    private String accessToken; // toString 会连带打印，泄密
+}
+```
+
 ---
 
 ## 五、集合处理
@@ -237,5 +292,6 @@ public class XxxService {
 | 手写 `LoggerFactory.getLogger` / 日志用 `+` 拼接 / 打印口令 · 令牌 | 样板冗余、性能损耗 + 泄密                    | 类上 `@Slf4j`（字段 `log`）+ 占位符 `{}`，敏感信息脱敏（§九、security §5）                          |
 | 空 `catch` / 裸 `new RuntimeException`                  | 吞异常、无业务语义                         | 记录或转译；用 `BizException` / `IllegalStateException`（§八、architecture §8）            |
 | 魔法值散落各处                                               | 不可维护、易漂移                          | 归类预定义常量（§二）                                                                     |
+| 基础对象直接用 `@Data`                                         | 隐式生成 equals/hashCode/toString，语义漂移 + 敏感字段泄露 | 按需 `@Getter` / `@Setter` / `@Value`，确需时显式 `@EqualsAndHashCode`（§4.1）            |
 | POJO 布尔写成 `isDeleted`                                 | 部分框架序列化歧义                         | 去 `is` 前缀：`deleted`（§1.3）                                                       |
 | 类缺 `@author` / `@date`                                | 无法溯源                              | 补 Javadoc（§七）                                                                   |
