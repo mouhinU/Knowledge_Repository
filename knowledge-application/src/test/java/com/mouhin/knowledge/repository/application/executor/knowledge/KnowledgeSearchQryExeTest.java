@@ -20,8 +20,9 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -104,8 +105,8 @@ class KnowledgeSearchQryExeTest {
     }
 
     @Test
-    @DisplayName("分类二次过滤：检索层漏网的异类结果在执行器出口被剔除")
-    void categorySecondFilterApplied() {
+    @DisplayName("分类过滤已在 Milvus 层下推，应用层不再二次过滤——直接透传检索结果")
+    void categoryFilterHandledAtMilvusLevel() {
         when(permissionDomainService.buildFilterExpression(any())).thenReturn(null);
         when(authorizedSearch.searchAuthorized(
                         anyString(), anyInt(), anyDouble(), any(), any(), any()))
@@ -118,11 +119,8 @@ class KnowledgeSearchQryExeTest {
 
         SearchResponseVO vo = exe.execute(c);
 
-        assertThat(vo.getTotalResults()).isEqualTo(1);
-        assertThat(vo.getResults())
-                .singleElement()
-                .extracting(SearchResponseVO.ItemVO::getCategory)
-                .isEqualTo("数学");
+        // 分类过滤由 Milvus IsEqualTo("category", "数学") 下推，应用层不再二次过滤
+        assertThat(vo.getTotalResults()).isEqualTo(2);
     }
 
     @Test
@@ -138,8 +136,10 @@ class KnowledgeSearchQryExeTest {
         Document doc = new Document();
         doc.setDocumentKey("key-1");
         doc.setFileName("教材.pdf");
-        when(documentGateway.findByDocumentKey("key-1")).thenReturn(Optional.of(doc));
-        when(documentGateway.findByDocumentKey("ghost")).thenReturn(Optional.empty());
+        Map<String, Document> docMap = new HashMap<>();
+        docMap.put("key-1", doc);
+        // "ghost" 不在 map 中 → 模拟文档元数据缺失
+        when(documentGateway.findByDocumentKeys(any())).thenReturn(docMap);
 
         SearchResponseVO vo = exe.execute(cmd("q"));
 

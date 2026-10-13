@@ -10,16 +10,16 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
  * 知识库语义检索查询执行器（app 层用例）
  *
- * <p>编排语义检索 + <b>权限过滤</b> + 应用层分类二次过滤 + 文档名补全，并组装为 {@link SearchResponseVO}。SEC-1 修复：权限过滤由 {@link
- * AuthorizedSearchSupport} 在检索出口 通过领域 {@code PermissionDomainService.hasAccess} 逐条落地，此前 {@code
- * MilvusVectorStoreService .buildFilter} 直接 {@code return null} 导致表达式被丢弃、跨权限文档泄露。默认参数、score 4 位
- * 小数取整与空值归一逻辑与原 {@code KnowledgeQueryApplicationService} + 控制器 Map 组装完全一致。
+ * <p>编排语义检索 + <b>权限过滤</b> + 文档名补全，并组装为 {@link SearchResponseVO}。SEC-1 修复：权限过滤由 {@link
+ * AuthorizedSearchSupport} 在检索出口通过领域 {@code PermissionDomainService.hasAccess} 逐条落地。分类过滤已在 Milvus
+ * 层通过 {@code IsEqualTo} 谓词下推，应用层不再二次过滤。文档名补全走批量查询（单次 SQL IN），消除 N+1。
  *
  * @author mouhinU
  * @date 2026-09-17
@@ -74,17 +74,19 @@ public class KnowledgeSearchQryExe {
                 authorizedSearch.searchAuthorized(
                         query, max, min, filterExpr, category, permission);
 
-        if (category != null && !category.isBlank()) {
-            results = results.stream().filter(sr -> category.equals(sr.getCategory())).toList();
-        }
+        // 分类过滤已在 Milvus 层通过 IsEqualTo("category", category) 下推，此处不再二次过滤
+
+        // 批量加载文档名（单次 SQL IN 查询），消除 N+1
+        List<String> documentKeys =
+                results.stream().map(SearchResult::getDocumentId).distinct().toList();
+        Map<String, Document> docMap = documentGateway.findByDocumentKeys(documentKeys);
 
         List<SearchResponseVO.ItemVO> items = new ArrayList<>(results.size());
         for (SearchResult sr : results) {
             String docName =
-                    documentGateway
-                            .findByDocumentKey(sr.getDocumentId())
-                            .map(Document::getFileName)
-                            .orElse("");
+                    docMap.containsKey(sr.getDocumentId())
+                            ? docMap.get(sr.getDocumentId()).getFileName()
+                            : "";
             SearchResponseVO.ItemVO item = new SearchResponseVO.ItemVO();
             item.setText(sr.getText());
             item.setDocumentKey(sr.getDocumentId());

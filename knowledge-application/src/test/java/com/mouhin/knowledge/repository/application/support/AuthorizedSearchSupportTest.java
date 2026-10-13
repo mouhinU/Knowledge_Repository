@@ -19,8 +19,9 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.PermissionDomainService;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -88,7 +89,7 @@ class AuthorizedSearchSupportTest {
         List<SearchResult> kept =
                 support.filterAccessible(List.of(result("k1"), result("k2")), admin);
         assertEquals(2, kept.size());
-        verify(documentGateway, never()).findByDocumentKey(anyString());
+        verify(documentGateway, never()).findByDocumentKeys(any());
     }
 
     @Nested
@@ -99,19 +100,13 @@ class AuthorizedSearchSupportTest {
         @DisplayName("PUBLIC 放行、跨部门 INTERNAL 剔除、越权 PRIVATE 剔除")
         void mixedVisibility() {
             Permission u = new Permission("u1", "dept-a", "STUDENT", false);
-            when(documentGateway.findByDocumentKey("public-doc"))
-                    .thenReturn(Optional.of(doc(DocumentVisibilityEnum.PUBLIC, "o", "d", null)));
-            when(documentGateway.findByDocumentKey("internal-other"))
-                    .thenReturn(
-                            Optional.of(doc(DocumentVisibilityEnum.INTERNAL, "o", "dept-b", null)));
-            when(documentGateway.findByDocumentKey("private-other"))
-                    .thenReturn(
-                            Optional.of(
-                                    doc(
-                                            DocumentVisibilityEnum.PRIVATE,
-                                            "someone-else",
-                                            "dept-a",
-                                            null)));
+            Map<String, Document> docMap = new HashMap<>();
+            docMap.put("public-doc", doc(DocumentVisibilityEnum.PUBLIC, "o", "d", null));
+            docMap.put("internal-other", doc(DocumentVisibilityEnum.INTERNAL, "o", "dept-b", null));
+            docMap.put(
+                    "private-other",
+                    doc(DocumentVisibilityEnum.PRIVATE, "someone-else", "dept-a", null));
+            when(documentGateway.findByDocumentKeys(any())).thenReturn(docMap);
 
             List<SearchResult> kept =
                     support.filterAccessible(
@@ -129,18 +124,11 @@ class AuthorizedSearchSupportTest {
         @DisplayName("RESTRICTED 角色命中放行、未命中剔除")
         void restrictedRoleGate() {
             Permission u = new Permission("u1", "dept-a", "TEACHER", false);
-            when(documentGateway.findByDocumentKey("r-allow"))
-                    .thenReturn(
-                            Optional.of(
-                                    doc(
-                                            DocumentVisibilityEnum.RESTRICTED,
-                                            "o",
-                                            "d",
-                                            "ADMIN,TEACHER")));
-            when(documentGateway.findByDocumentKey("r-deny"))
-                    .thenReturn(
-                            Optional.of(
-                                    doc(DocumentVisibilityEnum.RESTRICTED, "o", "d", "MANAGER")));
+            Map<String, Document> docMap = new HashMap<>();
+            docMap.put(
+                    "r-allow", doc(DocumentVisibilityEnum.RESTRICTED, "o", "d", "ADMIN,TEACHER"));
+            docMap.put("r-deny", doc(DocumentVisibilityEnum.RESTRICTED, "o", "d", "MANAGER"));
+            when(documentGateway.findByDocumentKeys(any())).thenReturn(docMap);
 
             List<SearchResult> kept =
                     support.filterAccessible(List.of(result("r-allow"), result("r-deny")), u);
@@ -153,7 +141,7 @@ class AuthorizedSearchSupportTest {
         @DisplayName("文档元数据缺失按不可访问剔除（宁漏不越权）")
         void missingDocumentDenied() {
             Permission u = new Permission("u1", "dept-a", "STUDENT", false);
-            when(documentGateway.findByDocumentKey("ghost")).thenReturn(Optional.empty());
+            when(documentGateway.findByDocumentKeys(any())).thenReturn(Map.of());
 
             List<SearchResult> kept = support.filterAccessible(List.of(result("ghost")), u);
 

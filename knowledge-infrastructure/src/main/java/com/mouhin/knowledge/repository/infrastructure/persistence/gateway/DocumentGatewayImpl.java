@@ -74,6 +74,24 @@ public class DocumentGatewayImpl implements DocumentGateway {
     }
 
     @Override
+    public Map<String, Document> findByDocumentKeys(List<String> documentKeys) {
+        if (documentKeys == null || documentKeys.isEmpty()) {
+            return Map.of();
+        }
+        LambdaQueryWrapper<DocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(DocumentDO::getDocumentKey, documentKeys);
+        List<DocumentDO> doList = documentMapper.selectList(wrapper);
+        Map<String, Document> result = new HashMap<>(doList.size());
+        for (DocumentDO doObj : doList) {
+            Document domain = DocumentConverter.toDomain(doObj);
+            if (domain != null) {
+                result.put(domain.getDocumentKey(), domain);
+            }
+        }
+        return result;
+    }
+
+    @Override
     public Optional<Document> findByFileChecksum(String fileChecksum) {
         LambdaQueryWrapper<DocumentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentDO::getFileChecksum, fileChecksum);

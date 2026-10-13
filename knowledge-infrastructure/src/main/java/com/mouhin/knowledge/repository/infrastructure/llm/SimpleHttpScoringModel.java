@@ -1,5 +1,10 @@
 package com.mouhin.knowledge.repository.infrastructure.llm;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
 import java.io.IOException;
 import java.net.URI;
@@ -37,7 +42,8 @@ import lombok.extern.slf4j.Slf4j;
  * }
  * }</pre>
  *
- * <p>支持 wkao/bge-reranker-v2-m3 等 Cohere 兼容的 reranker 服务。
+ * <p>使用 Jackson 进行 JSON 序列化/反序列化，避免手工拼接导致的边界问题。 支持 wkao/bge-reranker-v2-m3 等 Cohere 兼容的 reranker
+ * 服务。
  *
  * @author mouhinU
  * @date 2026-09-25
@@ -50,6 +56,7 @@ public class SimpleHttpScoringModel implements ScoringModel {
     private final String modelName;
     private final HttpClient httpClient;
     private final Duration requestTimeout;
+    private final ObjectMapper objectMapper;
 
     public SimpleHttpScoringModel(
             String baseUrl, String apiKey, String modelName, Duration timeout) {
@@ -57,6 +64,7 @@ public class SimpleHttpScoringModel implements ScoringModel {
         this.apiKey = apiKey;
         this.modelName = modelName;
         this.requestTimeout = timeout;
+        this.objectMapper = new ObjectMapper();
         this.httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(timeout)
@@ -66,17 +74,15 @@ public class SimpleHttpScoringModel implements ScoringModel {
     }
 
     @Override
-    public dev.langchain4j.model.output.Response<List<Double>> scoreAll(
+    public Response<List<Double>> scoreAll(
             List<dev.langchain4j.data.segment.TextSegment> segments, String query) {
         if (segments == null || segments.isEmpty()) {
-            return dev.langchain4j.model.output.Response.from(List.of());
+            return Response.from(List.of());
         }
 
-        // 从 TextSegment 提取文本
         List<String> texts =
                 segments.stream().map(dev.langchain4j.data.segment.TextSegment::text).toList();
 
-        // 构建请求 JSON
         String json = buildRequestJson(query, texts);
 
         HttpRequest request =
@@ -100,8 +106,7 @@ public class SimpleHttpScoringModel implements ScoringModel {
                 throw new RuntimeException("Reranker HTTP error: " + response.statusCode());
             }
 
-            return dev.langchain4j.model.output.Response.from(
-                    parseResponse(response.body(), texts.size()));
+            return Response.from(parseResponse(response.body(), texts.size()));
 
         } catch (IOException | InterruptedException e) {
             log.error("Reranker call failed: {}", e.getMessage(), e);
@@ -111,82 +116,72 @@ public class SimpleHttpScoringModel implements ScoringModel {
     }
 
     private String buildRequestJson(String query, List<String> documents) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\"model\":\"").append(escapeJson(modelName)).append("\",");
-        sb.append("\"query\":\"").append(escapeJson(query)).append("\",");
-        sb.append("\"documents\":[");
-        for (int i = 0; i < documents.size(); i++) {
-            if (i > 0) sb.append(",");
-            sb.append("\"").append(escapeJson(documents.get(i))).append("\"");
+        try {
+            ObjectNode root = objectMapper.createObjectNode();
+            root.put("model", modelName);
+            root.put("query", query);
+            root.put("top_n", documents.size());
+            ArrayNode docsArray = root.putArray("documents");
+            for (String doc : documents) {
+                docsArray.add(doc);
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception e) {
+            log.error("Failed to build reranker request JSON: {}", e.getMessage());
+            throw new RuntimeException("Failed to build reranker request", e);
         }
-        sb.append("]}");
-        return sb.toString();
     }
 
     private List<Double> parseResponse(String responseBody, int expectedCount) {
-        // 简单 JSON 解析：提取 results 数组中的 relevance_score
-        // 格式: {"results":[{"index":0,"relevance_score":0.95},...]}
-        List<Double> scores = new ArrayList<>(expectedCount);
-
-        int resultsStart = responseBody.indexOf("\"results\"");
-        if (resultsStart < 0) {
-            log.warn("Reranker response missing 'results': {}", responseBody);
-            // 兜底：返回均匀分数，避免 pipeline 崩溃
-            for (int i = 0; i < expectedCount; i++) {
-                scores.add(0.5);
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode resultsNode = root.get("results");
+            if (resultsNode == null || !resultsNode.isArray()) {
+                log.warn("Reranker response missing 'results' array: {}", responseBody);
+                return fillWithDefault(expectedCount, 0.5);
             }
-            return scores;
-        }
 
-        int arrayStart = responseBody.indexOf("[", resultsStart);
-        int arrayEnd = responseBody.indexOf("]", arrayStart);
-        if (arrayStart < 0 || arrayEnd < 0) {
-            log.warn("Reranker response malformed: {}", responseBody);
-            for (int i = 0; i < expectedCount; i++) {
-                scores.add(0.5);
-            }
-            return scores;
-        }
+            // 按 index 排序确保顺序正确（reranker 可能按分数降序返回）
+            List<JsonNode> results = new ArrayList<>();
+            resultsNode.forEach(results::add);
+            results.sort(
+                    (a, b) -> {
+                        int idxA = a.has("index") ? a.get("index").asInt() : 0;
+                        int idxB = b.has("index") ? b.get("index").asInt() : 0;
+                        return Integer.compare(idxA, idxB);
+                    });
 
-        String arrayContent = responseBody.substring(arrayStart + 1, arrayEnd);
-        // 按 },{ 分割每个 result 对象
-        String[] items = arrayContent.split("\\},\\{");
-        for (String item : items) {
-            int scoreIdx = item.indexOf("\"relevance_score\"");
-            if (scoreIdx >= 0) {
-                int colonIdx = item.indexOf(":", scoreIdx);
-                int endIdx = item.indexOf(",", colonIdx);
-                if (endIdx < 0) endIdx = item.indexOf("}", colonIdx);
-                if (endIdx < 0) endIdx = item.length();
-                String scoreStr = item.substring(colonIdx + 1, endIdx).trim();
-                try {
-                    scores.add(Double.parseDouble(scoreStr));
-                } catch (NumberFormatException e) {
-                    log.warn("Failed to parse reranker score: {}", scoreStr);
+            List<Double> scores = new ArrayList<>(expectedCount);
+            for (JsonNode result : results) {
+                JsonNode scoreNode = result.get("relevance_score");
+                if (scoreNode != null && scoreNode.isNumber()) {
+                    scores.add(scoreNode.asDouble());
+                } else {
+                    log.warn("Missing or invalid relevance_score in reranker result");
                     scores.add(0.5);
                 }
-            } else {
+            }
+
+            // 确保返回数量与输入一致
+            while (scores.size() < expectedCount) {
                 scores.add(0.5);
             }
-        }
+            if (scores.size() > expectedCount) {
+                scores = scores.subList(0, expectedCount);
+            }
 
-        // 确保返回数量与输入一致
-        while (scores.size() < expectedCount) {
-            scores.add(0.5);
+            return scores;
+        } catch (Exception e) {
+            log.error("Failed to parse reranker response: {}", e.getMessage());
+            return fillWithDefault(expectedCount, 0.5);
         }
-        if (scores.size() > expectedCount) {
-            scores = scores.subList(0, expectedCount);
-        }
-
-        return scores;
     }
 
-    private String escapeJson(String value) {
-        if (value == null) return "";
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+    private static List<Double> fillWithDefault(int count, double defaultValue) {
+        List<Double> scores = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            scores.add(defaultValue);
+        }
+        return scores;
     }
 }

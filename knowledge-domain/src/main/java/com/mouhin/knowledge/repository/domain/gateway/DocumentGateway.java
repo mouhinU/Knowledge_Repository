@@ -38,6 +38,16 @@ public interface DocumentGateway {
     /** 根据 documentKey 查找 */
     Optional<Document> findByDocumentKey(String documentKey);
 
+    /**
+     * 根据 documentKey 集合批量查找，返回 documentKey → Document 映射。
+     *
+     * <p>用于检索链路消除 N+1 查询：单次 SQL IN 查询替代逐条 findByDocumentKey。 缺失的 key 不出现在 Map 中（调用方按最小权限拒绝）。
+     *
+     * @param documentKeys 文档 key 集合
+     * @return documentKey → Document 映射
+     */
+    Map<String, Document> findByDocumentKeys(List<String> documentKeys);
+
     /** 根据文件校验和查找（用于去重） */
     Optional<Document> findByFileChecksum(String fileChecksum);
 

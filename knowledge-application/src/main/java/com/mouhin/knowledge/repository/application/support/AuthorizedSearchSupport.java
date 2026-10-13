@@ -10,7 +10,7 @@ import dev.langchain4j.model.scoring.ScoringModel;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -104,11 +104,16 @@ public class AuthorizedSearchSupport {
         int fetch = overFetchSize(safeMax);
         List<SearchResult> raw =
                 vectorStoreGateway.search(query, fetch, minScore, filterExpr, category);
+
+        int afterVector = raw.size();
         List<SearchResult> kept = filterAccessible(raw, permission);
+        int afterAcl = kept.size();
 
         // Reranker 重排：如果启用了 ScoringModel，对 ACL 过滤后的结果按 (query, text) 重排
         if (scoringModel != null && !kept.isEmpty()) {
             kept = rerank(query, kept);
+            // reranker 分数尺度与 bi-encoder 余弦相似度不同，需在重排后重新应用 minScore 阈值
+            kept = applyMinScore(kept, minScore);
         }
 
         // 截断至 maxResults（或 rerankTopN，取较小者）
@@ -116,7 +121,40 @@ public class AuthorizedSearchSupport {
         if (kept.size() > finalSize) {
             kept = new ArrayList<>(kept.subList(0, finalSize));
         }
+
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Search pipeline: vector={} → ACL={} → rerank+minScore={} → final={}",
+                    afterVector,
+                    afterAcl,
+                    kept.size(),
+                    Math.min(kept.size(), safeMax));
+        }
         return kept;
+    }
+
+    /**
+     * 在 reranker 重排后应用 minScore 阈值。
+     *
+     * <p>reranker（cross-encoder）的分数尺度与 bi-encoder 余弦相似度完全不同：bi-encoder 通常在 [0.5, 1.0] 区间，而 reranker
+     * 输出通常在 [0.0, 1.0] 且分布更分散。向量层的 minScore 仅过滤 bi-encoder 分数，reranker 重排后需要用同一阈值重新过滤，剔除
+     * cross-encoder 判定为低相关性的结果。
+     */
+    private List<SearchResult> applyMinScore(List<SearchResult> results, double minScore) {
+        List<SearchResult> filtered = new ArrayList<>(results.size());
+        for (SearchResult sr : results) {
+            if (sr.getScore() >= minScore) {
+                filtered.add(sr);
+            }
+        }
+        if (filtered.size() < results.size()) {
+            log.debug(
+                    "Post-rerank minScore filter: {} → {} (threshold={})",
+                    results.size(),
+                    filtered.size(),
+                    minScore);
+        }
+        return filtered;
     }
 
     /**
@@ -181,15 +219,20 @@ public class AuthorizedSearchSupport {
         if (permission.isAdmin()) {
             return new ArrayList<>(raw);
         }
+
+        // 批量加载文档元数据（单次 SQL IN 查询），消除 N+1 问题
+        List<String> documentKeys =
+                raw.stream().map(SearchResult::getDocumentId).distinct().toList();
+        Map<String, Document> docMap = documentGateway.findByDocumentKeys(documentKeys);
+
         List<SearchResult> kept = new ArrayList<>(raw.size());
         for (SearchResult sr : raw) {
-            Optional<Document> docOpt = documentGateway.findByDocumentKey(sr.getDocumentId());
-            if (docOpt.isEmpty()) {
+            Document doc = docMap.get(sr.getDocumentId());
+            if (doc == null) {
                 // 反向兜底：Document 元数据缺失时按不可访问处理，宁漏不越权。
                 log.debug("检索权限过滤：Document 元数据缺失，剔除 [documentKey={}]", sr.getDocumentId());
                 continue;
             }
-            Document doc = docOpt.get();
             boolean allowed =
                     permissionDomainService.hasAccess(
                             permission,
