@@ -1,15 +1,15 @@
 # CI-CD 部署方案（GitHub Actions → 本地 Docker）
 
-> 目标：把 GitHub Actions 上构建的镜像落到本地 Docker 中运行、复用现有 `docker-compose.yml` 与 `scripts/deploy.sh`。
+> 目标：把 GitHub Actions 上构建的镜像落到本地 Docker 中运行、复用现有 `docker-compose.yml` 与根 `deploy.sh`（本地镜像构建管线）。
 >
 > 适用场景：本地开发机自测、演示环境、离线内网部署。
 >
 >
-关联文件：[Dockerfile](../Dockerfile)、[docker/Dockerfile.prebuilt](../docker/Dockerfile.prebuilt)、[docker-compose.yml](../docker-compose.yml)、[docker-compose.infra.yml](../docker-compose.infra.yml)、[.github/workflows/docker-image.yml](../.github/workflows/docker-image.yml)、[.github/workflows/ci.yml](../.github/workflows/ci.yml)、[scripts/deploy.sh](../scripts/deploy.sh)、[scripts/docker-build.sh](../scripts/docker-build.sh)。
+关联文件：[Dockerfile](../Dockerfile)、[docker/Dockerfile.prebuilt](../docker/Dockerfile.prebuilt)、[docker/Dockerfile.reuse](../docker/Dockerfile.reuse)、[docker/Dockerfile.reuse-ghcr](../docker/Dockerfile.reuse-ghcr)、[docker-compose.yml](../docker-compose.yml)、[docker-compose.infra.yml](../docker-compose.infra.yml)、[docker-compose.scale.yml](../docker-compose.scale.yml)、[docker/caddy/Caddyfile](../docker/caddy/Caddyfile)、[.github/workflows/docker-image.yml](../.github/workflows/docker-image.yml)、[.github/workflows/ci.yml](../.github/workflows/ci.yml)、[deploy.sh](../deploy.sh)（根目录，本地镜像构建管线）、[scripts/deploy.sh](../scripts/deploy.sh)（编排脚本）、[scripts/docker-build.sh](../scripts/docker-build.sh)。
 
 ---
 
-## 一、现状盘点（截至 2026-09-22）
+## 一、现状盘点（截至 2026-10-13）
 
 **Actions 侧**
 
@@ -30,8 +30,11 @@
   在建网慢/无镜像源时挂 16min+ 的坑。
 - `docker-compose.yml` 单服务 `knowledge-app`，端口 8091，依赖宿主机 MySQL (3307) / Milvus (19530) / Ollama (11434)；
   `IMAGE_NAME` 与 `APP_VERSION` 由 `.env` 或环境变量注入。
-- `docker-compose.infra.yml` 拉起 MySQL / Milvus / etcd / MinIO。
-- `scripts/deploy.sh` 本地起环境；`scripts/docker-build.sh` 主机侧 mvn package + 本地 docker build 的兜底通道。
+- `docker-compose.infra.yml` 拉起 MySQL / Milvus / etcd / MinIO / Redis（`redis:7-alpine`）。
+- **根 `deploy.sh`** 是本地镜像构建管线：自动生成版本号 → `docker compose build`（失败降级 `Dockerfile.reuse`）→ export/import
+  扁平化为单层 → 重新打 tag 到正式版本号并清理多余 `-flat` tag → 更新 `.env` → `docker compose up -d`（详见 §七）。
+- `scripts/deploy.sh` 是独立的**编排脚本**（env-check → compose 起 Milvus → 检查 Ollama → `start.sh`），**不构建镜像**；
+  `scripts/docker-build.sh` 主机侧 mvn package + 本地 docker build 的兜底通道。
 
 **结论**：**主用方案 A（GHCR）** 已完全打通；B/C 作为特殊场景兜底保留。
 
@@ -385,13 +388,31 @@ IMAGE_NAME=knowledge-repository APP_VERSION=offline \
 
 - Actions 单 artifact 上限 10 GB，压缩后本项目镜像约 150 MB，可控。
 - `retention-days` 建议 ≤14 天，避免长期占用私有仓库存储配额。
-- 完全离线环境记得把 `docker-compose.infra.yml` 里的 MySQL / Milvus / etcd / MinIO 镜像也预先 `docker save` 打包过去。
+- 完全离线环境记得把 `docker-compose.infra.yml` 里的 MySQL / Milvus / etcd / MinIO / Redis 镜像也预先 `docker save` 打包过去。
 
 ---
 
 ## 七、与现有脚本的整合
 
-- `scripts/deploy.sh`：本地编译 → 起容器（开发改代码时用）。
+### 7.1 根 `deploy.sh`：本地镜像构建管线
+
+根目录 [`deploy.sh`](../deploy.sh) 是本仓库的**本地镜像构建 + 发布通道**（区别于 `scripts/deploy.sh`），完整流程：
+
+1. **自动生成版本号** `V{YYYYMMDD}{两位序号}`（扫描当天已有 tag 取最大序号 +1；也可传自定义 `V*` 参数覆盖）。
+2. **构建镜像**：`docker compose -f docker-compose.yml build`；失败时降级为
+   `docker build -f docker/Dockerfile.reuse`，复用本地基镜像 `knowledge-repository:V2026092307-flat`（绕开 Docker Hub）。
+3. **扁平化为单层**：`docker export | docker import` 合并所有层，消除 `Dockerfile.reuse` 叠加 jar 层带来的每层
+   ~116MB 体积膨胀。
+4. **单 tag 收口**：把 `-flat` 镜像重新 `docker tag` 到正式版本号，再删除多余的 `-flat` tag——最终**只保留一个** tag。
+5. **更新 `.env`** 的 `APP_VERSION`（跨平台 `sed`）。
+6. **重启应用**：`docker compose up -d`。
+7. **清理旧镜像**，但保护基镜像 `V2026092307-flat`（降级构建的必需底本）。
+
+支持的开关：`--build-only`（仅构建不重启）、`--infra`（连带拉起基础设施）、自定义 `V*` 版本号参数。
+
+### 7.2 其它脚本
+
+- `scripts/deploy.sh`：**编排脚本**（env-check → compose 起 Milvus → 检查 Ollama → `start.sh`），**不构建镜像**；开发改代码后需要重编镜像请用根 `deploy.sh`。
 - **`scripts/gh-deploy.sh`（已落地）**：从 GHCR 拉取 Actions 预构建镜像 → 走 **crane 拉 tar → docker load → compose up
   --force-recreate --no-build** 通道（不再依赖 `docker pull`）。三种版本模式：
 
@@ -412,6 +433,20 @@ IMAGE_NAME=knowledge-repository APP_VERSION=offline \
 - 保留 `scripts/docker-build.sh` 作为「无网 / GHCR 拉取失败」时的兜底通道（走 `docker/Dockerfile.prebuilt`）。
 - 保留 `docker/Dockerfile.prebuilt` 单阶段镜像（主机 `mvn package` + 直接 COPY jar）：CI 挂或网络差时用；绕开容器内
   `mvn dependency:go-offline` 挂 16min+ 的坑。
+
+### 7.3 水平扩展（`docker-compose.scale.yml`）
+
+SaaS Phase 5（P5-T4）引入 [`docker-compose.scale.yml`](../docker-compose.scale.yml) 作为主 compose 之上的 overlay，实现多副本水平扩展：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+```
+
+- **多副本**：`knowledge-app` 副本数由 `KNOWLEDGE_APP_REPLICAS` 控制（默认 2）。
+- **Caddy 前置网关**：`caddy:2-alpine` 反向代理（配置 [`docker/caddy/Caddyfile`](../docker/caddy/Caddyfile)）基于 Docker DNS
+  服务发现自动负载均衡到所有副本，外部只暴露 Caddy 端口（默认 80/443）。
+- **应用端口内收**：`knowledge-app` 绑定到 `127.0.0.1:${KNOWLEDGE_APP_PORT:-8091}`，不再直接对外，只允许 Caddy 经内部网络访问。
+- **无状态前提**：应用为无状态设计——上传会话已外置到 Redis（P5-T2）、定时任务由分布式锁防重（P5-T5）——因此可安全多副本运行。
 
 ---
 

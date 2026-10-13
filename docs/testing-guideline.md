@@ -1,7 +1,7 @@
 # 测试要求（Testing Guideline）
 
 > 本分册**从仓库现有测试归纳而成**（原 `AGENTS.md` 未设测试章节），旨在固化项目已成型的测试风格与门禁。
-> 现状参考：27 个 `*Test.java`，JUnit 5 + Mockito + AssertJ（经 `spring-boot-starter-test` 引入）。
+> 现状参考：183 个 `*Test.java`，JUnit 5 + Mockito + AssertJ（经 `spring-boot-starter-test` 引入）。
 > 被测对象的分层职责见 [architecture-decisions.md](architecture-decisions.md)
 > ，迁移脚本约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。
 > 维护：`@author mouhinU` · 拆分日期 2026-09-20
@@ -13,14 +13,15 @@
 - 测试框架 **JUnit 5（Jupiter）**：`@Test` / `@DisplayName` / `@Nested` / `@BeforeEach` / `@ParameterizedTest` +
   `@MethodSource`。
 - Mock 用 **Mockito**，断言用 **JUnit `Assertions` 或 AssertJ**。
-- 依赖仅由 `spring-boot-starter-test` 提供，**不引入 Testcontainers / 外部 DB**——保持离线、快速、确定。
+- 单元测试依赖仅由 `spring-boot-starter-test` 提供，**保持离线、快速、确定**（不连外部 DB）。
+- **例外**：SaaS 多租户集成测试已引入 **Testcontainers（MySQL + Milvus）**，位于 `knowledge-web`，用于跨租户隔离等端到端验证（如 `TenantIsolationIntegrationTest` / `MilvusTenantIsolationTest` / `TenantProvisioningIntegrationTest` / `TenantProvisioningInviteIntegrationTest`）；此类用例依赖容器运行时，与离线单测分层管理。
 
 ## 2. 命名与结构
 
 - 测试类以 `Test` 结尾（见 [coding-guideline.md](coding-guideline.md) §1.2），与被测类同包镜像放置于 `src/test/java`。
 - **测试类同样须带 Javadoc**：`@author` 取 `git config user.name`（如 `mouhinU`）、`@date` 用编写当下系统时间
   `yyyy-MM-dd HH:mm:ss`（24 小时制）。
-- 每个 `@Test` 配中文 `@DisplayName` 描述业务意图（现有 181 处 `@DisplayName`，为项目既定风格）。
+- 每个 `@Test` 配中文 `@DisplayName` 描述业务意图（现有 1338 处 `@DisplayName`，为项目既定风格）。
 - 同一被测对象的多组场景用 `@Nested` 内部类分组（如 `ExamGradingCharacterizationTest` 的
   `SingleChoice/MultiChoice/TrueFalse/...`）。
 - 用例遵循 **Given–When–Then** 三段式，命名与断言消息体现"为什么"。

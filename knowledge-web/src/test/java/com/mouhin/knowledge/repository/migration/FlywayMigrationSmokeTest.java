@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * Flyway V1-V26 迁移冒烟测试（体检 HIGH H4）。
+ * Flyway V1-V35 迁移冒烟测试（体检 HIGH H4）。
  *
  * <p>用 H2（MySQL 兼容模式）在内存中一次性回放全部迁移脚本，锁定"库重建 / 迁移链可成功执行"这一 生产启动前置：若任一版本脚本存在语法错误、跨版本对象依赖破坏（如 V11 新表被
  * V13 ALTER 引用）， {@code flyway.migrate()} 会直接抛错、本用例失败。生产虽运行在 MySQL，但项目要求 H2 亦可启动 （见 AGENTS.md 第十章
@@ -52,7 +52,7 @@ class FlywayMigrationSmokeTest {
         // 干净库上执行的迁移数 = 版本脚本数；失败标记应为 false / 0
         assertEquals(EXPECTED_MIGRATION_COUNT, result.migrationsExecuted, "应用的迁移数量应与版本脚本数一致");
 
-        // 二次调用应无待处理迁移（幂等），并停留在 V30
+        // 二次调用应无待处理迁移（幂等），并停留在 V35
         MigrationInfo current = flyway.info().current();
         assertNotNull(current, "迁移后应存在当前版本");
         assertEquals("35", current.getVersion().getVersion(), "最终版本应为 V35（种子运行时配置键）");

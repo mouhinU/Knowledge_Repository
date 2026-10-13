@@ -35,6 +35,8 @@
 | LLM 韧性护栏    | Resilience4j                     | 2.2.0（per-role 熔断/重试/滑窗统计）                                                                                           |
 | 对象存储        | MinIO Java SDK                   | 8.5.17（P5-T1 双驱动：本地磁盘 / MinIO 配置切换，仅 infra 层引入）                                                                      |
 | 指标可观测       | Micrometer + Prometheus registry | 由 Spring Boot BOM 统一管理（`micrometer-core` in infra；`micrometer-registry-prometheus` in web，暴露 `/actuator/prometheus`） |
+| 缓存 / 分布式协调  | Redis（`spring-boot-starter-data-redis`） | 由 Spring Boot BOM 统一管理（in infra；用于配置 pub/sub 失效 · 分布式锁 · 上传会话，P4-T2/P5-T2 引入）                                        |
+| 集成测试容器      | Testcontainers（mysql / milvus / junit-jupiter） | 由 Spring Boot BOM 统一管理（仅 `knowledge-web` test scope，SaaS 集成测试）                                                       |
 
 ## 3. Maven 多模块（现状）
 

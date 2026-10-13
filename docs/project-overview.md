@@ -54,10 +54,10 @@ knowledge-repository (parent POM)
 | 模块             | 核心内容                                                                                         |
 |----------------|----------------------------------------------------------------------------------------------|
 | client         | 14 个 ServiceI 接口、50+ DTO（Cmd/Qry/VO）                                                         |
-| domain         | 15 Entity、30+ VO、35+ Gateway 端口、`BlackboardAgent` / `QualityGate` 等领域服务、`TenantContext`      |
-| infrastructure | MyBatis-Plus Mapper + DO、Milvus 向量网关、11 个 LLM Agent 实现、多格式解析策略栈、JWT/OIDC 安全、MinIO/本地双存储、分布式锁 |
+| domain         | 19 Entity、42 VO、42 Gateway 端口、`BlackboardAgent` / `QualityGate` 等领域服务、`TenantContext`      |
+| infrastructure | MyBatis-Plus Mapper + DO、Milvus 向量网关、16 个 LLM Agent 实现、多格式解析策略栈、JWT/OIDC 安全、MinIO/本地双存储、分布式锁 |
 | application    | 按子域组织的 CmdExe/QryExe、`SystemConfigService` 三级读取、`QuotaGuard` 配额拦截、DTO↔Entity 转换              |
-| web            | 24 个 REST Controller、`AdminTokenAuthFilter` + `PlatformTokenAuthFilter` 双鉴权链、全局异常处理          |
+| web            | 23 个 REST Controller、`AdminTokenAuthFilter` + `PlatformTokenAuthFilter` 双鉴权链、全局异常处理          |
 
 ---
 
@@ -229,6 +229,7 @@ pub/sub 跨实例即时失效。
 | 多租户总闸 | `knowledge.saas.enabled`       | false | TenantLine 拦截、租户上下文、LLM profile                |
 | 配额执行闸 | `knowledge.saas.quota.enabled` | false | QuotaGuard、用量采集、@Primary 装饰器                   |
 | 平台管理闸 | `knowledge.platform.enabled`   | false | `/api/platform/**` 端点、Reconciler、Schema Runner |
+| Redis 开关 | `knowledge.redis.enabled`    | **true** | Redis 缓存 / pub/sub / 分布式锁驱动切换（与其余四道默认 false 的门控不同，默认开启） |
 
 附加：`knowledge.platform.oidc.enabled`（企业 IdP OIDC 校验，默认 false）。
 

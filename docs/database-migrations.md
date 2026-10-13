@@ -1,6 +1,6 @@
-# Knowledge Repository 数据库迁移脚本全览（V1 → V31）
+# Knowledge Repository 数据库迁移脚本全览（V1 → V35）
 
-> 汇总 Knowledge_Repository 迄今全部 31 个 Flyway 迁移版本：版本号、文件名、关联任务、动作摘要、涉及表与关键 SQL。
+> 汇总 Knowledge_Repository 迄今全部 35 个 Flyway 迁移版本：版本号、文件名、关联任务、动作摘要、涉及表与关键 SQL。
 > 权威决策以 [saas-multi-tenant-proposal.md](saas-multi-tenant-proposal.md) §10 为准；逐 Phase 门禁以对应 go-checklist
 > 为准。
 > SaaS 租户脊柱相关迁移（V23+）的深入分析见 [saas-migration-summary.md](saas-migration-summary.md)。
@@ -15,8 +15,10 @@
 | SaaS 租户脊柱  | V23–V26 | 多租户地基：建租户表 → 加列 → 切唯一键 → 收紧 NOT NULL | 18 → 20 表 |
 | 生命周期       | V27–V29 | 开通状态机 / 邀请 / 归档 & 删除                 | 20 → 25 表 |
 | Phase 4 治理 | V30–V31 | 解析缓存租户化 / per-tenant LLM profile     | 25 → 26 表 |
+| Phase 6 计量计费 | V32–V33 | 租户用量计量 / 套餐限额                    | 26 → 28 表 |
+| 核心外键 / 配置种子 | V34–V35 | 核心表外键约束 / 运行时配置键种子（无新表）        | 28 → 28 表 |
 
-**当前表总数**：26 张（含 flyway_schema_history）
+**当前表总数**：28 张（含 flyway_schema_history）
 
 ---
 
@@ -369,6 +371,66 @@ grading-timeout）
 
 ---
 
+## 五、Phase 6 计量计费与收尾治理（V32–V35）
+
+### V32 — `create_tenant_usage.sql`（P6-T1）
+
+**定位**：租户用量计量
+
+**新建表**：`tenant_usage`（按月聚合记录每租户用量指标，`UNIQUE(tenant_id, metric, period)` 保证每租户每月每指标一行）
+
+| 列            | 类型                       | 说明                          |
+|--------------|--------------------------|-----------------------------|
+| `id`         | BIGINT PK AUTO_INCREMENT | 自增主键                        |
+| `tenant_id`  | BIGINT NOT NULL          | 租户 id                       |
+| `metric`     | VARCHAR(64) NOT NULL     | 用量指标名                       |
+| `period`     | DATE NOT NULL            | 聚合月份                        |
+| `usage_value`| BIGINT NOT NULL DEFAULT 0| 用量值                         |
+| `create_time`| DATETIME NOT NULL        | 创建时间（DEFAULT CURRENT_TIMESTAMP） |
+| `update_time`| DATETIME NOT NULL        | 更新时间                        |
+
+---
+
+### V33 — `tenant_plan_limit.sql`（P6-T2）
+
+**定位**：套餐限额
+
+**新建表**：`tenant_plan_limit`（存储每租户每指标限额配置，`UNIQUE(tenant_id, metric)` 保证每租户每指标一行；`quota=-1` 表示无限额，`policy` 默认 `ALERT`）
+
+| 列           | 类型                          | 说明                          |
+|-------------|-----------------------------|-----------------------------|
+| `id`        | BIGINT PK AUTO_INCREMENT    | 自增主键                        |
+| `tenant_id` | BIGINT NOT NULL             | 租户 id                       |
+| `metric`    | VARCHAR(64) NOT NULL        | 限额指标名                       |
+| `quota`     | BIGINT NOT NULL             | 限额值（-1 = 无限额）               |
+| `policy`    | VARCHAR(16) NOT NULL DEFAULT 'ALERT' | 超限策略                 |
+| `create_time`| DATETIME NOT NULL           | 创建时间（DEFAULT CURRENT_TIMESTAMP） |
+| `update_time`| DATETIME NOT NULL           | 更新时间                        |
+
+---
+
+### V34 — `add_core_foreign_keys.sql`（R3 风险收口）
+
+**定位**：核心表外键约束（无新表）
+
+**变更**：为核心文档/考试层级表与平台元数据表补 FK 安全网，防止意外删除父行产生孤儿数据。项目刻意不对租户业务数据加 FK（由 app 层删除 reconciler 保证一致性）
+
+- **Group 1 · ON DELETE CASCADE**（子行随父行销毁）：`kb_document_chunk`/`kb_document_image` → `kb_document`；`kb_exam_answer` → `kb_exam_session`；`sys_user_role` → `sys_user`/`sys_role`；`kb_student_session` → `kb_student`；`sys_tenant_placement`/`sys_tenant_provision_step`/`sys_tenant_deletion_step`/`sys_tenant_delete_approval`/`sys_tenant_llm_profile`/`tenant_usage`/`tenant_plan_limit` → `sys_tenant`
+- **Group 2 · ON DELETE RESTRICT**（阻止删除仍有子行的父行）：`sys_department.parent_id` → `sys_department`；`kb_exam_session.exam_history_id` → `kb_exam_history`
+- **刻意不加 FK 的例外**：`kb_exam_history.user_id`（审计轨迹须 survives 用户删除）、`kb_document.owner_id`/`department_id`（与业务键类型不匹配）、`kb_exam_question.session_key`（VARCHAR 宽度不匹配）
+
+---
+
+### V35 — `seed_runtime_config_keys.sql`
+
+**定位**：种子运行时配置键（无新表）
+
+**变更**：把 `SystemConfigDefaults` 中已注册但 DB 无行的配置键补入 `sys_config`，使管理页面 `GET /api/admin/system/configs` 一次性展示全部可调参数。仅 `INSERT ... WHERE NOT EXISTS` 守卫（幂等安全），`tenant_id=1`（default 平台租户，与 V21/V28 种子一致）
+
+**种子键**（按 category）：feature-toggle（`feature.vision.enabled`/`feature.reranker.enabled`）、llm（`llm.chat.temperature`/`llm.chat.max-tokens`/`llm.chat.streaming-max-tokens`/`llm.embedding.model-name`）、search（`search.max-results`/`search.min-score`）、quality-gate（`quality-gate.research.min-chunks`/`quality-gate.research.low-confidence-threshold`/`quality-gate.writing.min-length`）、extraction（`extraction.max-pages-per-doc`）
+
+---
+
 ## 附录 A：租户白名单（IGNORE_TABLES）演进
 
 | 版本         | 加入白名单                                                                             | 移出白名单                 |
@@ -384,7 +446,7 @@ grading-timeout）
 
 ---
 
-## 附录 B：全部表清单（V31 落地后）
+## 附录 B：全部表清单（V35 落地后）
 
 | #  | 表名                           | 建表版本      | 有 tenant_id          | 在 IGNORE 白名单 |
 |----|------------------------------|-----------|----------------------|--------------|
@@ -413,7 +475,9 @@ grading-timeout）
 | 23 | `sys_tenant_deletion_step`   | V29       | — (业务列)              | ✔            |
 | 24 | `sys_audit_log`              | V29       | — (平台级)              | ✔            |
 | 25 | `sys_tenant_llm_profile`     | V31       | — (UNIQUE tenant_id) | —            |
-| 26 | `flyway_schema_history`      | Flyway 内部 | —                    | ✔            |
+| 26 | `tenant_usage`               | V32       | ✔ (V32)              | —            |
+| 27 | `tenant_plan_limit`          | V33       | ✔ (V33)              | —            |
+| 28 | `flyway_schema_history`      | Flyway 内部 | —                    | ✔            |
 
 ---
 
@@ -431,4 +495,4 @@ grading-timeout）
 
 ---
 
-*v0.1 · 2026-10-12 · 归档 V1–V31 全部迁移；V31 新增 sys_tenant_llm_profile 表（P4-T4 per-tenant LLM profile）。*
+*v0.1 · 2026-10-12 · 归档 V1–V35 全部迁移；V31 新增 sys_tenant_llm_profile 表（P4-T4 per-tenant LLM profile）。*

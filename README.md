@@ -26,7 +26,7 @@ Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义�
 - **全程 SSE 进度**：文档入库 / 出卷 / 评分 / 分发四类长任务统一 EventSource 通道。
 
 技术栈：Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI
-5 / Resilience4j 2.2.0 / H2 + MySQL / Flyway V1-V21。
+5 / Resilience4j 2.2.0 / H2 + MySQL / Flyway V1-V35。
 
 ---
 
@@ -82,11 +82,11 @@ IMAGE_NAME=ghcr.io/mouhinu/knowledge_repository APP_VERSION=latest \
 ## 项目结构（COLA 5.0）
 
 ```
-knowledge-web              adapter 层     20 Controller + JWT 过滤器 + SSE Store + 静态管理页
-knowledge-application      app 层         14 特性包 Executor 用例编排（事务边界、DTO ⇄ 领域对象转换）
-knowledge-client           client 层      13 个 *ServiceI 契约 + Cmd/Qry/DTO/VO
-knowledge-domain           domain 层      1 聚合根 + 12 实体 + 22 值对象 + 14 领域服务 + 21 Gateway 接口
-knowledge-infrastructure   infra 层       Gateway 实现 + Mapper/DO/Converter + Milvus + 解析器 + 13 Agent + LLM/Embedding
+knowledge-web              adapter 层     23 Controller + JWT 过滤器 + SSE Store + 静态管理页
+knowledge-application      app 层         15 特性包 Executor 用例编排（事务边界、DTO ⇄ 领域对象转换）
+knowledge-client           client 层      14 个 *ServiceI 契约 + Cmd/Qry/DTO/VO
+knowledge-domain           domain 层      1 聚合根 + 19 实体 + 42 值对象 + 23 领域服务 + 42 Gateway 接口
+knowledge-infrastructure   infra 层       Gateway 实现 + Mapper/DO/Converter + Milvus + 解析器 + 16 Agent + LLM/Embedding
 docs/                      规范分册       tech-stack / architecture / coding / data-migration / rag-domain / security / testing / code-review / deployment-ci-cd
 scripts/                   运维脚本       deploy / docker-build / compose / backup / ... 83 个
 ```
@@ -94,7 +94,7 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（依赖倒置，infra 反向实现 domain Gateway）。domain
 层不引用其它业务层，DO 不越过 infrastructure。
 
-约 **404** 个 Java 源文件 + **123** 个测试类。
+约 **598** 个 Java 源文件 + **183** 个测试类。
 
 ---
 
@@ -117,7 +117,7 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 
 ---
 
-## REST API 概览（20 个 Controller）
+## REST API 概览（23 个 Controller）
 
 **管理端**（`X-Admin-Token` 或 `Authorization: Bearer <JWT>`）
 
@@ -144,7 +144,7 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 
 ## 数据库与迁移
 
-Flyway V1 → V21，H2 开发 / MySQL 生产同一份迁移脚本。核心表：
+Flyway V1 → V35，H2 开发 / MySQL 生产同一份迁移脚本。核心表：
 
 ```
 sys_department / sys_user / sys_role / sys_user_role      权限基座 (V1, V15 加 password_hash + status)
@@ -156,8 +156,19 @@ kb_exam_session / kb_exam_answer                           在线考试 (V6, V7 
 kb_exam_grading_trace / 得分明细 / token 记录              评分链路 (V9, V10, V14)
 kb_document_image                                          配图资产 (V16)
 kb_student                                                 学生注册 (V18)
-kb_extraction_cache                                        解析持久化缓存 (V19)
-sys_config                                                 运行时特性开关 (V21)
+kb_extraction_cache                                        解析持久化缓存 (V19, V30 加 tenant_id)
+sys_config                                                 运行时特性开关 (V21, V28 租户化)
+kb_student_session                                         学生登录会话 (V22)
+sys_tenant / sys_tenant_placement                          SaaS 租户与放置元数据 (V23)
+15 张业务表 tenant_id 列                                    多租户隔离列 (V24–V26)
+sys_tenant_provision_step                                  provisioning 状态机步骤账本 (V27)
+sys_user_invite                                            一次性设密邀请 (V28)
+sys_tenant_delete_approval / sys_tenant_deletion_step / sys_audit_log   archive/deletion 编排 + 审计 (V29)
+sys_tenant_llm_profile                                     per-tenant LLM/embedding profile (V31)
+tenant_usage                                               租户用量计量 (V32)
+tenant_plan_limit                                          租户套餐限额 (V33)
+核心表外键约束                                              (V34)
+运行时配置键种子                                            (V35)
 ```
 
 外键与运维：`history.session_id ↔ question.session_key`；`session.exam_history_id ↔ answer.session_id`；错题本派生自
@@ -172,7 +183,7 @@ sys_config                                                 运行时特性开关
 
 | 工作流                                                | 触发                                  | 用途                                                                                       |
 |----------------------------------------------------|-------------------------------------|------------------------------------------------------------------------------------------|
-| **CI** (`ci.yml`)                                  | push main / PR / workflow_dispatch  | `mvn clean verify -DskipTests` + 静态门禁 + SonarCloud Quality Gate                          |
+| **CI** (`ci.yml`)                                  | push main / PR / workflow_dispatch  | 4 个 job（build · unit-tests · config-isolation · tenant-isolation）+ 静态门禁                          |
 | **Build & Push Docker Image** (`docker-image.yml`) | push main / tag `v*` / PR (dry-run) | 多阶段 build → 推 `ghcr.io/mouhinu/knowledge_repository:sha-<短SHA>` 与 `latest`；PR 只 build 不推 |
 
 关键设计：
@@ -247,6 +258,6 @@ Internal use. 问题反馈请开 GitHub Issue 或到 <https://forum.qoder.com/> 
 **其他链接**
 
 - [AGENTS.md](AGENTS.md) — AI 编码总纲与导航索引
-- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) — 全量能力清单（261 行）
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) — 全量能力清单（609 行）
 - [docs/](docs/) — 规范分册
 - [scripts/](scripts/) — 运维脚本索引

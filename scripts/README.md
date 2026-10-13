@@ -1,6 +1,6 @@
 # Knowledge Repository 脚本工具集
 
-本项目包含一系列 Shell 脚本，用于简化 Knowledge Repository 知识库系统的运维管理。
+本项目包含一系列 Shell 脚本（共 83 个 `.sh`），用于简化 Knowledge Repository 知识库系统的运维管理。
 
 ## 快速开始
 
@@ -26,6 +26,11 @@
 | `restart.sh` | 重启服务 | `./scripts/restart.sh`  |
 | `status.sh`  | 查看状态 | `./scripts/status.sh`   |
 | `logs.sh`    | 查看日志 | `./scripts/logs.sh 200` |
+| `console.sh` | 交互式控制台（`KB>` 提示符，输入 help 查看命令） | `./scripts/console.sh` |
+| `tui.sh`     | 终端 UI 管理工具（基于 dialog/whiptail 菜单） | `./scripts/tui.sh`    |
+| `gui.sh`     | 快速启动 GUI 管理界面（打开浏览器 admin.html） | `./scripts/gui.sh`     |
+| `web.sh`     | Web 管理界面启动（独立端口 8092） | `./scripts/web.sh start` |
+| `panel.sh`   | 控制面板（overview/services/documents/system） | `./scripts/panel.sh`   |
 
 ### 部署运维
 
@@ -37,6 +42,11 @@
 | `health-check.sh` | 健康检查      | `./scripts/health-check.sh` |
 | `docker-build.sh` | 构建镜像      | `./scripts/docker-build.sh` |
 | `compose.sh`      | Compose管理 | `./scripts/compose.sh up`   |
+| `setup.sh`        | 初始化设置（赋权、创建 data 子目录） | `./scripts/setup.sh`        |
+| `upgrade.sh`      | 升级（备份→停服→更新→重启） | `./scripts/upgrade.sh`      |
+| `uninstall.sh`    | 卸载（删除所有数据，需输入 YES 确认） | `./scripts/uninstall.sh`    |
+| `migrate.sh`      | 数据迁移工具（查看 Flyway 迁移状态） | `./scripts/migrate.sh status` |
+| `sync.sh`         | 数据同步（up/down/status/conflict） | `./scripts/sync.sh status`  |
 
 ### 数据管理
 
@@ -47,6 +57,8 @@
 | `import.sh`  | 导入数据   | `./scripts/import.sh <文件>` |
 | `init-db.sh` | 初始化数据库 | `./scripts/init-db.sh`     |
 | `clean.sh`   | 清理文件   | `./scripts/clean.sh`       |
+| `bulk.sh`    | 批量操作（index/delete/export/reindex） | `./scripts/bulk.sh status` |
+| `pipeline.sh` | 数据管道管理（list/run/status/create/logs） | `./scripts/pipeline.sh list` |
 
 ### 业务管理
 
@@ -58,6 +70,7 @@
 | `role.sh`   | 角色权限 | `./scripts/role.sh list`          |
 | `config.sh` | 系统配置 | `./scripts/config.sh list`        |
 | `search.sh` | 搜索管理 | `./scripts/search.sh query '关键词'` |
+| `workflow.sh` | 工作流管理（list/run/status/define/history） | `./scripts/workflow.sh list` |
 
 ### 监控诊断
 
@@ -69,6 +82,11 @@
 | `disk-usage.sh` | 磁盘分析 | `./scripts/disk-usage.sh`   |
 | `network.sh`    | 网络诊断 | `./scripts/network.sh ping` |
 | `report.sh`     | 系统报告 | `./scripts/report.sh`       |
+| `dashboard.sh`  | 仪表盘（服务状态一览） | `./scripts/dashboard.sh show` |
+| `alarm.sh`      | 告警管理（list/add/remove/trigger/history） | `./scripts/alarm.sh list` |
+| `discovery.sh`  | 服务发现（register/deregister/list/watch/health） | `./scripts/discovery.sh list` |
+| `cluster.sh`    | 集群管理（status/nodes/add/remove/balance） | `./scripts/cluster.sh status` |
+| `event.sh`      | 事件管理（list/publish/subscribe/history/replay） | `./scripts/event.sh list` |
 
 ### 安全审计
 
@@ -91,6 +109,15 @@
 | `cache.sh`     | 缓存管理    | `./scripts/cache.sh clear all`        |
 | `ratelimit.sh` | 限流配置    | `./scripts/ratelimit.sh status`       |
 | `task.sh`      | 异步任务    | `./scripts/task.sh list`              |
+| `adapter.sh`   | 适配器管理（文档解析/存储适配器 list/test/config/status） | `./scripts/adapter.sh list` |
+| `connector.sh` | 连接器管理（list/test/add/remove/config） | `./scripts/connector.sh list` |
+| `integration.sh` | 集成管理（向量库/模型等 list/test/config/status） | `./scripts/integration.sh list` |
+| `provider.sh`  | 提供商管理（Embedding/LLM list/config/test/switch） | `./scripts/provider.sh list` |
+| `federation.sh` | 联邦管理（多知识库联邦搜索/资源共享 status/peers/search/share/sync） | `./scripts/federation.sh status` |
+| `queue.sh`     | 消息队列管理（status/list/publish/consume/purge/stats） | `./scripts/queue.sh status` |
+| `scheduler.sh` | 任务调度器管理（status/jobs/add/remove/pause/resume/trigger） | `./scripts/scheduler.sh status` |
+| `cron.sh`      | Cron 任务管理（list/add/remove/edit/test） | `./scripts/cron.sh list` |
+| `timer.sh`     | 定时器管理（list/start/stop/status/config） | `./scripts/timer.sh list` |
 
 ### 调试排错
 
@@ -100,6 +127,21 @@
 | `troubleshoot.sh` | 故障排查  | `./scripts/troubleshoot.sh check` |
 | `log.sh`          | 日志管理  | `./scripts/log.sh level DEBUG`    |
 | `api-test.sh`     | API测试 | `./scripts/api-test.sh`           |
+| `api.sh`          | API 客户端（get/post/put/delete 请求端点） | `./scripts/api.sh get <端点>` |
+| `client.sh`       | 客户端 SDK（info/example/generate） | `./scripts/client.sh info`  |
+| `alias.sh`        | 快捷命令别名（`source` 后使用 `kb-*` 别名） | `source ./scripts/alias.sh` |
+| `completion.sh`   | Bash/Zsh 自动补全（`source` 生效） | `source ./scripts/completion.sh` |
+
+### 网络与弹性
+
+| 脚本            | 说明    | 示例                                |
+|---------------|-------|-----------------------------------|
+| `circuit.sh`  | 熔断器管理（status/state/reset/config/stats） | `./scripts/circuit.sh status` |
+| `retry.sh`    | 重试策略管理（status/config/stats/reset） | `./scripts/retry.sh status`   |
+| `timeout.sh`  | 超时配置管理（status/config/set/stats） | `./scripts/timeout.sh status` |
+| `gateway.sh`  | API 网关管理（status/routes/upstream/rateLimit） | `./scripts/gateway.sh status` |
+| `proxy.sh`    | 代理服务（status/start/stop/config/logs，默认端口 8080→8091） | `./scripts/proxy.sh status` |
+| `lb.sh`       | 负载均衡管理（status/backends/add/remove/health/algorithm） | `./scripts/lb.sh status`    |
 
 ## 常用场景
 
@@ -202,10 +244,12 @@ daemon。
 | Milvus | 19530 |
 | MinIO  | 9001  |
 | Ollama | 11434 |
+| Redis  | 6379  |
+| etcd   | 2379（仅容器网络内，未映射到宿主机） |
 
 ## 相关文件
 
 - 应用日志: `/tmp/kb-server.log`
 - 数据目录: `./data/`
-- 备份目录: `./data/backups/`
-- 导出目录: `./data/exports/`
+- 备份目录: `./data/backups/`（按需创建，运行 `./scripts/setup.sh` 或 `./scripts/backup.sh` 时生成）
+- 导出目录: `./data/exports/`（按需创建，运行 `./scripts/setup.sh` 或 `./scripts/export.sh` 时生成）
