@@ -12,8 +12,18 @@ import java.util.Optional;
  */
 public interface ExamAnswerGateway {
 
+    /**
+     * 保存答题记录（新增）。
+     *
+     * @param answer 答题记录实体
+     */
     void save(ExamAnswer answer);
 
+    /**
+     * 更新答题记录。
+     *
+     * @param answer 答题记录实体（须包含有效主键）
+     */
     void update(ExamAnswer answer);
 
     /**
@@ -38,21 +48,50 @@ public interface ExamAnswerGateway {
      */
     void clearAiTrace(Long answerId);
 
+    /**
+     * 根据主键查找答题记录。
+     *
+     * @param id 答题记录主键
+     * @return 命中的答题记录；不存在时 {@link Optional#empty()}
+     */
     Optional<ExamAnswer> findById(Long id);
 
-    /** 批量保存答题记录 */
+    /**
+     * 批量保存答题记录。
+     *
+     * @param answers 答题记录列表
+     */
     void saveAll(List<ExamAnswer> answers);
 
-    /** 查询某场考试的所有答题记录（按题号排序） */
+    /**
+     * 查询某场考试的所有答题记录（按题号排序）。
+     *
+     * @param sessionId 考试场次主键
+     * @return 该场次下的答题记录列表
+     */
     List<ExamAnswer> listBySessionId(Long sessionId);
 
-    /** 查询某场考试中需要复核的题目 */
+    /**
+     * 查询某场考试中需要复核的题目。
+     *
+     * @param sessionId 考试场次主键
+     * @return 需要复核的答题记录列表
+     */
     List<ExamAnswer> listNeedsReview(Long sessionId);
 
-    /** 统计某场考试中需要复核的题目数量 */
+    /**
+     * 统计某场考试中需要复核的题目数量。
+     *
+     * @param sessionId 考试场次主键
+     * @return 需要复核的题目数量
+     */
     long countNeedsReview(Long sessionId);
 
-    /** 删除某场考试的所有答题记录 */
+    /**
+     * 删除某场考试的所有答题记录。
+     *
+     * @param sessionId 考试场次主键
+     */
     void deleteBySessionId(Long sessionId);
 
     /**

@@ -20,15 +20,41 @@ import java.util.List;
  */
 public interface DocumentIngestionServiceI {
 
-    /** 基于已上传文档解析预览（不入库） */
+    /**
+     * 基于已上传文档进行解析预览（不入库）。
+     *
+     * @param query 预览查询参数，包含文档标识、分块策略等配置
+     * @return 解析预览结果，包含分块文本与元数据
+     * @throws IllegalArgumentException 文档不存在或参数非法
+     */
     PreviewResult previewFromDocument(PreviewDocumentQuery query);
 
-    /** 重新入库已有文档 */
+    /**
+     * 重新入库已有文档（使用原有分块配置重新向量化）。
+     *
+     * @param documentKey 文档唯一标识
+     * @return 重新入库后的文档 VO
+     * @throws IllegalArgumentException 文档不存在
+     */
     DocumentVO reindex(String documentKey);
 
-    /** 确认入库（同步，分块 → 向量化 → 存储） */
+    /**
+     * 确认入库（同步执行：分块 → 向量化 → 存储）。
+     *
+     * @param cmd 入库命令，包含文档标识、分块大小、重叠量与分块策略
+     * @return 入库完成后的文档 VO
+     * @throws IllegalArgumentException 文档不存在或参数非法
+     * @throws IllegalStateException 文档状态不允许入库
+     */
     DocumentVO index(IndexDocumentCmd cmd);
 
-    /** 使用用户自定义分块入库（同步） */
+    /**
+     * 使用用户自定义分块内容入库（同步执行）。
+     *
+     * @param documentKey 文档唯一标识
+     * @param customChunks 用户自定义的分块内容列表
+     * @return 入库完成后的文档 VO
+     * @throws IllegalArgumentException 文档不存在或分块列表为空
+     */
     DocumentVO indexWithCustomChunks(String documentKey, List<CustomChunkInput> customChunks);
 }

@@ -18,13 +18,27 @@ import java.util.Optional;
  */
 public interface TenantGateway {
 
-    /** 按数值主键查询租户。 */
+    /**
+     * 按数值主键查询租户。
+     *
+     * @param tenantId 租户数值主键
+     * @return 命中的租户；不存在时返回 {@link Optional#empty()}
+     */
     Optional<Tenant> findById(Long tenantId);
 
-    /** 按业务键（小写归一后）查询租户。 */
+    /**
+     * 按业务键（小写归一后）查询租户。
+     *
+     * @param tenantKey 租户业务键
+     * @return 命中的租户；不存在时返回 {@link Optional#empty()}
+     */
     Optional<Tenant> findByTenantKey(String tenantKey);
 
-    /** 列出全部租户（平台端管理视图，租户数量级 ≤ 千，暂不分页）。 */
+    /**
+     * 列出全部租户（平台端管理视图，租户数量级 ≤ 千，暂不分页）。
+     *
+     * @return 租户列表；无记录返回空列表
+     */
     List<Tenant> listAll();
 
     /**
@@ -63,9 +77,17 @@ public interface TenantGateway {
      */
     List<Tenant> listActiveByCursor(long lastId, int batchSize);
 
-    /** 新增租户，回填自增主键到入参实体。 */
+    /**
+     * 新增租户，回填自增主键到入参实体。
+     *
+     * @param tenant 租户实体，{@code tenantId} 应为 {@code null}
+     */
     void save(Tenant tenant);
 
-    /** 更新租户（含状态流转后的落库）。 */
+    /**
+     * 更新租户（含状态流转后的落库）。
+     *
+     * @param tenant 租户实体，{@code tenantId} 必填
+     */
     void update(Tenant tenant);
 }

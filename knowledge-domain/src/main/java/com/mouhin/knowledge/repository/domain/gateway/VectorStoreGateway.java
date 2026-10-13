@@ -15,20 +15,50 @@ import java.util.List;
  */
 public interface VectorStoreGateway {
 
-    /** 存储文档分块向量 */
+    /**
+     * 存储文档分块向量。
+     *
+     * @param chunks 待存储的文档分块列表
+     */
     void storeChunks(List<DocumentChunk> chunks);
 
-    /** 存储文档分块向量（带进度回调） */
+    /**
+     * 存储文档分块向量（带进度回调）。
+     *
+     * @param chunks 待存储的文档分块列表
+     * @param callback 索引进度回调
+     */
     void storeChunks(List<DocumentChunk> chunks, IndexProgressCallback callback);
 
-    /** 语义检索（带权限过滤表达式与分类过滤） */
+    /**
+     * 语义检索（带权限过滤表达式与分类过滤）。
+     *
+     * @param query 查询文本
+     * @param maxResults 最大返回结果数
+     * @param minScore 最低相似度阈值
+     * @param filterExpr 权限过滤表达式
+     * @param category 文档分类过滤
+     * @return 检索结果列表；无命中返回空列表
+     */
     List<SearchResult> search(
             String query, int maxResults, double minScore, String filterExpr, String category);
 
-    /** 语义检索（无分类过滤，向后兼容） */
+    /**
+     * 语义检索（无分类过滤，向后兼容）。
+     *
+     * @param query 查询文本
+     * @param maxResults 最大返回结果数
+     * @param minScore 最低相似度阈值
+     * @param filterExpr 权限过滤表达式
+     * @return 检索结果列表；无命中返回空列表
+     */
     List<SearchResult> search(String query, int maxResults, double minScore, String filterExpr);
 
-    /** 删除指定文档的所有向量 */
+    /**
+     * 删除指定文档的所有向量。
+     *
+     * @param documentKey 文档业务键
+     */
     void deleteByDocumentKey(String documentKey);
 
     /**

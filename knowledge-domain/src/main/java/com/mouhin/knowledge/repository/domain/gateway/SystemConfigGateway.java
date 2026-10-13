@@ -20,19 +20,41 @@ import java.util.Optional;
  */
 public interface SystemConfigGateway {
 
-    /** 按配置键查询（当前租户作用域）。 */
+    /**
+     * 按配置键查询（当前租户作用域）。
+     *
+     * @param configKey 配置键
+     * @return 命中的配置实体；不存在时返回 {@link Optional#empty()}
+     */
     Optional<SystemConfig> findByKey(String configKey);
 
-    /** 查询当前租户全部配置（按 category + config_key 排序）。 */
+    /**
+     * 查询当前租户全部配置（按 category + config_key 排序）。
+     *
+     * @return 配置列表；无记录返回空列表
+     */
     List<SystemConfig> findAll();
 
-    /** 按分组查询（当前租户作用域）。 */
+    /**
+     * 按分组查询（当前租户作用域）。
+     *
+     * @param category 配置分组名
+     * @return 该分组下的配置列表；无记录返回空列表
+     */
     List<SystemConfig> findByCategory(String category);
 
-    /** 保存或更新配置（按 (tenantId, configKey) 幂等；tenantId 取自当前 {@code TenantContext}）。 */
+    /**
+     * 保存或更新配置（按 (tenantId, configKey) 幂等；tenantId 取自当前 {@code TenantContext}）。
+     *
+     * @param config 配置实体
+     */
     void saveOrUpdate(SystemConfig config);
 
-    /** 批量保存或更新。 */
+    /**
+     * 批量保存或更新配置。
+     *
+     * @param configs 配置实体列表
+     */
     void batchSaveOrUpdate(List<SystemConfig> configs);
 
     /**

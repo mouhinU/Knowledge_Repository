@@ -14,18 +14,41 @@ import java.util.Optional;
  */
 public interface StudentSessionGateway {
 
-    /** 新增一条会话记录；持久化后回填 {@code id}。 */
+    /**
+     * 新增一条会话记录；持久化后回填 {@code id}。
+     *
+     * @param session 会话实体，{@code id} 应为 {@code null}
+     */
     void save(StudentSession session);
 
-    /** 按令牌查询会话（不校验有效性）。 */
+    /**
+     * 按令牌查询会话（不校验有效性）。
+     *
+     * @param token 会话令牌字符串
+     * @return 命中的会话；不存在时返回 {@link Optional#empty()}
+     */
     Optional<StudentSession> findByToken(String token);
 
-    /** 按令牌查询「当前有效」会话：{@code revoked_at IS NULL AND expires_at > now()}。 */
+    /**
+     * 按令牌查询「当前有效」会话：{@code revoked_at IS NULL AND expires_at > now()}。
+     *
+     * @param token 会话令牌字符串
+     * @return 有效会话；已撤销 / 已过期 / 不存在时返回 {@link Optional#empty()}
+     */
     Optional<StudentSession> findActiveByToken(String token);
 
-    /** 撤销指定令牌：置 {@code revoked_at = NOW()}；令牌不存在时静默。 */
+    /**
+     * 撤销指定令牌：置 {@code revoked_at = NOW()}；令牌不存在时静默。
+     *
+     * @param token 待撤销的会话令牌
+     */
     void revoke(String token);
 
-    /** 撤销某考生的所有活跃会话（管理员禁用账号或改密场景使用）。 */
+    /**
+     * 撤销某考生的所有活跃会话（管理员禁用账号或改密场景使用）。
+     *
+     * @param studentId 考生主键
+     * @return 实际撤销的会话数
+     */
     int revokeAllByStudentId(Long studentId);
 }

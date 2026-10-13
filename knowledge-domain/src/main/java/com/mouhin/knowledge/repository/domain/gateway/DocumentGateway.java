@@ -14,10 +14,19 @@ import java.util.Optional;
  */
 public interface DocumentGateway {
 
-    /** 保存文档（新增） */
+    /**
+     * 保存文档（新增），主键回填到入参实体。
+     *
+     * @param document 文档聚合根
+     * @return 持久化后的文档（含回填主键）
+     */
     Document save(Document document);
 
-    /** 更新文档 */
+    /**
+     * 更新文档。
+     *
+     * @param document 文档聚合根（须包含有效主键）
+     */
     void update(Document document);
 
     /**
@@ -32,10 +41,20 @@ public interface DocumentGateway {
      */
     void clearErrorMessage(Long documentId);
 
-    /** 根据 ID 查找 */
+    /**
+     * 根据主键查找文档。
+     *
+     * @param id 文档主键
+     * @return 命中的文档；不存在时 {@link Optional#empty()}
+     */
     Optional<Document> findById(Long id);
 
-    /** 根据 documentKey 查找 */
+    /**
+     * 根据文档业务键查找文档。
+     *
+     * @param documentKey 文档业务键
+     * @return 命中的文档；不存在时 {@link Optional#empty()}
+     */
     Optional<Document> findByDocumentKey(String documentKey);
 
     /**
@@ -48,27 +67,68 @@ public interface DocumentGateway {
      */
     Map<String, Document> findByDocumentKeys(List<String> documentKeys);
 
-    /** 根据文件校验和查找（用于去重） */
+    /**
+     * 根据文件校验和查找文档（用于去重）。
+     *
+     * @param fileChecksum 文件 MD5 校验和
+     * @return 命中的文档；不存在时 {@link Optional#empty()}
+     */
     Optional<Document> findByFileChecksum(String fileChecksum);
 
-    /** 根据状态查找文档列表 */
+    /**
+     * 根据状态查找文档列表。
+     *
+     * @param status 文档状态
+     * @return 符合状态的文档列表
+     */
     List<Document> listByStatus(DocumentStatusEnum status);
 
-    /** 查询全部文档列表 */
+    /**
+     * 查询全部文档列表。
+     *
+     * @return 全部文档列表
+     */
     List<Document> listAll();
 
-    /** 根据所有者查找文档列表 */
+    /**
+     * 根据所有者查找文档列表（分页）。
+     *
+     * @param ownerId 所有者标识
+     * @param page 页码
+     * @param size 每页数量
+     * @return 该所有者的文档列表
+     */
     List<Document> listByOwnerId(String ownerId, int page, int size);
 
-    /** 根据部门查找文档列表 */
+    /**
+     * 根据部门查找文档列表（分页）。
+     *
+     * @param departmentId 部门标识
+     * @param page 页码
+     * @param size 每页数量
+     * @return 该部门下的文档列表
+     */
     List<Document> listByDepartmentId(String departmentId, int page, int size);
 
-    /** 统计文档数量 */
+    /**
+     * 统计指定状态的文档数量。
+     *
+     * @param status 文档状态
+     * @return 文档数量
+     */
     long countByStatus(DocumentStatusEnum status);
 
-    /** 按分类统计文档数量 */
+    /**
+     * 按分类统计文档数量。
+     *
+     * @return 分类名 → 文档数量 映射
+     */
     Map<String, Long> countByCategory();
 
-    /** 删除文档 */
+    /**
+     * 根据主键删除文档。
+     *
+     * @param id 文档主键
+     */
     void deleteById(Long id);
 }

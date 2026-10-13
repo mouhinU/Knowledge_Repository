@@ -15,13 +15,27 @@ import java.util.Optional;
  */
 public interface DocumentImageGateway {
 
-    /** 保存单条图片记录（回填自增主键到入参实体）。 */
+    /**
+     * 保存单条图片记录（回填自增主键到入参实体）。
+     *
+     * @param image 文档图片实体
+     */
     void save(DocumentImage image);
 
-    /** 根据对外访问句柄查找 */
+    /**
+     * 根据对外访问句柄查找图片。
+     *
+     * @param assetKey 图片访问句柄
+     * @return 命中的图片；不存在时 {@link Optional#empty()}
+     */
     Optional<DocumentImage> findByAssetKey(String assetKey);
 
-    /** 列出某文档的全部图片，按页码、页内序号升序 */
+    /**
+     * 列出某文档的全部图片，按页码、页内序号升序。
+     *
+     * @param documentId 文档主键
+     * @return 该文档下的图片列表
+     */
     List<DocumentImage> listByDocumentId(Long documentId);
 
     /**
@@ -38,15 +52,36 @@ public interface DocumentImageGateway {
      */
     List<DocumentImageHit> search(String keyword, String documentKey, int limit, int offset);
 
-    /** 统计 {@link #search} 同条件下的总命中数。 */
+    /**
+     * 统计 {@link #search} 同条件下的总命中数。
+     *
+     * @param keyword 关键词（匹配来源文档名 / documentKey，可空）
+     * @param documentKey 限定来源文档 Key（可空，非空时忽略 keyword）
+     * @return 总命中数
+     */
     long countSearch(String keyword, String documentKey);
 
-    /** 判断某文档内是否已存在指定 SHA-256 的图片（文档内去重） */
+    /**
+     * 判断某文档内是否已存在指定 SHA-256 的图片（文档内去重）。
+     *
+     * @param documentId 文档主键
+     * @param sha256 图片 SHA-256 摘要
+     * @return true=已存在，false=不存在
+     */
     boolean existsByDocumentIdAndSha256(Long documentId, String sha256);
 
-    /** 统计某文档图片数量 */
+    /**
+     * 统计某文档图片数量。
+     *
+     * @param documentId 文档主键
+     * @return 图片数量
+     */
     long countByDocumentId(Long documentId);
 
-    /** 删除某文档的全部图片记录（文档删除 / 重新回填前的清理，不含磁盘文件清理） */
+    /**
+     * 删除某文档的全部图片记录（文档删除 / 重新回填前的清理，不含磁盘文件清理）。
+     *
+     * @param documentId 文档主键
+     */
     void deleteByDocumentId(Long documentId);
 }

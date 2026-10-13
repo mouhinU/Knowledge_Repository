@@ -54,7 +54,8 @@ public class ExamScoringAgent implements BlackboardAgent {
                 skipValidation ? "正在写入分值方案（Node 2 已校验通过）..." : "正在校验题型分布方案的总分与分值分布...";
         emitProgress(
                 progressCallback,
-                BlackboardProgressEvent.agentStartedWithMaterials(AgentNames.AGENT_EXAM_SCORING, startMessage, materials));
+                BlackboardProgressEvent.agentStartedWithMaterials(
+                        AgentNames.AGENT_EXAM_SCORING, startMessage, materials));
         log.info(
                 "[ExamScoring] 开始执行，主题：{}，学段：{}，题型配置：{}，skipValidation={}",
                 topic,

@@ -32,9 +32,17 @@ public interface UserInviteGateway {
      */
     List<UserInvite> findPendingByUser(Long tenantId, Long userId);
 
-    /** 落库新邀请；主键回填 {@code invite.inviteId}。 */
+    /**
+     * 落库新邀请；主键回填 {@code invite.inviteId}。
+     *
+     * @param invite 邀请实体，{@code inviteId} 应为 {@code null}
+     */
     void insert(UserInvite invite);
 
-    /** 更新既有邀请（消费 / 吊销时回填 status/usedAt/revokedAt/updateTime）。 */
+    /**
+     * 更新既有邀请（消费 / 吊销时回填 status/usedAt/revokedAt/updateTime）。
+     *
+     * @param invite 邀请实体，{@code inviteId} 必填
+     */
     void update(UserInvite invite);
 }

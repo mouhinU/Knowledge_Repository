@@ -16,10 +16,28 @@ import java.util.Optional;
  */
 public interface UserGateway {
 
+    /**
+     * 按主键查询用户。
+     *
+     * @param id 用户主键
+     * @return 命中的用户；不存在时返回 {@link Optional#empty()}
+     */
     Optional<User> findById(Long id);
 
+    /**
+     * 按用户唯一键查询。
+     *
+     * @param userKey 用户业务键
+     * @return 命中的用户；不存在时返回 {@link Optional#empty()}
+     */
     Optional<User> findByUserKey(String userKey);
 
+    /**
+     * 按用户名精确查询（当前租户作用域）。
+     *
+     * @param username 用户名
+     * @return 命中的用户；不存在时返回 {@link Optional#empty()}
+     */
     Optional<User> findByUsername(String username);
 
     /**
@@ -34,11 +52,27 @@ public interface UserGateway {
      */
     Optional<User> findByUsernameAndTenant(String username, long tenantId);
 
+    /**
+     * 列出全部用户（当前租户作用域）。
+     *
+     * @return 用户列表；无记录返回空列表
+     */
     List<User> listAll();
 
-    /** 查找用户在指定文档上拥有的角色列表 */
+    /**
+     * 查找用户在指定文档上拥有的角色列表。
+     *
+     * @param userId 用户主键
+     * @param documentId 文档主键
+     * @return 角色键列表；无角色时返回空列表
+     */
     List<String> findRoleKeysByUserIdAndDocumentId(Long userId, Long documentId);
 
+    /**
+     * 持久化新用户，回填自增主键到入参实体。
+     *
+     * @param user 用户实体，{@code id} 应为 {@code null}
+     */
     void save(User user);
 
     /**
@@ -52,5 +86,10 @@ public interface UserGateway {
      */
     void saveWithTenant(User user, long tenantId);
 
+    /**
+     * 更新已有用户信息（按主键覆盖非空字段）。
+     *
+     * @param user 用户实体，{@code id} 必填
+     */
     void update(User user);
 }

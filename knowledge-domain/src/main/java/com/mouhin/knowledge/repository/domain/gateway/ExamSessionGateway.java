@@ -13,8 +13,18 @@ import java.util.Optional;
  */
 public interface ExamSessionGateway {
 
+    /**
+     * 保存考试场次（新增）。
+     *
+     * @param session 考试场次实体
+     */
     void save(ExamSession session);
 
+    /**
+     * 更新考试场次。
+     *
+     * @param session 考试场次实体（须包含有效主键）
+     */
     void update(ExamSession session);
 
     /**
@@ -81,25 +91,70 @@ public interface ExamSessionGateway {
      */
     boolean reclaimStuckGrading(Long id, LocalDateTime deadline);
 
+    /**
+     * 根据主键查找考试场次。
+     *
+     * @param id 场次主键
+     * @return 命中的场次；不存在时 {@link Optional#empty()}
+     */
     Optional<ExamSession> findById(Long id);
 
+    /**
+     * 根据场次业务键查找考试场次。
+     *
+     * @param sessionKey 场次业务键
+     * @return 命中的场次；不存在时 {@link Optional#empty()}
+     */
     Optional<ExamSession> findBySessionKey(String sessionKey);
 
+    /**
+     * 查询某考生的全部考试场次。
+     *
+     * @param studentId 考生 ID
+     * @return 该考生的场次列表
+     */
     List<ExamSession> listByStudentId(Long studentId);
 
-    /** 按状态查询考试场次（用于管理端复核列表） */
+    /**
+     * 按状态查询考试场次（用于管理端复核列表）。
+     *
+     * @param status 场次状态
+     * @param limit 每页数量
+     * @param offset 偏移量
+     * @return 符合状态的场次列表
+     */
     List<ExamSession> listByStatus(String status, int limit, int offset);
 
-    /** 统计指定状态的场次数量 */
+    /**
+     * 统计指定状态的场次数量。
+     *
+     * @param status 场次状态
+     * @return 场次数量
+     */
     long countByStatus(String status);
 
-    /** 查询所有需要评分的场次（SUBMITTED 状态） */
+    /**
+     * 查询所有需要评分的场次（SUBMITTED 状态）。
+     *
+     * @param limit 最大返回数量
+     * @return 待评分场次列表
+     */
     List<ExamSession> listPendingGrading(int limit);
 
-    /** 查询所有需要复核的场次（AI_GRADED 状态） */
+    /**
+     * 查询所有需要复核的场次（AI_GRADED 状态）。
+     *
+     * @param limit 每页数量
+     * @param offset 偏移量
+     * @return 待复核场次列表
+     */
     List<ExamSession> listPendingReview(int limit, int offset);
 
-    /** 统计需要复核的场次数量 */
+    /**
+     * 统计需要复核的场次数量。
+     *
+     * @return 待复核场次数量
+     */
     long countPendingReview();
 
     /**

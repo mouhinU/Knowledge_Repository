@@ -20,25 +20,60 @@ import java.util.List;
  */
 public interface PlatformTenantServiceI {
 
-    /** 创建租户（落 PENDING + 生成 UUID v4 provisionRequestId；开通由 {@link #provisionTenant} 驱动）。 */
+    /**
+     * 创建租户（落 PENDING + 生成 UUID v4 provisionRequestId；开通由 {@link #provisionTenant} 驱动）。
+     *
+     * @param cmd 租户创建命令，包含租户名称、管理员信息等
+     * @return 创建后的租户 VO（状态为 PENDING）
+     */
     TenantVO createTenant(TenantCreateCmd cmd);
 
-    /** 开通租户（PENDING/FAILED → PROVISIONING → ACTIVE/FAILED，步骤级幂等可重放，P3-T2）。 */
+    /**
+     * 开通租户（PENDING/FAILED → PROVISIONING → ACTIVE/FAILED，步骤级幂等可重放，P3-T2）。
+     *
+     * @param cmd 租户开通命令，包含 provisionRequestId 等开通参数
+     * @return 开通结果 VO，包含租户最终状态与开通步骤明细
+     * @throws IllegalArgumentException 租户不存在或参数非法
+     */
     TenantProvisionVO provisionTenant(TenantProvisionCmd cmd);
 
-    /** 软停租户（ACTIVE → SUSPENDED）。 */
+    /**
+     * 软停租户（ACTIVE → SUSPENDED）。
+     *
+     * @param cmd 状态变更命令，包含租户业务键
+     * @return 状态变更后的租户 VO
+     * @throws IllegalArgumentException 租户不存在
+     * @throws IllegalStateException 租户状态不允许软停
+     */
     TenantVO suspendTenant(TenantStatusCmd cmd);
 
-    /** 恢复租户（SUSPENDED → ACTIVE）。 */
+    /**
+     * 恢复租户（SUSPENDED → ACTIVE）。
+     *
+     * @param cmd 状态变更命令，包含租户业务键
+     * @return 状态变更后的租户 VO
+     * @throws IllegalArgumentException 租户不存在
+     * @throws IllegalStateException 租户状态不允许恢复
+     */
     TenantVO resumeTenant(TenantStatusCmd cmd);
 
-    /** 归档租户（ACTIVE/SUSPENDED → ARCHIVED，打保留期起点戳；P3-T5，S-4=方案 A）。 */
+    /**
+     * 归档租户（ACTIVE/SUSPENDED → ARCHIVED，打保留期起点戳；P3-T5，S-4=方案 A）。
+     *
+     * @param cmd 归档命令，包含租户业务键与归档参数
+     * @return 状态变更后的租户 VO
+     * @throws IllegalArgumentException 租户不存在
+     * @throws IllegalStateException 租户状态不允许归档
+     */
     TenantVO archiveTenant(TenantArchiveCmd cmd);
 
     /**
      * 签发一次性删除审批令牌（双人复核第一步，项目负责人操作；P3-T5）。
      *
+     * @param cmd 删除审批命令，包含租户业务键与操作者身份
      * @return 含<b>仅此一次可见</b>的 raw token 的审批视图
+     * @throws IllegalArgumentException 租户不存在或参数非法
+     * @throws IllegalStateException 租户状态不允许签发
      */
     TenantDeleteApprovalVO issueDeleteApproval(TenantDeleteApprovalCmd cmd);
 
@@ -46,10 +81,21 @@ public interface PlatformTenantServiceI {
      * 确认删除（双人复核第二步，第二操作者持 raw token；P3-T5）。
      *
      * <p>校验令牌有效 + 保留期已过 + 确认者 ≠ 签发者后，把 ARCHIVED 迁入 DELETING 认领态，硬删交由 reconciler 续跑。
+     *
+     * @param cmd 删除确认命令，包含租户业务键与审批令牌
+     * @return 状态变更后的租户 VO（状态为 DELETING）
+     * @throws IllegalArgumentException 租户不存在或令牌无效
+     * @throws IllegalStateException 保留期未过或确认者与签发者相同
      */
     TenantVO confirmDeletion(TenantDeleteCmd cmd);
 
-    /** 删除预览（dry-run，不删；返回保留期状态与各表待删行数；P3-T5）。 */
+    /**
+     * 删除预览（dry-run，不删；返回保留期状态与各表待删行数；P3-T5）。
+     *
+     * @param tenantKey 租户业务唯一标识
+     * @return 删除预览 VO，包含保留期状态与各关联表待删行数
+     * @throws IllegalArgumentException 租户不存在
+     */
     TenantDeletionPreviewVO previewDeletion(String tenantKey);
 
     /**
@@ -73,9 +119,18 @@ public interface PlatformTenantServiceI {
      */
     TenantReissueInviteVO reissueInvite(TenantReissueInviteCmd cmd);
 
-    /** 按业务键查询单个租户。 */
+    /**
+     * 按业务键查询单个租户详情。
+     *
+     * @param tenantKey 租户业务唯一标识
+     * @return 租户 VO，不存在时返回 null
+     */
     TenantVO getTenant(String tenantKey);
 
-    /** 列出全部租户。 */
+    /**
+     * 列出全部租户。
+     *
+     * @return 全部租户 VO 列表
+     */
     List<TenantVO> listTenants();
 }

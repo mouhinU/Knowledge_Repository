@@ -21,11 +21,37 @@ import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
  */
 public interface ExamGenerationServiceI {
 
+    /**
+     * 查询出卷历史记录列表。
+     *
+     * @param limit 返回的最大记录条数
+     * @return 出卷历史列表，按时间倒序排列
+     */
     MultiResponse<ExamHistoryDTO> listHistory(int limit);
 
+    /**
+     * 分页查询出卷历史记录。
+     *
+     * @param page 页码（从 1 开始）
+     * @param size 每页条数
+     * @return 出卷历史分页结果，包含记录列表与总数
+     */
     PageResponse<ExamHistoryDTO> pageHistory(int page, int size);
 
+    /**
+     * 根据会话 ID 查询单条出卷历史。
+     *
+     * @param sessionId 出卷会话唯一标识
+     * @return 对应的出卷历史 DTO，未命中时 {@code data} 为 null
+     */
     SingleResponse<ExamHistoryDTO> getHistoryBySessionId(String sessionId);
 
+    /**
+     * 删除出卷历史记录。
+     *
+     * @param sessionId 出卷会话唯一标识
+     * @return 操作结果响应
+     * @throws IllegalArgumentException 会话不存在
+     */
     Response deleteHistory(String sessionId);
 }

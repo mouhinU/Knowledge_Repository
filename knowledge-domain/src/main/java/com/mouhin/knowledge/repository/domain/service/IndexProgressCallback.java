@@ -18,7 +18,7 @@ public interface IndexProgressCallback {
      */
     void onProgress(int completedChunks, int totalChunks);
 
-    /** 索引完成 */
+    /** 索引完成回调，所有分块向量化并写入存储后调用。 */
     void onComplete();
 
     /**

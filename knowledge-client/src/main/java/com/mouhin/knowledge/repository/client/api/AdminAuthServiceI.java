@@ -24,16 +24,38 @@ import com.mouhin.knowledge.repository.client.dto.*;
  */
 public interface AdminAuthServiceI {
 
-    /** 用户名密码登录，签发访问令牌。 */
+    /**
+     * 用户名密码登录，签发访问令牌。
+     *
+     * @param cmd 登录命令，包含用户名与密码
+     * @return 登录结果，包含 JWT 访问令牌与管理员基本信息
+     * @throws IllegalArgumentException 账号不存在、密码错误或账号已禁用
+     */
     SingleResponse<AdminLoginResultDTO> login(AdminLoginCmd cmd);
 
-    /** 退出登录。JWT 无状态，服务端仅记录审计、令牌由前端丢弃。 */
+    /**
+     * 退出登录。JWT 无状态，服务端仅记录审计日志，令牌由前端丢弃。
+     *
+     * @param token 当前有效的 JWT 访问令牌
+     * @return 操作结果响应
+     */
     Response logout(String token);
 
-    /** 校验令牌并还原当前登录者身份（签名 / 过期 / 账号激活态三重判定）。 */
+    /**
+     * 校验令牌并还原当前登录者身份（签名 / 过期 / 账号激活态三重判定）。
+     *
+     * @param token JWT 访问令牌
+     * @return 令牌有效时返回管理员身份主体；签名无效、过期或账号已禁用时 {@code data} 为 null
+     */
     SingleResponse<AdminPrincipalDTO> validateToken(String token);
 
-    /** 自助修改密码：校验旧密码后设置新密码。 */
+    /**
+     * 自助修改密码：校验旧密码后设置新密码。
+     *
+     * @param cmd 修改密码命令，包含当前用户标识、旧密码与新密码
+     * @return 操作结果响应
+     * @throws IllegalArgumentException 旧密码不正确或新密码长度越界
+     */
     Response changePassword(AdminChangePasswordCmd cmd);
 
     /**

@@ -15,10 +15,25 @@ import java.util.List;
  */
 public interface DocumentExtractionGateway {
 
-    /** 校验文件（大小、格式合法性），非法时抛业务异常 */
+    /**
+     * 校验文件合法性（大小、格式），非法时抛业务异常。
+     *
+     * @param filePath 文件路径
+     * @param fileSize 文件字节数
+     * @param fileName 原始文件名（用于格式识别）
+     * @throws com.mouhin.knowledge.repository.domain.model.valueobject.BusinessException 文件不合法时
+     */
     void validateFile(Path filePath, long fileSize, String fileName);
 
-    /** 提取文本（按 MIME 类型路由到专用解析器） */
+    /**
+     * 提取文本（按 MIME 类型路由到专用解析器）。
+     *
+     * @param filePath 已落盘路径
+     * @param fileSize 字节数
+     * @param fileName 原始文件名（用于格式识别）
+     * @return 提取结果
+     * @throws IOException 读取或解析失败
+     */
     ExtractionResult extractText(Path filePath, long fileSize, String fileName) throws IOException;
 
     /**
@@ -37,9 +52,21 @@ public interface DocumentExtractionGateway {
         return extractText(filePath, fileSize, fileName);
     }
 
-    /** 从已落盘路径提取文本 */
+    /**
+     * 从已落盘路径提取文本。
+     *
+     * @param filePath 文件路径
+     * @return 提取结果
+     * @throws IOException 读取或解析失败
+     */
     ExtractionResult extractFromPath(Path filePath) throws IOException;
 
-    /** 计算文件 MD5 校验和 */
+    /**
+     * 计算文件 MD5 校验和。
+     *
+     * @param filePath 文件路径
+     * @return 十六进制 MD5 摘要字符串
+     * @throws IOException 读取文件失败
+     */
     String calculateChecksum(Path filePath) throws IOException;
 }

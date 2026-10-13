@@ -15,8 +15,20 @@ import java.util.Optional;
  */
 public interface DepartmentGateway {
 
+    /**
+     * 按主键查找部门。
+     *
+     * @param id 部门主键
+     * @return 命中的部门；不存在时 {@link Optional#empty()}
+     */
     Optional<Department> findById(Long id);
 
+    /**
+     * 按部门业务键查找部门。
+     *
+     * @param departmentKey 部门业务键
+     * @return 命中的部门；不存在时 {@link Optional#empty()}
+     */
     Optional<Department> findByDepartmentKey(String departmentKey);
 
     /**
@@ -28,11 +40,26 @@ public interface DepartmentGateway {
      */
     Optional<Department> findByDepartmentKeyAndTenant(String departmentKey, long tenantId);
 
+    /**
+     * 查询全部部门列表。
+     *
+     * @return 全部部门列表
+     */
     List<Department> listAll();
 
-    /** 查找指定部门及其所有祖先部门的 ID 列表（含自身） */
+    /**
+     * 查找指定部门及其所有祖先部门的 ID 列表（含自身）。
+     *
+     * @param departmentId 部门主键
+     * @return 从根部门到指定部门（含自身）的 ID 列表
+     */
     List<Long> findSelfAndAncestorIds(Long departmentId);
 
+    /**
+     * 保存部门（新增），主键回填 {@code department.id}。
+     *
+     * @param department 部门实体
+     */
     void save(Department department);
 
     /**
@@ -46,5 +73,10 @@ public interface DepartmentGateway {
      */
     void saveWithTenant(Department department, long tenantId);
 
+    /**
+     * 更新部门信息。
+     *
+     * @param department 部门实体（须包含有效主键）
+     */
     void update(Department department);
 }
