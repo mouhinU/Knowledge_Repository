@@ -19,15 +19,16 @@
 
 ### 1.2 风格要求
 
-| 元素                                  | 风格                | 正例                                   | 反例                                    |
-| ------------------------------------- | ------------------- | -------------------------------------- | --------------------------------------- |
-| 类名                                  | UpperCamelCase      | `UserService`、`SearchResultVO`        | `userService`、`SearchResultVo`         |
-| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase      | `localValue`、`getHttpMessage()`       | `LocalValue`、`gethttpmessage()`        |
-| 常量                                  | 全大写 + 下划线分隔 | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME` | `MAX_SIZE`                              |
-| 包名                                  | 全小写，单数形式    | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
+| 元素                      | 风格             | 正例                                     | 反例                                      |
+|-------------------------|----------------|----------------------------------------|-----------------------------------------|
+| 类名                      | UpperCamelCase | `UserService`、`SearchResultVO`         | `userService`、`SearchResultVo`          |
+| 方法名 / 参数名 / 成员变量 / 局部变量 | lowerCamelCase | `localValue`、`getHttpMessage()`        | `LocalValue`、`gethttpmessage()`         |
+| 常量                      | 全大写 + 下划线分隔    | `MAX_CHUNK_SIZE`、`CACHE_EXPIRED_TIME`  | `MAX_SIZE`                              |
+| 包名                      | 全小写，单数形式       | `com.mouhin.knowledge.repository.util` | `com.mouhin.Knowledge.Repository.Utils` |
 
 - 类名例外（保持全大写后缀）：`DO` / `BO` / `DTO` / `VO` / `AO` / `PO` / `UID`。
-- 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test` 结尾（测试细则见 [testing-guideline.md](testing-guideline.md)）。
+- 抽象类以 `Abstract` 或 `Base` 开头；异常类以 `Exception` 结尾；测试类以 `Test`
+  结尾（测试细则见 [testing-guideline.md](testing-guideline.md)）。
 - 枚举类名带 `Enum` 后缀，枚举成员全大写下划线分隔（如 `DocumentStatusEnum.INDEXED`）。
 
 ### 1.3 POJO 布尔属性
@@ -37,20 +38,21 @@
 
 ### 1.4 接口与实现
 
-- Service / Gateway 层：接口名不加修饰，实现类用 `Impl` 后缀。正例：`DocumentGatewayImpl` 实现 `DocumentGateway`（COLA 术语，等价于历史命名 `Repository`）。
+- Service / Gateway 层：接口名不加修饰，实现类用 `Impl` 后缀。正例：`DocumentGatewayImpl` 实现 `DocumentGateway`（COLA
+  术语，等价于历史命名 `Repository`）。
 - app 层用例执行器以 `CmdExe` / `QryExe` 结尾（如 `DocumentAddCmdExe`）。
 - 接口方法不加 `public abstract` 等修饰符，保持简洁。
 
 ### 1.5 各层方法命名
 
-| 操作         | 前缀                                   |
-| ------------ | -------------------------------------- |
-| 获取单个对象 | `get` / `find`                         |
+| 操作     | 前缀                             |
+|--------|--------------------------------|
+| 获取单个对象 | `get` / `find`                 |
 | 获取多个对象 | `list`（复数结尾，如 `listDocuments`） |
-| 获取统计值   | `count`                                |
-| 插入         | `save` / `insert`                      |
-| 删除         | `remove` / `delete`                    |
-| 修改         | `update`                               |
+| 获取统计值  | `count`                        |
+| 插入     | `save` / `insert`              |
+| 删除     | `remove` / `delete`            |
+| 修改     | `update`                       |
 
 ### 1.6 数据对象与领域模型命名
 
@@ -62,21 +64,21 @@
 
 **领域模型 / COLA 对象命名：**
 
-| 概念                               | 后缀                | 正例                                           |
-| ---------------------------------- | ------------------- | ---------------------------------------------- |
-| 聚合根（Aggregate Root）           | 直接用业务名词      | `Document`                                     |
-| 实体（Entity）                     | 直接用业务名词      | `DocumentChunk`、`User`                        |
-| 值对象（Value Object）             | 直接用业务名词      | `Permission`、`ChunkingConfig`、`SearchResult` |
-| 领域服务（Domain Service）         | `DomainService`     | `DocumentIngestionDomainService`               |
-| 领域能力（Domain Ability）         | `DomainAbility`     | `ChunkingDomainAbility`                        |
-| 网关接口（Gateway，原 Repository） | `Gateway`           | `DocumentGateway`                              |
-| 网关实现（infrastructure）         | `GatewayImpl`       | `DocumentGatewayImpl`                          |
-| 应用服务接口（client 层）          | `ServiceI`          | `DocumentServiceI`                             |
-| 应用服务实现（app 层）             | `ServiceImpl`       | `DocumentServiceImpl`                          |
-| 命令 / 查询执行器（app 层）        | `CmdExe` / `QryExe` | `DocumentAddCmdExe`                            |
-| 命令 / 查询 DTO（client 层）       | `Cmd` / `Qry`       | `DocumentAddCmd`、`DocumentGetQry`             |
-| 领域事件（Domain Event）           | `Event`（过去式）   | `DocumentCreatedEvent`                         |
-| 转换器（Converter）                | `Converter`         | `DocumentConverter`                            |
+| 概念                         | 后缀                  | 正例                                           |
+|----------------------------|---------------------|----------------------------------------------|
+| 聚合根（Aggregate Root）        | 直接用业务名词             | `Document`                                   |
+| 实体（Entity）                 | 直接用业务名词             | `DocumentChunk`、`User`                       |
+| 值对象（Value Object）          | 直接用业务名词             | `Permission`、`ChunkingConfig`、`SearchResult` |
+| 领域服务（Domain Service）       | `DomainService`     | `DocumentIngestionDomainService`             |
+| 领域能力（Domain Ability）       | `DomainAbility`     | `ChunkingDomainAbility`                      |
+| 网关接口（Gateway，原 Repository） | `Gateway`           | `DocumentGateway`                            |
+| 网关实现（infrastructure）       | `GatewayImpl`       | `DocumentGatewayImpl`                        |
+| 应用服务接口（client 层）           | `ServiceI`          | `DocumentServiceI`                           |
+| 应用服务实现（app 层）              | `ServiceImpl`       | `DocumentServiceImpl`                        |
+| 命令 / 查询执行器（app 层）          | `CmdExe` / `QryExe` | `DocumentAddCmdExe`                          |
+| 命令 / 查询 DTO（client 层）      | `Cmd` / `Qry`       | `DocumentAddCmd`、`DocumentGetQry`            |
+| 领域事件（Domain Event）         | `Event`（过去式）        | `DocumentCreatedEvent`                       |
+| 转换器（Converter）             | `Converter`         | `DocumentConverter`                          |
 
 > 对象**所在分层**与**跨层传递禁令**见 [architecture-decisions.md](architecture-decisions.md) §2。
 
@@ -104,7 +106,8 @@
 
 - 所有覆写方法必须加 `@Override` 注解。
 - `equals` 比较：推荐使用 `Objects.equals()`。
-- DO 类属性类型必须与数据库字段类型匹配（数据对象规范见 [data-and-migration-guideline.md](data-and-migration-guideline.md)）。
+- DO
+  类属性类型必须与数据库字段类型匹配（数据对象规范见 [data-and-migration-guideline.md](data-and-migration-guideline.md)）。
 - POJO 类属性必须使用包装数据类型。
 - DO/DTO/VO 等 POJO 类不要设定任何属性默认值。
 - 循环体内字符串连接使用 `StringBuilder.append`。
@@ -134,7 +137,8 @@
 - **新建或重点修改的 Java 类应补齐 `@author` + `@date` 的 Javadoc**；已有类不强制一次性大改，但新增/关键改动需保持一致。
 - 推荐用中文注释，专有名词保持英文。
 - **`@author` 取值**：填写当前开发者标识，取自本仓库 `git config user.name` 的返回值（本仓库为 `mouhinU`），不使用固定占位名。
-- **`@date` 取值**：填写**编写该注释时的当前系统时间**，格式 `yyyy-MM-dd HH:mm:ss`（24 小时制，如 `2026-09-21 08:23:43`）；由 AI 生成代码时须以运行环境的实时时间填充，不得沿用示例值或臆造时间。
+- **`@date` 取值**：填写**编写该注释时的当前系统时间**，格式 `yyyy-MM-dd HH:mm:ss`（24 小时制，如 `2026-09-21 08:23:43`）；由
+  AI 生成代码时须以运行环境的实时时间填充，不得沿用示例值或臆造时间。
 - 作者与时间信息统一采用上述口径（原第十三章并入此处）。
 
 ### 本项目类注释模板
@@ -159,14 +163,18 @@ public class DocumentServiceImpl implements DocumentServiceI {
 - 可通过预检查规避的 `RuntimeException` 不用 `catch` 处理。
 - 捕获异常必须处理，不能空 `catch`。
 - 使用 `Optional` 防止 NPE。
-- 避免直接 `new RuntimeException()`，使用有业务含义的自定义异常；COLA 统一异常体系（`BizException` / `SysException`）见 [architecture-decisions.md](architecture-decisions.md) §9。
-- 业务态冲突（如重复开考、未发布 / 已作废不可操作）经 `GlobalExceptionHandler` 映射为 `409 CONFLICT` 并携带 `errorMessage`，抛出 `IllegalStateException`；参数非法抛 `IllegalArgumentException`（映射为 `400`）。
+- 避免直接 `new RuntimeException()`，使用有业务含义的自定义异常；COLA 统一异常体系（`BizException` / `SysException`
+  ）见 [architecture-decisions.md](architecture-decisions.md) §9。
+- 业务态冲突（如重复开考、未发布 / 已作废不可操作）经 `GlobalExceptionHandler` 映射为 `409 CONFLICT` 并携带 `errorMessage`
+  ，抛出 `IllegalStateException`；参数非法抛 `IllegalArgumentException`（映射为 `400`）。
 
 ---
 
 ## 九、日志规约
 
-- **统一使用 Lombok `@Slf4j` 注解声明日志对象**：类上加 `@Slf4j`，编译期自动生成名为 **`log`** 的静态字段，直接 `log.debug(...)` 使用，**禁止**再手写 `private static final Logger logger = LoggerFactory.getLogger(...)`，也无需 import `Logger` / `LoggerFactory`。
+- **统一使用 Lombok `@Slf4j` 注解声明日志对象**：类上加 `@Slf4j`，编译期自动生成名为 **`log`** 的静态字段，直接
+  `log.debug(...)` 使用，**禁止**再手写 `private static final Logger logger = LoggerFactory.getLogger(...)`，也无需 import
+  `Logger` / `LoggerFactory`。
 - `@Slf4j` 底层仍是 SLF4J API，故仍**不得**直接依赖 Log4j / Logback API。
 
 ```java
@@ -183,9 +191,11 @@ public class XxxService {
 
 - 日志输出使用占位符 `{}`，**禁止 `+` 字符串拼接**：`log.debug("Processing document with key: {}", documentKey)`。
 - 一般无需手工判级；仅当参数需要昂贵计算时才用 `log.isXxxEnabled()` 守卫。
-- 异常日志把异常对象作为**最后一个参数**传入以保留堆栈：`log.error("处理文档失败, key={}", documentKey, e)`（勿 `+ e.getMessage()` 而丢栈）。
+- 异常日志把异常对象作为**最后一个参数**传入以保留堆栈：`log.error("处理文档失败, key={}", documentKey, e)`（勿
+  `+ e.getMessage()` 而丢栈）。
 - **禁止记录敏感信息**（口令、令牌、身份证等），安全日志约束见 [security-guideline.md](security-guideline.md) §6。
-- **存量迁移**：仓库现有类多为手写 `LoggerFactory`（约 100 个），不强制一次性重构；但**新增 / 重点改动的类一律改用 `@Slf4j`**，随迭代收敛到统一口径。
+- **存量迁移**：仓库现有类多为手写 `LoggerFactory`（约 100 个），不强制一次性重构；但**新增 / 重点改动的类一律改用 `@Slf4j`**
+  ，随迭代收敛到统一口径。
 
 ---
 
@@ -203,10 +213,12 @@ public class XxxService {
     - 避免布尔开关参数（`boolean` flag）——调用点语义模糊，必要时拆成两个方法或用枚举表达意图。
 
 4. **优先编写纯函数**：**相同的输入永远产生相同的输出**，且不产生副作用——不修改入参、不读写可变全局状态、不做 I/O。
-    - 确需副作用时（DB / 网络 / 文件 / 系统时间 / 随机数），将其**收敛到系统边界**（infrastructure 的 `Gateway` 与外部调用），核心计算逻辑保持纯；
+    - 确需副作用时（DB / 网络 / 文件 / 系统时间 / 随机数），将其**收敛到系统边界**（infrastructure 的 `Gateway`
+      与外部调用），核心计算逻辑保持纯；
     - 该原则与 COLA「domain 层纯净」一致，分层与事务边界见 [architecture-decisions.md](architecture-decisions.md) §4 / §5。
 
-> 例外：框架入口（`main`、Controller 方法）、`equals` / `hashCode` / 构造器等样板方法以表达清晰为先，可适度放宽行数与参数限制，但仍受命名与"优先纯函数"意图约束。
+> 例外：框架入口（`main`、Controller 方法）、`equals` / `hashCode` /
+> 构造器等样板方法以表达清晰为先，可适度放宽行数与参数限制，但仍受命名与"优先纯函数"意图约束。
 
 ---
 
@@ -214,16 +226,16 @@ public class XxxService {
 
 以下均为本项目高频踩坑点，生成 / 审查代码时优先排查：
 
-| 反模式 | 危害 | 正解 |
-|---|---|---|
-| 字段 `@Autowired` 注入 | 隐藏依赖、难以测试、启动期 NPE | 构造器注入 + `final`，面向接口（[architecture-decisions.md](architecture-decisions.md) §7） |
-| `Executors.newXxxThreadPool` / 循环内 `new Thread` | 无界队列 / OOM、线程失控 | `ThreadPoolExecutor` 显式参数（§六） |
-| `foreach` 里 `remove` / `add` | `ConcurrentModificationException` | `Iterator.remove()` 或 `removeIf`（§五） |
-| SQL 用 `${}` 拼接、`SELECT *` | 注入 + 无谓 IO | 一律 `#{}`，动态列走白名单，显式列字段（§ data & migration / security §1） |
-| DO 出现在 app / adapter | 破坏分层、泄漏表结构 | 层边界转化 `Entity/DTO/VO`（architecture §2） |
-| 一个 Service 方法堆完整用例、事务里裹 LLM / 外部 IO | 长事务占连接、超时连锁回滚 | 一用例一 Executor，事务收窄，IO 移出事务（architecture §4） |
-| 手写 `LoggerFactory.getLogger` / 日志用 `+` 拼接 / 打印口令 · 令牌 | 样板冗余、性能损耗 + 泄密 | 类上 `@Slf4j`（字段 `log`）+ 占位符 `{}`，敏感信息脱敏（§九、security §5） |
-| 空 `catch` / 裸 `new RuntimeException` | 吞异常、无业务语义 | 记录或转译；用 `BizException` / `IllegalStateException`（§八、architecture §8） |
-| 魔法值散落各处 | 不可维护、易漂移 | 归类预定义常量（§二） |
-| POJO 布尔写成 `isDeleted` | 部分框架序列化歧义 | 去 `is` 前缀：`deleted`（§1.3） |
-| 类缺 `@author` / `@date` | 无法溯源 | 补 Javadoc（§七） |
+| 反模式                                                   | 危害                                | 正解                                                                              |
+|-------------------------------------------------------|-----------------------------------|---------------------------------------------------------------------------------|
+| 字段 `@Autowired` 注入                                    | 隐藏依赖、难以测试、启动期 NPE                 | 构造器注入 + `final`，面向接口（[architecture-decisions.md](architecture-decisions.md) §7） |
+| `Executors.newXxxThreadPool` / 循环内 `new Thread`       | 无界队列 / OOM、线程失控                   | `ThreadPoolExecutor` 显式参数（§六）                                                   |
+| `foreach` 里 `remove` / `add`                          | `ConcurrentModificationException` | `Iterator.remove()` 或 `removeIf`（§五）                                            |
+| SQL 用 `${}` 拼接、`SELECT *`                             | 注入 + 无谓 IO                        | 一律 `#{}`，动态列走白名单，显式列字段（§ data & migration / security §1）                        |
+| DO 出现在 app / adapter                                  | 破坏分层、泄漏表结构                        | 层边界转化 `Entity/DTO/VO`（architecture §2）                                          |
+| 一个 Service 方法堆完整用例、事务里裹 LLM / 外部 IO                   | 长事务占连接、超时连锁回滚                     | 一用例一 Executor，事务收窄，IO 移出事务（architecture §4）                                     |
+| 手写 `LoggerFactory.getLogger` / 日志用 `+` 拼接 / 打印口令 · 令牌 | 样板冗余、性能损耗 + 泄密                    | 类上 `@Slf4j`（字段 `log`）+ 占位符 `{}`，敏感信息脱敏（§九、security §5）                          |
+| 空 `catch` / 裸 `new RuntimeException`                  | 吞异常、无业务语义                         | 记录或转译；用 `BizException` / `IllegalStateException`（§八、architecture §8）            |
+| 魔法值散落各处                                               | 不可维护、易漂移                          | 归类预定义常量（§二）                                                                     |
+| POJO 布尔写成 `isDeleted`                                 | 部分框架序列化歧义                         | 去 `is` 前缀：`deleted`（§1.3）                                                       |
+| 类缺 `@author` / `@date`                                | 无法溯源                              | 补 Javadoc（§七）                                                                   |

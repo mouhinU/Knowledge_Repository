@@ -8,22 +8,24 @@
 
 **Quality Gate**：`Sonar way`（内置），共 6 条卡点，3 条不通过。
 
-| 条件 | 阈值 | 当前 | 结论 |
-|---|---|---|---|
-| `new_reliability_rating` | ≤ A (1) | **C (3)** | ❌ |
-| `new_security_rating` | ≤ A (1) | **C (3)** | ❌ |
-| `new_duplicated_lines_density` | ≤ 3% | **3.16%** (1464 / 46351) | ❌ |
-| `new_maintainability_rating` | ≤ A (1) | A (1) | ✅ |
-| `new_security_hotspots_reviewed` | = 100% | 100% | ✅ |
-| `new_coverage` | ≥ 80% | 未上报 | ⚪ 跳过 |
+| 条件                               | 阈值      | 当前                       | 结论   |
+|----------------------------------|---------|--------------------------|------|
+| `new_reliability_rating`         | ≤ A (1) | **C (3)**                | ❌    |
+| `new_security_rating`            | ≤ A (1) | **C (3)**                | ❌    |
+| `new_duplicated_lines_density`   | ≤ 3%    | **3.16%** (1464 / 46351) | ❌    |
+| `new_maintainability_rating`     | ≤ A (1) | A (1)                    | ✅    |
+| `new_security_hotspots_reviewed` | = 100%  | 100%                     | ✅    |
+| `new_coverage`                   | ≥ 80%   | 未上报                      | ⚪ 跳过 |
 
 **新代码 issue 总盘（490）**
 
-- 按软件质量拆分：RELIABILITY 影响 183 条（MEDIUM 100 / LOW 25 / INFO 58），SECURITY 影响 2 条（MEDIUM），MAINTAINABILITY 影响 399 条（当前评级已 A，**不需要处理**）。
+- 按软件质量拆分：RELIABILITY 影响 183 条（MEDIUM 100 / LOW 25 / INFO 58），SECURITY 影响 2 条（MEDIUM），MAINTAINABILITY 影响
+  399 条（当前评级已 A，**不需要处理**）。
 - 按类型拆分：CODE_SMELL 439 / BUG 49 / VULNERABILITY 2。
 - 按扩展名：`.java` 311 / `.html` 165 / `.css` 14。
 
-**要回绿只需清 127 条 QG 阻塞项**（RELIABILITY LOW+MED 125 + SECURITY MED 2），**外加压降重复度**。剩余 363 条 MAINTAINABILITY smell 不阻塞，另案排期。
+**要回绿只需清 127 条 QG 阻塞项**（RELIABILITY LOW+MED 125 + SECURITY MED 2），**外加压降重复度**。剩余 363 条
+MAINTAINABILITY smell 不阻塞，另案排期。
 
 ## 二、按规则汇总的修复清单
 
@@ -31,9 +33,11 @@
 
 **现象**：`<input>` 元素没有可访问的 label 关联。
 
-**分布**：`documents.html ×12` · `ai-exam.html ×5` · `ai-writing.html ×3` · `search.html ×3` · `wrong-answers.html ×3` · `exam-review.html ×2` · `exam.html ×2`。
+**分布**：`documents.html ×12` · `ai-exam.html ×5` · `ai-writing.html ×3` · `search.html ×3` · `wrong-answers.html ×3` ·
+`exam-review.html ×2` · `exam.html ×2`。
 
 **修法**：给每个 `<input id="X">` 补一种关联：
+
 1. 首选：让可见 `<label>` 加 `for="X"`；
 2. 或：用 `<label>` 直接包裹 `<input>`（父 label 视为关联）；
 3. 兜底：给 `<input>` 加 `aria-label="…"`（当没有可见标签时用）。
@@ -42,7 +46,8 @@
 
 ### 2.2 Web:S6853 — 25 条 · MEDIUM
 
-**现象**：`<label>` 未与表单控件建立关联（Sonar 消息："A form label must be associated with a control and have accessible text."）。这条与 §2.1 是**同一问题的两面** —— S6853 从 label 侧看，InputWithoutLabelCheck 从 input 侧看；补 `for=` 一次满足。
+**现象**：`<label>` 未与表单控件建立关联（Sonar 消息："A form label must be associated with a control and have accessible
+text."）。这条与 §2.1 是**同一问题的两面** —— S6853 从 label 侧看，InputWithoutLabelCheck 从 input 侧看；补 `for=` 一次满足。
 
 **分布**：与 §2.1 完全重叠（每对相邻 label+input/select 会同时命中两条规则）。
 
@@ -54,11 +59,16 @@
 
 **现象**：非原生交互元素（如可点击的 `<div class="agent-panel-header">`、modal overlay）缺少 `role` + 键盘支持。
 
-**分布**：`ai-exam.html ×9` · `ai-writing.html ×5` · `documents.html ×2` · `exam-review.html ×1` · `wrong-answers.html ×1`。
+**分布**：`ai-exam.html ×9` · `ai-writing.html ×5` · `documents.html ×2` · `exam-review.html ×1` ·
+`wrong-answers.html ×1`。
 
 **修法**（两种模式）：
-- **折叠面板**（`<div class="agent-panel-header" onclick="…toggle('open')">`）：加 `role="button"` `tabindex="0"` + `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"`。样板见 `ai-exam.html:521-523`（score-rule 弹窗已用同款）。
-- **遮罩关闭**（`<div class="modal-overlay" onclick="if(event.target===this)close…">`）：加 `role="presentation"` `tabindex="-1"` + `onkeydown="if(event.key==='Escape')close…()"`。
+
+- **折叠面板**（`<div class="agent-panel-header" onclick="…toggle('open')">`）：加 `role="button"` `tabindex="0"` +
+  `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentElement.classList.toggle('open')}"`
+  。样板见 `ai-exam.html:521-523`（score-rule 弹窗已用同款）。
+- **遮罩关闭**（`<div class="modal-overlay" onclick="if(event.target===this)close…">`）：加 `role="presentation"`
+  `tabindex="-1"` + `onkeydown="if(event.key==='Escape')close…()"`。
 
 **工时**：~18 × 3min = 1 小时。风险：中 —— 键盘 handler 逻辑要与鼠标 handler 等价，需浏览器手测。
 
@@ -74,24 +84,37 @@
 
 **现象**：正则回溯导致的超线性复杂度（ReDoS 风险，故归 RELIABILITY）。
 
-**分布**：`AnswerKeyParser.java ×5` · `ExamPaperParser.java ×5` · `ExamContentRenderAgent.java ×3` · `DocumentIngestionDomainService.java ×1` · `EnhancedPdfTextExtractor.java ×1`。
+**分布**：`AnswerKeyParser.java ×5` · `ExamPaperParser.java ×5` · `ExamContentRenderAgent.java ×3` ·
+`DocumentIngestionDomainService.java ×1` · `EnhancedPdfTextExtractor.java ×1`。
 
 **修法**：
+
 - 拆分嵌套量词（`(a+)+` → `a+a*`）；
 - 用占有量词 `++` / `*+` 或原子组 `(?>…)`；
 - 极端情况改用 `String.contains` / `indexOf` 手工解析。
 
-**工时**：~15 × 8min = 2 小时。风险：**中高** —— 正则改写容易破坏既有语义。每条改动必须补一条命中回归测试（现有 `ExamPaperParserTest` 已存在，扩用例即可）。
+**工时**：~15 × 8min = 2 小时。风险：**中高** —— 正则改写容易破坏既有语义。每条改动必须补一条命中回归测试（现有
+`ExamPaperParserTest` 已存在，扩用例即可）。
 
-**执行结果（PR-4 · 2026-09-22）**：以占有量词（`\s*+` / `\d++` / `[X]{m,n}+` / `[^…)】]*+`）消除相邻重叠量词的多项式回溯，语义等价（仅禁止不可能导致成功匹配的回溯路径），全套 `mvn test`（domain 28 + application 105）通过，spotless 校验通过。
+**执行结果（PR-4 · 2026-09-22）**：以占有量词（`\s*+` / `\d++` / `[X]{m,n}+` / `[^…)】]*+`
+）消除相邻重叠量词的多项式回溯，语义等价（仅禁止不可能导致成功匹配的回溯路径），全套 `mvn test`（domain 28 + application
+105）通过，spotless 校验通过。
 
-- `AnswerKeyParser.java ×5`：`ANSWER_MARK` / `ANALYSIS_MARK` / `CRITERIA_MARK`（`\s*+` 界定 `(.*)` 边界）、`INLINE_SCORE_PAREN`（首个字符类排除 `分` 使锚点确定 + 后段 `*+`）、`BARE_LABEL_ONLY`（可选冒号两侧 `\s*+` 与两端 `\*{0,2}+` 全部所有格化）。
-- `ExamPaperParser.java ×4`：`SECTION_PATTERN`、`QUESTION_SCORE_PATTERN`、`QUESTION_SCORE_STRIP`、`parseOptions` 内联选项切分正则。**附带修复一处潜在编译错误**：`SECTION_PATTERN` 原串内 `[一二三四五六七八九十]+` 之后为单反斜杠 `\s`（Java 字符串字面量非法转义），本次一并改回 `\\s` 所有格形式。
-- `ExamContentRenderAgent.java`：`extractOptionsFromContent` 的内联切分正则（同上所有格化）+ `cleanContent` 的水平线/分值括注/尾空白三处所有格化。
+- `AnswerKeyParser.java ×5`：`ANSWER_MARK` / `ANALYSIS_MARK` / `CRITERIA_MARK`（`\s*+` 界定 `(.*)` 边界）、
+  `INLINE_SCORE_PAREN`（首个字符类排除 `分` 使锚点确定 + 后段 `*+`）、`BARE_LABEL_ONLY`（可选冒号两侧 `\s*+` 与两端
+  `\*{0,2}+` 全部所有格化）。
+- `ExamPaperParser.java ×4`：`SECTION_PATTERN`、`QUESTION_SCORE_PATTERN`、`QUESTION_SCORE_STRIP`、`parseOptions` 内联选项切分正则。
+  **附带修复一处潜在编译错误**：`SECTION_PATTERN` 原串内 `[一二三四五六七八九十]+` 之后为单反斜杠 `\s`（Java
+  字符串字面量非法转义），本次一并改回 `\\s` 所有格形式。
+- `ExamContentRenderAgent.java`：`extractOptionsFromContent` 的内联切分正则（同上所有格化）+ `cleanContent`
+  的水平线/分值括注/尾空白三处所有格化。
 - 回归测试：`AnswerKeyParserTest` +1（冒号两侧空格）、`ExamPaperParserTest` +1（选项值内联分值括注剥离）。
 
-**暂缓 2 处（原因）**：`DocumentIngestionDomainService` 的段落分割正则 `(?:^|\n\s*\n)\s*(.+?)(?=\n\s*\n|$)`（DOTALL）—— 安全修法需把 `\s` 收敛为 `[ \t]` 或改判分段语义，会改变 3+ 连续空行的分段口径，无对应单测保护，留待带测试的专项重构；`EnhancedPdfTextExtractor` 的 `[ \t]+\n` 经判定字符类与后继 `\n` 互斥、线性可证，待重扫 Sonar 确认是否为该条，若非则不动。**收尾项**：本轮无 token 无法即时回查 Sonar 精确 15 条行号（组件键匿名 API 暂返回空），改以工程判据覆盖全部具备重叠量词特征的模式；PR-5 合并后统一带 token 复核 S8786 归零情况。
-
+**暂缓 2 处（原因）**：`DocumentIngestionDomainService` 的段落分割正则 `(?:^|\n\s*\n)\s*(.+?)(?=\n\s*\n|$)`（DOTALL）——
+安全修法需把 `\s` 收敛为 `[ \t]` 或改判分段语义，会改变 3+ 连续空行的分段口径，无对应单测保护，留待带测试的专项重构；
+`EnhancedPdfTextExtractor` 的 `[ \t]+\n` 经判定字符类与后继 `\n` 互斥、线性可证，待重扫 Sonar 确认是否为该条，若非则不动。*
+*收尾项**：本轮无 token 无法即时回查 Sonar 精确 15 条行号（组件键匿名 API 暂返回空），改以工程判据覆盖全部具备重叠量词特征的模式；PR-5
+合并后统一带 token 复核 S8786 归零情况。
 
 ### 2.6 javascript:S7773 — 11 条 · MEDIUM
 
@@ -99,9 +122,11 @@
 
 **分布**：`exam.html ×4` · `documents.html ×4` · `exam-review.html ×1` · `search.html ×1` · `wrong-answers.html ×1`。
 
-**修法**：全局查找替换：`isNaN(` → `Number.isNaN(`；`parseInt(` → `Number.parseInt(`。**注意 `parseInt(x, 16)` 等带进制参数的调用也要一并改**。
+**修法**：全局查找替换：`isNaN(` → `Number.isNaN(`；`parseInt(` → `Number.parseInt(`。**注意 `parseInt(x, 16)`
+等带进制参数的调用也要一并改**。
 
-**工时**：~11 × 1min = 15 分钟。风险：低，但 `isNaN` 语义与 `Number.isNaN` 略有差异 —— 前者会尝试强转，后者只对真正 `NaN` 返回 true。若原意是"排除非数字字符串"，需要 `!Number.isFinite(Number(x))` 替代。逐点核对。
+**工时**：~11 × 1min = 15 分钟。风险：低，但 `isNaN` 语义与 `Number.isNaN` 略有差异 —— 前者会尝试强转，后者只对真正 `NaN` 返回
+true。若原意是"排除非数字字符串"，需要 `!Number.isFinite(Number(x))` 替代。逐点核对。
 
 ### 2.7 javascript:S7781 — 5 条 · LOW
 
@@ -119,7 +144,8 @@
 
 **分布**：`ai-writing.html:358`（sessionId）· `exam-review.html:294`（streamId）。
 
-**修法**：统一改用 `crypto.getRandomValues(new Uint8Array(8))` 生成短 token，或已有 `crypto.randomUUID()`（`exam-review.html:293` 已优先走这条，只是 fallback 里用了 Math.random）：
+**修法**：统一改用 `crypto.getRandomValues(new Uint8Array(8))` 生成短 token，或已有 `crypto.randomUUID()`（
+`exam-review.html:293` 已优先走这条，只是 fallback 里用了 Math.random）：
 
 ```js
 function randToken(n = 8) {
@@ -157,38 +183,62 @@ function randToken(n = 8) {
 
 **基线**：新代码 1464 duplicated / 46351 total；要跌破 3% 至少清出 ~74 行（安全余量 ~200）。
 
-**执行结果（PR-5 · 2026-09-22）**：无 token 拉不到 Sonar 精确 dup blocks，改用工程扫描（≥8 行 sliding-window、去注释与空白，同文件多命中聚类 + 跨文件命中），锁定 intra-file 为主战场，完成 4 项抽取：
+**执行结果（PR-5 · 2026-09-22）**：无 token 拉不到 Sonar 精确 dup blocks，改用工程扫描（≥8 行
+sliding-window、去注释与空白，同文件多命中聚类 + 跨文件命中），锁定 intra-file 为主战场，完成 4 项抽取：
 
-- `DocumentIngestionDomainService.mergePages(pages, sep)` + `MergedPages` record：4 处 `StringBuilder merged + charPageMap` 8-18 行重复块 → 单 helper，附带删掉一处未使用局部变量。
+- `DocumentIngestionDomainService.mergePages(pages, sep)` + `MergedPages` record：4 处
+  `StringBuilder merged + charPageMap` 8-18 行重复块 → 单 helper，附带删掉一处未使用局部变量。
 - `ExamPaperParser.splitQuestionBody(block, contentBuilder, rawOptionsBuilder)`：2 处 27/26 行"题干+选项块解析"合并为一处。
-- `ParserUtils.OPTION_SPLIT_PATTERN`：跨文件共享选项切分正则常量，`ExamPaperParser` 与 `ExamContentRenderAgent` 都从字面量 `Pattern.compile(...)` 改为 `ParserUtils.OPTION_SPLIT_PATTERN`，防未来 ReDoS 修复只改一侧漂移。
-- `ai-exam.js` 新增 `_pstBodyHtml()` + `_waitForSseReady(flagGetter, timeoutMs)`：两处 8 行 `pst-body` HTML 模板 + 两处 6 行 SSE 轮询 promise 收敛为单实现；`node --check` 通过。
+- `ParserUtils.OPTION_SPLIT_PATTERN`：跨文件共享选项切分正则常量，`ExamPaperParser` 与 `ExamContentRenderAgent` 都从字面量
+  `Pattern.compile(...)` 改为 `ParserUtils.OPTION_SPLIT_PATTERN`，防未来 ReDoS 修复只改一侧漂移。
+- `ai-exam.js` 新增 `_pstBodyHtml()` + `_waitForSseReady(flagGetter, timeoutMs)`：两处 8 行 `pst-body` HTML 模板 + 两处 6
+  行 SSE 轮询 promise 收敛为单实现；`node --check` 通过。
 
-回归验证：`mvn test -pl knowledge-application -am` 28（domain）+ 105（application）全绿，`spotless:check` 通过；HTML/JS 无自动化回归，仅 `node --check` 保语法（无浏览器验证条件，页面功能层面依赖 PR 后手工点检）。
+回归验证：`mvn test -pl knowledge-application -am` 28（domain）+ 105（application）全绿，`spotless:check` 通过；HTML/JS
+无自动化回归，仅 `node --check` 保语法（无浏览器验证条件，页面功能层面依赖 PR 后手工点检）。
 
-**扫描后剩余 Java intra-file dup 主源**（8-行窗口近似）：`ExamController` 280 · `DocumentUploadController` 104 · `ExamGenerationSupport` 88 · `DocumentAdminController` 88 · `DocumentImageExtractorService` 80 · 合计 ~640 行。前三者主要是「try { return ResponseEntity.ok(service.xxx(...)); } catch (Exception e) { log.error(...); return ResponseEntity.badRequest().body(Map.of(\"errorCode\",\"BAD_REQUEST\",...)); }}」的 Controller 样板，`ExamGenerationSupport` 与 `DocumentImageExtractorService` 属于同类"方法体分步骨架"重复。**已归为架构级改动，独立提交待确认**（详见 §四 后续动作）。
+**扫描后剩余 Java intra-file dup 主源**（8-行窗口近似）：`ExamController` 280 · `DocumentUploadController` 104 ·
+`ExamGenerationSupport` 88 · `DocumentAdminController` 88 · `DocumentImageExtractorService` 80 · 合计 ~640
+行。前三者主要是「try { return ResponseEntity.ok(service.xxx(...)); } catch (Exception e) { log.error(...); return
+ResponseEntity.badRequest().body(Map.of(\"errorCode\",\"BAD_REQUEST\",...)); }}」的 Controller 样板，
+`ExamGenerationSupport` 与 `DocumentImageExtractorService` 属于同类"方法体分步骨架"重复。**已归为架构级改动，独立提交待确认
+**（详见 §四 后续动作）。
 
 **执行结果（PR-6 · 2026-09-22 · 三项架构级去重，用户「一起做」授权）**：
 
-- **`ExamGenerationSupport.emit(cb, event)`**：新增空安全 SSE 进度推送 helper，把流水线 / 各 Agent 方法里 18 处 `if (cb != null) cb.onProgress(BlackboardProgressEvent.xxx(...))` 判空骨架收敛为单行调用（脚本化 brace/paren 配平改写，仅命中「纯 onProgress」块，0 跳过），语义与内联判空完全等价。application 105 测试全绿。
-- **`DocumentImageExtractorService.tryBuildImage(bytes, contentType, fileExt, pageNo, seq)`**：docx / xlsx / pptx 三处「字节→解码→accept 过滤→resolveMime→new ExtractedImage」骨架合并；顺带删掉 `accept()` 保证非空后仍写的 `awt != null ?` 死防御三元。infra 3 测试全绿。
-- **Controller 错误/分派去重（严格保前端契约）**：`DocumentUploadController` 抽 `badRequest/serverError/errorBody`，8 处内联 `Map.of("errorCode",..,errorMessage,..)` 收敛，输出 ResponseEntity（状态码 + 字段）逐字节不变；`ExamController` 抽 `resolvePermission`（×4）、`generateSyncPaper`（消除 `generateExam`/`exportExamWord` 两处近 19 行 `executeWithPlan/executeByCounts` 重复）、`hasTypes`、`badRequestError`。**关键取舍**：考试前端这些端点读的是 `data.error`，与全局 `GlobalExceptionHandler` 的 `errorMessage` 字段名不同，故刻意**不**外移到 advice，只用本地同形 helper，避免破坏契约；`Map.of("error",..)` 唯一消息的输入校验块非真重复，未强改。
+- **`ExamGenerationSupport.emit(cb, event)`**：新增空安全 SSE 进度推送 helper，把流水线 / 各 Agent 方法里 18 处
+  `if (cb != null) cb.onProgress(BlackboardProgressEvent.xxx(...))` 判空骨架收敛为单行调用（脚本化 brace/paren 配平改写，仅命中「纯
+  onProgress」块，0 跳过），语义与内联判空完全等价。application 105 测试全绿。
+- **`DocumentImageExtractorService.tryBuildImage(bytes, contentType, fileExt, pageNo, seq)`**：docx / xlsx / pptx
+  三处「字节→解码→accept 过滤→resolveMime→new ExtractedImage」骨架合并；顺带删掉 `accept()` 保证非空后仍写的
+  `awt != null ?` 死防御三元。infra 3 测试全绿。
+- **Controller 错误/分派去重（严格保前端契约）**：`DocumentUploadController` 抽 `badRequest/serverError/errorBody`，8 处内联
+  `Map.of("errorCode",..,errorMessage,..)` 收敛，输出 ResponseEntity（状态码 + 字段）逐字节不变；`ExamController` 抽
+  `resolvePermission`（×4）、`generateSyncPaper`（消除 `generateExam`/`exportExamWord` 两处近 19 行
+  `executeWithPlan/executeByCounts` 重复）、`hasTypes`、`badRequestError`。**关键取舍**：考试前端这些端点读的是 `data.error`
+  ，与全局 `GlobalExceptionHandler` 的 `errorMessage` 字段名不同，故刻意**不**外移到 advice，只用本地同形 helper，避免破坏契约；
+  `Map.of("error",..)` 唯一消息的输入校验块非真重复，未强改。
 
-净变化：4 文件 258 增 / 289 删（−31 行），全 reactor `mvn test`（domain 28 + infra 3 + application 105 + web 16）BUILD SUCCESS，`spotless` 通过。**`DocumentAdminController` 88 行**经查为单点 `catch (IllegalArgumentException) → badRequest().build()`（空体，唯一非重复）+ SSE/流式端点，去重收益低且改动面广，**本批未动**；`ExamController` 429 限流、`response.sendError` 等特形响应亦刻意保留。Duplication 是否跌破 3% 待 PR 合入 main、Sonar new-code 周期重算后确认。
+净变化：4 文件 258 增 / 289 删（−31 行），全 reactor `mvn test`（domain 28 + infra 3 + application 105 + web 16）BUILD
+SUCCESS，`spotless` 通过。**`DocumentAdminController` 88 行**经查为单点
+`catch (IllegalArgumentException) → badRequest().build()`（空体，唯一非重复）+ SSE/流式端点，去重收益低且改动面广，**本批未动
+**；`ExamController` 429 限流、`response.sendError` 等特形响应亦刻意保留。Duplication 是否跌破 3% 待 PR 合入 main、Sonar
+new-code 周期重算后确认。
 
 ## 三、分批 PR 建议
 
 以"每批独立可回滚 + 每批都能推进 QG 至少一条"为原则：
 
-| 批次 | 主题 | 涉及规则 | 文件面 | 预期效果 | 工时 |
-|---:|---|---|---|---|--:|
-| **PR-1** | 静态 HTML a11y 快赢 | InputWithoutLabelCheck · S6853 · S6844 · S5256 | 8 个 HTML | Reliability 30+25+2+1=**58 条 MEDIUM/LOW 消除** | ~2.5h |
-| **PR-2** | 键盘可交互化 | S6848 · MouseEventWithoutKeyboardEquivalentCheck | 5 个 HTML | Reliability 再消 **18 条 MEDIUM**（S6848） + 18 条 LOW（部分与 PR-1 重叠） | ~1h |
-| **PR-3** | JS 现代化 | S7773 · S7781 · S2245 | 5 个 HTML | Reliability 消 16 条 + **Security 消 2 条 → `new_security_rating` 回 A** | ~45min |
-| **PR-4** | Java 正则 ReDoS | java:S8786 | 5 个 Java | Reliability 消 15 条；**需要回归测试补强** | ~2h |
-| **PR-5** | 重复度专项 | Duplication | 跨栈 | 目标 `new_duplicated_lines` 从 1464 → <1390 | ~4-5h（含定位） |
+|       批次 | 主题              | 涉及规则                                             | 文件面      | 预期效果                                                                |         工时 |
+|---------:|-----------------|--------------------------------------------------|----------|---------------------------------------------------------------------|-----------:|
+| **PR-1** | 静态 HTML a11y 快赢 | InputWithoutLabelCheck · S6853 · S6844 · S5256   | 8 个 HTML | Reliability 30+25+2+1=**58 条 MEDIUM/LOW 消除**                        |      ~2.5h |
+| **PR-2** | 键盘可交互化          | S6848 · MouseEventWithoutKeyboardEquivalentCheck | 5 个 HTML | Reliability 再消 **18 条 MEDIUM**（S6848） + 18 条 LOW（部分与 PR-1 重叠）       |        ~1h |
+| **PR-3** | JS 现代化          | S7773 · S7781 · S2245                            | 5 个 HTML | Reliability 消 16 条 + **Security 消 2 条 → `new_security_rating` 回 A** |     ~45min |
+| **PR-4** | Java 正则 ReDoS   | java:S8786                                       | 5 个 Java | Reliability 消 15 条；**需要回归测试补强**                                     |        ~2h |
+| **PR-5** | 重复度专项           | Duplication                                      | 跨栈       | 目标 `new_duplicated_lines` 从 1464 → <1390                            | ~4-5h（含定位） |
 
-**关键路径**：PR-1..4 全清后 Reliability 从 C → **A 或 B**（剩余 25 条 LOW + 100+ 条 INFO 里可能有残留），Security 从 C → **A**。若 Reliability 只到 B 还差一口气，追加 PR-6（清理 java:S8688 58 条 `LocalDateTime.now()` — 引入 `Clock` 注入）作为兜底。
+**关键路径**：PR-1..4 全清后 Reliability 从 C → **A 或 B**（剩余 25 条 LOW + 100+ 条 INFO 里可能有残留），Security 从 C → *
+*A**。若 Reliability 只到 B 还差一口气，追加 PR-6（清理 java:S8688 58 条 `LocalDateTime.now()` — 引入 `Clock` 注入）作为兜底。
 
 **PR-5 需要独立探查**：先跑一次带 token 的 `/api/duplications/show?componentKey=…`，把 top 20 duplicate blocks 落成表格再决策。
 
@@ -223,22 +273,22 @@ curl -sS "https://sonarcloud.io/api/issues/search?componentKeys=mouhinU_Knowledg
 
 ## 六、附录 B：文件影响面 Top 15
 
-| 文件 | 新代码 issue 数 |
-|---|---:|
-| `knowledge-web/src/main/resources/static/admin/documents.html` | 37 |
-| `knowledge-web/src/main/resources/static/exam.html` | 34 |
-| `knowledge-web/src/main/resources/static/admin/ai-exam.html` | 31 |
-| `knowledge-application/…/util/ExamPaperParser.java` | 28 |
-| `knowledge-domain/…/service/DocumentIngestionDomainService.java` | 19 |
-| `knowledge-web/src/main/resources/static/admin/ai-writing.html` | 19 |
-| `knowledge-web/src/main/resources/static/admin/exam-review.html` | 18 |
-| `knowledge-web/src/main/resources/static/admin/assets/css/common.css` | 14 |
-| `knowledge-infrastructure/…/pdf/EnhancedPdfTextExtractor.java` | 14 |
-| `knowledge-application/…/executor/examgeneration/ExamGenerationSupport.java` | 13 |
-| `knowledge-domain/…/service/ScoreRuleEngine.java` | 12 |
-| `knowledge-infrastructure/…/agent/ExamReviewerAgent.java` | 11 |
-| `knowledge-web/src/main/resources/static/admin/wrong-answers.html` | 11 |
-| `knowledge-infrastructure/…/agent/ExamDistributionAgent.java` | 9 |
-| `knowledge-infrastructure/…/persistence/gateway/ExamSessionGatewayImpl.java` | 9 |
+| 文件                                                                           | 新代码 issue 数 |
+|------------------------------------------------------------------------------|------------:|
+| `knowledge-web/src/main/resources/static/admin/documents.html`               |          37 |
+| `knowledge-web/src/main/resources/static/exam.html`                          |          34 |
+| `knowledge-web/src/main/resources/static/admin/ai-exam.html`                 |          31 |
+| `knowledge-application/…/util/ExamPaperParser.java`                          |          28 |
+| `knowledge-domain/…/service/DocumentIngestionDomainService.java`             |          19 |
+| `knowledge-web/src/main/resources/static/admin/ai-writing.html`              |          19 |
+| `knowledge-web/src/main/resources/static/admin/exam-review.html`             |          18 |
+| `knowledge-web/src/main/resources/static/admin/assets/css/common.css`        |          14 |
+| `knowledge-infrastructure/…/pdf/EnhancedPdfTextExtractor.java`               |          14 |
+| `knowledge-application/…/executor/examgeneration/ExamGenerationSupport.java` |          13 |
+| `knowledge-domain/…/service/ScoreRuleEngine.java`                            |          12 |
+| `knowledge-infrastructure/…/agent/ExamReviewerAgent.java`                    |          11 |
+| `knowledge-web/src/main/resources/static/admin/wrong-answers.html`           |          11 |
+| `knowledge-infrastructure/…/agent/ExamDistributionAgent.java`                |           9 |
+| `knowledge-infrastructure/…/persistence/gateway/ExamSessionGatewayImpl.java` |           9 |
 
 **HTML 类规则高度集中在 3 个 admin 页 + exam.html**：PR-1..3 主要工作都在这几份文件，改造时按文件一次改到位比按规则切分开销小。

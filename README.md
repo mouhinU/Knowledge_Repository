@@ -9,20 +9,24 @@
 
 ## 这是什么
 
-Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义检索」的 RAG 知识库；随着教学场景需求扩展，现已演进为一个覆盖**备课—出卷—考试—评分—错题讲评**完整链路的一体化平台：
+Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义检索」的 RAG 知识库；随着教学场景需求扩展，现已演进为一个覆盖*
+*备课—出卷—考试—评分—错题讲评**完整链路的一体化平台：
 
 - **知识库 RAG**：PDF / Word / Excel / PPT / TXT / CSV / HTML / RTF 全格式摄入，Milvus 向量检索，RBAC + 文档级 ACL 权限隔离。
-- **AI 出卷**：多 Agent 黑板协作流水线（研究 → 命题 → 校准 → 审核 → 查重 → 评分规则），SSE 全程流式推 thinking/output，题型分值方案可归一化校验；出卷即切分落库为逐题行。
+- **AI 出卷**：多 Agent 黑板协作流水线（研究 → 命题 → 校准 → 审核 → 查重 → 评分规则），SSE 全程流式推
+  thinking/output，题型分值方案可归一化校验；出卷即切分落库为逐题行。
 - **试卷校对与确定性内容门禁**：管理端逐题审阅 / 改答案 / 配图 / resplit / approve；「出处 / 位置类」记忆题双层拦截。
 - **学生在线考试**：倒计时 + 自动锁定 + 填空题 slot 归位 + 看图题配图注入。
-- **自动 & 人工评分**：AI 评分 + 复核双通道，多选按集合相等、判断题无选项、`totalScore = Σ max_score`。CAS 双评 + Scheduler 超时恢复防漂移。
+- **自动 & 人工评分**：AI 评分 + 复核双通道，多选按集合相等、判断题无选项、`totalScore = Σ max_score`。CAS 双评 + Scheduler
+  超时恢复防漂移。
 - **错题本**：由 `kb_exam_answer` 派生，学生端与管理端共用转换层，支持看图题。
 - **看图题配图**：文档图片自动抽取 → SHA-256 去重 → 资产库（534+ 张候选）→ 管理端关键词/文档双搜索 picker → 绑定到题面。
 - **AI 文章生成**：Researcher ∥ Writer ∶ Reviewer 三 Agent 黑板协作，同样 SSE 推流。
 - **无状态 JWT 鉴权**：管理端账号密码 + HS256 JWT；学生端独立登录；SSE 走 `access_token` query。
 - **全程 SSE 进度**：文档入库 / 出卷 / 评分 / 分发四类长任务统一 EventSource 通道。
 
-技术栈：Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI 5 / Resilience4j 2.2.0 / H2 + MySQL / Flyway V1-V21。
+技术栈：Spring Boot 3.4.4 / Java 21 / MyBatis-Plus 3.5.17 / LangChain4j 1.0.1 / Milvus 2.5.4 / PDFBox 3 / Tika 3 / POI
+5 / Resilience4j 2.2.0 / H2 + MySQL / Flyway V1-V21。
 
 ---
 
@@ -31,7 +35,8 @@ Knowledge Repository 最初是一个「多格式文档 → 向量化 → 语义�
 ### 前置
 
 - Docker + Docker Compose
-- LLM 后端（三段式 per-role）：对话角色默认云端 DeepSeek（`LLM_CHAT_API_KEY`），向量角色默认本机 Ollama（bge-m3）；供应商由各角色 `base-url` 决定
+- LLM 后端（三段式 per-role）：对话角色默认云端 DeepSeek（`LLM_CHAT_API_KEY`），向量角色默认本机 Ollama（bge-m3）；供应商由各角色
+  `base-url` 决定
 - 端口空闲：`8091` 应用 / `3307` MySQL / `19530` Milvus / `11434` Ollama
 
 ### 三步跑起来
@@ -52,7 +57,8 @@ docker compose -f docker-compose.infra.yml up -d
 bash deploy.sh
 ```
 
-浏览器打开 <http://localhost:8091/admin.html>，默认种子账号 `admin / admin123`（首次登录后强制改密）。考生端 <http://localhost:8091/exam.html>。
+浏览器打开 <http://localhost:8091/admin.html>，默认种子账号 `admin / admin123`
+（首次登录后强制改密）。考生端 <http://localhost:8091/exam.html>。
 
 ### 直接用 CI 产出的镜像（免本地编译）
 
@@ -85,7 +91,8 @@ docs/                      规范分册       tech-stack / architecture / coding
 scripts/                   运维脚本       deploy / docker-build / compose / backup / ... 83 个
 ```
 
-依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（依赖倒置，infra 反向实现 domain Gateway）。domain 层不引用其它业务层，DO 不越过 infrastructure。
+依赖方向：`adapter → app → client`，`app → domain ← infrastructure`（依赖倒置，infra 反向实现 domain Gateway）。domain
+层不引用其它业务层，DO 不越过 infrastructure。
 
 约 **404** 个 Java 源文件 + **123** 个测试类。
 
@@ -93,20 +100,20 @@ scripts/                   运维脚本       deploy / docker-build / compose / 
 
 ## 文档索引
 
-| 想了解 | 去哪 |
-|---|---|
-| **项目全貌 / 能力清单 / 数据模型 / API 一览** | [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) |
-| **AI 编码规范与红线**（构造注入 / 无魔法值 / SQL `#{}` / 分层转换 / domain 纯净） | [AGENTS.md](AGENTS.md) |
-| 技术选型与依赖版本 | [docs/tech-stack.md](docs/tech-stack.md) |
-| COLA 分层与依赖决策 | [docs/architecture-decisions.md](docs/architecture-decisions.md) |
-| Java 编码规范（命名 / 常量 / OOP / 集合 / 并发 / 注释 / 异常 / 日志 / 反模式） | [docs/coding-guideline.md](docs/coding-guideline.md) |
-| 建表 / SQL / H2 方言 / Flyway 迁移 | [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md) |
-| RAG 领域规范（多格式解析 / 分块 / 向量化 / metadata / 考试配图） | [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md) |
-| 安全（注入 / 上传 / 令牌 / RBAC + ACL / 日志脱敏） | [docs/security-guideline.md](docs/security-guideline.md) |
-| 测试（JUnit 5 / Mockito / 分层 / Flyway 冒烟 / 门禁负向用例） | [docs/testing-guideline.md](docs/testing-guideline.md) |
-| **CI/CD 部署（GHCR / 本地 Docker 完整流程）** | [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md) |
-| 提交前 31 条自检清单 | [docs/code-review-checklist.md](docs/code-review-checklist.md) |
-| 运维脚本 | [scripts/README.md](scripts/README.md) |
+| 想了解                                                        | 去哪                                                                           |
+|------------------------------------------------------------|------------------------------------------------------------------------------|
+| **项目全貌 / 能力清单 / 数据模型 / API 一览**                            | [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)                                     |
+| **AI 编码规范与红线**（构造注入 / 无魔法值 / SQL `#{}` / 分层转换 / domain 纯净） | [AGENTS.md](AGENTS.md)                                                       |
+| 技术选型与依赖版本                                                  | [docs/tech-stack.md](docs/tech-stack.md)                                     |
+| COLA 分层与依赖决策                                               | [docs/architecture-decisions.md](docs/architecture-decisions.md)             |
+| Java 编码规范（命名 / 常量 / OOP / 集合 / 并发 / 注释 / 异常 / 日志 / 反模式）    | [docs/coding-guideline.md](docs/coding-guideline.md)                         |
+| 建表 / SQL / H2 方言 / Flyway 迁移                               | [docs/data-and-migration-guideline.md](docs/data-and-migration-guideline.md) |
+| RAG 领域规范（多格式解析 / 分块 / 向量化 / metadata / 考试配图）               | [docs/rag-domain-guideline.md](docs/rag-domain-guideline.md)                 |
+| 安全（注入 / 上传 / 令牌 / RBAC + ACL / 日志脱敏）                       | [docs/security-guideline.md](docs/security-guideline.md)                     |
+| 测试（JUnit 5 / Mockito / 分层 / Flyway 冒烟 / 门禁负向用例）            | [docs/testing-guideline.md](docs/testing-guideline.md)                       |
+| **CI/CD 部署（GHCR / 本地 Docker 完整流程）**                        | [docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)                         |
+| 提交前 31 条自检清单                                               | [docs/code-review-checklist.md](docs/code-review-checklist.md)               |
+| 运维脚本                                                       | [scripts/README.md](scripts/README.md)                                       |
 
 ---
 
@@ -153,7 +160,9 @@ kb_extraction_cache                                        解析持久化缓存
 sys_config                                                 运行时特性开关 (V21)
 ```
 
-外键与运维：`history.session_id ↔ question.session_key`；`session.exam_history_id ↔ answer.session_id`；错题本派生自 `answer.is_correct=false`。清考试数据：`.buckups/data/clean-exam-data.sh`（本地运维脚本，未纳入版本控制；`--dry-run` / `--yes` / `--with-students` / `--no-backup`）。
+外键与运维：`history.session_id ↔ question.session_key`；`session.exam_history_id ↔ answer.session_id`；错题本派生自
+`answer.is_correct=false`。清考试数据：`.buckups/data/clean-exam-data.sh`（本地运维脚本，未纳入版本控制；`--dry-run` /
+`--yes` / `--with-students` / `--no-backup`）。
 
 ---
 
@@ -161,18 +170,21 @@ sys_config                                                 运行时特性开关
 
 两条 GitHub Actions 工作流：
 
-| 工作流 | 触发 | 用途 |
-|---|---|---|
-| **CI** (`ci.yml`) | push main / PR / workflow_dispatch | `mvn clean verify -DskipTests` + 静态门禁 + SonarCloud Quality Gate |
+| 工作流                                                | 触发                                  | 用途                                                                                       |
+|----------------------------------------------------|-------------------------------------|------------------------------------------------------------------------------------------|
+| **CI** (`ci.yml`)                                  | push main / PR / workflow_dispatch  | `mvn clean verify -DskipTests` + 静态门禁 + SonarCloud Quality Gate                          |
 | **Build & Push Docker Image** (`docker-image.yml`) | push main / tag `v*` / PR (dry-run) | 多阶段 build → 推 `ghcr.io/mouhinu/knowledge_repository:sha-<短SHA>` 与 `latest`；PR 只 build 不推 |
 
 关键设计：
 
-- **workflow 顶层 `permissions: { contents: read, packages: write }`** 覆盖仓库默认，管理员即使把默认改成 Read-only 也能推 GHCR。
-- **`concurrency` + `paths` 过滤** 防止刷屏：纯改 README / 文档 / workflow 自身不会触发镜像构建；tag push 与 paths 共存时 paths 被忽略，release 一定出镜像。
+- **workflow 顶层 `permissions: { contents: read, packages: write }`** 覆盖仓库默认，管理员即使把默认改成 Read-only 也能推
+  GHCR。
+- **`concurrency` + `paths` 过滤** 防止刷屏：纯改 README / 文档 / workflow 自身不会触发镜像构建；tag push 与 paths 共存时
+  paths 被忽略，release 一定出镜像。
 - **runner 钉 `ubuntu-24.04`** 避开 2026-10-19 `ubuntu-latest → 26` 静默迁移。
 - **Actions 层缓存 `type=gha`** 让二次构建从 ~5min 降到 <1min。
-- **兜底路径** `docker/Dockerfile.prebuilt` + `scripts/docker-build.sh`：主机 `mvn package` 产出 fat jar，容器只做 JRE 层，绕开容器内 `mvn dependency:go-offline` 挂 16min+ 的坑。
+- **兜底路径** `docker/Dockerfile.prebuilt` + `scripts/docker-build.sh`：主机 `mvn package` 产出 fat jar，容器只做 JRE
+  层，绕开容器内 `mvn dependency:go-offline` 挂 16min+ 的坑。
 
 详细部署与故障排查：[docs/deployment-ci-cd.md](docs/deployment-ci-cd.md)。
 
@@ -182,19 +194,19 @@ sys_config                                                 运行时特性开关
 
 所有配置走 `application.yml` + 环境变量覆盖：
 
-| 变量 | 默认 | 说明 |
-|---|---|---|
-| `LLM_EMBED_PROVIDER` | `ollama` | bge-m3 (1024d) / dashscope text-embedding-v3 |
-| `LLM_CHAT_PROVIDER` | `deepseek` | 供应商标识（实际端点由各角色 `*-BASE_URL` 决定）|
-| `LLM_CHAT_API_KEY` | — | 对话角色密钥，生产必填 |
-| `LLM_STREAMING_MAX_TOKENS` | `16384` | 流式独立预算，避免推理链喂空正文 |
-| `KNOWLEDGE_MILVUS_COLLECTION` | `knowledge_chunks` | 换 embedding 维度须 drop 重建 |
-| `KNOWLEDGE_STORAGE_PATH` | `./data/documents` | 文档原文件目录 |
-| `KNOWLEDGE_EXAM_ASSET_PATH` | `./data/exam-assets` | 看图题配图目录 |
-| `KNOWLEDGE_ADMIN_JWT_SECRET` | 必填 | HS256 签名密钥 |
-| `KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS` | `8` | 令牌有效期 |
-| `KNOWLEDGE_EXAM_GRADING_DELAY_MINUTES` | `30` | AI 评分延迟 |
-| `KNOWLEDGE_EXAM_REVIEW_REQUIRED` | `true` | false 时校验通过 + 质量达阈可自动发布，但校验不过 / 低分仍强制人工校对（不可绕过） |
+| 变量                                     | 默认                   | 说明                                              |
+|----------------------------------------|----------------------|-------------------------------------------------|
+| `LLM_EMBED_PROVIDER`                   | `ollama`             | bge-m3 (1024d) / dashscope text-embedding-v3    |
+| `LLM_CHAT_PROVIDER`                    | `deepseek`           | 供应商标识（实际端点由各角色 `*-BASE_URL` 决定）                 |
+| `LLM_CHAT_API_KEY`                     | —                    | 对话角色密钥，生产必填                                     |
+| `LLM_STREAMING_MAX_TOKENS`             | `16384`              | 流式独立预算，避免推理链喂空正文                                |
+| `KNOWLEDGE_MILVUS_COLLECTION`          | `knowledge_chunks`   | 换 embedding 维度须 drop 重建                         |
+| `KNOWLEDGE_STORAGE_PATH`               | `./data/documents`   | 文档原文件目录                                         |
+| `KNOWLEDGE_EXAM_ASSET_PATH`            | `./data/exam-assets` | 看图题配图目录                                         |
+| `KNOWLEDGE_ADMIN_JWT_SECRET`           | 必填                   | HS256 签名密钥                                      |
+| `KNOWLEDGE_ADMIN_JWT_EXPIRATION_HOURS` | `8`                  | 令牌有效期                                           |
+| `KNOWLEDGE_EXAM_GRADING_DELAY_MINUTES` | `30`                 | AI 评分延迟                                         |
+| `KNOWLEDGE_EXAM_REVIEW_REQUIRED`       | `true`               | false 时校验通过 + 质量达阈可自动发布，但校验不过 / 低分仍强制人工校对（不可绕过） |
 
 ---
 
