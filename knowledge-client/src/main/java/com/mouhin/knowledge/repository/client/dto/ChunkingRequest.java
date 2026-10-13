@@ -1,5 +1,8 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 分块配置请求参数
  *
@@ -8,6 +11,8 @@ package com.mouhin.knowledge.repository.client.dto;
  * @author mouhinU
  * @date 2026-09-11
  */
+@Getter
+@Setter
 public class ChunkingRequest {
 
     /** 分块大小（字符数），默认 500 */
@@ -18,28 +23,4 @@ public class ChunkingRequest {
 
     /** 分块策略，默认 FIXED_SIZE */
     private String strategy = "FIXED_SIZE";
-
-    public Integer getChunkSize() {
-        return chunkSize;
-    }
-
-    public void setChunkSize(Integer chunkSize) {
-        this.chunkSize = chunkSize;
-    }
-
-    public Integer getOverlap() {
-        return overlap;
-    }
-
-    public void setOverlap(Integer overlap) {
-        this.overlap = overlap;
-    }
-
-    public String getStrategy() {
-        return strategy;
-    }
-
-    public void setStrategy(String strategy) {
-        this.strategy = strategy;
-    }
 }

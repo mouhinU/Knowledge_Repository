@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * AI 出卷历史记录实体
@@ -9,6 +11,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-14
  */
+@Getter
+@Setter
 public class ExamHistory {
 
     /** 试卷生命周期状态：已生成待切分/校验（向后兼容旧 COMPLETED 语义，校对前中间态） */
@@ -100,208 +104,6 @@ public class ExamHistory {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getDifficulty() {
-        return difficulty;
-    }
-
-    public void setDifficulty(String difficulty) {
-        this.difficulty = difficulty;
-    }
-
-    public Integer getDurationMinutes() {
-        return durationMinutes;
-    }
-
-    public void setDurationMinutes(Integer durationMinutes) {
-        this.durationMinutes = durationMinutes;
-    }
-
-    public String getQuestionConfig() {
-        return questionConfig;
-    }
-
-    public void setQuestionConfig(String questionConfig) {
-        this.questionConfig = questionConfig;
-    }
-
-    public String getExamPlan() {
-        return examPlan;
-    }
-
-    public void setExamPlan(String examPlan) {
-        this.examPlan = examPlan;
-    }
-
-    public String getExamPaper() {
-        return examPaper;
-    }
-
-    public void setExamPaper(String examPaper) {
-        this.examPaper = examPaper;
-    }
-
-    public String getAnswerKey() {
-        return answerKey;
-    }
-
-    public void setAnswerKey(String answerKey) {
-        this.answerKey = answerKey;
-    }
-
-    public Double getQualityScore() {
-        return qualityScore;
-    }
-
-    public void setQualityScore(Double qualityScore) {
-        this.qualityScore = qualityScore;
-    }
-
-    public String getScoreDetail() {
-        return scoreDetail;
-    }
-
-    public void setScoreDetail(String scoreDetail) {
-        this.scoreDetail = scoreDetail;
-    }
-
-    public Integer getRetrievedChunks() {
-        return retrievedChunks;
-    }
-
-    public void setRetrievedChunks(Integer retrievedChunks) {
-        this.retrievedChunks = retrievedChunks;
-    }
-
-    public String getKeyFindings() {
-        return keyFindings;
-    }
-
-    public void setKeyFindings(String keyFindings) {
-        this.keyFindings = keyFindings;
-    }
-
-    public String getReviewFeedback() {
-        return reviewFeedback;
-    }
-
-    public void setReviewFeedback(String reviewFeedback) {
-        this.reviewFeedback = reviewFeedback;
-    }
-
-    public String getDifficultyAssessment() {
-        return difficultyAssessment;
-    }
-
-    public void setDifficultyAssessment(String difficultyAssessment) {
-        this.difficultyAssessment = difficultyAssessment;
-    }
-
-    public String getDeduplicationReport() {
-        return deduplicationReport;
-    }
-
-    public void setDeduplicationReport(String deduplicationReport) {
-        this.deduplicationReport = deduplicationReport;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public String getReviewedBy() {
-        return reviewedBy;
-    }
-
-    public void setReviewedBy(String reviewedBy) {
-        this.reviewedBy = reviewedBy;
-    }
-
-    public LocalDateTime getReviewedTime() {
-        return reviewedTime;
-    }
-
-    public void setReviewedTime(LocalDateTime reviewedTime) {
-        this.reviewedTime = reviewedTime;
-    }
 
     // ==================== 业务方法（试卷生命周期） ====================
 

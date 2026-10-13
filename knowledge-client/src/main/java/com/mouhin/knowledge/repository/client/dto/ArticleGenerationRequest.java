@@ -1,11 +1,16 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 文章生成请求
  *
  * @author mouhinU
  * @date 2026-09-12
  */
+@Getter
+@Setter
 public class ArticleGenerationRequest {
 
     /** 前端预分配的会话 ID（与 SSE 连接关联） */
@@ -28,60 +33,4 @@ public class ArticleGenerationRequest {
 
     /** 知识库分类过滤 */
     private String category;
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public String getQuestion() {
-        return question;
-    }
-
-    public void setQuestion(String question) {
-        this.question = question;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getRoles() {
-        return roles;
-    }
-
-    public void setRoles(String roles) {
-        this.roles = roles;
-    }
-
-    public Boolean getAdmin() {
-        return admin;
-    }
-
-    public void setAdmin(Boolean admin) {
-        this.admin = admin;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
 }

@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 单个题型的分布计划（值对象）
@@ -12,6 +14,8 @@ import java.util.List;
  * @author mouhinU
  * @date 2026-09-16
  */
+@Getter
+@Setter
 public class TypePlan {
 
     /** 内核题型：SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE / FILL_BLANK / SHORT_ANSWER / ESSAY */
@@ -53,43 +57,7 @@ public class TypePlan {
         return sum;
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public void setCount(int count) {
-        this.count = count;
-    }
-
-    public List<Integer> getPerQuestion() {
-        return perQuestion;
-    }
-
     public void setPerQuestion(List<Integer> perQuestion) {
         this.perQuestion = perQuestion != null ? perQuestion : new ArrayList<>();
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
     }
 }

@@ -5,6 +5,8 @@ import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEn
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 文档聚合根
@@ -12,6 +14,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-02
  */
+@Getter
+@Setter
 public class Document {
 
     private Long id;
@@ -125,168 +129,6 @@ public class Document {
     /** 判断文档是否可被检索 */
     public boolean isSearchable() {
         return this.status == DocumentStatusEnum.INDEXED;
-    }
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getDocumentKey() {
-        return documentKey;
-    }
-
-    public void setDocumentKey(String documentKey) {
-        this.documentKey = documentKey;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getFileType() {
-        return fileType;
-    }
-
-    public void setFileType(String fileType) {
-        this.fileType = fileType;
-    }
-
-    public Long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(Long fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    public String getStoragePath() {
-        return storagePath;
-    }
-
-    public void setStoragePath(String storagePath) {
-        this.storagePath = storagePath;
-    }
-
-    public String getFileChecksum() {
-        return fileChecksum;
-    }
-
-    public void setFileChecksum(String fileChecksum) {
-        this.fileChecksum = fileChecksum;
-    }
-
-    public Integer getTotalPages() {
-        return totalPages;
-    }
-
-    public void setTotalPages(Integer totalPages) {
-        this.totalPages = totalPages;
-    }
-
-    public DocumentStatusEnum getStatus() {
-        return status;
-    }
-
-    public void setStatus(DocumentStatusEnum status) {
-        this.status = status;
-    }
-
-    public DocumentVisibilityEnum getVisibility() {
-        return visibility;
-    }
-
-    public void setVisibility(DocumentVisibilityEnum visibility) {
-        this.visibility = visibility;
-    }
-
-    public String getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getAllowedRoles() {
-        return allowedRoles;
-    }
-
-    public void setAllowedRoles(String allowedRoles) {
-        this.allowedRoles = allowedRoles;
-    }
-
-    public String getSummary() {
-        return summary;
-    }
-
-    public void setSummary(String summary) {
-        this.summary = summary;
-    }
-
-    public ChunkingConfig getChunkingConfig() {
-        return chunkingConfig;
-    }
-
-    public void setChunkingConfig(ChunkingConfig chunkingConfig) {
-        this.chunkingConfig = chunkingConfig;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public String getTags() {
-        return tags;
-    }
-
-    public void setTags(String tags) {
-        this.tags = tags;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
-    }
-
-    public LocalDateTime getUpdatedTime() {
-        return updatedTime;
-    }
-
-    public void setUpdatedTime(LocalDateTime updatedTime) {
-        this.updatedTime = updatedTime;
     }
 
     // ==================== equals / hashCode / toString ====================

@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 单题答题记录实体
@@ -9,6 +11,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-15
  */
+@Getter
+@Setter
 public class ExamAnswer {
 
     private Long id;
@@ -70,176 +74,6 @@ public class ExamAnswer {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(Long sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public Integer getQuestionIndex() {
-        return questionIndex;
-    }
-
-    public void setQuestionIndex(Integer questionIndex) {
-        this.questionIndex = questionIndex;
-    }
-
-    public Integer getQuestionNumber() {
-        return questionNumber;
-    }
-
-    public void setQuestionNumber(Integer questionNumber) {
-        this.questionNumber = questionNumber;
-    }
-
-    public String getQuestionType() {
-        return questionType;
-    }
-
-    public void setQuestionType(String questionType) {
-        this.questionType = questionType;
-    }
-
-    public String getQuestionContent() {
-        return questionContent;
-    }
-
-    public void setQuestionContent(String questionContent) {
-        this.questionContent = questionContent;
-    }
-
-    public String getOptionsJson() {
-        return optionsJson;
-    }
-
-    public void setOptionsJson(String optionsJson) {
-        this.optionsJson = optionsJson;
-    }
-
-    public Integer getMaxScore() {
-        return maxScore;
-    }
-
-    public void setMaxScore(Integer maxScore) {
-        this.maxScore = maxScore;
-    }
-
-    public String getCorrectAnswer() {
-        return correctAnswer;
-    }
-
-    public void setCorrectAnswer(String correctAnswer) {
-        this.correctAnswer = correctAnswer;
-    }
-
-    public String getStudentAnswer() {
-        return studentAnswer;
-    }
-
-    public void setStudentAnswer(String studentAnswer) {
-        this.studentAnswer = studentAnswer;
-    }
-
-    public Boolean getCorrect() {
-        return correct;
-    }
-
-    public void setCorrect(Boolean correct) {
-        this.correct = correct;
-    }
-
-    public Integer getAiScore() {
-        return aiScore;
-    }
-
-    public void setAiScore(Integer aiScore) {
-        this.aiScore = aiScore;
-    }
-
-    public String getAiFeedback() {
-        return aiFeedback;
-    }
-
-    public void setAiFeedback(String aiFeedback) {
-        this.aiFeedback = aiFeedback;
-    }
-
-    public String getAiInput() {
-        return aiInput;
-    }
-
-    public void setAiInput(String aiInput) {
-        this.aiInput = aiInput;
-    }
-
-    public String getAiRawOutput() {
-        return aiRawOutput;
-    }
-
-    public void setAiRawOutput(String aiRawOutput) {
-        this.aiRawOutput = aiRawOutput;
-    }
-
-    public Integer getReviewScore() {
-        return reviewScore;
-    }
-
-    public void setReviewScore(Integer reviewScore) {
-        this.reviewScore = reviewScore;
-    }
-
-    public String getReviewFeedback() {
-        return reviewFeedback;
-    }
-
-    public void setReviewFeedback(String reviewFeedback) {
-        this.reviewFeedback = reviewFeedback;
-    }
-
-    public String getReviewedBy() {
-        return reviewedBy;
-    }
-
-    public void setReviewedBy(String reviewedBy) {
-        this.reviewedBy = reviewedBy;
-    }
-
-    public LocalDateTime getReviewTime() {
-        return reviewTime;
-    }
-
-    public void setReviewTime(LocalDateTime reviewTime) {
-        this.reviewTime = reviewTime;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
 
     // ==================== 业务方法 ====================
 

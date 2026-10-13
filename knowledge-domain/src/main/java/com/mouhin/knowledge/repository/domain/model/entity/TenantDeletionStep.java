@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 租户删除步骤记录（P3-T5，映射 {@code sys_tenant_deletion_step}）。
@@ -17,6 +19,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-10-09
  */
+@Getter
+@Setter
 public class TenantDeletionStep {
 
     /** 步骤状态：执行中。 */
@@ -87,102 +91,6 @@ public class TenantDeletionStep {
     /** 是否已失败。 */
     public boolean isFailed() {
         return STATUS_FAILED.equals(status);
-    }
-
-    public Long getStepId() {
-        return stepId;
-    }
-
-    public void setStepId(Long stepId) {
-        this.stepId = stepId;
-    }
-
-    public Long getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(Long tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public String getDeletionRequestId() {
-        return deletionRequestId;
-    }
-
-    public void setDeletionRequestId(String deletionRequestId) {
-        this.deletionRequestId = deletionRequestId;
-    }
-
-    public String getStepName() {
-        return stepName;
-    }
-
-    public void setStepName(String stepName) {
-        this.stepName = stepName;
-    }
-
-    public Integer getAttemptNo() {
-        return attemptNo;
-    }
-
-    public void setAttemptNo(Integer attemptNo) {
-        this.attemptNo = attemptNo;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Long getRowsAffected() {
-        return rowsAffected;
-    }
-
-    public void setRowsAffected(Long rowsAffected) {
-        this.rowsAffected = rowsAffected;
-    }
-
-    public String getErrorDetail() {
-        return errorDetail;
-    }
-
-    public void setErrorDetail(String errorDetail) {
-        this.errorDetail = errorDetail;
-    }
-
-    public LocalDateTime getStartedAt() {
-        return startedAt;
-    }
-
-    public void setStartedAt(LocalDateTime startedAt) {
-        this.startedAt = startedAt;
-    }
-
-    public LocalDateTime getFinishedAt() {
-        return finishedAt;
-    }
-
-    public void setFinishedAt(LocalDateTime finishedAt) {
-        this.finishedAt = finishedAt;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
     }
 
     @Override

@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 角色实体
@@ -9,6 +11,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-02
  */
+@Getter
+@Setter
 public class Role {
 
     private Long id;
@@ -23,48 +27,6 @@ public class Role {
     private String description;
 
     private LocalDateTime createdTime;
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getRoleKey() {
-        return roleKey;
-    }
-
-    public void setRoleKey(String roleKey) {
-        this.roleKey = roleKey;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
-    }
 
     // ==================== equals / hashCode / toString ====================
 

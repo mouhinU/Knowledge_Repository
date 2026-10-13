@@ -1,11 +1,16 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 试卷生成请求
  *
  * @author mouhinU
  * @date 2026-09-13
  */
+@Getter
+@Setter
 public class ExamGenerationRequest {
 
     /** 会话 ID（前端预分配，用于 SSE 关联） */
@@ -58,142 +63,6 @@ public class ExamGenerationRequest {
 
     /** 是否跳过分值校验（Node 2 已校验通过时传 true，Node 3 的 Scoring Agent 仅写入 scheme 不再校验） */
     private Boolean skipScoringValidation;
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getDifficulty() {
-        return difficulty;
-    }
-
-    public void setDifficulty(String difficulty) {
-        this.difficulty = difficulty;
-    }
-
-    public Integer getSingleChoiceCount() {
-        return singleChoiceCount;
-    }
-
-    public void setSingleChoiceCount(Integer singleChoiceCount) {
-        this.singleChoiceCount = singleChoiceCount;
-    }
-
-    public Integer getMultiChoiceCount() {
-        return multiChoiceCount;
-    }
-
-    public void setMultiChoiceCount(Integer multiChoiceCount) {
-        this.multiChoiceCount = multiChoiceCount;
-    }
-
-    public Integer getTrueFalseCount() {
-        return trueFalseCount;
-    }
-
-    public void setTrueFalseCount(Integer trueFalseCount) {
-        this.trueFalseCount = trueFalseCount;
-    }
-
-    public Integer getFillBlankCount() {
-        return fillBlankCount;
-    }
-
-    public void setFillBlankCount(Integer fillBlankCount) {
-        this.fillBlankCount = fillBlankCount;
-    }
-
-    public Integer getShortAnswerCount() {
-        return shortAnswerCount;
-    }
-
-    public void setShortAnswerCount(Integer shortAnswerCount) {
-        this.shortAnswerCount = shortAnswerCount;
-    }
-
-    public Integer getEssayCount() {
-        return essayCount;
-    }
-
-    public void setEssayCount(Integer essayCount) {
-        this.essayCount = essayCount;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getRoles() {
-        return roles;
-    }
-
-    public void setRoles(String roles) {
-        this.roles = roles;
-    }
-
-    public Boolean getAdmin() {
-        return admin;
-    }
-
-    public void setAdmin(Boolean admin) {
-        this.admin = admin;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getSchoolLevel() {
-        return schoolLevel;
-    }
-
-    public void setSchoolLevel(String schoolLevel) {
-        this.schoolLevel = schoolLevel;
-    }
-
-    public String getDistribution() {
-        return distribution;
-    }
-
-    public void setDistribution(String distribution) {
-        this.distribution = distribution;
-    }
-
-    public Boolean getSkipScoringValidation() {
-        return skipScoringValidation;
-    }
-
-    public void setSkipScoringValidation(Boolean skipScoringValidation) {
-        this.skipScoringValidation = skipScoringValidation;
-    }
 
     /** 计算总题目数 */
     public int getTotalCount() {

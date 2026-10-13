@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 考试场次实体（学生的一次答题记录）
@@ -9,6 +11,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-15
  */
+@Getter
+@Setter
 public class ExamSession {
 
     private Long id;
@@ -77,184 +81,6 @@ public class ExamSession {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSessionKey() {
-        return sessionKey;
-    }
-
-    public void setSessionKey(String sessionKey) {
-        this.sessionKey = sessionKey;
-    }
-
-    public Long getStudentId() {
-        return studentId;
-    }
-
-    public void setStudentId(Long studentId) {
-        this.studentId = studentId;
-    }
-
-    public Long getExamHistoryId() {
-        return examHistoryId;
-    }
-
-    public void setExamHistoryId(Long examHistoryId) {
-        this.examHistoryId = examHistoryId;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getDifficulty() {
-        return difficulty;
-    }
-
-    public void setDifficulty(String difficulty) {
-        this.difficulty = difficulty;
-    }
-
-    public Integer getDurationMinutes() {
-        return durationMinutes;
-    }
-
-    public void setDurationMinutes(Integer durationMinutes) {
-        this.durationMinutes = durationMinutes;
-    }
-
-    public String getExamPaper() {
-        return examPaper;
-    }
-
-    public void setExamPaper(String examPaper) {
-        this.examPaper = examPaper;
-    }
-
-    public String getAnswerKey() {
-        return answerKey;
-    }
-
-    public void setAnswerKey(String answerKey) {
-        this.answerKey = answerKey;
-    }
-
-    public String getQuestionsJson() {
-        return questionsJson;
-    }
-
-    public void setQuestionsJson(String questionsJson) {
-        this.questionsJson = questionsJson;
-    }
-
-    public String getExamPlan() {
-        return examPlan;
-    }
-
-    public void setExamPlan(String examPlan) {
-        this.examPlan = examPlan;
-    }
-
-    public Integer getTotalScore() {
-        return totalScore;
-    }
-
-    public void setTotalScore(Integer totalScore) {
-        this.totalScore = totalScore;
-    }
-
-    public Integer getAiScore() {
-        return aiScore;
-    }
-
-    public void setAiScore(Integer aiScore) {
-        this.aiScore = aiScore;
-    }
-
-    public Integer getFinalScore() {
-        return finalScore;
-    }
-
-    public void setFinalScore(Integer finalScore) {
-        this.finalScore = finalScore;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public boolean isVoided() {
-        return voided;
-    }
-
-    public void setVoided(boolean voided) {
-        this.voided = voided;
-    }
-
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-
-    public LocalDateTime getSubmitTime() {
-        return submitTime;
-    }
-
-    public void setSubmitTime(LocalDateTime submitTime) {
-        this.submitTime = submitTime;
-    }
-
-    public LocalDateTime getGradeTime() {
-        return gradeTime;
-    }
-
-    public void setGradeTime(LocalDateTime gradeTime) {
-        this.gradeTime = gradeTime;
-    }
-
-    public LocalDateTime getPublishTime() {
-        return publishTime;
-    }
-
-    public void setPublishTime(LocalDateTime publishTime) {
-        this.publishTime = publishTime;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
 
     // ==================== 业务方法 ====================
 

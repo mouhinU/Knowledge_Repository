@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 文档分块实体
@@ -9,6 +11,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-02
  */
+@Getter
+@Setter
 public class DocumentChunk {
 
     private Long id;
@@ -93,168 +97,6 @@ public class DocumentChunk {
             }
         }
         return (int) Math.ceil(chineseChars / 1.5) + (int) Math.ceil(otherChars / 4.0);
-    }
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getChunkKey() {
-        return chunkKey;
-    }
-
-    public void setChunkKey(String chunkKey) {
-        this.chunkKey = chunkKey;
-    }
-
-    public Long getDocumentId() {
-        return documentId;
-    }
-
-    public void setDocumentId(Long documentId) {
-        this.documentId = documentId;
-    }
-
-    public String getDocumentKey() {
-        return documentKey;
-    }
-
-    public void setDocumentKey(String documentKey) {
-        this.documentKey = documentKey;
-    }
-
-    public Integer getChunkIndex() {
-        return chunkIndex;
-    }
-
-    public void setChunkIndex(Integer chunkIndex) {
-        this.chunkIndex = chunkIndex;
-    }
-
-    public Integer getStartPage() {
-        return startPage;
-    }
-
-    public void setStartPage(Integer startPage) {
-        this.startPage = startPage;
-    }
-
-    public Integer getEndPage() {
-        return endPage;
-    }
-
-    public void setEndPage(Integer endPage) {
-        this.endPage = endPage;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public Integer getTokenCount() {
-        return tokenCount;
-    }
-
-    public void setTokenCount(Integer tokenCount) {
-        this.tokenCount = tokenCount;
-    }
-
-    public String getVectorId() {
-        return vectorId;
-    }
-
-    public void setVectorId(String vectorId) {
-        this.vectorId = vectorId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getVisibility() {
-        return visibility;
-    }
-
-    public void setVisibility(String visibility) {
-        this.visibility = visibility;
-    }
-
-    public String getAllowedRoles() {
-        return allowedRoles;
-    }
-
-    public void setAllowedRoles(String allowedRoles) {
-        this.allowedRoles = allowedRoles;
-    }
-
-    public String getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public String getDocumentName() {
-        return documentName;
-    }
-
-    public void setDocumentName(String documentName) {
-        this.documentName = documentName;
-    }
-
-    public String getFileType() {
-        return fileType;
-    }
-
-    public void setFileType(String fileType) {
-        this.fileType = fileType;
-    }
-
-    public String getTags() {
-        return tags;
-    }
-
-    public void setTags(String tags) {
-        this.tags = tags;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getTenantKey() {
-        return tenantKey;
-    }
-
-    public void setTenantKey(String tenantKey) {
-        this.tenantKey = tenantKey;
-    }
-
-    public LocalDateTime getCreatedTime() {
-        return createdTime;
-    }
-
-    public void setCreatedTime(LocalDateTime createdTime) {
-        this.createdTime = createdTime;
     }
 
     // ==================== equals / hashCode / toString ====================

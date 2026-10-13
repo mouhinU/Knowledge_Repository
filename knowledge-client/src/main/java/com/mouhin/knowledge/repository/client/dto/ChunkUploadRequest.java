@@ -1,11 +1,16 @@
 package com.mouhin.knowledge.repository.client.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 分片上传请求
  *
  * @author mouhinU
  * @date 2026-09-13
  */
+@Getter
+@Setter
 public class ChunkUploadRequest {
 
     /** 上传会话 ID */
@@ -27,52 +32,4 @@ public class ChunkUploadRequest {
      * 可选：强制指定解析策略栈（{@code ExtractionStrategyEnum} 枚举名，逗号分隔）。留空或 {@code auto} 走配置默认路由；非法枚举名按白名单过滤丢弃。
      */
     private String parsingStrategy;
-
-    public String getUploadId() {
-        return uploadId;
-    }
-
-    public void setUploadId(String uploadId) {
-        this.uploadId = uploadId;
-    }
-
-    public Integer getChunkIndex() {
-        return chunkIndex;
-    }
-
-    public void setChunkIndex(Integer chunkIndex) {
-        this.chunkIndex = chunkIndex;
-    }
-
-    public Integer getTotalChunks() {
-        return totalChunks;
-    }
-
-    public void setTotalChunks(Integer totalChunks) {
-        this.totalChunks = totalChunks;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public Long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(Long fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    public String getParsingStrategy() {
-        return parsingStrategy;
-    }
-
-    public void setParsingStrategy(String parsingStrategy) {
-        this.parsingStrategy = parsingStrategy;
-    }
 }

@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 租户删除审批令牌（P3-T5，映射 {@code sys_tenant_delete_approval}，S-4=方案 A 双人复核载体）。
@@ -16,6 +18,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-10-09
  */
+@Getter
+@Setter
 public class TenantDeleteApproval {
 
     /** 状态：已签发待确认。 */
@@ -92,86 +96,6 @@ public class TenantDeleteApproval {
     /** 标记过期：置 EXPIRED（懒过期，被查询命中且已超期时回写）。 */
     public void markExpired() {
         this.status = STATUS_EXPIRED;
-    }
-
-    public Long getApprovalId() {
-        return approvalId;
-    }
-
-    public void setApprovalId(Long approvalId) {
-        this.approvalId = approvalId;
-    }
-
-    public Long getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(Long tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public String getApproverOperatorId() {
-        return approverOperatorId;
-    }
-
-    public void setApproverOperatorId(String approverOperatorId) {
-        this.approverOperatorId = approverOperatorId;
-    }
-
-    public String getTokenHash() {
-        return tokenHash;
-    }
-
-    public void setTokenHash(String tokenHash) {
-        this.tokenHash = tokenHash;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(LocalDateTime expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public LocalDateTime getUsedAt() {
-        return usedAt;
-    }
-
-    public void setUsedAt(LocalDateTime usedAt) {
-        this.usedAt = usedAt;
-    }
-
-    public String getUsedByOperatorId() {
-        return usedByOperatorId;
-    }
-
-    public void setUsedByOperatorId(String usedByOperatorId) {
-        this.usedByOperatorId = usedByOperatorId;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
     }
 
     @Override

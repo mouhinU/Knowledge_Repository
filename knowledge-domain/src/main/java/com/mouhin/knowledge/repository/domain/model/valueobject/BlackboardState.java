@@ -3,6 +3,8 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 黑板共享状态
@@ -12,6 +14,7 @@ import java.util.List;
  * @author mouhinU
  * @date 2026-09-12
  */
+@Getter
 public class BlackboardState {
 
     /** 唯一会话 ID */
@@ -28,17 +31,17 @@ public class BlackboardState {
     private String question;
 
     /** 用户 ID */
-    private String userId;
+    @Setter private String userId;
 
     /** 用户部门 ID */
-    private String departmentId;
+    @Setter private String departmentId;
 
     /** 用户角色（逗号分隔） */
-    private String roles;
+    @Setter private String roles;
 
     /* ==================== 研究阶段输出 ==================== */
     /** 是否管理员 */
-    private boolean admin;
+    @Setter private boolean admin;
 
     /** 检索到的知识片段 */
     private List<SearchResult> knowledgeChunks = new ArrayList<>();
@@ -81,7 +84,7 @@ public class BlackboardState {
     private String scoringScheme;
 
     /** 是否跳过分值校验（Node 2 已校验通过时设为 true，Node 3 的 Scoring Agent 仅写入 scheme 不再校验） */
-    private boolean skipScoringValidation;
+    @Setter private boolean skipScoringValidation;
 
     /** 生成的试卷内容（Markdown） */
     private String examPaper;
@@ -140,57 +143,9 @@ public class BlackboardState {
 
     // ==================== Getters & Setters ====================
 
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public BlackboardPhase getPhase() {
-        return phase;
-    }
-
-    public String getQuestion() {
-        return question;
-    }
-
     public void setQuestion(String question) {
         this.question = question;
         this.updatedAt = Instant.now();
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getRoles() {
-        return roles;
-    }
-
-    public void setRoles(String roles) {
-        this.roles = roles;
-    }
-
-    public boolean isAdmin() {
-        return admin;
-    }
-
-    public void setAdmin(boolean admin) {
-        this.admin = admin;
-    }
-
-    public List<SearchResult> getKnowledgeChunks() {
-        return knowledgeChunks;
     }
 
     public void setKnowledgeChunks(List<SearchResult> knowledgeChunks) {
@@ -198,17 +153,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getKeyFindings() {
-        return keyFindings;
-    }
-
     public void setKeyFindings(String keyFindings) {
         this.keyFindings = keyFindings;
         this.updatedAt = Instant.now();
-    }
-
-    public String getDraftArticle() {
-        return draftArticle;
     }
 
     public void setDraftArticle(String draftArticle) {
@@ -216,17 +163,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getReviewFeedback() {
-        return reviewFeedback;
-    }
-
     public void setReviewFeedback(String reviewFeedback) {
         this.reviewFeedback = reviewFeedback;
         this.updatedAt = Instant.now();
-    }
-
-    public double getQualityScore() {
-        return qualityScore;
     }
 
     public void setQualityScore(double qualityScore) {
@@ -234,21 +173,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getFinalArticle() {
-        return finalArticle;
-    }
-
     public void setFinalArticle(String finalArticle) {
         this.finalArticle = finalArticle;
         this.updatedAt = Instant.now();
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getExamDifficulty() {
-        return examDifficulty;
     }
 
     public void setExamDifficulty(String examDifficulty) {
@@ -256,17 +183,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getExamQuestionConfig() {
-        return examQuestionConfig;
-    }
-
     public void setExamQuestionConfig(String examQuestionConfig) {
         this.examQuestionConfig = examQuestionConfig;
         this.updatedAt = Instant.now();
-    }
-
-    public String getExamSchoolLevel() {
-        return examSchoolLevel;
     }
 
     public void setExamSchoolLevel(String examSchoolLevel) {
@@ -274,17 +193,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public int getExamTotalScore() {
-        return examTotalScore;
-    }
-
     public void setExamTotalScore(int examTotalScore) {
         this.examTotalScore = examTotalScore;
         this.updatedAt = Instant.now();
-    }
-
-    public ExamPlan getExamPlan() {
-        return examPlan;
     }
 
     public void setExamPlan(ExamPlan examPlan) {
@@ -292,25 +203,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getScoringScheme() {
-        return scoringScheme;
-    }
-
     public void setScoringScheme(String scoringScheme) {
         this.scoringScheme = scoringScheme;
         this.updatedAt = Instant.now();
-    }
-
-    public boolean isSkipScoringValidation() {
-        return skipScoringValidation;
-    }
-
-    public void setSkipScoringValidation(boolean skipScoringValidation) {
-        this.skipScoringValidation = skipScoringValidation;
-    }
-
-    public String getExamPaper() {
-        return examPaper;
     }
 
     public void setExamPaper(String examPaper) {
@@ -318,17 +213,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getAnswerKey() {
-        return answerKey;
-    }
-
     public void setAnswerKey(String answerKey) {
         this.answerKey = answerKey;
         this.updatedAt = Instant.now();
-    }
-
-    public String getExamReviewFeedback() {
-        return examReviewFeedback;
     }
 
     public void setExamReviewFeedback(String examReviewFeedback) {
@@ -336,17 +223,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getExamScoreDetail() {
-        return examScoreDetail;
-    }
-
     public void setExamScoreDetail(String examScoreDetail) {
         this.examScoreDetail = examScoreDetail;
         this.updatedAt = Instant.now();
-    }
-
-    public String getDifficultyAssessment() {
-        return difficultyAssessment;
     }
 
     public void setDifficultyAssessment(String difficultyAssessment) {
@@ -354,17 +233,9 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getDeduplicationReport() {
-        return deduplicationReport;
-    }
-
     public void setDeduplicationReport(String deduplicationReport) {
         this.deduplicationReport = deduplicationReport;
         this.updatedAt = Instant.now();
-    }
-
-    public String getKnowledgeGapReport() {
-        return knowledgeGapReport;
     }
 
     public void setKnowledgeGapReport(String knowledgeGapReport) {
@@ -372,29 +243,13 @@ public class BlackboardState {
         this.updatedAt = Instant.now();
     }
 
-    public String getBloomClassification() {
-        return bloomClassification;
-    }
-
     public void setBloomClassification(String bloomClassification) {
         this.bloomClassification = bloomClassification;
         this.updatedAt = Instant.now();
     }
 
-    public String getWrongAnswerAnalysis() {
-        return wrongAnswerAnalysis;
-    }
-
     public void setWrongAnswerAnalysis(String wrongAnswerAnalysis) {
         this.wrongAnswerAnalysis = wrongAnswerAnalysis;
         this.updatedAt = Instant.now();
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 }

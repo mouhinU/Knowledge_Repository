@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 租户领域实体（P3-T1，SaaS 平台端生命周期管理的聚合根）。
@@ -22,6 +24,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-10-08
  */
+@Getter
+@Setter
 public class Tenant {
 
     /** 状态：已创建但尚未开通（P3-T2 起点）。 */
@@ -291,104 +295,6 @@ public class Tenant {
         }
         this.status = STATUS_DELETED;
         this.deletedAt = deletedAt;
-    }
-
-    // ==================== Getters & Setters ====================
-
-    public Long getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(Long tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public String getTenantKey() {
-        return tenantKey;
-    }
-
-    public void setTenantKey(String tenantKey) {
-        this.tenantKey = tenantKey;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPlan() {
-        return plan;
-    }
-
-    public void setPlan(String plan) {
-        this.plan = plan;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getDataRegion() {
-        return dataRegion;
-    }
-
-    public void setDataRegion(String dataRegion) {
-        this.dataRegion = dataRegion;
-    }
-
-    public String getProvisionRequestId() {
-        return provisionRequestId;
-    }
-
-    public void setProvisionRequestId(String provisionRequestId) {
-        this.provisionRequestId = provisionRequestId;
-    }
-
-    public String getDeletionRequestId() {
-        return deletionRequestId;
-    }
-
-    public void setDeletionRequestId(String deletionRequestId) {
-        this.deletionRequestId = deletionRequestId;
-    }
-
-    public LocalDateTime getArchivedAt() {
-        return archivedAt;
-    }
-
-    public void setArchivedAt(LocalDateTime archivedAt) {
-        this.archivedAt = archivedAt;
-    }
-
-    public LocalDateTime getDeletedAt() {
-        return deletedAt;
-    }
-
-    public void setDeletedAt(LocalDateTime deletedAt) {
-        this.deletedAt = deletedAt;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
     }
 
     // ==================== equals / hashCode / toString ====================

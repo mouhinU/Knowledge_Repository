@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 结构化题目实体（出卷即切分产物）
@@ -12,6 +14,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-09-18
  */
+@Getter
+@Setter
 public class ExamQuestion {
 
     private Long id;
@@ -59,128 +63,6 @@ public class ExamQuestion {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-
-    // ==================== Getters & Setters ====================
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSessionKey() {
-        return sessionKey;
-    }
-
-    public void setSessionKey(String sessionKey) {
-        this.sessionKey = sessionKey;
-    }
-
-    public Integer getQuestionNumber() {
-        return questionNumber;
-    }
-
-    public void setQuestionNumber(Integer questionNumber) {
-        this.questionNumber = questionNumber;
-    }
-
-    public String getSectionLabel() {
-        return sectionLabel;
-    }
-
-    public void setSectionLabel(String sectionLabel) {
-        this.sectionLabel = sectionLabel;
-    }
-
-    public String getQuestionType() {
-        return questionType;
-    }
-
-    public void setQuestionType(String questionType) {
-        this.questionType = questionType;
-    }
-
-    public String getStem() {
-        return stem;
-    }
-
-    public void setStem(String stem) {
-        this.stem = stem;
-    }
-
-    public String getOptionsJson() {
-        return optionsJson;
-    }
-
-    public void setOptionsJson(String optionsJson) {
-        this.optionsJson = optionsJson;
-    }
-
-    public Integer getBlankCount() {
-        return blankCount;
-    }
-
-    public void setBlankCount(Integer blankCount) {
-        this.blankCount = blankCount;
-    }
-
-    public Integer getMaxScore() {
-        return maxScore;
-    }
-
-    public void setMaxScore(Integer maxScore) {
-        this.maxScore = maxScore;
-    }
-
-    public String getCorrectAnswer() {
-        return correctAnswer;
-    }
-
-    public void setCorrectAnswer(String correctAnswer) {
-        this.correctAnswer = correctAnswer;
-    }
-
-    public String getAnalysis() {
-        return analysis;
-    }
-
-    public void setAnalysis(String analysis) {
-        this.analysis = analysis;
-    }
-
-    public String getScoringCriteria() {
-        return scoringCriteria;
-    }
-
-    public void setScoringCriteria(String scoringCriteria) {
-        this.scoringCriteria = scoringCriteria;
-    }
-
-    public String getImagesJson() {
-        return imagesJson;
-    }
-
-    public void setImagesJson(String imagesJson) {
-        this.imagesJson = imagesJson;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
 
     // ==================== 业务方法 ====================
 

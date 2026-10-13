@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.entity;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 用户邀请实体（P3-T3，一次性设密邀请）。
@@ -24,6 +26,8 @@ import java.util.Objects;
  * @author mouhinU
  * @date 2026-10-08
  */
+@Getter
+@Setter
 public class UserInvite {
 
     /** 状态：待使用。 */
@@ -112,88 +116,6 @@ public class UserInvite {
         }
         this.status = STATUS_REVOKED;
         this.revokedAt = now;
-    }
-
-    // ==================== Getters & Setters ====================
-
-    public Long getInviteId() {
-        return inviteId;
-    }
-
-    public void setInviteId(Long inviteId) {
-        this.inviteId = inviteId;
-    }
-
-    public Long getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(Long tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getInviteCodeHash() {
-        return inviteCodeHash;
-    }
-
-    public void setInviteCodeHash(String inviteCodeHash) {
-        this.inviteCodeHash = inviteCodeHash;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getExpiresAt() {
-        return expiresAt;
-    }
-
-    public void setExpiresAt(LocalDateTime expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-
-    public LocalDateTime getUsedAt() {
-        return usedAt;
-    }
-
-    public void setUsedAt(LocalDateTime usedAt) {
-        this.usedAt = usedAt;
-    }
-
-    public LocalDateTime getRevokedAt() {
-        return revokedAt;
-    }
-
-    public void setRevokedAt(LocalDateTime revokedAt) {
-        this.revokedAt = revokedAt;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
     }
 
     // ==================== equals / hashCode / toString ====================

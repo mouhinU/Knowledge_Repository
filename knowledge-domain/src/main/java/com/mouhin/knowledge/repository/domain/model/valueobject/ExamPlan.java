@@ -2,6 +2,8 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 题型分布方案（值对象）
@@ -12,6 +14,8 @@ import java.util.List;
  * @author mouhinU
  * @date 2026-09-16
  */
+@Getter
+@Setter
 public class ExamPlan {
 
     /** 学段：PRIMARY / JUNIOR / SENIOR / UNKNOWN */
@@ -64,67 +68,15 @@ public class ExamPlan {
         return n;
     }
 
-    public String getSchoolLevel() {
-        return schoolLevel;
-    }
-
-    public void setSchoolLevel(String schoolLevel) {
-        this.schoolLevel = schoolLevel;
-    }
-
-    public int getTotalFullMark() {
-        return totalFullMark;
-    }
-
-    public void setTotalFullMark(int totalFullMark) {
-        this.totalFullMark = totalFullMark;
-    }
-
-    public boolean isCombined() {
-        return combined;
-    }
-
-    public void setCombined(boolean combined) {
-        this.combined = combined;
-    }
-
-    public List<String> getSubjects() {
-        return subjects;
-    }
-
     public void setSubjects(List<String> subjects) {
         this.subjects = subjects != null ? subjects : new ArrayList<>();
-    }
-
-    public List<TypePlan> getTypes() {
-        return types;
     }
 
     public void setTypes(List<TypePlan> types) {
         this.types = types != null ? types : new ArrayList<>();
     }
 
-    public List<String> getEvaluationNotes() {
-        return evaluationNotes;
-    }
-
     public void setEvaluationNotes(List<String> evaluationNotes) {
         this.evaluationNotes = evaluationNotes != null ? evaluationNotes : new ArrayList<>();
-    }
-
-    public String getOverallVerdict() {
-        return overallVerdict;
-    }
-
-    public void setOverallVerdict(String overallVerdict) {
-        this.overallVerdict = overallVerdict;
-    }
-
-    public boolean isManualAdjusted() {
-        return manualAdjusted;
-    }
-
-    public void setManualAdjusted(boolean manualAdjusted) {
-        this.manualAdjusted = manualAdjusted;
     }
 }
