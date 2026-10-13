@@ -190,8 +190,8 @@
         <div class="diagram-header">
             <div>
                 <h1 class="diagram-title">Knowledge Repository — 系统架构蓝图</h1>
-                <p class="diagram-subtitle">RAG KNOWLEDGE BASE + MULTI-AGENT EXAM GENERATION · COLA 5-LAYER · SPRING
-                    BOOT 3.4 / JAVA 21</p>
+                <p class="diagram-subtitle">RAG KNOWLEDGE BASE + MULTI-AGENT EXAM GENERATION + SAAS MULTI-TENANT · COLA
+                    5-LAYER · SPRING BOOT 3.4 / JAVA 21</p>
             </div>
             <span class="fig-id">SHEET 00 / OVERVIEW</span>
         </div>
@@ -215,7 +215,7 @@
             </div>
             <div>
                 <div class="meta-k">Persistence</div>
-                <div class="meta-v">MyBatis-Plus + Flyway</div>
+                <div class="meta-v">MyBatis-Plus 3.5.17 + Flyway V35</div>
             </div>
             <div>
                 <div class="meta-k">Database</div>
@@ -223,11 +223,27 @@
             </div>
             <div>
                 <div class="meta-k">Arch Style</div>
-                <div class="meta-v">COLA 5-Module</div>
+                <div class="meta-v">COLA 5-Module + SaaS 多租户</div>
             </div>
             <div>
                 <div class="meta-k">Server Port</div>
                 <div class="meta-v">:8091</div>
+            </div>
+            <div>
+                <div class="meta-k">Object Storage</div>
+                <div class="meta-v">MinIO SDK 8.5.17 / 本地</div>
+            </div>
+            <div>
+                <div class="meta-k">Cache / Coord</div>
+                <div class="meta-v">Redis (pub/sub · lock · session)</div>
+            </div>
+            <div>
+                <div class="meta-k">Tenant Isolation</div>
+                <div class="meta-v">POOL (tenant_id) + SILO (kc_*)</div>
+            </div>
+            <div>
+                <div class="meta-k">Feature Gates</div>
+                <div class="meta-v">saas / platform / oidc / quota</div>
             </div>
         </div>
 
@@ -238,6 +254,8 @@
             <a href="#fig4">FIG 4 · 多智能体出卷</a>
             <a href="#fig5">FIG 5 · 文档状态机</a>
             <a href="#fig6">FIG 6 · 部署拓扑</a>
+            <a href="#fig7">FIG 7 · SaaS 多租户隔离</a>
+            <a href="#fig8">FIG 8 · 租户生命周期与配额</a>
         </div>
     </div>
 </div>
@@ -257,24 +275,24 @@
             <div class="layer">
                 <div class="layer-head">
                     <span class="badge badge--filled">适配层 (adapter)</span>
-                    <span class="mono sub">knowledge-web — Controller / 安全配置 / 全局异常 / 管理台 SPA / SSE Store</span>
+                    <span class="mono sub">knowledge-web — 23 Controller / 4 Filter / 3 SSE Store / 安全配置 / 全局异常 / 管理台 SPA</span>
                 </div>
                 <div class="layer-mods">
                     <div class="node">
-                        <div class="n-title">Document*Controller</div>
-                        <div class="n-sub">upload / preview / admin</div>
-                    </div>
-                    <div class="node">
-                        <div class="n-title">Exam*Controller</div>
-                        <div class="n-sub">generate / SSE / export</div>
+                        <div class="n-title">Document* / Exam* Controller</div>
+                        <div class="n-sub">upload · preview · generate · SSE · export</div>
                     </div>
                     <div class="node">
                         <div class="n-title">KnowledgeQueryController</div>
                         <div class="n-sub">/api/knowledge/search</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">*ProgressStore + AuthFilter</div>
-                        <div class="n-sub">SseEmitter + JWT</div>
+                        <div class="n-title">Platform*Controller</div>
+                        <div class="n-sub">tenant · billing · limit · schema-health</div>
+                    </div>
+                    <div class="node">
+                        <div class="n-title">4 Filter + 3 ProgressStore</div>
+                        <div class="n-sub">TenantResolver · Admin/PlatformToken · SseEmitter</div>
                     </div>
                 </div>
             </div>
@@ -288,7 +306,7 @@
                 </div>
                 <div class="layer-mods">
                     <div class="node">
-                        <div class="n-title">13 × ServiceI 接口</div>
+                        <div class="n-title">14 × ServiceI 接口</div>
                         <div class="n-sub">DocumentIngestion / KnowledgeQuery / ExamGeneration / …</div>
                     </div>
                     <div class="node">
@@ -297,7 +315,7 @@
                     </div>
                     <div class="node">
                         <div class="n-title">DTO / VO</div>
-                        <div class="n-sub">46 文件 · 跨层数据传输</div>
+                        <div class="n-sub">76 文件 · 跨层数据传输</div>
                     </div>
                     <div class="node">
                         <div class="n-title">Request / Response</div>
@@ -315,19 +333,20 @@
                 </div>
                 <div class="layer-mods">
                     <div class="node">
-                        <div class="n-title">15 × ServiceImpl (分发)</div>
+                        <div class="n-title">14 × ServiceImpl (分发)</div>
                         <div class="n-sub">实现 client 的 ServiceI</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">14 特性包 Executor</div>
-                        <div class="n-sub">docingestion(18) · examgeneration(12) · examgrading(13)</div>
+                        <div class="n-title">107 Executor · 15 特性包</div>
+                        <div class="n-sub">docingestion · examgeneration · examgrading · platform · …</div>
                     </div>
                     <div class="node">
                         <div class="n-title">ExamGenerationSupport</div>
                         <div class="n-sub">7 步 Agent 流水线编排</div>
                     </div>
                     <div class="node">
-                        <div class="n-sub">examtaking(11) · document(9) · examreview(9) · …</div>
+                        <div class="n-title">AuthorizedSearchSupport · QuotaGuard</div>
+                        <div class="n-sub">检索出口 ACL 过滤 · 配额前置拦截</div>
                     </div>
                 </div>
             </div>
@@ -337,7 +356,7 @@
             <div class="layer">
                 <div class="layer-head">
                     <span class="badge">领域层 (domain · 核心 · 不依赖 infra/app/web)</span>
-                    <span class="mono sub">knowledge-domain — 聚合根 / 实体 / 值对象 / 领域服务 / Gateway 接口 / 领域事件</span>
+                    <span class="mono sub">knowledge-domain — 聚合根 / 实体 / 值对象 / 领域服务 / Gateway 接口 / 领域事件 / TenantContext</span>
                 </div>
                 <div class="layer-mods">
                     <div class="node">
@@ -345,16 +364,16 @@
                         <div class="n-sub">状态机 + 校验</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">12 实体 + 22 值对象</div>
-                        <div class="n-sub">ExamPlan · Permission · BlackboardState</div>
+                        <div class="n-title">19 实体 + 42 值对象</div>
+                        <div class="n-sub">ExamPlan · Permission · TenantKey · BlackboardState</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">14 领域服务</div>
+                        <div class="n-title">23 领域服务</div>
                         <div class="n-sub">ScoreRuleEngine · BlackboardAgent · ExamContractValidator</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">21 Gateway 接口 + 4 领域事件</div>
-                        <div class="n-sub">仅领域对象签名</div>
+                        <div class="n-title">42 Gateway 接口 + 4 领域事件</div>
+                        <div class="n-sub">Tenant* · Quota · SecretCipher · ObjectStorage 端口</div>
                     </div>
                 </div>
             </div>
@@ -366,23 +385,23 @@
             <div class="layer">
                 <div class="layer-head">
                     <span class="badge">基础设施层 (infrastructure)</span>
-                    <span class="mono sub">knowledge-infrastructure — GatewayImpl / DO / Mapper / Milvus / 解析策略 / LLM 韧性 / Agent 实现</span>
+                    <span class="mono sub">knowledge-infrastructure — GatewayImpl / DO / Mapper / 租户拦截器 / Milvus / Redis / MinIO / 解析策略 / LLM 韧性 / Agent 实现</span>
                 </div>
                 <div class="layer-mods">
                     <div class="node">
-                        <div class="n-title">21 GatewayImpl + 16 DO + 15 Mapper</div>
-                        <div class="n-sub">MyBatis-Plus 持久化</div>
+                        <div class="n-title">27 GatewayImpl + 27 DO + 26 Mapper</div>
+                        <div class="n-sub">MyBatis-Plus + KnowledgeTenantLineHandler</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">MilvusVectorStoreService</div>
-                        <div class="n-sub">向量存取 + 过滤</div>
+                        <div class="n-title">Milvus / Redis / MinIO 双驱动</div>
+                        <div class="n-sub">Real + Noop · @ConditionalOnProperty 门控</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">11 Extractor 策略 + CompositeExtractionService</div>
-                        <div class="n-sub">Tika/PDFBox/POI/Vision</div>
+                        <div class="n-title">解析策略 + CompositeExtractionService</div>
+                        <div class="n-sub">PDFBox / POI / Tika / Vision</div>
                     </div>
                     <div class="node">
-                        <div class="n-title">13 Agent + Resilient* + ChatModel Config</div>
+                        <div class="n-title">16 Agent + Resilient* + ChatModel Config</div>
                         <div class="n-sub">LangChain4j + Resilience4j</div>
                     </div>
                 </div>
@@ -497,7 +516,8 @@
         <div class="diagram-header">
             <div>
                 <h1 class="diagram-title">FIG 3 — 语义检索与 RAG 查询流程</h1>
-                <p class="diagram-subtitle">QUERY → EMBED → MILVUS SEARCH (PERMISSION FILTER) → RERANK → LLM</p>
+                <p class="diagram-subtitle">QUERY → EMBED → MILVUS OVER-FETCH (CATEGORY + PERMISSION PREDICATE) → ACL
+                    EGRESS FILTER → RERANK → MINSCORE → TOP-N</p>
             </div>
             <span class="fig-id">FIG 03 / QUERY</span>
         </div>
@@ -511,32 +531,32 @@
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="fs-n">02</div>
-                <div class="fs-t">查询向量化</div>
-                <div class="fs-d">Embedding Model</div>
+                <div class="fs-t">Milvus over-fetch</div>
+                <div class="fs-d">fetch=max×3+10 (≤500) · category+权限谓词下推</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="fs-n">03</div>
-                <div class="fs-t">构建过滤表达式</div>
-                <div class="fs-d">PermissionDomainService</div>
+                <div class="fs-t">ACL 出口过滤</div>
+                <div class="fs-d">批量 findByDocumentKeys · PermissionDomainService</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="fs-n">04</div>
-                <div class="fs-t">Milvus Top-K 检索</div>
-                <div class="fs-d">maxResults · minScore · expr</div>
+                <div class="fs-t">Rerank 重排</div>
+                <div class="fs-d">ScoringModel · bge-reranker-v2-m3（可选）</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="fs-n">05</div>
-                <div class="fs-t">应用层二次过滤</div>
-                <div class="fs-d">category 兜底</div>
+                <div class="fs-t">minScore 再阈值</div>
+                <div class="fs-d">重排分数尺度≠余弦，须重排后再过滤</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step node--filled">
                 <div class="fs-n" style="color:#cbd5e1;">06</div>
-                <div class="fs-t">List&lt;SearchResult&gt;</div>
-                <div class="fs-d" style="color:#cbd5e1;">供 Agent / LLM 引用</div>
+                <div class="fs-t">截断 Top-N</div>
+                <div class="fs-d" style="color:#cbd5e1;">List&lt;SearchResult&gt; 供 Agent / LLM</div>
             </div>
         </div>
 
@@ -560,8 +580,9 @@
             </div>
         </div>
         <div class="mono sub" style="margin-top:12px; font-size:11px;">
-            元数据写入 Milvus：document_key · department_id · visibility · allowed_roles · owner_id · category →<br>
-            buildFilterExpression() 据此生成检索过滤；超级管理员绕过限制。
+            元数据写入 Milvus：document_key · department_id · visibility · allowed_roles · owner_id · category · tenant_id →<br>
+            buildFilterExpression() 据此生成检索过滤（category / tenant_id 以标量谓词下推 Milvus）；超级管理员绕过限制。<br>
+            ACL 出口按 documentKey 批量回表（findByDocumentKeys，SQL IN）避免 N+1；元数据缺失按最小权限拒绝（宁漏不越权）。
         </div>
     </div>
 </div>
@@ -742,32 +763,36 @@
                     <div class="s-p">:8091 · Spring MVC + SSE + 管理台 SPA</div>
                 </div>
                 <div class="svc">
-                    <div class="s-t">WebSecurityConfig</div>
-                    <div class="s-p">permitAll /admin/** · RBAC</div>
+                    <div class="s-t">Caddy 反向代理 + 2 副本</div>
+                    <div class="s-p">docker-compose.scale.yml · 无状态水平扩展</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">4 Servlet Filter</div>
+                    <div class="s-p">TenantResolver · Admin/PlatformToken · HtmlCacheBuster</div>
                 </div>
                 <div class="svc">
                     <div class="s-t">GlobalExceptionHandler</div>
-                    <div class="s-p">统一响应体</div>
+                    <div class="s-p">统一响应体 · 402/429/409 映射</div>
                 </div>
             </div>
 
             <div class="cluster">
-                <div class="c-label">数据层</div>
+                <div class="c-label">数据与存储</div>
                 <div class="svc">
                     <div class="s-t">关系库</div>
-                    <div class="s-p">H2(内嵌) ↔ MySQL:3307</div>
-                </div>
-                <div class="svc">
-                    <div class="s-t">Flyway</div>
-                    <div class="s-p">V{YYYYMMDD}{序号} 迁移</div>
+                    <div class="s-p">H2(内嵌) ↔ MySQL:3307 · Flyway V1–V35</div>
                 </div>
                 <div class="svc">
                     <div class="s-t">Milvus Standalone</div>
-                    <div class="s-p">:19530 · collection knowledge_chunks</div>
+                    <div class="s-p">:19530 · POOL knowledge_chunks / SILO kc_{tenant}</div>
                 </div>
                 <div class="svc">
-                    <div class="s-t">MinIO + etcd</div>
-                    <div class="s-p">Milvus 依赖 (docker compose)</div>
+                    <div class="s-t">MinIO 对象存储 + etcd</div>
+                    <div class="s-p">SDK 8.5.17 · 原文/图片 + Milvus 依赖</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">Redis (单机)</div>
+                    <div class="s-p">config pub/sub · 分布式锁 · 上传会话</div>
                 </div>
             </div>
 
@@ -775,26 +800,309 @@
                 <div class="c-label">AI 模型端点</div>
                 <div class="svc">
                     <div class="s-t">Embedding</div>
-                    <div class="s-p">Ollama bge-m3 (1024d) / DashScope</div>
+                    <div class="s-p">bge-m3 (1024d) · Ollama / DashScope</div>
                 </div>
                 <div class="svc">
                     <div class="s-t">Chat LLM</div>
                     <div class="s-p">DeepSeek · OpenAI 兼容协议</div>
                 </div>
                 <div class="svc">
-                    <div class="s-t">LangChain4j</div>
-                    <div class="s-p">@ConditionalOnProperty 切换</div>
+                    <div class="s-t">Reranker</div>
+                    <div class="s-p">bge-reranker-v2-m3 · /v1/rerank（默认关闭）</div>
                 </div>
                 <div class="svc">
-                    <div class="s-t">超时策略</div>
-                    <div class="s-p">Ollama 300s · 其他 120s</div>
+                    <div class="s-t">超时 / 切换</div>
+                    <div class="s-p">Ollama 300s · 其他 120s · @ConditionalOnProperty</div>
                 </div>
             </div>
         </div>
 
         <div class="mono sub" style="margin-top:16px; border-top:1px solid var(--c-border); padding-top:12px;">
-            <span class="badge">deploy</span> bash deploy.sh (禁 docker compose 直接起) · 轮询 docker inspect
-            health=healthy 后 curl 校验 · restart 不更新镜像须重跑 deploy.sh · Docker TZ=Asia/Shanghai
+            <span class="badge">deploy</span> bash deploy.sh 生成镜像 tag <span class="mono">V{YYYYMMDD}{序号}</span>（非 Flyway 版本号）· export/import
+            扁平化为单层 · 轮询 docker inspect health=healthy 后 curl 校验 · restart 不更新镜像须重跑 deploy.sh · Docker TZ=Asia/Shanghai<br>
+            <span class="badge badge--accent">gates</span> 四道门控默认关闭即"零风险回退"：knowledge.saas.enabled · saas.quota.enabled · platform.enabled · platform.oidc.enabled（Redis 默认开）
+        </div>
+    </div>
+</div>
+
+<!-- ================= FIG 7 ================= -->
+<div class="sheet">
+    <div class="diagram-canvas" id="fig7">
+        <div class="diagram-header">
+            <div>
+                <h1 class="diagram-title">FIG 7 — SaaS 多租户隔离架构</h1>
+                <p class="diagram-subtitle">TENANT CONTEXT PROPAGATION · POOL + SILO ISOLATION · PLATFORM ADMIN PLANE ·
+                    THREE-TIER CONFIG · PER-TENANT LLM PROFILE</p>
+            </div>
+            <span class="fig-id">FIG 07 / MULTI-TENANT</span>
+        </div>
+
+        <h3 class="grp">租户上下文传播链（HTTP 入口 → SQL / 向量出口）</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="fs-n">01</div>
+                <div class="fs-t">HTTP 请求</div>
+                <div class="fs-d">tenant_key / JWT claim</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-n">02</div>
+                <div class="fs-t">TenantResolverFilter</div>
+                <div class="fs-d">归一小写 · 校验租户目录</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-n">03</div>
+                <div class="fs-t">TenantContext</div>
+                <div class="fs-d">ThreadLocal · 缺省 default</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-n">04</div>
+                <div class="fs-t">TenantLine 拦截器</div>
+                <div class="fs-d">自动追加 tenant_id · 白名单跳过</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step node--filled">
+                <div class="fs-n" style="color:#cbd5e1;">05</div>
+                <div class="fs-t">数据出口</div>
+                <div class="fs-d" style="color:#cbd5e1;">MySQL tenant_id · Milvus 谓词 · callWithTenant 回源</div>
+            </div>
+        </div>
+
+        <h3 class="grp">隔离模型 · POOL（现网默认）↔ SILO（Phase 3 门控）</h3>
+        <div class="topo" style="grid-template-columns: 1fr 1fr;">
+            <div class="cluster">
+                <div class="c-label">POOL · 共享库 + 行级隔离</div>
+                <div class="svc">
+                    <div class="s-t">共享表 + tenant_id 列</div>
+                    <div class="s-p">V24 补列 · V26 NOT NULL DEFAULT 1</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">Milvus knowledge_chunks 单集合</div>
+                    <div class="s-p">JSON / 标量谓词下推过滤</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">saas.enabled=false → 恒 default</div>
+                    <div class="s-p">拦截器短路 · 行为等价单租户</div>
+                </div>
+            </div>
+            <div class="cluster">
+                <div class="c-label">SILO · 独立集合隔离</div>
+                <div class="svc">
+                    <div class="s-t">独立集合 kc_{tenantKey}</div>
+                    <div class="s-p">SiloCollectionNaming 前缀 kc_</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">MilvusSiloCollectionAdmin</div>
+                    <div class="s-p">建 / drop / describe（+ Noop 双驱动）</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">TenantSchemaRunner</div>
+                    <div class="s-p">@Scheduled 30min 巡检 · 失败隔离 · 审计</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="grp">平台管理面 · 三级配置读取 · 租户级模型档案</h3>
+        <div class="topo">
+            <div class="cluster">
+                <div class="c-label">平台管理面 (/api/platform/**)</div>
+                <div class="svc">
+                    <div class="s-t">PlatformTokenAuthFilter</div>
+                    <div class="s-p">独立 secret · 与租户令牌互不可用</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">OIDC 企业 IdP（可选）</div>
+                    <div class="s-p">RS256 / JWKS 缓存 · 本地 JWT 不命中回退</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">Tenant · Billing · Limit · SchemaHealth</div>
+                    <div class="s-p">PlatformAuditLog 审计留痕</div>
+                </div>
+            </div>
+            <div class="cluster">
+                <div class="c-label">三级配置读取</div>
+                <div class="svc">
+                    <div class="s-t">Tier1 租户 → Tier2 平台 → Tier3 内置</div>
+                    <div class="s-p">平台锚 default（复用 V23 种子租户）</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">ConfigCacheKey(tenantKey, configKey)</div>
+                    <div class="s-p">值对象分片 · evictTenant 不牵连平台</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">Redis pub/sub 分布式失效</div>
+                    <div class="s-p">+ TTL 300s 兜底 · 手工失效端点</div>
+                </div>
+            </div>
+            <div class="cluster">
+                <div class="c-label">租户级模型档案</div>
+                <div class="svc">
+                    <div class="s-t">TenantLlmProfileResolver</div>
+                    <div class="s-p">V31 sys_tenant_llm_profile</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">SecretCipher（domain 端口）</div>
+                    <div class="s-p">LocalSecretCipher AES-256-GCM · 零新依赖</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">密钥轮换</div>
+                    <div class="s-p">双人复核 · 令牌表模式</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= FIG 8 ================= -->
+<div class="sheet">
+    <div class="diagram-canvas" id="fig8">
+        <div class="diagram-header">
+            <div>
+                <h1 class="diagram-title">FIG 8 — 租户生命周期与配额计费</h1>
+                <p class="diagram-subtitle">PROVISIONING STATE MACHINE · ARCHIVE &amp; DELETE (双人复核) · QUOTA GUARD ·
+                    USAGE METERING &amp; BILLING</p>
+            </div>
+            <span class="fig-id">FIG 08 / LIFECYCLE</span>
+        </div>
+
+        <h3 class="grp">租户状态机（Tenant 聚合）</h3>
+        <div class="states">
+            <div class="state start">●</div>
+            <div class="trans">
+                <div class="t-label">create()</div>
+                <div class="t-arrow">→</div>
+            </div>
+            <div class="state">PENDING</div>
+            <div class="trans">
+                <div class="t-label">provision</div>
+                <div class="t-arrow">→</div>
+            </div>
+            <div class="state">PROVISIONING</div>
+            <div class="trans">
+                <div class="t-label">activate</div>
+                <div class="t-arrow">→</div>
+            </div>
+            <div class="state">ACTIVE</div>
+            <div class="trans">
+                <div class="t-label">suspend</div>
+                <div class="t-arrow">→</div>
+            </div>
+            <div class="state">SUSPENDED</div>
+        </div>
+        <div style="margin-top:14px;">
+            <div class="states">
+                <div class="mono sub" style="width:150px;">归档 / 删除分支：</div>
+                <div class="state">ACTIVE</div>
+                <div class="trans">
+                    <div class="t-label">archive</div>
+                    <div class="t-arrow">→</div>
+                </div>
+                <div class="state">ARCHIVED</div>
+                <div class="trans">
+                    <div class="t-label">delete (双人复核)</div>
+                    <div class="t-arrow">→</div>
+                </div>
+                <div class="state">DELETING</div>
+                <div class="trans">
+                    <div class="t-label">purge</div>
+                    <div class="t-arrow">→</div>
+                </div>
+                <div class="state">DELETED</div>
+                <div class="trans">
+                    <div class="t-label">任意失败</div>
+                    <div class="t-arrow">→</div>
+                </div>
+                <div class="state fail">FAILED</div>
+            </div>
+        </div>
+
+        <h3 class="grp">归档与删除编排（P3-T5 Archive &amp; Delete）</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="fs-n">01</div>
+                <div class="fs-t">归档</div>
+                <div class="fs-d">30 天保留窗</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-n">02</div>
+                <div class="fs-t">申请删除</div>
+                <div class="fs-d">dry-run 只读预览</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-t">双人复核令牌</div>
+                <div class="fs-d">TenantDeleteApproval · 一次性</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="fs-n">04</div>
+                <div class="fs-t">reconciler 硬删</div>
+                <div class="fs-d">TenantDeletionStep 步骤级幂等续跑</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step node--filled">
+                <div class="fs-n" style="color:#cbd5e1;">05</div>
+                <div class="fs-t">数据清除</div>
+                <div class="fs-d" style="color:#cbd5e1;">TenantDataPurgeGateway · 向量 / 对象 / DB</div>
+            </div>
+        </div>
+        <div class="mono sub" style="margin-top:10px; font-size:11px;">
+            幂等键 UUID v4（S-5=A）· 超时由 Scheduler 恢复续跑 · 未发布 / 已作废态非法转换映射 409。
+        </div>
+
+        <h3 class="grp">配额前置拦截 · 用量计量 · 计费导出（Phase 6）</h3>
+        <div class="topo">
+            <div class="cluster">
+                <div class="c-label">QuotaGuard 前置拦截</div>
+                <div class="svc">
+                    <div class="s-t">三策略 BLOCK &gt; THROTTLE &gt; ALERT</div>
+                    <div class="s-p">同时超额取最严</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">QuotaExceeded → 402</div>
+                    <div class="s-p">ThrottleRequired → 429</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">6 CmdExe 集成</div>
+                    <div class="s-p">upload×3 · exam×2 · article×1</div>
+                </div>
+            </div>
+            <div class="cluster">
+                <div class="c-label">用量计量采集</div>
+                <div class="svc">
+                    <div class="s-t">TenantUsageRecorder</div>
+                    <div class="s-p">@Primary 装饰器自动采集</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">UsageCapturing Chat / Embedding</div>
+                    <div class="s-p">tokenUsage() null 安全</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">UsageMetric 白名单</div>
+                    <div class="s-p">CHAT/EMBEDDING_TOKENS · DOC_COUNT · STORAGE_BYTES（V32）</div>
+                </div>
+            </div>
+            <div class="cluster">
+                <div class="c-label">套餐限额与计费</div>
+                <div class="svc">
+                    <div class="s-t">TenantPlanLimit + QuotaPolicy</div>
+                    <div class="s-p">V33 tenant_plan_limit</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">PlatformLimitController</div>
+                    <div class="s-p">GET / POST / DELETE CRUD</div>
+                </div>
+                <div class="svc">
+                    <div class="s-t">PlatformBillingController</div>
+                    <div class="s-p">CSV / JSON 导出</div>
+                </div>
+            </div>
+        </div>
+        <div class="mono sub" style="margin-top:14px; border-top:1px solid var(--c-border); padding-top:12px;">
+            <span class="badge badge--accent">gate</span> knowledge.saas.quota.enabled=false 时 QuotaGuard 不装配、装饰器退化为 Noop，计量与拦截零副作用。
         </div>
     </div>
 </div>
