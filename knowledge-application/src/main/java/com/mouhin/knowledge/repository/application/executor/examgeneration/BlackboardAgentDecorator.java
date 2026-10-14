@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
@@ -27,6 +28,12 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
     private final BlackboardAuditLog auditLog;
     private final BlackboardMetrics metrics;
 
+    /** 审计摘要最大长度，超出截断，防止审计日志过长。 */
+    private static final int SUMMARY_MAX_LENGTH = 100;
+
+    /** 截断后缀。 */
+    private static final String TRUNCATION_SUFFIX = "...";
+
     public BlackboardAgentDecorator(
             BlackboardAgent delegate, BlackboardAuditLog auditLog, BlackboardMetrics metrics) {
         this.delegate = delegate;
@@ -43,7 +50,7 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
 
         auditLog.logAgentStart(
                 blackboard.getSessionId(), agentName, phase, summarizeInput(blackboard));
-        metrics.incrementAgentCount(agentName, phase, "STARTED");
+        metrics.incrementAgentCount(agentName, phase, AgentExecutionStatus.STARTED);
 
         try {
             delegate.execute(blackboard, progressCallback);
@@ -58,12 +65,13 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
                     null,
                     summarizeOutput(blackboard));
             metrics.recordAgentDuration(agentName, blackboard.getPhase(), duration);
-            metrics.incrementAgentCount(agentName, blackboard.getPhase(), "COMPLETE");
+            metrics.incrementAgentCount(
+                    agentName, blackboard.getPhase(), AgentExecutionStatus.COMPLETE);
         } catch (Exception e) {
             Duration duration = Duration.between(start, Instant.now());
             auditLog.logAgentFailed(
                     blackboard.getSessionId(), agentName, phase, duration, e.getMessage());
-            metrics.incrementAgentCount(agentName, phase, "FAILED");
+            metrics.incrementAgentCount(agentName, phase, AgentExecutionStatus.FAILED);
             throw e;
         }
     }
@@ -83,7 +91,9 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
         if (q == null) {
             return "";
         }
-        return q.length() <= 100 ? q : q.substring(0, 100) + "...";
+        return q.length() <= SUMMARY_MAX_LENGTH
+                ? q
+                : q.substring(0, SUMMARY_MAX_LENGTH) + TRUNCATION_SUFFIX;
     }
 
     /** 摘要输出内容（取当前阶段关键产出前 100 字符）。 */
@@ -105,6 +115,8 @@ public class BlackboardAgentDecorator implements BlackboardAgent {
     }
 
     private static String truncate(String text) {
-        return text.length() <= 100 ? text : text.substring(0, 100) + "...";
+        return text.length() <= SUMMARY_MAX_LENGTH
+                ? text
+                : text.substring(0, SUMMARY_MAX_LENGTH) + TRUNCATION_SUFFIX;
     }
 }

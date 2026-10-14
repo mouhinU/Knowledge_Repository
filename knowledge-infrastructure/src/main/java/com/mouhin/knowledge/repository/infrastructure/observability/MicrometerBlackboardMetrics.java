@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.observability;
 
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -43,6 +44,8 @@ public class MicrometerBlackboardMetrics implements BlackboardMetrics {
     private static final String TAG_GATE = "gate";
     private static final String TAG_RESULT = "result";
     private static final String NONE = "none";
+    private static final String RESULT_PASSED = "passed";
+    private static final String RESULT_FAILED = "failed";
 
     private final MeterRegistry registry;
 
@@ -63,7 +66,8 @@ public class MicrometerBlackboardMetrics implements BlackboardMetrics {
     }
 
     @Override
-    public void incrementAgentCount(String agentName, BlackboardPhase phase, String status) {
+    public void incrementAgentCount(
+            String agentName, BlackboardPhase phase, AgentExecutionStatus status) {
         registry.counter(
                         M_AGENT_TOTAL,
                         TAG_AGENT,
@@ -71,7 +75,7 @@ public class MicrometerBlackboardMetrics implements BlackboardMetrics {
                         TAG_PHASE,
                         phase.name(),
                         TAG_STATUS,
-                        nullToNone(status))
+                        status == null ? NONE : status.name())
                 .increment();
     }
 
@@ -84,7 +88,7 @@ public class MicrometerBlackboardMetrics implements BlackboardMetrics {
                         TAG_PHASE,
                         phase.name(),
                         TAG_RESULT,
-                        passed ? "passed" : "failed")
+                        passed ? RESULT_PASSED : RESULT_FAILED)
                 .increment();
     }
 

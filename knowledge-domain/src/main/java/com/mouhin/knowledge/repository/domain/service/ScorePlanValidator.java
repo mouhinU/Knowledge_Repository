@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import java.util.ArrayList;
@@ -31,6 +32,12 @@ public final class ScorePlanValidator {
 
     /** 单题型题量过多阈值 */
     private static final int MAX_TYPE_COUNT = 60;
+
+    /** 平均每题分值下限（低于视为题量偏多） */
+    private static final double MIN_AVG_SCORE_PER_QUESTION = 1.5;
+
+    /** 平均每题分值上限（高于视为题量偏少） */
+    private static final double MAX_AVG_SCORE_PER_QUESTION = 20;
 
     private ScorePlanValidator() {}
 
@@ -141,11 +148,13 @@ public final class ScorePlanValidator {
             }
 
             String key = t.getKey() == null ? "" : t.getKey().toUpperCase();
-            if ("SHORT_ANSWER".equals(key) || "ESSAY".equals(key) || "FILL_BLANK".equals(key)) {
+            if (QuestionTypes.SHORT_ANSWER.equals(key)
+                    || QuestionTypes.ESSAY.equals(key)
+                    || QuestionTypes.FILL_BLANK.equals(key)) {
                 hasSubjective = true;
-            } else if ("SINGLE_CHOICE".equals(key)
-                    || "MULTI_CHOICE".equals(key)
-                    || "TRUE_FALSE".equals(key)) {
+            } else if (QuestionTypes.SINGLE_CHOICE.equals(key)
+                    || QuestionTypes.MULTI_CHOICE.equals(key)
+                    || QuestionTypes.TRUE_FALSE.equals(key)) {
                 hasObjective = true;
             }
         }
@@ -208,9 +217,9 @@ public final class ScorePlanValidator {
         }
         if (totalCount > 0 && targetFullMark > 0) {
             double avg = (double) targetFullMark / totalCount;
-            if (avg < 1.5) {
+            if (avg < MIN_AVG_SCORE_PER_QUESTION) {
                 suggestions.add("平均每题仅 " + String.format("%.1f", avg) + " 分，题量偏多");
-            } else if (avg > 20) {
+            } else if (avg > MAX_AVG_SCORE_PER_QUESTION) {
                 suggestions.add("平均每题 " + String.format("%.1f", avg) + " 分，题量偏少");
             }
         }

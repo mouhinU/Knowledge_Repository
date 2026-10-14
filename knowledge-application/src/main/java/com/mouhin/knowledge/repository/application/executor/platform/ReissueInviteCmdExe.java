@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.support.UserInviteService;
 import com.mouhin.knowledge.repository.application.support.UserInviteService.InviteIssueResult;
 import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantReissueInviteVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
@@ -98,7 +99,7 @@ public class ReissueInviteCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -112,7 +113,7 @@ public class ReissueInviteCmdExe {
                     operator,
                     ACTION,
                     tenantKey,
-                    "REJECTED",
+                    AuditOutcomes.REJECTED,
                     "user not found: username=" + username);
             throw new IllegalArgumentException(
                     "User not found in tenant " + tenantKey + ": " + username);
@@ -136,7 +137,7 @@ public class ReissueInviteCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "inviteId="
                         + issue.invite().getInviteId()
                         + " userId="

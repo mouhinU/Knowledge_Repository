@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import com.mouhin.knowledge.repository.domain.service.ExamBlankCounter;
@@ -60,48 +61,48 @@ public final class ExamPaperParser {
     /** 无方案时：关键词 → 内核题型 的启发式映射（按声明顺序优先匹配，故 多选/判断 在前） */
     private static final List<String[]> KEYWORD_TYPE_RULES =
             List.of(
-                    new String[] {"多选", "MULTI_CHOICE"},
-                    new String[] {"单选", "SINGLE_CHOICE"},
-                    new String[] {"选择", "SINGLE_CHOICE"},
-                    new String[] {"听力", "SINGLE_CHOICE"},
-                    new String[] {"口语", "SINGLE_CHOICE"},
-                    new String[] {"判断", "TRUE_FALSE"},
-                    new String[] {"对错", "TRUE_FALSE"},
-                    new String[] {"填空", "FILL_BLANK"},
-                    new String[] {"补写", "FILL_BLANK"},
-                    new String[] {"默写", "FILL_BLANK"},
-                    new String[] {"词", "FILL_BLANK"},
-                    new String[] {"完形", "FILL_BLANK"},
-                    new String[] {"论述", "ESSAY"},
-                    new String[] {"作文", "ESSAY"},
-                    new String[] {"写作", "ESSAY"},
-                    new String[] {"写话", "ESSAY"},
-                    new String[] {"表达", "ESSAY"},
-                    new String[] {"解答", "ESSAY"},
-                    new String[] {"计算", "SHORT_ANSWER"},
-                    new String[] {"应用", "SHORT_ANSWER"},
-                    new String[] {"综合", "SHORT_ANSWER"},
-                    new String[] {"实验", "SHORT_ANSWER"},
-                    new String[] {"探究", "SHORT_ANSWER"},
-                    new String[] {"操作", "SHORT_ANSWER"},
-                    new String[] {"阅读", "SHORT_ANSWER"},
-                    new String[] {"理解", "SHORT_ANSWER"},
-                    new String[] {"材料", "SHORT_ANSWER"},
-                    new String[] {"简答", "SHORT_ANSWER"},
-                    new String[] {"问答", "SHORT_ANSWER"},
-                    new String[] {"分析", "SHORT_ANSWER"});
+                    new String[] {"多选", QuestionTypes.MULTI_CHOICE},
+                    new String[] {"单选", QuestionTypes.SINGLE_CHOICE},
+                    new String[] {"选择", QuestionTypes.SINGLE_CHOICE},
+                    new String[] {"听力", QuestionTypes.SINGLE_CHOICE},
+                    new String[] {"口语", QuestionTypes.SINGLE_CHOICE},
+                    new String[] {"判断", QuestionTypes.TRUE_FALSE},
+                    new String[] {"对错", QuestionTypes.TRUE_FALSE},
+                    new String[] {"填空", QuestionTypes.FILL_BLANK},
+                    new String[] {"补写", QuestionTypes.FILL_BLANK},
+                    new String[] {"默写", QuestionTypes.FILL_BLANK},
+                    new String[] {"词", QuestionTypes.FILL_BLANK},
+                    new String[] {"完形", QuestionTypes.FILL_BLANK},
+                    new String[] {"论述", QuestionTypes.ESSAY},
+                    new String[] {"作文", QuestionTypes.ESSAY},
+                    new String[] {"写作", QuestionTypes.ESSAY},
+                    new String[] {"写话", QuestionTypes.ESSAY},
+                    new String[] {"表达", QuestionTypes.ESSAY},
+                    new String[] {"解答", QuestionTypes.ESSAY},
+                    new String[] {"计算", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"应用", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"综合", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"实验", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"探究", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"操作", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"阅读", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"理解", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"材料", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"简答", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"问答", QuestionTypes.SHORT_ANSWER},
+                    new String[] {"分析", QuestionTypes.SHORT_ANSWER});
 
     /** 匹配题目行首的印刷题号（可选前置加粗 + 1~3 位数字 + 分隔符 + 可选后置加粗），group(1)=题号 */
     private static final Pattern QUESTION_NUMBER_STRIP =
             Pattern.compile("^\\*{0,2}(\\d{1,3})\\s*[.、．]\\s*\\*{0,2}");
 
     static {
-        SECTION_TYPE_MAP.put("单选题", "SINGLE_CHOICE");
-        SECTION_TYPE_MAP.put("多选题", "MULTI_CHOICE");
-        SECTION_TYPE_MAP.put("判断题", "TRUE_FALSE");
-        SECTION_TYPE_MAP.put("填空题", "FILL_BLANK");
-        SECTION_TYPE_MAP.put("简答题", "SHORT_ANSWER");
-        SECTION_TYPE_MAP.put("论述题", "ESSAY");
+        SECTION_TYPE_MAP.put("单选题", QuestionTypes.SINGLE_CHOICE);
+        SECTION_TYPE_MAP.put("多选题", QuestionTypes.MULTI_CHOICE);
+        SECTION_TYPE_MAP.put("判断题", QuestionTypes.TRUE_FALSE);
+        SECTION_TYPE_MAP.put("填空题", QuestionTypes.FILL_BLANK);
+        SECTION_TYPE_MAP.put("简答题", QuestionTypes.SHORT_ANSWER);
+        SECTION_TYPE_MAP.put("论述题", QuestionTypes.ESSAY);
     }
 
     private ExamPaperParser() {}
@@ -348,7 +349,7 @@ public final class ExamPaperParser {
                 return rule[1];
             }
         }
-        return "SHORT_ANSWER";
+        return QuestionTypes.SHORT_ANSWER;
     }
 
     /**
@@ -458,7 +459,8 @@ public final class ExamPaperParser {
             String content = cleanContent(contentBuilder.toString());
             q.put("content", content);
             q.put("blankCount", ExamBlankCounter.count(content));
-            if ("SINGLE_CHOICE".equals(kernel) || "MULTI_CHOICE".equals(kernel)) {
+            if (QuestionTypes.SINGLE_CHOICE.equals(kernel)
+                    || QuestionTypes.MULTI_CHOICE.equals(kernel)) {
                 q.put("options", parseOptions(rawOptionsBuilder.toString()));
             }
             result.add(q);
@@ -563,7 +565,8 @@ public final class ExamPaperParser {
         String content = cleanContent(contentBuilder.toString());
         q.put("content", content);
         q.put("blankCount", ExamBlankCounter.count(content));
-        if ("SINGLE_CHOICE".equals(kernel) || "MULTI_CHOICE".equals(kernel)) {
+        if (QuestionTypes.SINGLE_CHOICE.equals(kernel)
+                || QuestionTypes.MULTI_CHOICE.equals(kernel)) {
             q.put("options", parseOptions(rawOptionsBuilder.toString()));
         }
         return q;

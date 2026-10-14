@@ -34,6 +34,9 @@ public class PaperReviewController {
     /** 统一响应 map 的 error 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
     private static final String ERR_FIELD = "error";
 
+    /** 默认校对/发布操作者（请求未传 reviewer 时兜底）。 */
+    private static final String DEFAULT_REVIEWER = "admin";
+
     private final ListReviewPendingQryExe listReviewPendingQryExe;
     private final GetPaperQuestionsQryExe getPaperQuestionsQryExe;
     private final UpdatePaperQuestionCmdExe updatePaperQuestionCmdExe;
@@ -200,7 +203,8 @@ public class PaperReviewController {
     /** 校对通过并发布（契约校验不过则拒绝，不可绕过） */
     @PostMapping("/{sessionId}/approve")
     public ResponseEntity<Map<String, Object>> approve(
-            @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String reviewer) {
+            @PathVariable String sessionId,
+            @RequestParam(defaultValue = DEFAULT_REVIEWER) String reviewer) {
         try {
             ExamContractValidator.Result result = approvePaperCmdExe.execute(sessionId, reviewer);
             if (!result.pass()) {
@@ -218,7 +222,8 @@ public class PaperReviewController {
     /** 作废试卷（终态）：置为 VOIDED 并级联标注其下所有考试场次「已作废」， 学生不可再开考此卷，可用列表亦自动移除；已有场次仍可显示与查阅。 */
     @PostMapping("/{sessionId}/void")
     public ResponseEntity<Map<String, Object>> voidPaper(
-            @PathVariable String sessionId, @RequestParam(defaultValue = "admin") String operator) {
+            @PathVariable String sessionId,
+            @RequestParam(defaultValue = DEFAULT_REVIEWER) String operator) {
         try {
             int cascaded = voidPaperCmdExe.execute(sessionId, operator);
             return ResponseEntity.ok(Map.of("message", "试卷已作废", "cascadedSessions", cascaded));

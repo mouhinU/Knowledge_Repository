@@ -53,5 +53,29 @@ public final class SystemConfigKeys {
 
     // ── 质量门禁 · Writing ─────────────────────────────────
 
+    // ── 特性开关 ──────────────────────────────────────────
+    /** PDF 视觉解析（扫描件 OCR + 混合提取）总开关 */
+    public static final String FEATURE_VISION_ENABLED = "feature.vision.enabled";
+
+    /** 检索结果重排序（BGE-Reranker 二次精排）开关 */
+    public static final String FEATURE_RERANKER_ENABLED = "feature.reranker.enabled";
+
+    // ── LLM 运行参数 ──────────────────────────────────────
+    /** 对话角色温度（0.0-2.0，越高越随机） */
+    public static final String LLM_CHAT_TEMPERATURE = "llm.chat.temperature";
+
+    /** 对话角色单次最大输出 Token 数 */
+    public static final String LLM_CHAT_MAX_TOKENS = "llm.chat.max-tokens";
+
+    /** 对话流式角色最大输出 Token 数（须大于非流式以容纳思考链） */
+    public static final String LLM_CHAT_STREAMING_MAX_TOKENS = "llm.chat.streaming-max-tokens";
+
+    /** 向量模型名称（切换后须重建集合） */
+    public static final String LLM_EMBEDDING_MODEL_NAME = "llm.embedding.model-name";
+
+    // ── 文档解析 ──────────────────────────────────────────
+    /** 单文档最大解析页数（PDF 超出部分截断） */
+    public static final String EXTRACTION_MAX_PAGES_PER_DOC = "extraction.max-pages-per-doc";
+
     private SystemConfigKeys() {}
 }

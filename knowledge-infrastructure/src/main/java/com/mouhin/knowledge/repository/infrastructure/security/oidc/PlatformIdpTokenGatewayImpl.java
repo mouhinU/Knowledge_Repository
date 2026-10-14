@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import java.math.BigInteger;
@@ -39,7 +40,7 @@ import org.springframework.stereotype.Component;
  * @date 2026-10-09
  */
 @Component
-@ConditionalOnProperty(name = "knowledge.platform.oidc.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_OIDC_ENABLED, havingValue = "true")
 @Slf4j
 public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
 

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ public class TriggerGradingCmdExe {
                         .findById(sessionId)
                         .orElseThrow(() -> new IllegalArgumentException("考试场次不存在: " + sessionId));
 
-        if (!"SUBMITTED".equals(session.getStatus())) {
+        if (!ExamSessionStatuses.SUBMITTED.equals(session.getStatus())) {
             throw new IllegalStateException("仅已交卷的考试可以触发评分，当前状态: " + session.getStatus());
         }
 

@@ -23,6 +23,18 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class KnowledgeQueryController {
 
+    /** 知识库分类：工作。 */
+    private static final String CATEGORY_WORK = "工作";
+
+    /** 知识库分类：学习。 */
+    private static final String CATEGORY_STUDY = "学习";
+
+    /** 知识库分类：休闲。 */
+    private static final String CATEGORY_LEISURE = "休闲";
+
+    /** 知识库分类：其他。 */
+    private static final String CATEGORY_OTHER = "其他";
+
     private final KnowledgeQueryServiceI queryService;
 
     public KnowledgeQueryController(KnowledgeQueryServiceI queryService) {
@@ -78,10 +90,10 @@ public class KnowledgeQueryController {
     public ResponseEntity<List<Map<String, Object>>> listCategories() {
         List<Map<String, Object>> categories =
                 List.of(
-                        Map.of("name", "工作", "sortOrder", 1),
-                        Map.of("name", "学习", "sortOrder", 2),
-                        Map.of("name", "休闲", "sortOrder", 3),
-                        Map.of("name", "其他", "sortOrder", 4));
+                        Map.of("name", CATEGORY_WORK, "sortOrder", 1),
+                        Map.of("name", CATEGORY_STUDY, "sortOrder", 2),
+                        Map.of("name", CATEGORY_LEISURE, "sortOrder", 3),
+                        Map.of("name", CATEGORY_OTHER, "sortOrder", 4));
         return ResponseEntity.ok(categories);
     }
 }

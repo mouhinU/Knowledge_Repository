@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -44,8 +45,10 @@ class MicrometerBlackboardMetricsTest {
 
     @Test
     void incrementAgentCount_shouldIncrementCounter() {
-        metrics.incrementAgentCount("writer", BlackboardPhase.WRITING, "COMPLETE");
-        metrics.incrementAgentCount("writer", BlackboardPhase.WRITING, "COMPLETE");
+        metrics.incrementAgentCount(
+                "writer", BlackboardPhase.WRITING, AgentExecutionStatus.COMPLETE);
+        metrics.incrementAgentCount(
+                "writer", BlackboardPhase.WRITING, AgentExecutionStatus.COMPLETE);
 
         var counter =
                 registry.find("knowledge.blackboard.agent.total")
@@ -136,7 +139,7 @@ class MicrometerBlackboardMetricsTest {
 
     @Test
     void blankAgentName_shouldDefaultToNone() {
-        metrics.incrementAgentCount("  ", BlackboardPhase.WRITING, "COMPLETE");
+        metrics.incrementAgentCount("  ", BlackboardPhase.WRITING, AgentExecutionStatus.COMPLETE);
 
         var counter =
                 registry.find("knowledge.blackboard.agent.total").tag("agent", "none").counter();

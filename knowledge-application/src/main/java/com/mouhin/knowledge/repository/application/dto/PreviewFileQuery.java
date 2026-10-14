@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.dto;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.ChunkingStrategyEnum;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,5 +28,5 @@ public class PreviewFileQuery {
     private Integer overlap = 50;
 
     /** 分块策略，默认 FIXED_SIZE */
-    private String strategy = "FIXED_SIZE";
+    private String strategy = ChunkingStrategyEnum.FIXED_SIZE.name();
 }

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.llm;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.LlmProfileGateway;
 import com.mouhin.knowledge.repository.domain.gateway.SecretCipher;
 import com.mouhin.knowledge.repository.domain.model.valueobject.LlmProfile;
@@ -34,7 +35,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.saas.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.SAAS_ENABLED, havingValue = "true")
 public class TenantLlmProfileResolver {
 
     private static final Duration L1_TTL = Duration.ofSeconds(30);

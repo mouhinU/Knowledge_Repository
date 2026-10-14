@@ -32,6 +32,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class WrongAnswerAnalysisController {
 
+    /** 关闭执行器时的最大等待秒数。 */
+    private static final long AWAIT_TERMINATION_SECONDS = 30L;
+
+    /** 错题分析默认主题（请求未传 topic 时兜底）。 */
+    private static final String DEFAULT_TOPIC = "错题分析";
+
     private final BlackboardAgent wrongAnswerAnalyzerAgent;
     private final BlackboardProgressStore progressStore;
     private final ExecutorService analysisExecutor;
@@ -51,7 +57,7 @@ public class WrongAnswerAnalysisController {
     void shutdown() {
         analysisExecutor.shutdown();
         try {
-            if (!analysisExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!analysisExecutor.awaitTermination(AWAIT_TERMINATION_SECONDS, TimeUnit.SECONDS)) {
                 analysisExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -77,7 +83,7 @@ public class WrongAnswerAnalysisController {
         String sessionId = request.get("sessionId");
         String examPaper = request.get("examPaper");
         String answerKey = request.get("answerKey");
-        String topic = request.getOrDefault("topic", "错题分析");
+        String topic = request.getOrDefault("topic", DEFAULT_TOPIC);
 
         if (sessionId == null || sessionId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "sessionId 不能为空"));
@@ -109,7 +115,7 @@ public class WrongAnswerAnalysisController {
                             progressStore.pushEvent(
                                     sessionId,
                                     new BlackboardProgressEvent.Builder()
-                                            .type("COMPLETED")
+                                            .type(BlackboardProgressEvent.TYPE_COMPLETED)
                                             .phase(BlackboardPhase.COMPLETED)
                                             .output(blackboard.getWrongAnswerAnalysis())
                                             .build());

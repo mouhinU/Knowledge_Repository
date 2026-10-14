@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,6 @@ public class CountPendingGradingQryExe {
     }
 
     public long execute() {
-        return examSessionGateway.countByStatus("SUBMITTED");
+        return examSessionGateway.countByStatus(ExamSessionStatuses.SUBMITTED);
     }
 }

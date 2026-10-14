@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.gateway.TenantPlanLimitGateway;
 import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/platform/billing")
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 @Slf4j
 public class PlatformBillingController {
 
@@ -45,6 +47,18 @@ public class PlatformBillingController {
     private static final String FORMAT_CSV = "csv";
     private static final String FORMAT_JSON = "json";
     private static final DateTimeFormatter YEAR_MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
+
+    /** CSV 响应 Content-Type（含 charset）。 */
+    private static final String CSV_CONTENT_TYPE = "text/csv; charset=UTF-8";
+
+    /** JSON 响应 Content-Type（含 charset）。 */
+    private static final String JSON_CONTENT_TYPE = "application/json; charset=UTF-8";
+
+    /** 无限配额哨兵值（无限额时以此兜底）。 */
+    private static final long QUOTA_UNLIMITED = -1L;
+
+    /** CSV 导出表头行。 */
+    private static final String CSV_HEADER = "tenant_key,period,metric,quota,current_usage";
 
     private final TenantUsageRecorder tenantUsageRecorder;
     private final TenantPlanLimitGateway tenantPlanLimitGateway;
@@ -167,14 +181,15 @@ public class PlatformBillingController {
         return tenantPlanLimitGateway
                 .findByTenantKeyAndMetric(tenantKey, metric)
                 .map(TenantPlanLimit::quota)
-                .orElse(-1L);
+                .orElse(QUOTA_UNLIMITED);
     }
 
     private void writeCsv(List<BillingRow> rows, HttpServletResponse response) throws IOException {
-        response.setContentType("text/csv; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=billing-export.csv");
+        response.setContentType(CSV_CONTENT_TYPE);
+        response.setHeader(
+                HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=billing-export.csv");
         PrintWriter writer = response.getWriter();
-        writer.println("tenant_key,period,metric,quota,current_usage");
+        writer.println(CSV_HEADER);
         for (BillingRow row : rows) {
             writer.printf(
                     "%s,%s,%s,%d,%d%n",
@@ -184,8 +199,9 @@ public class PlatformBillingController {
     }
 
     private void writeJson(List<BillingRow> rows, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=billing-export.json");
+        response.setContentType(JSON_CONTENT_TYPE);
+        response.setHeader(
+                HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=billing-export.json");
         PrintWriter writer = response.getWriter();
         writer.println("[");
         for (int i = 0; i < rows.size(); i++) {

@@ -31,6 +31,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class TikaFallbackExtractionStrategy implements ContentExtractor {
 
+    /** 路由优先级。 */
+    private static final int PRIORITY = 60;
+
     @Override
     public String name() {
         return ExtractionStrategyEnum.TIKA_FALLBACK.name();
@@ -38,7 +41,7 @@ public class TikaFallbackExtractionStrategy implements ContentExtractor {
 
     @Override
     public int priority() {
-        return 60;
+        return PRIORITY;
     }
 
     @Override

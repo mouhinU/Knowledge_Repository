@@ -52,6 +52,18 @@ public class EnhancedPdfTextExtractor {
     /** 页眉页脚检测：至少在 N 页中重复出现才判定 */
     private static final int HEADER_FOOTER_MIN_OCCURRENCE = 3;
 
+    /** 页眉页脚检测：行长度小于此值才视为候选页眉/页脚 */
+    private static final int MAX_HEADER_FOOTER_LINE_LENGTH = 100;
+
+    /** 多栏检测：位置点总数至少达到此值才启动判定 */
+    private static final int MULTI_COLUMN_MIN_TOTAL_POSITIONS = 20;
+
+    /** 多栏检测：左/右侧位置点占比阈值 */
+    private static final double MULTI_COLUMN_SIDE_RATIO = 0.3;
+
+    /** 多栏检测：中缝位置点占比上限 */
+    private static final double MULTI_COLUMN_CENTER_MAX_RATIO = 0.1;
+
     /** 连字映射表 */
     private static final Map<Character, String> LIGATURE_MAP = createLigatureMap();
 
@@ -316,14 +328,14 @@ public class EnhancedPdfTextExtractor {
             // 检查前 3 行和后 3 行
             for (int i = 0; i < Math.min(3, lines.length); i++) {
                 String line = lines[i].trim();
-                if (line.length() > 0 && line.length() < 100) {
+                if (line.length() > 0 && line.length() < MAX_HEADER_FOOTER_LINE_LENGTH) {
                     lineFrequency.merge(line, 1, Integer::sum);
                 }
             }
 
             for (int i = Math.max(0, lines.length - 3); i < lines.length; i++) {
                 String line = lines[i].trim();
-                if (line.length() > 0 && line.length() < 100) {
+                if (line.length() > 0 && line.length() < MAX_HEADER_FOOTER_LINE_LENGTH) {
                     lineFrequency.merge(line, 1, Integer::sum);
                 }
             }
@@ -413,10 +425,10 @@ public class EnhancedPdfTextExtractor {
 
         // 如果左右两侧都有大量文本，且中缝较少，可能是多栏
         int total = positions.size();
-        return total > 20
-                && leftCount > total * 0.3
-                && rightCount > total * 0.3
-                && centerGap < total * 0.1;
+        return total > MULTI_COLUMN_MIN_TOTAL_POSITIONS
+                && leftCount > total * MULTI_COLUMN_SIDE_RATIO
+                && rightCount > total * MULTI_COLUMN_SIDE_RATIO
+                && centerGap < total * MULTI_COLUMN_CENTER_MAX_RATIO;
     }
 
     // ==================== 文本规范化 ====================

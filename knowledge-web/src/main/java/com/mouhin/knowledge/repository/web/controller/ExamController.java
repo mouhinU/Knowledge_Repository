@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.executor.examgeneration.*;
 import com.mouhin.knowledge.repository.client.api.ExamGenerationServiceI;
 import com.mouhin.knowledge.repository.client.dto.ExamGenerationRequest;
 import com.mouhin.knowledge.repository.client.dto.ExamHistoryDTO;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.Permission;
 import com.mouhin.knowledge.repository.domain.service.ScoreRuleEngine;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +48,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ExamController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    /** 题型分布方案生成会话 ID 前缀。 */
+    private static final String SESSION_PREFIX_DIST = "dist-";
+
+    /** 方案校验会话 ID 前缀。 */
+    private static final String SESSION_PREFIX_VALIDATE = "validate-";
 
     private final ExamGenerationServiceI examGenerationService;
     private final GenerateExamAsyncCmdExe generateExamAsyncCmdExe;
@@ -270,9 +278,9 @@ public class ExamController {
 
         String fileName =
                 URLEncoder.encode(request.getTopic() + "_试卷.docx", StandardCharsets.UTF_8);
-        response.setContentType(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
+        response.setContentType(MimeTypes.DOCX);
+        response.setHeader(
+                HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + fileName);
 
         examWordExporter.export(examPaper, response.getOutputStream());
     }
@@ -297,7 +305,7 @@ public class ExamController {
         final String sessionId =
                 (requestedSessionId != null && !requestedSessionId.isBlank())
                         ? requestedSessionId
-                        : "dist-" + java.util.UUID.randomUUID();
+                        : SESSION_PREFIX_DIST + java.util.UUID.randomUUID();
 
         log.info(
                 "收到题型分布方案生成请求（流式）: topic='{}', difficulty='{}', level='{}', session='{}'",
@@ -370,7 +378,7 @@ public class ExamController {
         final String sessionId =
                 (requestedSessionId != null && !requestedSessionId.isBlank())
                         ? requestedSessionId
-                        : "validate-" + java.util.UUID.randomUUID();
+                        : SESSION_PREFIX_VALIDATE + java.util.UUID.randomUUID();
 
         log.info(
                 "收到方案校验请求（流式）: types={}, fullMark={}, session={}",
@@ -528,9 +536,9 @@ public class ExamController {
             String topic = history.getTopic() != null ? history.getTopic() : "试卷";
             String filename = URLEncoder.encode(topic + "_试卷.docx", StandardCharsets.UTF_8);
 
-            response.setContentType(
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-            response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
+            response.setContentType(MimeTypes.DOCX);
+            response.setHeader(
+                    HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + filename);
 
             examWordExporter.export(history.getExamPaper(), response.getOutputStream());
             response.flushBuffer();

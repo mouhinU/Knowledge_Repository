@@ -1,11 +1,13 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.application.support.AppConstants;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.Difficulties;
 import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
@@ -64,6 +66,12 @@ public class ExamGenerationSupport {
 
     /** 自动发布（免人工校对）时写入的审核人标识 */
     private static final String AUTO_PUBLISH_REVIEWER = "system:auto-publish";
+
+    /** LLM 方案评估结论：通过（无需改进）。 */
+    private static final String VERDICT_PASS = "PASS";
+
+    /** 规则校验报告注入提示词前的截断长度 */
+    private static final int REPORT_TRIM_MAX_LENGTH = 800;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -333,7 +341,9 @@ public class ExamGenerationSupport {
             metrics.recordAgentDuration(
                     AgentNames.AGENT_RESEARCHER, BlackboardPhase.RESEARCH, researchDuration);
             metrics.incrementAgentCount(
-                    AgentNames.AGENT_RESEARCHER, BlackboardPhase.RESEARCH, "COMPLETE");
+                    AgentNames.AGENT_RESEARCHER,
+                    BlackboardPhase.RESEARCH,
+                    AgentExecutionStatus.COMPLETE);
 
             // 3-5. 试卷编写 → (答案生成 ∥ 难度校准) → (内容审核 ∥ 查重去重)
             // 低分自动重试，最多 MAX_REVIEW_RETRIES 次；
@@ -529,7 +539,8 @@ public class ExamGenerationSupport {
                     BlackboardPhase.FAILED,
                     Duration.ZERO,
                     friendly);
-            metrics.incrementAgentCount(AgentNames.PIPELINE_EXAM, BlackboardPhase.FAILED, "ERROR");
+            metrics.incrementAgentCount(
+                    AgentNames.PIPELINE_EXAM, BlackboardPhase.FAILED, AgentExecutionStatus.ERROR);
 
             // 保存失败记录
             saveHistory(
@@ -830,7 +841,7 @@ public class ExamGenerationSupport {
 
             // 硬校验
             ScorePlanValidator.Result validatorResult = ScorePlanValidator.validate(plan);
-            boolean evalPass = "PASS".equalsIgnoreCase(plan.getOverallVerdict());
+            boolean evalPass = VERDICT_PASS.equalsIgnoreCase(plan.getOverallVerdict());
 
             if (validatorResult.pass() && evalPass) {
                 log.info(
@@ -902,7 +913,7 @@ public class ExamGenerationSupport {
     private static boolean hasEvaluationSuggestions(ExamPlan plan) {
         String verdict = plan.getOverallVerdict();
         if (verdict != null) {
-            return !"PASS".equalsIgnoreCase(verdict);
+            return !VERDICT_PASS.equalsIgnoreCase(verdict);
         }
         List<String> notes = plan.getEvaluationNotes();
         if (notes == null || notes.isEmpty()) {
@@ -1055,7 +1066,7 @@ public class ExamGenerationSupport {
                             plan.getTotalFullMark(),
                             plan.totalQuestions(),
                             planText,
-                            trimText(report, 800));
+                            trimText(report, REPORT_TRIM_MAX_LENGTH));
             return streamingChatGateway.streamCompletion(
                     systemPrompt,
                     userPrompt,
@@ -1128,9 +1139,9 @@ public class ExamGenerationSupport {
             int total,
             String schemeText) {
         String difficultyLabel =
-                switch (difficulty != null ? difficulty : "MEDIUM") {
-                    case "EASY" -> "简单（基础概念为主）";
-                    case "HARD" -> "困难（深入理解、综合分析）";
+                switch (difficulty != null ? difficulty : Difficulties.DEFAULT) {
+                    case Difficulties.EASY -> "简单（基础概念为主）";
+                    case Difficulties.HARD -> "困难（深入理解、综合分析）";
                     default -> "中等（理解与应用）";
                 };
         StringBuilder typeDesc = new StringBuilder();
@@ -1283,9 +1294,9 @@ public class ExamGenerationSupport {
             String schemeText) {
 
         String difficultyLabel =
-                switch (difficulty != null ? difficulty : "MEDIUM") {
-                    case "EASY" -> "简单（基础概念为主）";
-                    case "HARD" -> "困难（深入理解、综合分析）";
+                switch (difficulty != null ? difficulty : Difficulties.DEFAULT) {
+                    case Difficulties.EASY -> "简单（基础概念为主）";
+                    case Difficulties.HARD -> "困难（深入理解、综合分析）";
                     default -> "中等（理解与应用）";
                 };
 
@@ -1466,8 +1477,8 @@ public class ExamGenerationSupport {
                 history.setStatus(paperStatus);
             }
             history.setErrorMessage(errorMessage);
-            history.setCreateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
-            history.setUpdateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+            history.setCreateTime(LocalDateTime.now(ZoneId.of(AppConstants.ZONE_ID_SHANGHAI)));
+            history.setUpdateTime(LocalDateTime.now(ZoneId.of(AppConstants.ZONE_ID_SHANGHAI)));
             examHistoryGateway.save(history);
             log.info("出卷历史记录已保存 [session={}, status={}]", sessionId, history.getStatus());
         } catch (Exception e) {

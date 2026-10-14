@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.cache;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.ConfigInvalidationPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.redis.enabled", havingValue = "false")
+@ConditionalOnProperty(name = FeatureFlagKeys.REDIS_ENABLED, havingValue = "false")
 public class NoopConfigInvalidationPublisher implements ConfigInvalidationPublisher {
 
     @Override

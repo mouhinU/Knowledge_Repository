@@ -1,6 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.SiloCollectionAdmin;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SiloCollectionSchema;
@@ -33,7 +35,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 public class TenantSchemaRunner {
 
     /** 审计动作名。 */
@@ -91,7 +93,7 @@ public class TenantSchemaRunner {
                     AgentNames.ACTOR_SYSTEM,
                     action,
                     "*",
-                    "FAILED",
+                    AuditOutcomes.FAILED,
                     "listCollections: " + e.getMessage());
             return new SchemaCheckResult(0, 0, 0, List.of("LIST_FAILED: " + e.getMessage()));
         }
@@ -99,7 +101,11 @@ public class TenantSchemaRunner {
         if (collections.isEmpty()) {
             log.debug("[schema-runner] no SILO collections found, idle");
             auditLog.logTenantAction(
-                    AgentNames.ACTOR_SYSTEM, action, "*", "SUCCESS", "NO_SILO_COLLECTION");
+                    AgentNames.ACTOR_SYSTEM,
+                    action,
+                    "*",
+                    AuditOutcomes.SUCCESS,
+                    "NO_SILO_COLLECTION");
             return new SchemaCheckResult(0, 0, 0, List.of());
         }
 
@@ -135,7 +141,7 @@ public class TenantSchemaRunner {
                         AgentNames.ACTOR_SYSTEM,
                         action,
                         schema.tenantKey(),
-                        "FAILED",
+                        AuditOutcomes.FAILED,
                         "check: " + e.getMessage());
             }
         }

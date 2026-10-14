@@ -1,8 +1,10 @@
 package com.mouhin.knowledge.repository.application.executor.examgeneration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.application.support.AppConstants;
 import com.mouhin.knowledge.repository.application.util.AnswerKeyParser;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
@@ -30,10 +32,6 @@ import org.springframework.stereotype.Component;
 public class ExamQuestionSplitSupport {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    /** 客观题题型：答案存在「结论 + 内联解释」整串风险，切分时需拆出纯净答案头部 */
-    private static final Set<String> OBJECTIVE_TYPES =
-            Set.of("SINGLE_CHOICE", "MULTI_CHOICE", "TRUE_FALSE");
 
     private final ExamQuestionGateway examQuestionGateway;
 
@@ -89,7 +87,7 @@ public class ExamQuestionSplitSupport {
         }
         Map<Integer, AnswerKeyParser.QuestionKey> keyMap = AnswerKeyParser.parse(answerKeyMd);
 
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+        LocalDateTime now = LocalDateTime.now(ZoneId.of(AppConstants.ZONE_ID_SHANGHAI));
         for (Map<String, Object> q : rawQuestions) {
             ExamQuestion question = new ExamQuestion();
             question.setSessionKey(sessionKey);
@@ -174,7 +172,8 @@ public class ExamQuestionSplitSupport {
             ExamQuestion question, AnswerKeyParser.QuestionKey key, String type) {
         question.setScoringCriteria(key.scoringCriteria());
         String rawAnswer = key.answer();
-        boolean objective = type != null && OBJECTIVE_TYPES.contains(type.toUpperCase());
+        boolean objective =
+                type != null && QuestionTypes.OBJECTIVE_CODES.contains(type.toUpperCase());
         if (!objective) {
             question.setCorrectAnswer(rawAnswer);
             question.setAnalysis(key.analysis());
@@ -190,9 +189,9 @@ public class ExamQuestionSplitSupport {
     }
 
     private String serializeOptions(Object optionsObj, String type) {
-        if (!"SINGLE_CHOICE".equals(type)
-                && !"MULTI_CHOICE".equals(type)
-                && !"TRUE_FALSE".equals(type)) {
+        if (!QuestionTypes.SINGLE_CHOICE.equals(type)
+                && !QuestionTypes.MULTI_CHOICE.equals(type)
+                && !QuestionTypes.TRUE_FALSE.equals(type)) {
             return null;
         }
         if (optionsObj == null) {

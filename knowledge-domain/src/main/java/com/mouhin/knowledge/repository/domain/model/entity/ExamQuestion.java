@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.model.entity;
 
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.Getter;
@@ -68,9 +69,7 @@ public class ExamQuestion {
 
     /** 判断是否为客观题（选择题、判断题），与 {@link ExamAnswer#isObjective()} 判据保持一致。 */
     public boolean isObjective() {
-        return "SINGLE_CHOICE".equals(questionType)
-                || "MULTI_CHOICE".equals(questionType)
-                || "TRUE_FALSE".equals(questionType);
+        return QuestionTypes.isObjective(questionType);
     }
 
     // ==================== equals / hashCode ====================

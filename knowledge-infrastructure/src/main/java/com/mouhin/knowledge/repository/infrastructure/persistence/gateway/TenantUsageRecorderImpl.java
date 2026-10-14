@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantUsageDO;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Repository;
  * MySQL，无需 {@code ON DUPLICATE KEY UPDATE} 方言差异。
  */
 @Repository
-@ConditionalOnProperty(name = "knowledge.saas.quota.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.SAAS_QUOTA_ENABLED, havingValue = "true")
 @Slf4j
 public class TenantUsageRecorderImpl implements TenantUsageRecorder {
 

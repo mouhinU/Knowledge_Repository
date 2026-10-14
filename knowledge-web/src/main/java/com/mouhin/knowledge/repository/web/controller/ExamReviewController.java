@@ -30,6 +30,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class ExamReviewController {
 
+    /** 默认复核/发布操作者（请求未传 reviewer 时兜底）。 */
+    private static final String DEFAULT_REVIEWER = "admin";
+
     private final ExamGradingServiceI gradingService;
     private final ExamTakingServiceI examTakingService;
     private final ExamGradingProgressStore gradingProgressStore;
@@ -272,7 +275,7 @@ public class ExamReviewController {
                     answerId,
                     request.getReviewScore(),
                     request.getReviewFeedback(),
-                    request.getReviewer() != null ? request.getReviewer() : "admin");
+                    request.getReviewer() != null ? request.getReviewer() : DEFAULT_REVIEWER);
             return ResponseEntity.ok(Map.of("message", "复核完成"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "复核处理失败"));
@@ -282,7 +285,8 @@ public class ExamReviewController {
     /** 发布成绩 */
     @PostMapping("/{sessionId}/publish")
     public ResponseEntity<Map<String, String>> publish(
-            @PathVariable Long sessionId, @RequestParam(defaultValue = "admin") String reviewer) {
+            @PathVariable Long sessionId,
+            @RequestParam(defaultValue = DEFAULT_REVIEWER) String reviewer) {
         try {
             gradingService.publishScore(sessionId, reviewer);
             return ResponseEntity.ok(Map.of("message", "成绩已发布"));

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.infrastructure.persistence.converter.ExamSessionConverter;
@@ -21,12 +22,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class ExamSessionGatewayImpl implements ExamSessionGateway {
-
-    /** 场次状态：已交卷，待评分。 */
-    private static final String STATUS_SUBMITTED = "SUBMITTED";
-
-    /** 场次状态：评分中（并发认领态）。 */
-    private static final String STATUS_GRADING = "GRADING";
 
     private final ExamSessionMapper examSessionMapper;
 
@@ -65,8 +60,8 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         String token = UUID.randomUUID().toString().replace("-", "");
         LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamSessionDO::getId, id)
-                .eq(ExamSessionDO::getStatus, STATUS_SUBMITTED)
-                .set(ExamSessionDO::getStatus, STATUS_GRADING)
+                .eq(ExamSessionDO::getStatus, ExamSessionStatuses.SUBMITTED)
+                .set(ExamSessionDO::getStatus, ExamSessionStatuses.GRADING)
                 .set(ExamSessionDO::getGradingToken, token)
                 .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
         return examSessionMapper.update(null, wrapper) == 1 ? token : null;
@@ -81,7 +76,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         }
         LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamSessionDO::getId, id)
-                .eq(ExamSessionDO::getStatus, STATUS_GRADING)
+                .eq(ExamSessionDO::getStatus, ExamSessionStatuses.GRADING)
                 .eq(ExamSessionDO::getGradingToken, token)
                 .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
         return examSessionMapper.update(null, wrapper) > 0;
@@ -98,7 +93,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
         LocalDateTime now = LocalDateTime.now();
         wrapper.eq(ExamSessionDO::getId, id)
-                .eq(ExamSessionDO::getStatus, STATUS_GRADING)
+                .eq(ExamSessionDO::getStatus, ExamSessionStatuses.GRADING)
                 .eq(ExamSessionDO::getGradingToken, token)
                 .set(ExamSessionDO::getStatus, newStatus)
                 .set(ExamSessionDO::getAiScore, aiScore)
@@ -118,9 +113,9 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         }
         LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamSessionDO::getId, id)
-                .eq(ExamSessionDO::getStatus, STATUS_GRADING)
+                .eq(ExamSessionDO::getStatus, ExamSessionStatuses.GRADING)
                 .eq(ExamSessionDO::getGradingToken, token)
-                .set(ExamSessionDO::getStatus, STATUS_SUBMITTED)
+                .set(ExamSessionDO::getStatus, ExamSessionStatuses.SUBMITTED)
                 .set(ExamSessionDO::getGradingToken, null)
                 .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
         return examSessionMapper.update(null, wrapper) == 1;
@@ -132,9 +127,9 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         // 回退 SUBMITTED 的同时清空围栏令牌，使在途旧评分者的心跳/终态谓词立即失配退出。
         LambdaUpdateWrapper<ExamSessionDO> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ExamSessionDO::getId, id)
-                .eq(ExamSessionDO::getStatus, STATUS_GRADING)
+                .eq(ExamSessionDO::getStatus, ExamSessionStatuses.GRADING)
                 .lt(ExamSessionDO::getUpdateTime, deadline)
-                .set(ExamSessionDO::getStatus, STATUS_SUBMITTED)
+                .set(ExamSessionDO::getStatus, ExamSessionStatuses.SUBMITTED)
                 .set(ExamSessionDO::getGradingToken, null)
                 .set(ExamSessionDO::getUpdateTime, LocalDateTime.now());
         return examSessionMapper.update(null, wrapper) == 1;
@@ -185,7 +180,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     @Override
     public List<ExamSession> listPendingGrading(int limit) {
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExamSessionDO::getStatus, "SUBMITTED")
+        wrapper.eq(ExamSessionDO::getStatus, ExamSessionStatuses.SUBMITTED)
                 .orderByAsc(ExamSessionDO::getSubmitTime)
                 .last("LIMIT " + limit);
         return examSessionMapper.selectList(wrapper).stream()
@@ -196,7 +191,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     @Override
     public List<ExamSession> listPendingReview(int limit, int offset) {
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExamSessionDO::getStatus, "AI_GRADED")
+        wrapper.eq(ExamSessionDO::getStatus, ExamSessionStatuses.AI_GRADED)
                 .orderByAsc(ExamSessionDO::getGradeTime)
                 .last("LIMIT " + limit + " OFFSET " + offset);
         return examSessionMapper.selectList(wrapper).stream()
@@ -207,7 +202,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     @Override
     public long countPendingReview() {
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ExamSessionDO::getStatus, "AI_GRADED");
+        wrapper.eq(ExamSessionDO::getStatus, ExamSessionStatuses.AI_GRADED);
         return examSessionMapper.selectCount(wrapper);
     }
 

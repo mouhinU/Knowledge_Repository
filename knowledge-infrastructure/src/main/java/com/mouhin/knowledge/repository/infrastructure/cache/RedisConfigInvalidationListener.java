@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.cache;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.event.ConfigCacheInvalidationEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,7 +26,7 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
  */
 @Configuration
 @ConditionalOnProperty(
-        name = "knowledge.redis.enabled",
+        name = FeatureFlagKeys.REDIS_ENABLED,
         havingValue = "true",
         matchIfMissing = true)
 @Slf4j

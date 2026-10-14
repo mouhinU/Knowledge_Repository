@@ -25,6 +25,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class EmbeddingModelConfig {
 
+    /** 向量调用最小超时秒数。 */
+    private static final int MIN_CALL_TIMEOUT_SECONDS = 5;
+
     /** Embedding 模型，注入 embedding 角色独立 HTTP 客户端，并套 {@code embedding} 角色熔断/重试。 */
     @Bean("delegateEmbeddingModel")
     public EmbeddingModel embeddingModel(
@@ -42,7 +45,11 @@ public class EmbeddingModelConfig {
                         .apiKey(embedding.getApiKey())
                         .modelName(embedding.getModelName())
                         .httpClientBuilder(httpClientBuilder)
-                        .timeout(Duration.ofSeconds(Math.max(embedding.getCallTimeoutSeconds(), 5)))
+                        .timeout(
+                                Duration.ofSeconds(
+                                        Math.max(
+                                                embedding.getCallTimeoutSeconds(),
+                                                MIN_CALL_TIMEOUT_SECONDS)))
                         .build();
         return new ResilientEmbeddingModel(raw, resilience);
     }

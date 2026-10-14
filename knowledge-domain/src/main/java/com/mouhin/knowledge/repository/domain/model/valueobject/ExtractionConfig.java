@@ -34,12 +34,37 @@ public record ExtractionConfig(
     /** 合并策略：视觉结果整体替换文本层。 */
     public static final String MERGE_REPLACE_ALL = "replace_all";
 
+    /** 默认单文档最多处理页数。 */
+    public static final int DEFAULT_MAX_PAGES_PER_DOC = 20;
+
+    /** 默认判定文本层稀疏页的每页最小字符数。 */
+    public static final int DEFAULT_MIN_TEXT_LEN_PER_PAGE = 200;
+
+    /** 默认单张图片送入视觉模型的字节上限。 */
+    public static final int DEFAULT_MAX_BYTES_PER_IMAGE = 4 * 1024 * 1024;
+
+    /** 默认无嵌入图时页面栅格化兜底分辨率。 */
+    public static final int DEFAULT_RENDER_FALLBACK_DPI = 150;
+
+    /** 默认单次视觉调用超时（秒）。 */
+    public static final int DEFAULT_TIMEOUT_SECONDS = 60;
+
+    /** 默认单文档视觉增强总时长上限（秒）。 */
+    public static final int DEFAULT_MAX_TOTAL_SECONDS_PER_DOC = 300;
+
     /**
      * Phase A2 默认配置（纯文本族策略不消费这些字段，仅保证候选对象构造完整）。
      *
      * @return 内置默认配置
      */
     public static ExtractionConfig defaults() {
-        return new ExtractionConfig(20, 200, 4 * 1024 * 1024, 150, MERGE_REPLACE_LOWTEXT, 60, 300);
+        return new ExtractionConfig(
+                DEFAULT_MAX_PAGES_PER_DOC,
+                DEFAULT_MIN_TEXT_LEN_PER_PAGE,
+                DEFAULT_MAX_BYTES_PER_IMAGE,
+                DEFAULT_RENDER_FALLBACK_DPI,
+                MERGE_REPLACE_LOWTEXT,
+                DEFAULT_TIMEOUT_SECONDS,
+                DEFAULT_MAX_TOTAL_SECONDS_PER_DOC);
     }
 }

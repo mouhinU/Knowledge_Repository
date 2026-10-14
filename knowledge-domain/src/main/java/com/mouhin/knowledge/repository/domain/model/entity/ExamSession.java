@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.model.entity;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.Getter;
@@ -86,7 +87,7 @@ public class ExamSession {
 
     /** 标记为已提交 */
     public void submit() {
-        this.status = "SUBMITTED";
+        this.status = ExamSessionStatuses.SUBMITTED;
         this.submitTime = LocalDateTime.now();
     }
 
@@ -97,25 +98,25 @@ public class ExamSession {
      * SUBMITTED} 重新调度。
      */
     public void markGrading() {
-        this.status = "GRADING";
+        this.status = ExamSessionStatuses.GRADING;
     }
 
     /** 标记为 AI 评分完成 */
     public void markAiGraded(int aiScore) {
-        this.status = "AI_GRADED";
+        this.status = ExamSessionStatuses.AI_GRADED;
         this.aiScore = aiScore;
         this.gradeTime = LocalDateTime.now();
     }
 
     /** 标记为人工复核完成 */
     public void markReviewed(int finalScore) {
-        this.status = "REVIEWED";
+        this.status = ExamSessionStatuses.REVIEWED;
         this.finalScore = finalScore;
     }
 
     /** 标记为已发布 */
     public void markPublished() {
-        this.status = "PUBLISHED";
+        this.status = ExamSessionStatuses.PUBLISHED;
         this.publishTime = LocalDateTime.now();
     }
 

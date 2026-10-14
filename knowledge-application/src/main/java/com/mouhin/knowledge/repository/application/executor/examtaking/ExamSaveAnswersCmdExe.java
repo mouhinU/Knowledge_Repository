@@ -1,6 +1,8 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
@@ -26,8 +28,6 @@ public class ExamSaveAnswersCmdExe {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-
     private final ExamAnswerGateway examAnswerGateway;
     private final ExamSessionGateway examSessionGateway;
     private final ExamTakingSupport support;
@@ -45,7 +45,7 @@ public class ExamSaveAnswersCmdExe {
     public void execute(String sessionKey, String studentToken, List<Map<String, String>> answers) {
         ExamSession session = support.resolveSession(sessionKey, studentToken);
 
-        if (!STATUS_IN_PROGRESS.equals(session.getStatus())) {
+        if (!ExamSessionStatuses.IN_PROGRESS.equals(session.getStatus())) {
             throw new IllegalStateException("考试已结束，无法修改答案");
         }
 
@@ -142,7 +142,8 @@ public class ExamSaveAnswersCmdExe {
                     }
                 }
             } else {
-                answer.setQuestionType(ans.getOrDefault("questionType", "SHORT_ANSWER"));
+                answer.setQuestionType(
+                        ans.getOrDefault("questionType", QuestionTypes.SHORT_ANSWER));
                 answer.setQuestionContent(ans.getOrDefault("content", ""));
                 answer.setMaxScore(0);
             }

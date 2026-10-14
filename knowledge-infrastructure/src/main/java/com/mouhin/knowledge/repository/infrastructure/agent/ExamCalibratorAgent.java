@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.Difficulties;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -82,8 +83,8 @@ public class ExamCalibratorAgent implements BlackboardAgent {
 
         String difficultyDesc =
                 switch (targetDifficulty) {
-                    case "EASY" -> "简单（以记忆和理解层次为主，约占 70%）";
-                    case "HARD" -> "困难（以应用、分析和综合层次为主，约占 60%）";
+                    case Difficulties.EASY -> "简单（以记忆和理解层次为主，约占 70%）";
+                    case Difficulties.HARD -> "困难（以应用、分析和综合层次为主，约占 60%）";
                     default -> "中等（理解和应用层次为主，约占 60%）";
                 };
 

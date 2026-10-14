@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.examtaking;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import java.time.Duration;
@@ -22,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ExamSubmitCmdExe {
 
-    private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-
     /** 交卷宽限期（秒） */
     private static final int SUBMIT_GRACE_SECONDS = 30;
 
@@ -41,7 +40,7 @@ public class ExamSubmitCmdExe {
     public void execute(String sessionKey, String studentToken) {
         ExamSession session = support.resolveSession(sessionKey, studentToken);
 
-        if (!STATUS_IN_PROGRESS.equals(session.getStatus())) {
+        if (!ExamSessionStatuses.IN_PROGRESS.equals(session.getStatus())) {
             throw new IllegalStateException("考试已提交，请勿重复操作");
         }
 

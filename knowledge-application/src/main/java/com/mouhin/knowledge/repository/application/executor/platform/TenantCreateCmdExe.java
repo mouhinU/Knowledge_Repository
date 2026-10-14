@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.platform;
 import com.mouhin.knowledge.repository.application.converter.TenantVoConverter;
 import com.mouhin.knowledge.repository.client.dto.TenantCreateCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
@@ -48,7 +49,11 @@ public class TenantCreateCmdExe {
         String operator = cmd.getOperatorId();
         if (!TenantKey.isValid(cmd.getTenantKey())) {
             platformAuditLog.logTenantAction(
-                    operator, ACTION, cmd.getTenantKey(), "REJECTED", "invalid tenantKey format");
+                    operator,
+                    ACTION,
+                    cmd.getTenantKey(),
+                    AuditOutcomes.REJECTED,
+                    "invalid tenantKey format");
             throw new IllegalArgumentException(
                     "Invalid tenantKey: '"
                             + cmd.getTenantKey()
@@ -58,7 +63,11 @@ public class TenantCreateCmdExe {
         String tenantKey = TenantKey.normalize(cmd.getTenantKey());
         if (tenantGateway.findByTenantKey(tenantKey).isPresent()) {
             platformAuditLog.logTenantAction(
-                    operator, ACTION, tenantKey, "REJECTED", "tenantKey already exists");
+                    operator,
+                    ACTION,
+                    tenantKey,
+                    AuditOutcomes.REJECTED,
+                    "tenantKey already exists");
             throw new IllegalStateException("Tenant already exists: " + tenantKey);
         }
 
@@ -76,7 +85,7 @@ public class TenantCreateCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "created status=PENDING plan=" + tenant.getPlan());
         log.info(
                 "Platform tenant created (pending provisioning): {} (id={}, requestId={})",

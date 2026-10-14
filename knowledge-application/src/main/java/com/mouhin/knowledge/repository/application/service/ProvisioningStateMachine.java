@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.InviteInfo;
 import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome.StepOutcome;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.gateway.TenantProvisionStepGateway;
@@ -101,7 +102,7 @@ public class ProvisioningStateMachine {
                         operatorId,
                         ACTION,
                         tenant.getTenantKey(),
-                        "FAILED",
+                        AuditOutcomes.FAILED,
                         "step=" + step.name() + " error=" + outcome.errorDetail());
                 return new ProvisioningOutcome(
                         provisionRequestId, Tenant.STATUS_FAILED, List.copyOf(outcomes));
@@ -111,7 +112,11 @@ public class ProvisioningStateMachine {
         tenant.completeProvisioning();
         tenantGateway.update(tenant);
         auditLog.logTenantAction(
-                operatorId, ACTION, tenant.getTenantKey(), "SUCCESS", "steps=" + outcomes.size());
+                operatorId,
+                ACTION,
+                tenant.getTenantKey(),
+                AuditOutcomes.SUCCESS,
+                "steps=" + outcomes.size());
         InviteInfo invite =
                 (InviteInfo) context.attributes().get(ProvisioningContext.ATTR_INVITE_INFO);
         return new ProvisioningOutcome(

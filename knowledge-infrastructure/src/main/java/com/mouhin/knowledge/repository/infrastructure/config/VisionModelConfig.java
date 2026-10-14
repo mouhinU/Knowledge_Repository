@@ -25,6 +25,12 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class VisionModelConfig {
 
+    /** 视觉 HTTP 客户端最小连接超时秒数。 */
+    private static final int MIN_CONNECT_TIMEOUT_SECONDS = 1;
+
+    /** 视觉调用最小超时秒数。 */
+    private static final int MIN_CALL_TIMEOUT_SECONDS = 30;
+
     /** 视觉角色专属 HTTP 客户端，与 chat / embedding 连接池隔离。 */
     @Bean("visionHttpClient")
     public HttpClient visionHttpClient(LlmVisionProperties vision) {
@@ -34,7 +40,11 @@ public class VisionModelConfig {
                 vision.getMode(),
                 vision.isEnabled());
         return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(Math.max(vision.getConnectTimeoutSeconds(), 1)))
+                .connectTimeout(
+                        Duration.ofSeconds(
+                                Math.max(
+                                        vision.getConnectTimeoutSeconds(),
+                                        MIN_CONNECT_TIMEOUT_SECONDS)))
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
     }
@@ -43,7 +53,9 @@ public class VisionModelConfig {
     @Bean
     public VisionChatGateway visionChatGateway(
             LlmVisionProperties vision, @Qualifier("visionHttpClient") HttpClient httpClient) {
-        Duration timeout = Duration.ofSeconds(Math.max(vision.getCallTimeoutSeconds(), 30));
+        Duration timeout =
+                Duration.ofSeconds(
+                        Math.max(vision.getCallTimeoutSeconds(), MIN_CALL_TIMEOUT_SECONDS));
         return new OpenAiCompatibleVisionChatGateway(
                 vision.getBaseUrl(),
                 vision.getApiKey(),

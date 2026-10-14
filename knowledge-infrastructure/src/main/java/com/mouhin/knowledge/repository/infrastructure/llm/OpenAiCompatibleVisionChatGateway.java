@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
 import java.io.IOException;
@@ -35,6 +36,7 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String DATA_URL_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
+    private static final int ABBREVIATE_MAX_LENGTH = 500;
 
     private final String chatCompletionsUrl;
     private final String apiKey;
@@ -77,7 +79,7 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
     private static String toDataUrl(VisionChatRequest.ImagePayload image) {
         String mime =
                 (image.mimeType() == null || image.mimeType().isBlank())
-                        ? "image/png"
+                        ? MimeTypes.IMAGE_PNG
                         : image.mimeType();
         return DATA_URL_PREFIX + mime + BASE64_MARKER + image.base64Data();
     }
@@ -97,7 +99,9 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
         if (text == null) {
             return "";
         }
-        return text.length() <= 500 ? text : text.substring(0, 500) + "...";
+        return text.length() <= ABBREVIATE_MAX_LENGTH
+                ? text
+                : text.substring(0, ABBREVIATE_MAX_LENGTH) + "...";
     }
 
     @Override

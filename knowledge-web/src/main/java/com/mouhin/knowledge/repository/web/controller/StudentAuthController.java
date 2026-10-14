@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentLoginCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
+import com.mouhin.knowledge.repository.web.security.StudentTokenHeaders;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -56,7 +57,8 @@ public class StudentAuthController {
     /** 退出登录 */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken,
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken,
             @RequestBody(required = false) Map<String, String> body) {
         String token = headerToken;
         if (token == null && body != null) {
@@ -71,7 +73,8 @@ public class StudentAuthController {
     /** 验证令牌（获取当前考生信息） */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken) {
         if (headerToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "未登录"));
         }

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examtaking;
 
 import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
@@ -25,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Slf4j
 public class ExamStartFromHistoryCmdExe {
-
-    private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamSessionGateway examSessionGateway;
@@ -90,7 +89,7 @@ public class ExamStartFromHistoryCmdExe {
         session.setQuestionsJson(withImages);
         session.setTotalScore(support.sumMaxScore(withImages));
         session.setDurationMinutes(history.getDurationMinutes());
-        session.setStatus(STATUS_IN_PROGRESS);
+        session.setStatus(ExamSessionStatuses.IN_PROGRESS);
         session.setVoided(false);
         session.setStartTime(LocalDateTime.now());
         session.setCreateTime(LocalDateTime.now());

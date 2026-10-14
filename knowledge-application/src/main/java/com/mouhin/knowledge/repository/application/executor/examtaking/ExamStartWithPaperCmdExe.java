@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ExamQuestionSplitSupport;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamSession;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
@@ -22,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Slf4j
 public class ExamStartWithPaperCmdExe {
-
-    private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
 
     private static final String DEFAULT_TOPIC = "在线考试";
 
@@ -61,7 +60,7 @@ public class ExamStartWithPaperCmdExe {
         session.setQuestionsJson(rendered);
         session.setTotalScore(support.sumMaxScore(rendered));
         session.setDurationMinutes(ExamPaperParser.parseDuration(examPaper));
-        session.setStatus(STATUS_IN_PROGRESS);
+        session.setStatus(ExamSessionStatuses.IN_PROGRESS);
         session.setStartTime(LocalDateTime.now());
         session.setCreateTime(LocalDateTime.now());
         session.setUpdateTime(LocalDateTime.now());

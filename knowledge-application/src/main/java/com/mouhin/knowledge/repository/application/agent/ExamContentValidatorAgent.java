@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,12 +35,15 @@ public class ExamContentValidatorAgent {
 
     private static final Set<String> KNOWN_TYPES =
             Set.of(
-                    "SINGLE_CHOICE",
-                    "MULTI_CHOICE",
-                    "TRUE_FALSE",
-                    "FILL_BLANK",
-                    "SHORT_ANSWER",
-                    "ESSAY");
+                    QuestionTypes.SINGLE_CHOICE,
+                    QuestionTypes.MULTI_CHOICE,
+                    QuestionTypes.TRUE_FALSE,
+                    QuestionTypes.FILL_BLANK,
+                    QuestionTypes.SHORT_ANSWER,
+                    QuestionTypes.ESSAY);
+
+    /** 选择题最少有效选项数（不足即阻断开考） */
+    private static final int MIN_CHOICE_OPTIONS = 2;
 
     /**
      * 校验结构化题目 JSON
@@ -91,9 +95,10 @@ public class ExamContentValidatorAgent {
             }
 
             // 选择题选项
-            if ("SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type)) {
+            if (QuestionTypes.SINGLE_CHOICE.equals(type)
+                    || QuestionTypes.MULTI_CHOICE.equals(type)) {
                 int optionCount = validOptionCount(q.get("options"));
-                if (optionCount < 2) {
+                if (optionCount < MIN_CHOICE_OPTIONS) {
                     errors.add("第 " + displayNo + " 题（选择题）有效选项不足 2 个（实际 " + optionCount + "）");
                 }
             }

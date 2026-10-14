@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.SiloCollectionAdmin;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SiloCollectionSchema;
 import java.util.List;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @ConditionalOnProperty(
-        name = "knowledge.platform.enabled",
+        name = FeatureFlagKeys.PLATFORM_ENABLED,
         havingValue = "false",
         matchIfMissing = true)
 public class NoopSiloCollectionAdmin implements SiloCollectionAdmin {

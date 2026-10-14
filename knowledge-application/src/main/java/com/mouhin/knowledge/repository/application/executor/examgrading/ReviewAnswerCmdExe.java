@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
@@ -47,7 +48,8 @@ public class ReviewAnswerCmdExe {
                                         new IllegalArgumentException(
                                                 "考试场次不存在: " + answer.getSessionId()));
         String status = session.getStatus();
-        if (!"AI_GRADED".equals(status) && !"REVIEWED".equals(status)) {
+        if (!ExamSessionStatuses.AI_GRADED.equals(status)
+                && !ExamSessionStatuses.REVIEWED.equals(status)) {
             throw new IllegalStateException("当前场次状态不允许人工复核：" + status);
         }
 

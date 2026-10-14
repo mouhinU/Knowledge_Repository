@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.support.DeleteApprovalService
 import com.mouhin.knowledge.repository.application.support.DeleteApprovalService.ApprovalIssueResult;
 import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantDeleteApprovalVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
@@ -61,7 +62,7 @@ public class IssueDeleteApprovalCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -72,7 +73,7 @@ public class IssueDeleteApprovalCmdExe {
                     operator,
                     ACTION,
                     tenantKey,
-                    "REJECTED",
+                    AuditOutcomes.REJECTED,
                     "tenant not ARCHIVED, status=" + tenant.getStatus());
             throw new IllegalStateException(
                     "Cannot issue delete approval for tenant '"
@@ -93,7 +94,7 @@ public class IssueDeleteApprovalCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "approvalId=" + result.approval().getApprovalId() + " ttlHours=" + ttl.toHours());
         log.info(
                 "Delete approval issued for tenant {} (approvalId={})",

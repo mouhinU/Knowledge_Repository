@@ -6,6 +6,7 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +21,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class StudentValidateTokenQryExe {
-
-    /** 有效账号状态 */
-    private static final String STATUS_ACTIVE = "ACTIVE";
 
     private final StudentGateway studentGateway;
     private final StudentSessionGateway studentSessionGateway;
@@ -45,7 +43,7 @@ public class StudentValidateTokenQryExe {
         if (!isCredentialFresh(token, student)) {
             return Optional.empty();
         }
-        if (!STATUS_ACTIVE.equals(student.getStatus())) {
+        if (!User.STATUS_ACTIVE.equals(student.getStatus())) {
             return Optional.empty();
         }
         return Optional.of(StudentConverter.toVO(student));

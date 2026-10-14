@@ -36,6 +36,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DocumentImageSupport {
 
+    /** 图片去重哈希算法（JDK 标准）。 */
+    private static final String HASH_ALGORITHM = "SHA-256";
+
     private final DocumentImageExtractorGateway extractor;
     private final DocumentImageGateway imageGateway;
     private final ObjectStorageGateway objectStorageGateway;
@@ -265,7 +268,7 @@ public class DocumentImageSupport {
 
     private String sha256(byte[] bytes) {
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM);
             byte[] digest = md.digest(bytes);
             StringBuilder sb = new StringBuilder(digest.length * 2);
             for (byte b : digest) {

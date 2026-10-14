@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.client.dto.StudentRegisterCmd;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,6 @@ public class StudentRegisterCmdExe {
 
     /** 密码最小长度 */
     private static final int MIN_PASSWORD_LENGTH = 6;
-
-    /** 初始账号状态 */
-    private static final String STATUS_ACTIVE = "ACTIVE";
 
     private final StudentGateway studentGateway;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -58,7 +56,7 @@ public class StudentRegisterCmdExe {
         student.setPasswordHash(passwordEncoder.encode(password));
         student.setDisplayName(cmd.getDisplayName() != null ? cmd.getDisplayName() : username);
         student.setStudentNo(cmd.getStudentNo());
-        student.setStatus(STATUS_ACTIVE);
+        student.setStatus(User.STATUS_ACTIVE);
         student.setCreateTime(LocalDateTime.now());
         student.setUpdateTime(LocalDateTime.now());
 

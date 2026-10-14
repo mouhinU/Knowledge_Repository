@@ -27,6 +27,9 @@ public class WrongAnswerSummaryQryExe {
     /** 提示词中最多列举的错题数量 */
     private static final int PROMPT_ITEM_LIMIT = 50;
 
+    /** 题型缺失时的统计兜底分组键。 */
+    private static final String TYPE_UNKNOWN = "UNKNOWN";
+
     private static final String AI_SUMMARY_SYSTEM_PROMPT =
             """
                     你是一位专业的教育分析师。请根据学生的错题信息进行分析总结，帮助教师了解学生的薄弱环节。
@@ -88,7 +91,7 @@ public class WrongAnswerSummaryQryExe {
                                         m ->
                                                 m.getQuestionType() != null
                                                         ? m.getQuestionType()
-                                                        : "UNKNOWN",
+                                                        : TYPE_UNKNOWN,
                                         Collectors.counting()));
         prompt.append("题型分布统计：\n");
         typeStats.forEach(

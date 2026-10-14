@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.executor.examgrading;
 
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
@@ -61,7 +62,8 @@ public class PublishScoreCmdExe {
 
         // 阶段 2-D：发布门禁 —— 仅已评分 / 复核中的场次可发布，且待复核题项须全部人工确认
         String status = session.getStatus();
-        if (!"AI_GRADED".equals(status) && !"REVIEWED".equals(status)) {
+        if (!ExamSessionStatuses.AI_GRADED.equals(status)
+                && !ExamSessionStatuses.REVIEWED.equals(status)) {
             throw new IllegalStateException("当前场次状态不允许发布成绩：" + status + "（须先完成 AI 评分并复核）");
         }
 

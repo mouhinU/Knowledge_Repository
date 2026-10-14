@@ -3,6 +3,8 @@ package com.mouhin.knowledge.repository.infrastructure.agent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.Difficulties;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
@@ -41,12 +43,21 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
     /** 允许的内核题型 */
     private static final List<String> ALLOWED_KEYS =
             List.of(
-                    "SINGLE_CHOICE",
-                    "MULTI_CHOICE",
-                    "TRUE_FALSE",
-                    "FILL_BLANK",
-                    "SHORT_ANSWER",
-                    "ESSAY");
+                    QuestionTypes.SINGLE_CHOICE,
+                    QuestionTypes.MULTI_CHOICE,
+                    QuestionTypes.TRUE_FALSE,
+                    QuestionTypes.FILL_BLANK,
+                    QuestionTypes.SHORT_ANSWER,
+                    QuestionTypes.ESSAY);
+
+    /** 每种题型最大数量上限 */
+    private static final int MAX_TYPE_COUNT = 100;
+
+    /** 评估通过判定 */
+    private static final String VERDICT_PASS = "PASS";
+
+    /** 评估未通过判定 */
+    private static final String VERDICT_FAIL = "FAIL";
 
     private final BlackboardAgentStreamer agentStreamer;
 
@@ -61,9 +72,9 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
     }
 
     private static String difficultyLabel(String difficulty) {
-        return switch (difficulty != null ? difficulty : "MEDIUM") {
-            case "EASY" -> "简单";
-            case "HARD" -> "困难";
+        return switch (difficulty != null ? difficulty : Difficulties.DEFAULT) {
+            case Difficulties.EASY -> "简单";
+            case Difficulties.HARD -> "困难";
             default -> "中等";
         };
     }
@@ -355,7 +366,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                 label = ScoreRuleEngine.chineseFromKey(kernel);
             }
             int count = node.has("count") ? node.get("count").asInt(0) : 0;
-            if (count <= 0 || count > 100) {
+            if (count <= 0 || count > MAX_TYPE_COUNT) {
                 continue;
             }
             List<Integer> perQuestion = new ArrayList<>();
@@ -514,7 +525,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                 label = ScoreRuleEngine.chineseFromKey(kernel);
             }
             int count = node.has("count") ? node.get("count").asInt(0) : 0;
-            if (count <= 0 || count > 100) {
+            if (count <= 0 || count > MAX_TYPE_COUNT) {
                 continue;
             }
             TypePlan tp = new TypePlan(kernel, label, count, new ArrayList<>());
@@ -653,14 +664,14 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         JsonNode root = streamJson(agentName, systemPrompt, userPrompt, callback);
 
         List<String> notes = new ArrayList<>();
-        String overallVerdict = "FAIL";
+        String overallVerdict = VERDICT_FAIL;
 
         if (root != null) {
             // 解析整体判定
             if (root.has("overallVerdict")) {
                 String v = root.get("overallVerdict").asText("").trim();
-                if ("PASS".equalsIgnoreCase(v)) {
-                    overallVerdict = "PASS";
+                if (VERDICT_PASS.equalsIgnoreCase(v)) {
+                    overallVerdict = VERDICT_PASS;
                 }
             }
 
@@ -670,7 +681,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
                     String dimName = dim.has("name") ? dim.get("name").asText("") : "";
                     String dimVerdict = dim.has("verdict") ? dim.get("verdict").asText("") : "";
                     String dimDetail = dim.has("detail") ? dim.get("detail").asText("") : "";
-                    if (!"PASS".equalsIgnoreCase(dimVerdict)) {
+                    if (!VERDICT_PASS.equalsIgnoreCase(dimVerdict)) {
                         String note = dimName.isEmpty() ? dimDetail : dimName + "：" + dimDetail;
                         if (!note.isBlank()) {
                             notes.add(note);
@@ -694,16 +705,16 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         int sum = plan.allocatedTotal();
         if (sum != plan.getTotalFullMark()) {
             notes.add("当前各题分值之和为 " + sum + " 分，与满分 " + plan.getTotalFullMark() + " 分不一致，请调整。");
-            overallVerdict = "FAIL";
+            overallVerdict = VERDICT_FAIL;
         }
         if (plan.totalQuestions() > plan.getTotalFullMark()) {
             notes.add("题目数量多于满分，将出现分值为 0 的小题，建议减少题量。");
-            overallVerdict = "FAIL";
+            overallVerdict = VERDICT_FAIL;
         }
 
         // 无任何 FAIL 时强制 PASS
         if (notes.isEmpty()) {
-            overallVerdict = "PASS";
+            overallVerdict = VERDICT_PASS;
             notes.add("题型分布合理，可直接出题");
         }
 
@@ -713,12 +724,12 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
 
     private List<TypePlan> defaultStructure() {
         List<TypePlan> plans = new ArrayList<>();
-        plans.add(new TypePlan("SINGLE_CHOICE", "单选题", 5, new ArrayList<>()));
-        plans.add(new TypePlan("MULTI_CHOICE", "多选题", 3, new ArrayList<>()));
-        plans.add(new TypePlan("TRUE_FALSE", "判断题", 5, new ArrayList<>()));
-        plans.add(new TypePlan("FILL_BLANK", "填空题", 5, new ArrayList<>()));
-        plans.add(new TypePlan("SHORT_ANSWER", "简答题", 3, new ArrayList<>()));
-        plans.add(new TypePlan("ESSAY", "论述题", 2, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.SINGLE_CHOICE, "单选题", 5, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.MULTI_CHOICE, "多选题", 3, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.TRUE_FALSE, "判断题", 5, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.FILL_BLANK, "填空题", 5, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.SHORT_ANSWER, "简答题", 3, new ArrayList<>()));
+        plans.add(new TypePlan(QuestionTypes.ESSAY, "论述题", 2, new ArrayList<>()));
         return plans;
     }
 

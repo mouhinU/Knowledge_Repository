@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
@@ -31,10 +32,10 @@ import org.springframework.stereotype.Component;
 public class PptxExtractionStrategy implements ContentExtractor {
 
     /** 本策略命中的 MIME 类型。 */
-    private static final Set<String> SUPPORTED_MIME_TYPES =
-            Set.of(
-                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    "application/vnd.ms-powerpoint");
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(MimeTypes.PPTX, MimeTypes.PPT);
+
+    /** 路由优先级。 */
+    private static final int PRIORITY = 40;
 
     @Override
     public String name() {
@@ -43,7 +44,7 @@ public class PptxExtractionStrategy implements ContentExtractor {
 
     @Override
     public int priority() {
-        return 40;
+        return PRIORITY;
     }
 
     @Override

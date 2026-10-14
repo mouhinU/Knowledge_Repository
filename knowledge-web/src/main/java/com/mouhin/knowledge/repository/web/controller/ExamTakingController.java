@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.controller;
 import com.mouhin.knowledge.repository.application.executor.examgeneration.ListPublishedHistoryQryExe;
 import com.mouhin.knowledge.repository.client.api.ExamTakingServiceI;
 import com.mouhin.knowledge.repository.client.dto.*;
+import com.mouhin.knowledge.repository.web.security.StudentTokenHeaders;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +48,8 @@ public class ExamTakingController {
     @GetMapping("/available")
     public ResponseEntity<List<ExamHistoryDTO>> listAvailableExams(
             @RequestParam(defaultValue = "20") int limit,
-            @RequestHeader(value = "X-Student-Token", required = false) String token) {
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String token) {
         return ResponseEntity.ok(listPublishedHistoryQryExe.execute(limit, token));
     }
 
@@ -114,7 +116,8 @@ public class ExamTakingController {
     @PostMapping("/{sessionKey}/submit")
     public ResponseEntity<Map<String, Object>> submitExam(
             @PathVariable String sessionKey,
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken,
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken,
             @RequestBody(required = false) Map<String, String> body) {
         String token = headerToken;
         if (token == null && body != null) {
@@ -132,7 +135,8 @@ public class ExamTakingController {
     @GetMapping("/{sessionKey}")
     public ResponseEntity<Map<String, Object>> getSession(
             @PathVariable String sessionKey,
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken) {
         try {
             ExamSessionDTO session =
                     examTakingService.getSession(sessionKey, headerToken).getData();
@@ -172,7 +176,8 @@ public class ExamTakingController {
     @GetMapping("/{sessionKey}/answers")
     public ResponseEntity<List<ExamAnswerDTO>> getAnswers(
             @PathVariable String sessionKey,
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken) {
         try {
             List<ExamAnswerDTO> answers =
                     examTakingService.getAnswers(sessionKey, headerToken).getData();
@@ -185,7 +190,8 @@ public class ExamTakingController {
     /** 查询我的考试历史 */
     @GetMapping("/my-sessions")
     public ResponseEntity<List<ExamSessionDTO>> mySessions(
-            @RequestHeader(value = "X-Student-Token", required = false) String headerToken) {
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false)
+                    String headerToken) {
         try {
             List<ExamSessionDTO> sessions = examTakingService.listMySessions(headerToken).getData();
             return ResponseEntity.ok(sessions);

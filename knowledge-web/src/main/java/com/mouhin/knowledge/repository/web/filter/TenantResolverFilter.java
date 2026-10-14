@@ -10,10 +10,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -66,6 +68,15 @@ public class TenantResolverFilter extends OncePerRequestFilter {
 
     /** 仅这些路径前缀参与租户解析。 */
     private static final String API_PREFIX = "/api/";
+
+    /** 错误响应 map 的 error 字段名。 */
+    private static final String FIELD_ERROR = "error";
+
+    /** 错误响应 map 的 errorCode 字段名。 */
+    private static final String FIELD_ERROR_CODE = "errorCode";
+
+    /** 错误响应 map 的 code 字段名。 */
+    private static final String FIELD_CODE = "code";
 
     private final SaasProperties saasProperties;
     private final TenantDirectory tenantDirectory;
@@ -180,7 +191,7 @@ public class TenantResolverFilter extends OncePerRequestFilter {
             return null;
         }
         apex = apex.toLowerCase();
-        String host = request.getHeader("Host");
+        String host = request.getHeader(HttpHeaders.HOST);
         if (host == null) {
             host = request.getServerName();
         }
@@ -209,10 +220,11 @@ public class TenantResolverFilter extends OncePerRequestFilter {
             throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         objectMapper.writeValue(
                 response.getOutputStream(),
-                java.util.Map.of("error", message, "errorCode", errorCode, "code", status));
+                java.util.Map.of(
+                        FIELD_ERROR, message, FIELD_ERROR_CODE, errorCode, FIELD_CODE, status));
     }
 
     /** 内部信号异常：三来源给出互不相同的租户值。 */

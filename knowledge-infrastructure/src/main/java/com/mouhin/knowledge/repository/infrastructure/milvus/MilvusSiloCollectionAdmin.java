@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.milvus;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.SiloCollectionAdmin;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SiloCollectionSchema;
 import io.milvus.v2.client.ConnectConfig;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 public class MilvusSiloCollectionAdmin implements SiloCollectionAdmin {
 
     /** 建连失败最大重试次数。 */

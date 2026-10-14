@@ -5,6 +5,8 @@ import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestio
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAlertGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
@@ -64,11 +66,8 @@ public class ExamGradingSupport {
     /** 关闭评分 Agent 线程池时等待在途任务收尾的秒数 */
     private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
 
-    /** 场次状态：已交卷，待评分 */
-    private static final String STATUS_SUBMITTED = "SUBMITTED";
-
-    /** 场次状态：AI 评分完成（终态之一） */
-    private static final String STATUS_AI_GRADED = "AI_GRADED";
+    /** AI 评分理由兜底截断长度（未匹配到"理由："标记时截取输出头部） */
+    private static final int REASON_FALLBACK_MAX_LENGTH = 200;
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamAnswerGateway examAnswerGateway;
@@ -223,7 +222,11 @@ public class ExamGradingSupport {
             session.markAiGraded(totalAiScore);
             session.setTotalScore(paperTotal);
             if (!examSessionGateway.completeGrading(
-                    sessionId, gradingToken, STATUS_AI_GRADED, totalAiScore, paperTotal)) {
+                    sessionId,
+                    gradingToken,
+                    ExamSessionStatuses.AI_GRADED,
+                    totalAiScore,
+                    paperTotal)) {
                 log.warn("评分终态落库失败：场次已非本次认领的 GRADING（疑被接管），放弃本次结果 [session={}]", sessionId);
                 if (callback != null) {
                     callback.onError("评分结果未被采纳：场次已被其它流程接管");
@@ -391,7 +394,7 @@ public class ExamGradingSupport {
                             .findById(sessionId)
                             .orElseThrow(
                                     () -> new IllegalArgumentException("考试场次不存在: " + sessionId));
-            if (!STATUS_SUBMITTED.equals(session.getStatus())) {
+            if (!ExamSessionStatuses.SUBMITTED.equals(session.getStatus())) {
                 if (callback != null) {
                     callback.onError("仅已交卷的考试可以触发评分，当前状态: " + session.getStatus());
                 }
@@ -453,7 +456,7 @@ public class ExamGradingSupport {
         boolean isCorrect;
         String feedbackDetail;
 
-        if ("MULTI_CHOICE".equals(type)) {
+        if (QuestionTypes.MULTI_CHOICE.equals(type)) {
             // 多选部分给分：全对满分 / 少选半分 / 含错选或未选 0 分
             Set<Character> correctSet = parseChoiceSet(normalizedCorrect);
             Set<Character> studentSet = parseChoiceSet(normalizedStudent);
@@ -620,7 +623,9 @@ public class ExamGradingSupport {
         if (matcher.find()) {
             return matcher.group(1).trim();
         }
-        return output.length() > 200 ? output.substring(0, 200) + "..." : output;
+        return output.length() > REASON_FALLBACK_MAX_LENGTH
+                ? output.substring(0, REASON_FALLBACK_MAX_LENGTH) + "..."
+                : output;
     }
 
     // ==================== 答案规范化工具（按题型分派） ====================
@@ -643,13 +648,14 @@ public class ExamGradingSupport {
         if (raw == null) {
             return null;
         }
-        if ("TRUE_FALSE".equals(questionType)) {
+        if (QuestionTypes.TRUE_FALSE.equals(questionType)) {
             String token = ExamAnswerNormalizer.trueFalseToken(raw);
             return token != null
                     ? token
                     : toHalfWidth(raw).trim().replaceAll("\\s+", "").toUpperCase();
         }
-        if ("SINGLE_CHOICE".equals(questionType) || "MULTI_CHOICE".equals(questionType)) {
+        if (QuestionTypes.SINGLE_CHOICE.equals(questionType)
+                || QuestionTypes.MULTI_CHOICE.equals(questionType)) {
             String head = ExamAnswerNormalizer.answerHead(raw);
             // javabugs:S2259：answerHead 对纯解释 / 空 body 返回 null，回退空集合避免下游 toUpperCase NPE。
             if (head == null) {

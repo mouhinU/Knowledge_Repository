@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.lock;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @ConditionalOnProperty(
-        name = "knowledge.redis.enabled",
+        name = FeatureFlagKeys.REDIS_ENABLED,
         havingValue = "true",
         matchIfMissing = true)
 public class RedisDistributedLockGateway implements DistributedLockGateway {

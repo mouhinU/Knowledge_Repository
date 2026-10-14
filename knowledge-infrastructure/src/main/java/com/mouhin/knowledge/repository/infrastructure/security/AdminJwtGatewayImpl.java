@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
 import java.nio.charset.StandardCharsets;
@@ -62,7 +63,6 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
     private static final String CLAIM_TENANT_KEY = "tenantKey";
     private static final String CLAIM_IAT = "iat";
     private static final String CLAIM_EXP = "exp";
-    private static final String DEFAULT_TENANT_KEY = "default";
     private static final int TOKEN_SEGMENT_COUNT = 3;
     private static final long SECONDS_PER_HOUR = 3600L;
 
@@ -109,7 +109,9 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
         }
         payload.put(
                 CLAIM_TENANT_KEY,
-                tenantKey == null || tenantKey.isBlank() ? DEFAULT_TENANT_KEY : tenantKey);
+                tenantKey == null || tenantKey.isBlank()
+                        ? TenantContext.DEFAULT_TENANT_KEY
+                        : tenantKey);
         payload.put(CLAIM_IAT, now.getEpochSecond());
         payload.put(CLAIM_EXP, exp.getEpochSecond());
 
@@ -158,7 +160,7 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             List<String> roles = readRoles(payload.path(CLAIM_ROLES));
             String tenantKey = payload.path(CLAIM_TENANT_KEY).asText(null);
             if (tenantKey == null || tenantKey.isBlank()) {
-                tenantKey = DEFAULT_TENANT_KEY;
+                tenantKey = TenantContext.DEFAULT_TENANT_KEY;
             }
             return Optional.of(
                     new AdminTokenPayload(

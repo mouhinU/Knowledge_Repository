@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.articlegeneration;
 
 import com.mouhin.knowledge.repository.application.executor.examgeneration.AgentDecoratorRegistrar;
+import com.mouhin.knowledge.repository.application.support.AppConstants;
 import com.mouhin.knowledge.repository.application.support.AuthorizedSearchSupport;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.application.util.AgentExecutorFactory;
@@ -10,6 +11,7 @@ import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
 import com.mouhin.knowledge.repository.domain.gateway.WritingHistoryGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -54,6 +56,12 @@ public class ArticleGenerationSupport {
 
     private static final int DEFAULT_MAX_RESULTS = 10;
     private static final double DEFAULT_MIN_SCORE = 0.5;
+
+    /** 写作历史状态：生成失败。 */
+    private static final String HISTORY_STATUS_FAILED = "FAILED";
+
+    /** 写作历史状态：生成完成。 */
+    private static final String HISTORY_STATUS_COMPLETED = "COMPLETED";
 
     /** 关闭 Agent 线程池时等待在途任务收尾的秒数。 */
     private static final int AGENT_SHUTDOWN_AWAIT_SECONDS = 10;
@@ -278,7 +286,9 @@ public class ArticleGenerationSupport {
                     Duration.ZERO,
                     e.getMessage());
             metrics.incrementAgentCount(
-                    AgentNames.PIPELINE_ARTICLE, BlackboardPhase.FAILED, "ERROR");
+                    AgentNames.PIPELINE_ARTICLE,
+                    BlackboardPhase.FAILED,
+                    AgentExecutionStatus.ERROR);
 
             // 保存失败记录
             saveHistory(sessionId, question, permission, blackboard, 0, e.getMessage());
@@ -309,10 +319,11 @@ public class ArticleGenerationSupport {
             history.setReviewFeedback(blackboard.getReviewFeedback());
             history.setUserId(permission.getUserId());
             history.setDepartmentId(permission.getDepartmentId());
-            history.setStatus(errorMessage != null ? "FAILED" : "COMPLETED");
+            history.setStatus(
+                    errorMessage != null ? HISTORY_STATUS_FAILED : HISTORY_STATUS_COMPLETED);
             history.setErrorMessage(errorMessage);
-            history.setCreateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
-            history.setUpdateTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+            history.setCreateTime(LocalDateTime.now(ZoneId.of(AppConstants.ZONE_ID_SHANGHAI)));
+            history.setUpdateTime(LocalDateTime.now(ZoneId.of(AppConstants.ZONE_ID_SHANGHAI)));
             writingHistoryGateway.save(history);
         } catch (Exception ex) {
             log.error("保存写作历史失败 [session={}]", sessionId, ex);

@@ -25,6 +25,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DocumentGatewayImpl implements DocumentGateway {
 
+    /** 分类为空时的默认显示名 */
+    private static final String DEFAULT_CATEGORY = "其他";
+
     private final DocumentMapper documentMapper;
 
     public DocumentGatewayImpl(DocumentMapper documentMapper) {
@@ -156,7 +159,7 @@ public class DocumentGatewayImpl implements DocumentGateway {
         for (Map<String, Object> row : rows) {
             String category = (String) row.get("category");
             if (category == null) {
-                category = "其他";
+                category = DEFAULT_CATEGORY;
             }
             Long count = ((Number) row.get("total")).longValue();
             result.merge(category, count, Long::sum);

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.application.util.ParserUtils;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +36,9 @@ public class ExamContentRenderAgent {
 
     /** 默认每题分值（解析不到时使用） */
     private static final int DEFAULT_MAX_SCORE = 5;
+
+    /** 选择题最少选项数（低于该值触发从正文抽取修复） */
+    private static final int MIN_CHOICE_OPTIONS = 2;
 
     /**
      * 渲染试卷为前端可用的结构化题目 JSON
@@ -81,9 +85,9 @@ public class ExamContentRenderAgent {
             List<Map<String, Object>> options = normalizeOptions(raw.get("options"));
 
             // 选择题选项缺失 → 尝试从正文尾部抽取内联选项修复
-            if (isChoice(type) && options.size() < 2) {
+            if (isChoice(type) && options.size() < MIN_CHOICE_OPTIONS) {
                 OptionSplit split = extractOptionsFromContent(content);
-                if (split.options().size() >= 2) {
+                if (split.options().size() >= MIN_CHOICE_OPTIONS) {
                     content = cleanContent(split.content());
                     options = split.options();
                     log.info("渲染 Agent：第 {} 题选项缺失，已从正文修复 {} 个选项", index, options.size());
@@ -188,7 +192,7 @@ public class ExamContentRenderAgent {
     }
 
     private boolean isChoice(String type) {
-        return "SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type);
+        return QuestionTypes.SINGLE_CHOICE.equals(type) || QuestionTypes.MULTI_CHOICE.equals(type);
     }
 
     private String cleanContent(String content) {

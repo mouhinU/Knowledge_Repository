@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.converter.TenantVoConverter;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.TenantArchiveCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -64,7 +65,7 @@ public class ArchiveTenantCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -74,7 +75,7 @@ public class ArchiveTenantCmdExe {
             tenant.archive(LocalDateTime.now());
         } catch (IllegalStateException e) {
             platformAuditLog.logTenantAction(
-                    operator, ACTION, tenantKey, "REJECTED", e.getMessage());
+                    operator, ACTION, tenantKey, AuditOutcomes.REJECTED, e.getMessage());
             throw e;
         }
         tenantGateway.update(tenant);
@@ -87,7 +88,7 @@ public class ArchiveTenantCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 fromStatus + "→ARCHIVED reason=" + cmd.getReason());
         log.info("Platform tenant archived: {}", tenantKey);
         return TenantVoConverter.toVO(tenant);

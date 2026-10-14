@@ -28,6 +28,12 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class ChatModelConfig {
 
+    /** 非流式调用最小超时秒数。 */
+    private static final int MIN_CALL_TIMEOUT_SECONDS = 30;
+
+    /** 流式对话最小超时秒数。 */
+    private static final int MIN_STREAMING_TIMEOUT_SECONDS = 60;
+
     /** Chat 对话模型（非流式），注入 chat 角色独立 HTTP 客户端，并套 {@code chat} 角色熔断/重试。 */
     @Bean("delegateChatModel")
     public ChatModel chatModel(
@@ -47,7 +53,11 @@ public class ChatModelConfig {
                         .temperature(chat.getTemperature())
                         .maxTokens(chat.getMaxTokens())
                         .httpClientBuilder(httpClientBuilder)
-                        .timeout(Duration.ofSeconds(Math.max(chat.getCallTimeoutSeconds(), 30)))
+                        .timeout(
+                                Duration.ofSeconds(
+                                        Math.max(
+                                                chat.getCallTimeoutSeconds(),
+                                                MIN_CALL_TIMEOUT_SECONDS)))
                         .build();
         return new ResilientChatModel(raw, resilience);
     }
@@ -62,7 +72,9 @@ public class ChatModelConfig {
     public StreamingChatGateway streamingChatGateway(
             LlmChatProperties chat, LlmResilience resilience) {
         LlmChatProperties.Streaming streaming = chat.getStreaming();
-        Duration timeout = Duration.ofSeconds(Math.max(streaming.getTimeoutSeconds(), 60));
+        Duration timeout =
+                Duration.ofSeconds(
+                        Math.max(streaming.getTimeoutSeconds(), MIN_STREAMING_TIMEOUT_SECONDS));
         log.info(
                 "Initializing streaming chat gateway: {} at {} (maxTokens={})",
                 chat.getModelName(),

@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.support.DeleteApprovalService
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.TenantDeleteCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -86,7 +87,7 @@ public class ConfirmTenantDeletionCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -176,7 +177,7 @@ public class ConfirmTenantDeletionCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "ARCHIVED→DELETING approvalId="
                         + approval.getApprovalId()
                         + " approver="
@@ -201,7 +202,8 @@ public class ConfirmTenantDeletionCmdExe {
 
     /** 统一拒绝路径：审计 REJECTED + 抛出业务异常。 */
     private TenantVO reject(String operator, String tenantKey, String detail, RuntimeException ex) {
-        platformAuditLog.logTenantAction(operator, ACTION, tenantKey, "REJECTED", detail);
+        platformAuditLog.logTenantAction(
+                operator, ACTION, tenantKey, AuditOutcomes.REJECTED, detail);
         throw ex;
     }
 }

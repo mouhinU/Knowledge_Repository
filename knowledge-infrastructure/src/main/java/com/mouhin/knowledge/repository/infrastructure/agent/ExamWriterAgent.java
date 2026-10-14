@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.Difficulties;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -168,8 +169,8 @@ public class ExamWriterAgent implements BlackboardAgent {
             boolean isRetry) {
         String difficultyDesc =
                 switch (difficulty) {
-                    case "EASY" -> "简单（侧重基础概念和记忆）";
-                    case "HARD" -> "困难（侧重综合分析和应用）";
+                    case Difficulties.EASY -> "简单（侧重基础概念和记忆）";
+                    case Difficulties.HARD -> "困难（侧重综合分析和应用）";
                     default -> "中等（侧重理解和简单应用）";
                 };
 

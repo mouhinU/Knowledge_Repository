@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.client.api.StudentServiceI;
 import com.mouhin.knowledge.repository.client.api.WrongAnswerServiceI;
 import com.mouhin.knowledge.repository.client.dto.StudentVO;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerPageVO;
+import com.mouhin.knowledge.repository.web.security.StudentTokenHeaders;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class StudentWrongAnswerController {
     /** 查询当前考生的错题列表（支持按主题 / 题型过滤 + 分页） */
     @GetMapping
     public ResponseEntity<Object> listMyWrongAnswers(
-            @RequestHeader(value = "X-Student-Token", required = false) String token,
+            @RequestHeader(value = StudentTokenHeaders.TOKEN_HEADER, required = false) String token,
             @RequestParam(required = false) String topic,
             @RequestParam(required = false) String questionType,
             @RequestParam(defaultValue = "0") int page,

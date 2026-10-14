@@ -37,6 +37,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class ArticleAgentController {
 
+    /** 日志中截断问题文本的最大长度。 */
+    private static final int LOG_QUESTION_MAX_LEN = 50;
+
     private final ArticleGenerationServiceI articleGenerationService;
     private final GenerateArticleAsyncCmdExe generateArticleAsyncCmdExe;
     private final BlackboardProgressStore progressStore;
@@ -69,7 +72,10 @@ public class ArticleAgentController {
         Permission permission = AdminPrincipalSupport.toPermission(httpRequest);
         String userId = permission.getUserId();
 
-        log.info("收到文章生成请求: question='{}', user='{}'", truncate(request.getQuestion(), 50), userId);
+        log.info(
+                "收到文章生成请求: question='{}', user='{}'",
+                truncate(request.getQuestion(), LOG_QUESTION_MAX_LEN),
+                userId);
 
         // 使用前端预分配的 sessionId（与 SSE 连接关联）
         String requestedSessionId = request.getSessionId();

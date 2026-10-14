@@ -23,6 +23,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class RerankerModelConfig {
 
+    /** 重排调用最小超时秒数。 */
+    private static final int MIN_CALL_TIMEOUT_SECONDS = 5;
+
     @Bean
     @ConditionalOnProperty(
             prefix = "knowledge.llm.reranker",
@@ -38,6 +41,7 @@ public class RerankerModelConfig {
                 reranker.getBaseUrl(),
                 reranker.getApiKey(),
                 reranker.getModelName(),
-                Duration.ofSeconds(Math.max(reranker.getCallTimeoutSeconds(), 5)));
+                Duration.ofSeconds(
+                        Math.max(reranker.getCallTimeoutSeconds(), MIN_CALL_TIMEOUT_SECONDS)));
     }
 }

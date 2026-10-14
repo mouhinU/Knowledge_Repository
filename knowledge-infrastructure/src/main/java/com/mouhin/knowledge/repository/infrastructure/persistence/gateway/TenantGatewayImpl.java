@@ -27,6 +27,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class TenantGatewayImpl implements TenantGateway {
 
+    /** 游序分页默认批次大小 */
+    private static final int DEFAULT_BATCH_SIZE = 100;
+
     private final TenantMapper tenantMapper;
 
     public TenantGatewayImpl(TenantMapper tenantMapper) {
@@ -96,7 +99,7 @@ public class TenantGatewayImpl implements TenantGateway {
 
     @Override
     public List<Tenant> listActiveByCursor(long lastId, int batchSize) {
-        int safeBatchSize = batchSize > 0 ? batchSize : 100;
+        int safeBatchSize = batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE;
         LambdaQueryWrapper<TenantDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TenantDO::getStatus, Tenant.STATUS_ACTIVE)
                 .gt(TenantDO::getTenantId, lastId)

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
@@ -32,10 +33,10 @@ import org.springframework.stereotype.Component;
 public class XlsxExtractionStrategy implements ContentExtractor {
 
     /** 本策略命中的 MIME 类型。 */
-    private static final Set<String> SUPPORTED_MIME_TYPES =
-            Set.of(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "application/vnd.ms-excel");
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(MimeTypes.XLSX, MimeTypes.XLS);
+
+    /** 路由优先级。 */
+    private static final int PRIORITY = 30;
 
     @Override
     public String name() {
@@ -44,7 +45,7 @@ public class XlsxExtractionStrategy implements ContentExtractor {
 
     @Override
     public int priority() {
-        return 30;
+        return PRIORITY;
     }
 
     @Override

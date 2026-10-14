@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.BlackboardMetrics;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
 import com.mouhin.knowledge.repository.domain.service.BlackboardAgent;
@@ -71,9 +72,13 @@ class BlackboardAgentDecoratorTest {
         decorator.execute(blackboard, null);
 
         verify(metrics)
-                .incrementAgentCount(eq("test-agent"), eq(BlackboardPhase.RESEARCH), eq("STARTED"));
+                .incrementAgentCount(
+                        eq("test-agent"),
+                        eq(BlackboardPhase.RESEARCH),
+                        eq(AgentExecutionStatus.STARTED));
         verify(metrics).recordAgentDuration(eq("test-agent"), any(), any(Duration.class));
-        verify(metrics).incrementAgentCount(eq("test-agent"), any(), eq("COMPLETE"));
+        verify(metrics)
+                .incrementAgentCount(eq("test-agent"), any(), eq(AgentExecutionStatus.COMPLETE));
     }
 
     @Test
@@ -92,7 +97,9 @@ class BlackboardAgentDecoratorTest {
                         eq(BlackboardPhase.RESEARCH),
                         any(Duration.class),
                         eq("LLM 超时"));
-        verify(metrics).incrementAgentCount("test-agent", BlackboardPhase.RESEARCH, "FAILED");
+        verify(metrics)
+                .incrementAgentCount(
+                        "test-agent", BlackboardPhase.RESEARCH, AgentExecutionStatus.FAILED);
     }
 
     @Test

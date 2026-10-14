@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
@@ -28,7 +29,14 @@ public class PlainTextExtractionStrategy implements ContentExtractor {
 
     /** 本策略命中的 MIME 类型。 */
     private static final Set<String> SUPPORTED_MIME_TYPES =
-            Set.of("text/plain", "text/csv", "text/html", "text/markdown");
+            Set.of(
+                    MimeTypes.TEXT_PLAIN,
+                    MimeTypes.TEXT_CSV,
+                    MimeTypes.TEXT_HTML,
+                    MimeTypes.TEXT_MARKDOWN);
+
+    /** 路由优先级。 */
+    private static final int PRIORITY = 50;
 
     @Override
     public String name() {
@@ -37,7 +45,7 @@ public class PlainTextExtractionStrategy implements ContentExtractor {
 
     @Override
     public int priority() {
-        return 50;
+        return PRIORITY;
     }
 
     @Override

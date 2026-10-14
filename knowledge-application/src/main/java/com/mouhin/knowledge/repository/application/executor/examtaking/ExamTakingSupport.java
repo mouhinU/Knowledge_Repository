@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.application.agent.ExamContentRenderAgent;
 import com.mouhin.knowledge.repository.application.agent.ExamContentValidatorAgent;
 import com.mouhin.knowledge.repository.application.agent.PaperValidationReport;
 import com.mouhin.knowledge.repository.application.util.ExamImages;
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ExamHistoryGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamQuestionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
@@ -37,6 +38,9 @@ public class ExamTakingSupport {
 
     /** 卷面总分解析失败时的兜底值 */
     private static final int DEFAULT_TOTAL_SCORE = 100;
+
+    /** 选择题最少选项数（低于该值视为选项解析失败，需重新解析） */
+    private static final int MIN_CHOICE_OPTIONS = 2;
 
     private final StudentGateway studentGateway;
     private final ExamSessionGateway examSessionGateway;
@@ -276,9 +280,10 @@ public class ExamTakingSupport {
                     OBJECT_MAPPER.readValue(questionsJson, List.class);
             for (Map<String, Object> q : questions) {
                 String type = (String) q.get("type");
-                if ("SINGLE_CHOICE".equals(type) || "MULTI_CHOICE".equals(type)) {
+                if (QuestionTypes.SINGLE_CHOICE.equals(type)
+                        || QuestionTypes.MULTI_CHOICE.equals(type)) {
                     Object options = q.get("options");
-                    if (options instanceof List<?> optList && optList.size() < 2) {
+                    if (options instanceof List<?> optList && optList.size() < MIN_CHOICE_OPTIONS) {
                         return true;
                     }
                 }

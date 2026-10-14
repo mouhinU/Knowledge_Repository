@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.*;
@@ -35,9 +36,7 @@ public class VisionModelExtractionStrategy implements ContentExtractor {
     /** 路由优先级：视觉是增强型兜底，排在原生文本族（10~60）之后。 */
     private static final int PRIORITY = 70;
 
-    private static final String PDF_MIME = "application/pdf";
     private static final String IMAGE_MIME_PREFIX = "image/";
-    private static final String DEFAULT_IMAGE_MIME = "image/png";
     private static final String HINT_OCR_RECOMMENDED = "ocrRecommended";
     private static final int UNLIMITED_BYTES = 0;
 
@@ -92,7 +91,7 @@ public class VisionModelExtractionStrategy implements ContentExtractor {
         if (mime.startsWith(IMAGE_MIME_PREFIX)) {
             return true;
         }
-        return PDF_MIME.equals(mime) && hasOcrRecommendedHint(candidate);
+        return MimeTypes.PDF.equals(mime) && hasOcrRecommendedHint(candidate);
     }
 
     private boolean hasOcrRecommendedHint(ExtractionCandidate candidate) {
@@ -138,7 +137,7 @@ public class VisionModelExtractionStrategy implements ContentExtractor {
         int dpi = candidate.config().renderFallbackDpi();
         for (int p = 0; p < pages; p++) {
             byte[] png = pageRenderer.renderPageToPng(pdfPath, p, dpi);
-            addImage(out, png, DEFAULT_IMAGE_MIME, maxBytes);
+            addImage(out, png, MimeTypes.IMAGE_PNG, maxBytes);
         }
     }
 
@@ -151,7 +150,7 @@ public class VisionModelExtractionStrategy implements ContentExtractor {
             log.warn("vision: skip oversized image {}bytes > limit {}", bytes.length, maxBytes);
             return;
         }
-        String effectiveMime = (mime == null || mime.isBlank()) ? DEFAULT_IMAGE_MIME : mime;
+        String effectiveMime = (mime == null || mime.isBlank()) ? MimeTypes.IMAGE_PNG : mime;
         out.add(
                 new VisionChatRequest.ImagePayload(
                         Base64.getEncoder().encodeToString(bytes), effectiveMime));

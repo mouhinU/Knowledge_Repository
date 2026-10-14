@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentExtractionGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
@@ -46,6 +47,18 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
     /** 校验失败对外统一回显消息，消除文件是否存在 / 大小是否越界 / 扩展名是否受支持等 oracle（java:S6549）。 */
     private static final String GENERIC_INVALID_REFERENCE = "Invalid file reference";
+
+    /** 解析调用结果：成功。 */
+    private static final String OUTCOME_OK = "ok";
+
+    /** 解析调用结果：IO 异常后回退到下一策略。 */
+    private static final String OUTCOME_FALLBACK = "fallback";
+
+    /** 解析调用结果：全部策略失败。 */
+    private static final String OUTCOME_ERROR = "error";
+
+    /** 解析调用结果：无策略命中且无异常。 */
+    private static final String OUTCOME_EMPTY = "empty";
 
     /** 支持的文件扩展名。 */
     private static final List<String> SUPPORTED_EXTENSIONS =
@@ -122,23 +135,17 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
 
     private static Map<String, List<String>> buildBuiltinRouting() {
         Map<String, List<String>> map = new LinkedHashMap<>();
-        map.put("application/pdf", List.of(ExtractionStrategyEnum.PDF_BOX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                List.of(ExtractionStrategyEnum.DOCX.name()));
-        map.put("application/msword", List.of(ExtractionStrategyEnum.DOCX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                List.of(ExtractionStrategyEnum.XLSX.name()));
-        map.put("application/vnd.ms-excel", List.of(ExtractionStrategyEnum.XLSX.name()));
-        map.put(
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                List.of(ExtractionStrategyEnum.PPTX.name()));
-        map.put("application/vnd.ms-powerpoint", List.of(ExtractionStrategyEnum.PPTX.name()));
-        map.put("text/plain", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/csv", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/html", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
-        map.put("text/markdown", List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put(MimeTypes.PDF, List.of(ExtractionStrategyEnum.PDF_BOX.name()));
+        map.put(MimeTypes.DOCX, List.of(ExtractionStrategyEnum.DOCX.name()));
+        map.put(MimeTypes.DOC, List.of(ExtractionStrategyEnum.DOCX.name()));
+        map.put(MimeTypes.XLSX, List.of(ExtractionStrategyEnum.XLSX.name()));
+        map.put(MimeTypes.XLS, List.of(ExtractionStrategyEnum.XLSX.name()));
+        map.put(MimeTypes.PPTX, List.of(ExtractionStrategyEnum.PPTX.name()));
+        map.put(MimeTypes.PPT, List.of(ExtractionStrategyEnum.PPTX.name()));
+        map.put(MimeTypes.TEXT_PLAIN, List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put(MimeTypes.TEXT_CSV, List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put(MimeTypes.TEXT_HTML, List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
+        map.put(MimeTypes.TEXT_MARKDOWN, List.of(ExtractionStrategyEnum.PLAIN_TEXT.name()));
         return Map.copyOf(map);
     }
 
@@ -241,14 +248,14 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
             long start = System.nanoTime();
             try {
                 ExtractionResult result = extractor.extract(candidate);
-                recordInvocation(extractor.name(), mimeType, "ok");
+                recordInvocation(extractor.name(), mimeType, OUTCOME_OK);
                 recordLatency(extractor.name(), Duration.ofNanos(System.nanoTime() - start));
                 log.debug(
                         "extract ok [strategy={}, doc={}]", extractor.name(), candidate.fileName());
                 return result;
             } catch (IOException e) {
                 lastError = e;
-                recordInvocation(extractor.name(), mimeType, "fallback");
+                recordInvocation(extractor.name(), mimeType, OUTCOME_FALLBACK);
                 log.warn(
                         "extract failed, fallback [strategy={}, msg={}]",
                         extractor.name(),
@@ -256,10 +263,10 @@ public class CompositeExtractionService implements DocumentExtractionGateway {
             }
         }
         if (lastError != null) {
-            recordInvocation("none", mimeType, "error");
+            recordInvocation("none", mimeType, OUTCOME_ERROR);
             throw lastError;
         }
-        recordInvocation("none", mimeType, "empty");
+        recordInvocation("none", mimeType, OUTCOME_EMPTY);
         return ExtractionResult.empty();
     }
 

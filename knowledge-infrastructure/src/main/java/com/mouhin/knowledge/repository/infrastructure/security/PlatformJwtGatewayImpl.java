@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +43,7 @@ import org.springframework.stereotype.Component;
  * @date 2026-10-08
  */
 @Component
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 @Slf4j
 public class PlatformJwtGatewayImpl implements PlatformJwtService {
 

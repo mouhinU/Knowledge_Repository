@@ -38,6 +38,18 @@ public class DocumentIngestionDomainService {
             Pattern.compile(
                     "^\\s*(\\d+[.、)）]|\\([0-9]+\\)|[a-zA-Z][.、)）]|[-•·]\\s|[一二三四五六七八九十]+[、.．])");
 
+    /** Token → 字符的粗略换算比（1 token ≈ 3 字符），用于按字符上限切分。 */
+    private static final int TOKEN_TO_CHAR_RATIO = 3;
+
+    /** 中文（HAN）每 token 约含字符数。 */
+    private static final double HAN_CHARS_PER_TOKEN = 1.5;
+
+    /** 数字每 token 约含字符数。 */
+    private static final double DIGIT_CHARS_PER_TOKEN = 2.0;
+
+    /** 其他字符每 token 约含字符数。 */
+    private static final double OTHER_CHARS_PER_TOKEN = 4.0;
+
     /**
      * 将文本内容按配置分块，并附加文档权限元数据
      *
@@ -203,8 +215,8 @@ public class DocumentIngestionDomainService {
         MergedPages merged = mergePages(pages, "\n\n");
         String text = merged.text();
         List<int[]> charPageMap = merged.charPageMap();
-        int maxChars = config.getMaxChunkSize() * 3;
-        int overlapChars = config.getOverlapSize() * 3;
+        int maxChars = config.getMaxChunkSize() * TOKEN_TO_CHAR_RATIO;
+        int overlapChars = config.getOverlapSize() * TOKEN_TO_CHAR_RATIO;
 
         // 分隔符层级：段落 → 行 → 句子 → 空格 → 字符
         String[] separators = {"\n\n", "\n", "。.!！?？;；…", " ", ""};
@@ -330,8 +342,8 @@ public class DocumentIngestionDomainService {
         MergedPages merged = mergePages(pages, "\n");
         String text = merged.text();
         List<int[]> charPageMap = merged.charPageMap();
-        int maxChars = config.getMaxChunkSize() * 3;
-        int overlapChars = config.getOverlapSize() * 3;
+        int maxChars = config.getMaxChunkSize() * TOKEN_TO_CHAR_RATIO;
+        int overlapChars = config.getOverlapSize() * TOKEN_TO_CHAR_RATIO;
 
         // 按句子边界分割
         List<String> sentences = splitSentences(text);
@@ -417,8 +429,8 @@ public class DocumentIngestionDomainService {
         MergedPages merged = mergePages(pages, "\n\n");
         String text = merged.text();
         List<int[]> charPageMap = merged.charPageMap();
-        int maxChars = config.getMaxChunkSize() * 3;
-        int overlapChars = config.getOverlapSize() * 3;
+        int maxChars = config.getMaxChunkSize() * TOKEN_TO_CHAR_RATIO;
+        int overlapChars = config.getOverlapSize() * TOKEN_TO_CHAR_RATIO;
 
         List<int[]> paraRanges = findParagraphRanges(text);
         List<RawChunk> result = new ArrayList<>();
@@ -561,8 +573,8 @@ public class DocumentIngestionDomainService {
         int currentLen = 0;
         int chunkOffset = textOffset;
 
-        int maxChars = maxTokens * 3;
-        int overlapChars = overlapTokens * 3;
+        int maxChars = maxTokens * TOKEN_TO_CHAR_RATIO;
+        int overlapChars = overlapTokens * TOKEN_TO_CHAR_RATIO;
 
         for (String sentence : sentences) {
             if (current.length() + sentence.length() + 1 > maxChars && current.length() > 0) {
@@ -643,7 +655,9 @@ public class DocumentIngestionDomainService {
     /** 查找重叠起始位置 */
     private int findOverlapStart(ChunkWindow window) {
         int overlapChars =
-                Math.min(window.overlapTokens() * 3, window.chunkEnd() - window.chunkStart());
+                Math.min(
+                        window.overlapTokens() * TOKEN_TO_CHAR_RATIO,
+                        window.chunkEnd() - window.chunkStart());
         return window.chunkEnd() - overlapChars;
     }
 
@@ -701,9 +715,9 @@ public class DocumentIngestionDomainService {
                 otherChars++;
             }
         }
-        return (int) Math.ceil(chineseChars / 1.5)
-                + (int) Math.ceil(digitChars / 2.0)
-                + (int) Math.ceil(otherChars / 4.0);
+        return (int) Math.ceil(chineseChars / HAN_CHARS_PER_TOKEN)
+                + (int) Math.ceil(digitChars / DIGIT_CHARS_PER_TOKEN)
+                + (int) Math.ceil(otherChars / OTHER_CHARS_PER_TOKEN);
     }
 
     /**

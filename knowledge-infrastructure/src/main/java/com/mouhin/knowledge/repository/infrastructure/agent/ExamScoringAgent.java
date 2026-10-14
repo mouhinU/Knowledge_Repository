@@ -36,6 +36,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExamScoringAgent implements BlackboardAgent {
 
+    /** 校验通过且无建议时的满分。 */
+    private static final double SCORE_FULL = 100.0;
+
+    /** 校验通过但含优化建议时的得分。 */
+    private static final double SCORE_WITH_SUGGESTIONS = 90.0;
+
     /** 题型配置解析正则：匹配 "单选题10道" 或 "单选 10 道" 等格式 */
     private static final Pattern QUESTION_PATTERN =
             Pattern.compile("(单选题|多选题|判断题|填空题|简答题|论述题)\\s*(\\d+)\\s*[道题个]");
@@ -85,7 +91,7 @@ public class ExamScoringAgent implements BlackboardAgent {
             emitProgress(
                     progressCallback,
                     BlackboardProgressEvent.agentCompleted(
-                            AgentNames.AGENT_EXAM_SCORING, output, 100.0));
+                            AgentNames.AGENT_EXAM_SCORING, output, SCORE_FULL));
             log.info(
                     "[ExamScoring] 跳过校验（Node 2 已通过），直接写入 scheme [topic='{}', fullMark={}]",
                     topic,
@@ -117,7 +123,7 @@ public class ExamScoringAgent implements BlackboardAgent {
         blackboard.setScoringScheme(schemeText);
 
         String finalOutput = report + "\n---\n\n### 分值方案（供 Writer 严格遵循）\n\n" + schemeText;
-        Double agentScore = result.suggestions().isEmpty() ? 100.0 : 90.0;
+        Double agentScore = result.suggestions().isEmpty() ? SCORE_FULL : SCORE_WITH_SUGGESTIONS;
         emitProgress(
                 progressCallback,
                 BlackboardProgressEvent.agentCompleted(

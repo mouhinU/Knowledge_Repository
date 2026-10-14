@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.gateway;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import java.time.Duration;
 
@@ -37,9 +38,9 @@ public interface BlackboardMetrics {
      *
      * @param agentName Agent 名称
      * @param phase 阶段
-     * @param status 状态（success / failed / skipped）
+     * @param status 执行状态枚举（{@link AgentExecutionStatus}），其 {@code name()} 作为指标 status 标签值
      */
-    void incrementAgentCount(String agentName, BlackboardPhase phase, String status);
+    void incrementAgentCount(String agentName, BlackboardPhase phase, AgentExecutionStatus status);
 
     /**
      * 记录质量门禁执行次数

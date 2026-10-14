@@ -30,6 +30,9 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     /** 作用域两侧皆空时的兜底谓词：永假条件，避免跨租户全表命中。 */
     private static final String SQL_NEVER_TRUE = "1 = 0";
 
+    /** 分页查询默认条数 */
+    private static final int DEFAULT_LIMIT = 20;
+
     private final ExamHistoryMapper examHistoryMapper;
 
     public ExamHistoryGatewayImpl(ExamHistoryMapper examHistoryMapper) {
@@ -82,7 +85,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getStatus, ExamHistory.STATUS_PUBLISHED)
                 .orderByDesc(ExamHistoryDO::getCreateTime)
-                .last(SQL_LIMIT_PREFIX + (limit > 0 ? limit : 20));
+                .last(SQL_LIMIT_PREFIX + (limit > 0 ? limit : DEFAULT_LIMIT));
         return examHistoryMapper.selectList(wrapper).stream()
                 .map(ExamHistoryConverter::toDomain)
                 .toList();
@@ -90,7 +93,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
     @Override
     public List<ExamHistory> listReviewPending(int limit, int offset) {
-        int safeLimit = limit > 0 ? limit : 20;
+        int safeLimit = limit > 0 ? limit : DEFAULT_LIMIT;
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(
@@ -116,7 +119,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
     @Override
     public List<ExamHistory> listPage(int limit, int offset) {
-        int safeLimit = limit > 0 ? limit : 20;
+        int safeLimit = limit > 0 ? limit : DEFAULT_LIMIT;
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
@@ -142,7 +145,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
     @Override
     public List<ExamHistory> listPageScoped(int limit, int offset, Permission permission) {
-        int safeLimit = limit > 0 ? limit : 20;
+        int safeLimit = limit > 0 ? limit : DEFAULT_LIMIT;
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         applyScope(wrapper, permission);
@@ -165,7 +168,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
 
     @Override
     public List<ExamHistory> listReviewPendingScoped(int limit, int offset, Permission permission) {
-        int safeLimit = limit > 0 ? limit : 20;
+        int safeLimit = limit > 0 ? limit : DEFAULT_LIMIT;
         int safeOffset = Math.max(offset, 0);
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(

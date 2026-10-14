@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.wronganswer;
 import com.mouhin.knowledge.repository.application.converter.WrongAnswerConverter;
 import com.mouhin.knowledge.repository.application.service.ExamStructuredQuestionSupport;
 import com.mouhin.knowledge.repository.client.dto.WrongAnswerVO;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamAnswerGateway;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
@@ -28,7 +29,10 @@ public class WrongAnswerListQryExe {
 
     /** 已评分的状态列表（AI_GRADED / REVIEWED / PUBLISHED） */
     private static final List<String> GRADED_STATUSES =
-            List.of("AI_GRADED", "REVIEWED", "PUBLISHED");
+            List.of(
+                    ExamSessionStatuses.AI_GRADED,
+                    ExamSessionStatuses.REVIEWED,
+                    ExamSessionStatuses.PUBLISHED);
 
     /** 缺省考生名 */
     private static final String UNKNOWN_STUDENT = "未知考生";

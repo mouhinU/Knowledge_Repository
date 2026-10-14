@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.application.support;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.exception.QuotaExceededException;
 import com.mouhin.knowledge.repository.domain.exception.ThrottleRequiredException;
 import com.mouhin.knowledge.repository.domain.gateway.TenantPlanLimitGateway;
@@ -23,7 +24,7 @@ import org.springframework.stereotype.Component;
  * false)} 注入为 null，不执行任何检查。
  */
 @Component
-@ConditionalOnProperty(name = "knowledge.saas.quota.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.SAAS_QUOTA_ENABLED, havingValue = "true")
 @Slf4j
 public class QuotaGuard {
 

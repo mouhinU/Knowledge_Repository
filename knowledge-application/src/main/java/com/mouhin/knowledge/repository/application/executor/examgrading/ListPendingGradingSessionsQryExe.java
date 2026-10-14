@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.executor.examgrading;
 
 import com.mouhin.knowledge.repository.application.converter.ExamTakingConverter;
 import com.mouhin.knowledge.repository.client.dto.ExamSessionDTO;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.gateway.ExamSessionGateway;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,9 @@ public class ListPendingGradingSessionsQryExe {
     }
 
     public List<ExamSessionDTO> execute(int limit, int offset) {
-        return examSessionGateway.listByStatus("SUBMITTED", limit, offset).stream()
+        return examSessionGateway
+                .listByStatus(ExamSessionStatuses.SUBMITTED, limit, offset)
+                .stream()
                 .map(ExamTakingConverter::toSessionDTO)
                 .toList();
     }

@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import java.util.*;
@@ -27,6 +28,47 @@ public final class ScoreRuleEngine {
 
     /** 识别不到学段/科目时的兜底满分 */
     public static final int DEFAULT_FULL_MARK = 100;
+
+    // ==================== 学段编码（parseLevelCode case 标签） ====================
+    /** 学段编码：小学 */
+    private static final String LEVEL_PRIMARY = "PRIMARY";
+
+    /** 学段编码：初中 */
+    private static final String LEVEL_JUNIOR = "JUNIOR";
+
+    /** 学段编码：高中 */
+    private static final String LEVEL_SENIOR = "SENIOR";
+
+    /** 学段编码：初中（兼容全称） */
+    private static final String LEVEL_JUNIOR_HIGH = "JUNIOR_HIGH";
+
+    /** 学段编码：高中（兼容全称） */
+    private static final String LEVEL_SENIOR_HIGH = "SENIOR_HIGH";
+
+    // ==================== 科目满分（分值规则） ====================
+    /** 初中语文/数学/外语满分 */
+    private static final int JUNIOR_CORE_FULL_MARK = 120;
+
+    /** 初中物理满分 */
+    private static final int JUNIOR_PHYSICS_FULL_MARK = 70;
+
+    /** 初中化学满分 */
+    private static final int JUNIOR_CHEMISTRY_FULL_MARK = 50;
+
+    /** 初中道德与法治/历史满分 */
+    private static final int JUNIOR_MORAL_HISTORY_FULL_MARK = 60;
+
+    /** 初中体育与健康满分 */
+    private static final int JUNIOR_PE_FULL_MARK = 50;
+
+    /** 初中实验操作（单科）满分 */
+    private static final int JUNIOR_EXPERIMENT_FULL_MARK = 10;
+
+    /** 高中语文/数学/外语满分 */
+    private static final int SENIOR_CORE_FULL_MARK = 150;
+
+    /** 题型权重缺省值（TYPE_WEIGHTS 未命中时回退） */
+    private static final int DEFAULT_TYPE_WEIGHT = 3;
 
     /** 分值行分隔符（java:S1192：抽常量防 4 处重复）。 */
     private static final String SCORE_SEP_INLINE = " 分 | ";
@@ -101,9 +143,9 @@ public final class ScoreRuleEngine {
         }
         String c = code.trim().toUpperCase();
         return switch (c) {
-            case "PRIMARY", "小学" -> SchoolLevel.PRIMARY;
-            case "JUNIOR", "初中", "JUNIOR_HIGH" -> SchoolLevel.JUNIOR;
-            case "SENIOR", "高中", "SENIOR_HIGH" -> SchoolLevel.SENIOR;
+            case LEVEL_PRIMARY, "小学" -> SchoolLevel.PRIMARY;
+            case LEVEL_JUNIOR, "初中", LEVEL_JUNIOR_HIGH -> SchoolLevel.JUNIOR;
+            case LEVEL_SENIOR, "高中", LEVEL_SENIOR_HIGH -> SchoolLevel.SENIOR;
             default -> SchoolLevel.UNKNOWN;
         };
     }
@@ -176,27 +218,27 @@ public final class ScoreRuleEngine {
         return switch (level) {
             case JUNIOR -> juniorFullMark(subject);
             case SENIOR -> seniorFullMark(subject);
-            case PRIMARY -> 100;
-            default -> 100;
+            case PRIMARY -> DEFAULT_FULL_MARK;
+            default -> DEFAULT_FULL_MARK;
         };
     }
 
     private static int juniorFullMark(Subject subject) {
         return switch (subject) {
-            case CHINESE, MATH, FOREIGN -> 120;
-            case PHYSICS -> 70;
-            case CHEMISTRY -> 50;
-            case MORAL_LAW, HISTORY -> 60;
-            case PE -> 50;
-            case EXPERIMENT -> 10;
-            default -> 100;
+            case CHINESE, MATH, FOREIGN -> JUNIOR_CORE_FULL_MARK;
+            case PHYSICS -> JUNIOR_PHYSICS_FULL_MARK;
+            case CHEMISTRY -> JUNIOR_CHEMISTRY_FULL_MARK;
+            case MORAL_LAW, HISTORY -> JUNIOR_MORAL_HISTORY_FULL_MARK;
+            case PE -> JUNIOR_PE_FULL_MARK;
+            case EXPERIMENT -> JUNIOR_EXPERIMENT_FULL_MARK;
+            default -> DEFAULT_FULL_MARK;
         };
     }
 
     private static int seniorFullMark(Subject subject) {
         return switch (subject) {
-            case CHINESE, MATH, FOREIGN -> 150;
-            default -> 100;
+            case CHINESE, MATH, FOREIGN -> SENIOR_CORE_FULL_MARK;
+            default -> DEFAULT_FULL_MARK;
         };
     }
 
@@ -270,7 +312,7 @@ public final class ScoreRuleEngine {
             int count = e.getValue() == null ? 0 : e.getValue();
             for (int k = 0; k < count; k++) {
                 types.add(e.getKey());
-                weights.add((double) TYPE_WEIGHTS.getOrDefault(e.getKey(), 3));
+                weights.add((double) TYPE_WEIGHTS.getOrDefault(e.getKey(), DEFAULT_TYPE_WEIGHT));
             }
         }
         int n = types.size();
@@ -459,12 +501,12 @@ public final class ScoreRuleEngine {
             return "综合题";
         }
         return switch (key.toUpperCase()) {
-            case "SINGLE_CHOICE" -> "单选题";
-            case "MULTI_CHOICE" -> "多选题";
-            case "TRUE_FALSE" -> "判断题";
-            case "FILL_BLANK" -> "填空题";
-            case "SHORT_ANSWER" -> "简答题";
-            case "ESSAY" -> "论述题";
+            case QuestionTypes.SINGLE_CHOICE -> "单选题";
+            case QuestionTypes.MULTI_CHOICE -> "多选题";
+            case QuestionTypes.TRUE_FALSE -> "判断题";
+            case QuestionTypes.FILL_BLANK -> "填空题";
+            case QuestionTypes.SHORT_ANSWER -> "简答题";
+            case QuestionTypes.ESSAY -> "论述题";
             default -> key;
         };
     }
@@ -476,12 +518,12 @@ public final class ScoreRuleEngine {
         }
         String t = typeOrKey.trim();
         return switch (t) {
-            case "单选题" -> "SINGLE_CHOICE";
-            case "多选题" -> "MULTI_CHOICE";
-            case "判断题" -> "TRUE_FALSE";
-            case "填空题" -> "FILL_BLANK";
-            case "简答题" -> "SHORT_ANSWER";
-            case "论述题" -> "ESSAY";
+            case "单选题" -> QuestionTypes.SINGLE_CHOICE;
+            case "多选题" -> QuestionTypes.MULTI_CHOICE;
+            case "判断题" -> QuestionTypes.TRUE_FALSE;
+            case "填空题" -> QuestionTypes.FILL_BLANK;
+            case "简答题" -> QuestionTypes.SHORT_ANSWER;
+            case "论述题" -> QuestionTypes.ESSAY;
             default -> t.toUpperCase();
         };
     }
@@ -489,7 +531,7 @@ public final class ScoreRuleEngine {
     /** 内核题型权重（缺省 3） */
     public static int weightOfKind(String key) {
         Integer w = TYPE_WEIGHTS.get(chineseFromKey(key));
-        return w != null ? w : 3;
+        return w != null ? w : DEFAULT_TYPE_WEIGHT;
     }
 
     // ==================== 题型分布方案（ExamPlan） ====================

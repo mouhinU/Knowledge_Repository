@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.upload;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.redis.enabled", havingValue = "false")
+@ConditionalOnProperty(name = FeatureFlagKeys.REDIS_ENABLED, havingValue = "false")
 public class NoopUploadSessionStore implements UploadSessionStore {
 
     private final Map<String, UploadSessionManager.UploadSession> sessions =

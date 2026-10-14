@@ -54,6 +54,9 @@ public class UserInviteService {
     /** 日志脱敏：hash 前缀可见长度，用于问题排查又不泄漏完整 hash。 */
     private static final int HASH_LOG_PREFIX = 8;
 
+    /** 邀请码哈希算法（JDK 标准，任何 JRE 都必须提供）。 */
+    private static final String HASH_ALGORITHM = "SHA-256";
+
     private final UserInviteGateway userInviteGateway;
     private final SecureRandom secureRandom;
 
@@ -78,7 +81,7 @@ public class UserInviteService {
     public static String sha256Hex(String raw) {
         Objects.requireNonNull(raw, "raw required");
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM);
             byte[] digest = md.digest(raw.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(digest.length * 2);
             for (byte b : digest) {

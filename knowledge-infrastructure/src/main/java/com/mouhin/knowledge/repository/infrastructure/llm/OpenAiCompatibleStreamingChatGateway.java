@@ -31,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGateway {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int CONNECT_TIMEOUT_SECONDS = 15;
+    private static final int ABBREVIATE_MAX_LENGTH = 500;
 
     private final String chatCompletionsUrl;
     private final String apiKey;
@@ -61,7 +63,10 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         this.temperature = temperature;
         this.maxTokens = maxTokens;
         this.requestTimeout = timeout;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
+        this.httpClient =
+                HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+                        .build();
         log.info("Initializing streaming chat gateway: {} at {}", modelName, chatCompletionsUrl);
     }
 
@@ -98,7 +103,9 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
         if (text == null) {
             return "";
         }
-        return text.length() <= 500 ? text : text.substring(0, 500) + "...";
+        return text.length() <= ABBREVIATE_MAX_LENGTH
+                ? text
+                : text.substring(0, ABBREVIATE_MAX_LENGTH) + "...";
     }
 
     @Override

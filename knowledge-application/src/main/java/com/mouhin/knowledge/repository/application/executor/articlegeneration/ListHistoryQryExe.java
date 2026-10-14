@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class ListHistoryQryExe {
 
+    /** limit 非正数时的兜底返回条数。 */
+    private static final int DEFAULT_HISTORY_LIMIT = 20;
+
     private final WritingHistoryGateway writingHistoryGateway;
 
     public ListHistoryQryExe(WritingHistoryGateway writingHistoryGateway) {
@@ -22,7 +25,7 @@ public class ListHistoryQryExe {
     }
 
     public List<WritingHistoryDTO> execute(int limit) {
-        return writingHistoryGateway.listRecent(limit > 0 ? limit : 20).stream()
+        return writingHistoryGateway.listRecent(limit > 0 ? limit : DEFAULT_HISTORY_LIMIT).stream()
                 .map(ArticleConverter::toHistoryDTO)
                 .toList();
     }

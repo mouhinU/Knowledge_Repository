@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.storage;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
@@ -268,7 +269,7 @@ public class MinioObjectStorageGatewayImpl implements ObjectStorageGateway {
 
     private String extractTenantKey(String objectKey) {
         int slash = objectKey.indexOf('/');
-        return slash > 0 ? objectKey.substring(0, slash) : "default";
+        return slash > 0 ? objectKey.substring(0, slash) : TenantContext.DEFAULT_TENANT_KEY;
     }
 
     private StorageCategory extractCategory(String objectKey) {

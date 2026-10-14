@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
@@ -137,19 +138,19 @@ public final class ExamContractValidator {
         }
         String type = q.getQuestionType() == null ? "" : q.getQuestionType().toUpperCase();
         switch (type) {
-            case "SINGLE_CHOICE" -> {
+            case QuestionTypes.SINGLE_CHOICE -> {
                 if (ExamAnswerNormalizer.choiceLetters(answer).length() != 1) {
                     issues.add(tag + " 单选答案非法（应为 A~D 单个字母）：" + answer);
                 }
                 requireOptions(q, tag, issues);
             }
-            case "MULTI_CHOICE" -> {
+            case QuestionTypes.MULTI_CHOICE -> {
                 if (ExamAnswerNormalizer.choiceLetters(answer).length() < 2) {
                     issues.add(tag + " 多选答案非法（应为 A~D 两个及以上字母）：" + answer);
                 }
                 requireOptions(q, tag, issues);
             }
-            case "TRUE_FALSE" -> {
+            case QuestionTypes.TRUE_FALSE -> {
                 if (ExamAnswerNormalizer.trueFalseToken(answer) == null) {
                     issues.add(tag + " 判断答案非法（应为 正确/错误 等判词）：" + answer);
                 }

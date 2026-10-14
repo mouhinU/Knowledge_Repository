@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.llm;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Primary
-@ConditionalOnProperty(name = "knowledge.saas.quota.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.SAAS_QUOTA_ENABLED, havingValue = "true")
 @Slf4j
 public class UsageCapturingEmbeddingModelDecorator implements EmbeddingModel {
 

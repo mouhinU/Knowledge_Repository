@@ -42,6 +42,12 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class DocumentIngestionSupport {
 
+    /** 页明细预览最大字符数。 */
+    private static final int PAGE_PREVIEW_MAX_LENGTH = 500;
+
+    /** 分块明细预览最大字符数。 */
+    private static final int CHUNK_PREVIEW_MAX_LENGTH = 300;
+
     private final DocumentGateway documentGateway;
     private final DocumentChunkGateway chunkGateway;
     private final VectorStoreGateway vectorStoreService;
@@ -319,7 +325,9 @@ public class DocumentIngestionSupport {
                             i + 1,
                             sanitized != null ? sanitized.length() : 0,
                             sanitized != null
-                                    ? sanitized.substring(0, Math.min(sanitized.length(), 500))
+                                    ? sanitized.substring(
+                                            0,
+                                            Math.min(sanitized.length(), PAGE_PREVIEW_MAX_LENGTH))
                                     : ""));
         }
         return pages;
@@ -332,7 +340,11 @@ public class DocumentIngestionSupport {
             String preview =
                     chunk.getContent() != null
                             ? chunk.getContent()
-                                    .substring(0, Math.min(chunk.getContent().length(), 300))
+                                    .substring(
+                                            0,
+                                            Math.min(
+                                                    chunk.getContent().length(),
+                                                    CHUNK_PREVIEW_MAX_LENGTH))
                             : "";
             chunkDetails.add(
                     new ChunkDetail(

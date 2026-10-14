@@ -27,6 +27,9 @@ public class BlackboardProgressStore {
     /** SSE 超时时间：10 分钟 */
     private static final long SSE_TIMEOUT_MS = 600_000L;
 
+    /** 终态事件后延迟清理的等待时间（毫秒）。 */
+    private static final long CLEANUP_DELAY_MS = 30_000L;
+
     /** 每个 session 的 SSE 连接列表 */
     private final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
@@ -89,14 +92,15 @@ public class BlackboardProgressStore {
             for (SseEmitter emitter : sessionEmitters) {
                 sendToEmitter(emitter, event);
             }
-        } else if (!"AGENT_TOKEN".equals(event.getType())) {
+        } else if (!BlackboardProgressEvent.TYPE_AGENT_TOKEN.equals(event.getType())) {
             // SSE 尚未连接，缓冲事件（AGENT_TOKEN 为瞬时增量，无连接时直接丢弃不缓冲）
             // CopyOnWriteArrayList 自身线程安全，无需再套 synchronized(new Object()) 空锁。
             eventBuffers.computeIfAbsent(sessionId, k -> new CopyOnWriteArrayList<>()).add(event);
         }
 
         // 终态事件：延迟清理
-        if ("COMPLETED".equals(event.getType()) || "ERROR".equals(event.getType())) {
+        if (BlackboardProgressEvent.TYPE_COMPLETED.equals(event.getType())
+                || BlackboardProgressEvent.TYPE_ERROR.equals(event.getType())) {
             scheduleCleanup(sessionId);
         }
     }
@@ -119,7 +123,7 @@ public class BlackboardProgressStore {
                 .start(
                         () -> {
                             try {
-                                Thread.sleep(30_000);
+                                Thread.sleep(CLEANUP_DELAY_MS);
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             }

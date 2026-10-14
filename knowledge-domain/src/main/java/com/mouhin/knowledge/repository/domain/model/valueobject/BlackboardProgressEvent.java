@@ -14,6 +14,42 @@ import lombok.Getter;
 @Getter
 public class BlackboardProgressEvent {
 
+    // ── 事件类型词表（SSE type 维度，domain 发射端与 web 比较端共用，禁止硬编码）──────────
+
+    /** 阶段变更事件。 */
+    public static final String TYPE_PHASE = "PHASE";
+
+    /** Agent 输出/状态事件。 */
+    public static final String TYPE_AGENT_OUTPUT = "AGENT_OUTPUT";
+
+    /** Agent token 增量事件（真流式）。 */
+    public static final String TYPE_AGENT_TOKEN = "AGENT_TOKEN";
+
+    /** 整体完成事件。 */
+    public static final String TYPE_COMPLETED = "COMPLETED";
+
+    /** 错误事件。 */
+    public static final String TYPE_ERROR = "ERROR";
+
+    // ── Agent 状态词表（agentStatus 维度）──────────
+
+    /** 运行中。 */
+    public static final String AGENT_STATUS_RUNNING = "running";
+
+    /** 已完成。 */
+    public static final String AGENT_STATUS_DONE = "done";
+
+    /** 已失败。 */
+    public static final String AGENT_STATUS_FAILED = "failed";
+
+    // ── token 增量类型词表（kind 维度，仅 AGENT_TOKEN 事件）──────────
+
+    /** 正式输出。 */
+    public static final String KIND_OUTPUT = "output";
+
+    /** 思考链。 */
+    public static final String KIND_THINKING = "thinking";
+
     /** 事件类型：PHASE / AGENT_OUTPUT / AGENT_TOKEN / COMPLETED / ERROR */
     private final String type;
 
@@ -127,7 +163,7 @@ public class BlackboardProgressEvent {
 
     /** 创建阶段变更事件 */
     public static BlackboardProgressEvent phaseChanged(BlackboardPhase phase, String message) {
-        return new Builder().type("PHASE").phase(phase).message(message).build();
+        return new Builder().type(TYPE_PHASE).phase(phase).message(message).build();
     }
 
     /**
@@ -142,7 +178,7 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent retryRoundChanged(
             BlackboardPhase phase, String message, int round, int maxRound) {
         return new Builder()
-                .type("PHASE")
+                .type(TYPE_PHASE)
                 .phase(phase)
                 .message(message)
                 .round(round)
@@ -153,9 +189,9 @@ public class BlackboardProgressEvent {
     /** 创建 Agent 状态变更事件（无输出） */
     public static BlackboardProgressEvent agentStarted(String agentName, String message) {
         return new Builder()
-                .type("AGENT_OUTPUT")
+                .type(TYPE_AGENT_OUTPUT)
                 .agentName(agentName)
-                .agentStatus("running")
+                .agentStatus(AGENT_STATUS_RUNNING)
                 .message(message)
                 .build();
     }
@@ -164,9 +200,9 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent agentStartedWithMaterials(
             String agentName, String message, String materials) {
         return new Builder()
-                .type("AGENT_OUTPUT")
+                .type(TYPE_AGENT_OUTPUT)
                 .agentName(agentName)
-                .agentStatus("running")
+                .agentStatus(AGENT_STATUS_RUNNING)
                 .message(message)
                 .materials(materials)
                 .build();
@@ -181,9 +217,9 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent agentCompleted(
             String agentName, String output, Double agentScore) {
         return new Builder()
-                .type("AGENT_OUTPUT")
+                .type(TYPE_AGENT_OUTPUT)
                 .agentName(agentName)
-                .agentStatus("done")
+                .agentStatus(AGENT_STATUS_DONE)
                 .output(output)
                 .agentScore(agentScore)
                 .build();
@@ -193,9 +229,9 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent agentCompleted(
             String agentName, String output, Double agentScore, AgentConfidence confidence) {
         return new Builder()
-                .type("AGENT_OUTPUT")
+                .type(TYPE_AGENT_OUTPUT)
                 .agentName(agentName)
-                .agentStatus("done")
+                .agentStatus(AGENT_STATUS_DONE)
                 .output(output)
                 .agentScore(agentScore)
                 .confidence(confidence)
@@ -210,9 +246,9 @@ public class BlackboardProgressEvent {
      */
     public static BlackboardProgressEvent agentFailed(String agentName, String output) {
         return new Builder()
-                .type("AGENT_OUTPUT")
+                .type(TYPE_AGENT_OUTPUT)
                 .agentName(agentName)
-                .agentStatus("failed")
+                .agentStatus(AGENT_STATUS_FAILED)
                 .output(output)
                 .build();
     }
@@ -229,7 +265,7 @@ public class BlackboardProgressEvent {
      */
     public static BlackboardProgressEvent tokenDelta(String agentName, String kind, String delta) {
         return new Builder()
-                .type("AGENT_TOKEN")
+                .type(TYPE_AGENT_TOKEN)
                 .agentName(agentName)
                 .kind(kind)
                 .delta(delta)
@@ -240,7 +276,7 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent completed(
             BlackboardState blackboard, int retrievedChunks) {
         return new Builder()
-                .type("COMPLETED")
+                .type(TYPE_COMPLETED)
                 .phase(BlackboardPhase.COMPLETED)
                 .finalArticle(blackboard.getFinalArticle())
                 .keyFindings(blackboard.getKeyFindings())
@@ -255,7 +291,7 @@ public class BlackboardProgressEvent {
     public static BlackboardProgressEvent examCompleted(
             BlackboardState blackboard, int retrievedChunks) {
         return new Builder()
-                .type("COMPLETED")
+                .type(TYPE_COMPLETED)
                 .phase(BlackboardPhase.COMPLETED)
                 .examPaper(blackboard.getExamPaper())
                 .answerKey(blackboard.getAnswerKey())
@@ -270,7 +306,7 @@ public class BlackboardProgressEvent {
     /** 创建题型分布方案完成事件（两步式流程第一步产出） */
     public static BlackboardProgressEvent distributionCompleted(String planJson) {
         return new Builder()
-                .type("COMPLETED")
+                .type(TYPE_COMPLETED)
                 .phase(BlackboardPhase.COMPLETED)
                 .distributionPlan(planJson)
                 .build();
@@ -279,7 +315,7 @@ public class BlackboardProgressEvent {
     /** 创建错误事件 */
     public static BlackboardProgressEvent error(String errorMessage) {
         return new Builder()
-                .type("ERROR")
+                .type(TYPE_ERROR)
                 .phase(BlackboardPhase.FAILED)
                 .errorMessage(errorMessage)
                 .build();

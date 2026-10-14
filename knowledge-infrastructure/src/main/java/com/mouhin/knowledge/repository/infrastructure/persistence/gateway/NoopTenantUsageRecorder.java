@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.persistence.gateway;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.TenantUsageRecorder;
 import com.mouhin.knowledge.repository.domain.model.valueobject.UsageMetric;
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(
-        name = "knowledge.saas.quota.enabled",
+        name = FeatureFlagKeys.SAAS_QUOTA_ENABLED,
         havingValue = "false",
         matchIfMissing = true)
 @Slf4j

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.config;
 
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.infrastructure.tenant.KnowledgeTenantLineHandler;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,7 +34,7 @@ import org.springframework.context.annotation.Configuration;
  * @date 2026-09-29
  */
 @Configuration
-@ConditionalOnProperty(name = "knowledge.saas.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.SAAS_ENABLED, havingValue = "true")
 public class MyBatisPlusConfig {
 
     /**

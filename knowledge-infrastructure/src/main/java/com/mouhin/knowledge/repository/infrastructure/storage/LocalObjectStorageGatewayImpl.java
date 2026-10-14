@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.storage;
 
+import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.ObjectStorageGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StorageCategory;
 import com.mouhin.knowledge.repository.domain.model.valueobject.StoredObject;
@@ -147,7 +148,7 @@ public class LocalObjectStorageGatewayImpl implements ObjectStorageGateway {
                         fileName,
                         Files.probeContentType(file),
                         size,
-                        "default",
+                        TenantContext.DEFAULT_TENANT_KEY,
                         StorageCategory.DOCUMENT,
                         lastModified));
     }

@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.domain.gateway.StudentGateway;
 import com.mouhin.knowledge.repository.domain.gateway.StudentSessionGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Student;
 import com.mouhin.knowledge.repository.domain.model.entity.StudentSession;
+import com.mouhin.knowledge.repository.domain.model.entity.User;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +29,6 @@ public class StudentLoginCmdExe {
     /** 令牌有效期：24 小时 */
     private static final int TOKEN_VALIDITY_HOURS = 24;
 
-    /** 有效账号状态 */
-    private static final String STATUS_ACTIVE = "ACTIVE";
-
     private final StudentGateway studentGateway;
     private final StudentSessionGateway studentSessionGateway;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -51,7 +49,7 @@ public class StudentLoginCmdExe {
                         .findByUsername(cmd.getUsername())
                         .orElseThrow(() -> new IllegalArgumentException("用户名或密码错误"));
 
-        if (!STATUS_ACTIVE.equals(student.getStatus())) {
+        if (!User.STATUS_ACTIVE.equals(student.getStatus())) {
             throw new IllegalArgumentException("账号已被禁用");
         }
 

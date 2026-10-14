@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.service.ExamGradingProgressCallback;
 import java.io.IOException;
 import java.util.Map;
@@ -33,6 +34,27 @@ public class ExamGradingProgressStore {
 
     /** SSE 超时：10 分钟 */
     private static final long SSE_TIMEOUT_MS = 600_000L;
+
+    /** SSE 事件名：单题开始。 */
+    private static final String EVENT_START = "START";
+
+    /** SSE 事件名：流式 token。 */
+    private static final String EVENT_TOKEN = "TOKEN";
+
+    /** SSE 事件名：单题完成。 */
+    private static final String EVENT_DONE = "DONE";
+
+    /** SSE 事件名：单题异常。 */
+    private static final String EVENT_ERROR = "ERROR";
+
+    /** SSE 事件名：整场结束。 */
+    private static final String EVENT_COMPLETE = "COMPLETE";
+
+    /** SSE 事件名：整场启动失败。 */
+    private static final String EVENT_FATAL = "FATAL";
+
+    /** SSE 事件名：批量收尾。 */
+    private static final String EVENT_BATCH_COMPLETE = "BATCH_COMPLETE";
 
     /** 每场考试的 SSE 连接（同一 streamId 只允许一个客户端） */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -91,7 +113,7 @@ public class ExamGradingProgressStore {
                 payload.put("questionIndex", questionIndex);
                 payload.put("questionType", questionType == null ? "" : questionType);
                 payload.put("input", aiInput == null ? "" : aiInput);
-                send(streamId, "START", payload);
+                send(streamId, EVENT_START, payload);
             }
 
             @Override
@@ -104,9 +126,9 @@ public class ExamGradingProgressStore {
                     payload.put("sessionId", sessionId);
                 }
                 payload.put("questionIndex", questionIndex);
-                payload.put("kind", kind == null ? "output" : kind);
+                payload.put("kind", kind == null ? BlackboardProgressEvent.KIND_OUTPUT : kind);
                 payload.put("delta", delta);
-                send(streamId, "TOKEN", payload);
+                send(streamId, EVENT_TOKEN, payload);
             }
 
             @Override
@@ -127,7 +149,7 @@ public class ExamGradingProgressStore {
                 payload.put("maxScore", maxScore);
                 payload.put("feedback", aiFeedback == null ? "" : aiFeedback);
                 payload.put("elapsed", elapsedMs);
-                send(streamId, "DONE", payload);
+                send(streamId, EVENT_DONE, payload);
             }
 
             @Override
@@ -138,7 +160,7 @@ public class ExamGradingProgressStore {
                 }
                 payload.put("questionIndex", questionIndex);
                 payload.put("error", errorMessage == null ? "unknown" : errorMessage);
-                send(streamId, "ERROR", payload);
+                send(streamId, EVENT_ERROR, payload);
             }
 
             @Override
@@ -149,7 +171,7 @@ public class ExamGradingProgressStore {
                 }
                 payload.put("totalQuestions", totalQuestions);
                 payload.put("totalAiScore", totalAiScore);
-                send(streamId, "COMPLETE", payload);
+                send(streamId, EVENT_COMPLETE, payload);
                 // 单场模式：立即关闭；批量模式：由 Controller 归零后统一 BATCH_COMPLETE + close
                 if (sessionId == null) {
                     closeStream(streamId);
@@ -163,7 +185,7 @@ public class ExamGradingProgressStore {
                     payload.put("sessionId", sessionId);
                 }
                 payload.put("error", errorMessage == null ? "unknown" : errorMessage);
-                send(streamId, "FATAL", payload);
+                send(streamId, EVENT_FATAL, payload);
                 if (sessionId == null) {
                     closeStream(streamId);
                 }
@@ -187,7 +209,7 @@ public class ExamGradingProgressStore {
      * @param sessionCount 本次批量评分覆盖的场次数
      */
     public void emitBatchComplete(String streamId, int sessionCount) {
-        send(streamId, "BATCH_COMPLETE", Map.of("sessionCount", sessionCount));
+        send(streamId, EVENT_BATCH_COMPLETE, Map.of("sessionCount", sessionCount));
         closeStream(streamId);
     }
 

@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.domain.exception.QuotaExceededException;
 import com.mouhin.knowledge.repository.domain.exception.ThrottleRequiredException;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaCheckResult;
 import com.mouhin.knowledge.repository.web.security.AdminAuthRequiredException;
+import com.mouhin.knowledge.repository.web.security.AdminTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
@@ -42,6 +43,9 @@ public class GlobalExceptionHandler {
     /** 未知路由对外返回的通用提示；请求路径只落到日志、不回显到响应体（防信息泄露 java:S2092 家族）。 */
     private static final String MSG_NOT_FOUND = "资源不存在";
 
+    /** 限流退避秒数（{@code Retry-After} 头值）。 */
+    private static final String RETRY_AFTER_SECONDS = "60";
+
     /** 统一错误响应组装；只此一处 Map.of，消除各 handler 的构造重复（java:DuplicatedBlocks）。 */
     private static ResponseEntity<Map<String, Object>> error(
             HttpStatus status, String code, String message) {
@@ -65,7 +69,9 @@ public class GlobalExceptionHandler {
             AdminAuthRequiredException e) {
         log.warn("Admin auth required: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .header(HttpHeaders.WWW_AUTHENTICATE, "X-Admin-Token realm=\"knowledge-admin\"")
+                .header(
+                        HttpHeaders.WWW_AUTHENTICATE,
+                        AdminTokenAuthFilter.TOKEN_HEADER + " realm=\"knowledge-admin\"")
                 .body(
                         Map.of(
                                 FIELD_ERROR_CODE,
@@ -123,7 +129,7 @@ public class GlobalExceptionHandler {
         body.put("quota", r.quota());
         body.put("currentUsage", r.currentUsage());
         body.put(FIELD_TIMESTAMP, java.time.Instant.now().toString());
-        return ResponseEntity.status(402).body(body);
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(body);
     }
 
     /**
@@ -134,14 +140,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ThrottleRequiredException.class)
     public ResponseEntity<Map<String, Object>> handleThrottle(
             ThrottleRequiredException ex, HttpServletResponse response) {
-        response.setHeader("Retry-After", "60");
+        response.setHeader(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS);
         QuotaCheckResult r = ex.result();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put(FIELD_ERROR_CODE, "THROTTLE_REQUIRED");
         body.put(FIELD_ERROR_MESSAGE, "请求过于频繁，请稍后重试");
         body.put("metric", r.metric().code());
         body.put(FIELD_TIMESTAMP, java.time.Instant.now().toString());
-        return ResponseEntity.status(429).body(body);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
 
     @ExceptionHandler(Exception.class)

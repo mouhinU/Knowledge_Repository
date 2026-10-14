@@ -42,6 +42,9 @@ public class WebStaticCacheConfig {
         "/admin", "/admin/", "/admin/*", "/admin.html", "/exam.html",
     };
 
+    /** 过滤器排序偏移量（相对 {@code Ordered.HIGHEST_PRECEDENCE}）。 */
+    private static final int FILTER_ORDER_OFFSET = 20;
+
     @Bean
     public FilterRegistrationBean<HtmlCacheBusterFilter> htmlCacheBusterFilterRegistration(
             @Value("${app.version:${APP_VERSION:dev}}") String appVersion) {
@@ -49,7 +52,7 @@ public class WebStaticCacheConfig {
         reg.setFilter(new HtmlCacheBusterFilter(appVersion));
         reg.addUrlPatterns(HTML_URL_PATTERNS);
         reg.setName("htmlCacheBusterFilter");
-        reg.setOrder(Ordered.HIGHEST_PRECEDENCE + 20);
+        reg.setOrder(Ordered.HIGHEST_PRECEDENCE + FILTER_ORDER_OFFSET);
         return reg;
     }
 }

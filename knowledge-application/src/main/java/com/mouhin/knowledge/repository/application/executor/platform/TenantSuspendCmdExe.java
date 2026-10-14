@@ -4,6 +4,7 @@ import com.mouhin.knowledge.repository.application.converter.TenantVoConverter;
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.dto.TenantStatusCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantDirectory;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
@@ -62,7 +63,7 @@ public class TenantSuspendCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -71,7 +72,7 @@ public class TenantSuspendCmdExe {
             tenant.suspend();
         } catch (IllegalStateException e) {
             platformAuditLog.logTenantAction(
-                    operator, ACTION, tenantKey, "REJECTED", e.getMessage());
+                    operator, ACTION, tenantKey, AuditOutcomes.REJECTED, e.getMessage());
             throw e;
         }
         tenantGateway.update(tenant);
@@ -84,7 +85,7 @@ public class TenantSuspendCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "ACTIVE→SUSPENDED reason=" + cmd.getReason());
         log.info("Platform tenant suspended: {}", tenantKey);
         return TenantVoConverter.toVO(tenant);

@@ -1,6 +1,8 @@
 package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.*;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeletionStep;
@@ -44,7 +46,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 public class TenantDeletionReconciler {
 
     /** 审计动作名。 */
@@ -158,7 +160,7 @@ public class TenantDeletionReconciler {
                 AgentNames.ACTOR_SYSTEM,
                 ACTION,
                 tenant.getTenantKey(),
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "DELETING→DELETED dbRows=" + dbOutcome.rowsAffected() + " requestId=" + requestId);
         log.info(
                 "Tenant hard-deleted (DELETING→DELETED): {} dbRows={} requestId={}",
@@ -222,7 +224,7 @@ public class TenantDeletionReconciler {
                 AgentNames.ACTOR_SYSTEM,
                 ACTION,
                 tenant.getTenantKey(),
-                "FAILED",
+                AuditOutcomes.FAILED,
                 "step=" + stepName + " error=" + errorDetail);
     }
 

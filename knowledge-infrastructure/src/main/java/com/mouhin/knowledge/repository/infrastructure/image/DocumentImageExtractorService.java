@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.image;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
 import java.awt.*;
@@ -55,8 +56,8 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     /** 单文档最多抽取的图片数，防御恶意 / 超大文件撑爆内存 */
     private static final int MAX_IMAGES_PER_DOC = 300;
 
-    /** 默认 / fallback MIME（java:S1192：抽常量防 5 处 MIME_PNG 字面量漂移）。 */
-    private static final String MIME_PNG = "image/png";
+    /** 每页大约段落数（用于估算页序）。 */
+    private static final int APPROX_PARAGRAPHS_PER_PAGE = 50;
 
     private final Tika tika = new Tika();
 
@@ -85,13 +86,10 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         try {
             List<ExtractedImage> images =
                     switch (mimeType) {
-                        case "application/pdf" -> extractFromPdf(sanitized);
-                        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                                extractFromDocx(sanitized);
-                        case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ->
-                                extractFromXlsx(sanitized);
-                        case "application/vnd.openxmlformats-officedocument.presentationml.presentation" ->
-                                extractFromPptx(sanitized);
+                        case MimeTypes.PDF -> extractFromPdf(sanitized);
+                        case MimeTypes.DOCX -> extractFromDocx(sanitized);
+                        case MimeTypes.XLSX -> extractFromXlsx(sanitized);
+                        case MimeTypes.PPTX -> extractFromPptx(sanitized);
                         default -> List.of();
                     };
             log.info("Image extraction done: {} -> {} image(s)", fileName, images.size());
@@ -141,7 +139,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                         result.add(
                                 new ExtractedImage(
                                         bytes,
-                                        MIME_PNG,
+                                        MimeTypes.IMAGE_PNG,
                                         awt.getWidth(),
                                         awt.getHeight(),
                                         pageNo,
@@ -205,7 +203,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
             }
             if (el instanceof XWPFParagraph para) {
                 counter[0]++;
-                int approxPage = counter[0] / 50 + 1;
+                int approxPage = counter[0] / APPROX_PARAGRAPHS_PER_PAGE + 1;
                 for (XWPFRun run : para.getRuns()) {
                     for (XWPFPicture picture : run.getEmbeddedPictures()) {
                         XWPFPictureData data = picture.getPictureData();
@@ -377,11 +375,11 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         if (fileExt != null) {
             String byExt =
                     switch (fileExt.toLowerCase(Locale.ROOT)) {
-                        case "png" -> MIME_PNG;
-                        case "jpg", "jpeg" -> "image/jpeg";
-                        case "gif" -> "image/gif";
-                        case "bmp" -> "image/bmp";
-                        case "tif", "tiff" -> "image/tiff";
+                        case "png" -> MimeTypes.IMAGE_PNG;
+                        case "jpg", "jpeg" -> MimeTypes.IMAGE_JPEG;
+                        case "gif" -> MimeTypes.IMAGE_GIF;
+                        case "bmp" -> MimeTypes.IMAGE_BMP;
+                        case "tif", "tiff" -> MimeTypes.IMAGE_TIFF;
                         default -> null;
                     };
             if (byExt != null) {
@@ -393,16 +391,16 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
 
     private String sniff(byte[] b) {
         if (b == null || b.length < 4) {
-            return MIME_PNG;
+            return MimeTypes.IMAGE_PNG;
         }
         if ((b[0] & 0xFF) == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
-            return MIME_PNG;
+            return MimeTypes.IMAGE_PNG;
         }
         if ((b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8) {
-            return "image/jpeg";
+            return MimeTypes.IMAGE_JPEG;
         }
         if (b[0] == 'G' && b[1] == 'I' && b[2] == 'F') {
-            return "image/gif";
+            return MimeTypes.IMAGE_GIF;
         }
         if (b.length >= 12
                 && b[0] == 'R'
@@ -413,12 +411,12 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
                 && b[9] == 'E'
                 && b[10] == 'B'
                 && b[11] == 'P') {
-            return "image/webp";
+            return MimeTypes.IMAGE_WEBP;
         }
         if ((b[0] & 0xFF) == 0x42 && (b[1] & 0xFF) == 0x4D) {
-            return "image/bmp";
+            return MimeTypes.IMAGE_BMP;
         }
-        return MIME_PNG;
+        return MimeTypes.IMAGE_PNG;
     }
 
     private record DocxPic(XWPFPictureData data, int page) {}

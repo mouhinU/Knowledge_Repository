@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.gateway.ExtractionCacheRepository;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
@@ -39,8 +40,8 @@ public class PdfHybridExtractionStrategy implements ContentExtractor {
     /** 路由优先级：混合策略优先于纯 PDFBox，接管 PDF 解析入口。 */
     private static final int PRIORITY = 5;
 
-    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of("application/pdf");
-    private static final String DEFAULT_IMAGE_MIME = "image/png";
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(MimeTypes.PDF);
+    private static final String DEFAULT_IMAGE_MIME = MimeTypes.IMAGE_PNG;
     private static final int UNLIMITED_BYTES = 0;
     private static final String RENDER_MODE_EMBEDDED_PREF = "embedded-pref";
     private static final String RENDER_MODE_RASTER = "raster";

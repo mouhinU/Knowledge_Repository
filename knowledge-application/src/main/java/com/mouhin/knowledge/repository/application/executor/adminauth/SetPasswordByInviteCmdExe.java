@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.application.executor.adminauth;
 import com.mouhin.knowledge.repository.application.support.UserInviteService;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteCmd;
 import com.mouhin.knowledge.repository.client.dto.SetPasswordByInviteVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.UserGateway;
 import com.mouhin.knowledge.repository.domain.gateway.UserInviteGateway;
@@ -89,7 +90,7 @@ public class SetPasswordByInviteCmdExe {
                                             "anonymous",
                                             ACTION,
                                             "-",
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "invite code not recognized");
                                     return new IllegalArgumentException("邀请码无效");
                                 });
@@ -101,7 +102,7 @@ public class SetPasswordByInviteCmdExe {
                     "anonymous",
                     ACTION,
                     "-",
-                    "REJECTED",
+                    AuditOutcomes.REJECTED,
                     "invite unusable (" + reason + ") inviteId=" + invite.getInviteId());
             throw new IllegalArgumentException("邀请码已过期或已被使用");
         }
@@ -126,7 +127,7 @@ public class SetPasswordByInviteCmdExe {
                 user.getUserKey(),
                 ACTION,
                 user.getTenantKey(),
-                "SUCCESS",
+                AuditOutcomes.SUCCESS,
                 "inviteId=" + invite.getInviteId() + " userId=" + user.getId());
         log.info(
                 "[SetPasswordByInvite] success: tenantKey={} username={} userId={} inviteId={} codeHashPrefix={}",

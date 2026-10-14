@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.service;
 
 import com.mouhin.knowledge.repository.application.support.SystemConfigService;
 import com.mouhin.knowledge.repository.client.api.ExamGradingServiceI;
+import com.mouhin.knowledge.repository.domain.constant.ExamSessionStatuses;
 import com.mouhin.knowledge.repository.domain.constant.SystemConfigKeys;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
@@ -49,8 +50,8 @@ public class ExamGradingScheduler {
     /** 超时回收单轮扫描上限（单租户） */
     private static final int RECOVER_BATCH_SIZE = 100;
 
-    /** 场次状态：评分中（并发认领态） */
-    private static final String STATUS_GRADING = "GRADING";
+    /** 实例唯一标识截取长度（UUID 去连字符后取前 N 位） */
+    private static final int INSTANCE_ID_LENGTH = 16;
 
     private final ExamSessionGateway examSessionGateway;
     private final ExamGradingServiceI gradingService;
@@ -61,7 +62,7 @@ public class ExamGradingScheduler {
 
     /** 实例唯一标识，用于分布式锁 ownerId */
     private final String instanceId =
-            UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+            UUID.randomUUID().toString().replace("-", "").substring(0, INSTANCE_ID_LENGTH);
 
     public ExamGradingScheduler(
             ExamSessionGateway examSessionGateway,
@@ -198,7 +199,8 @@ public class ExamGradingScheduler {
     private void recoverStuckGrading(String tenantKey) {
         try {
             List<ExamSession> grading =
-                    examSessionGateway.listByStatus(STATUS_GRADING, RECOVER_BATCH_SIZE, 0);
+                    examSessionGateway.listByStatus(
+                            ExamSessionStatuses.GRADING, RECOVER_BATCH_SIZE, 0);
             if (grading.isEmpty()) {
                 return;
             }

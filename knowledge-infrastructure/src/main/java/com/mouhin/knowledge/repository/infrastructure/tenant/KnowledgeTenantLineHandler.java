@@ -29,6 +29,9 @@ import net.sf.jsqlparser.expression.LongValue;
  */
 public class KnowledgeTenantLineHandler implements TenantLineHandler {
 
+    /** 租户列名（与 V24 迁移后的列名严格对齐） */
+    private static final String TENANT_ID_COLUMN = "tenant_id";
+
     /**
      * 不参与租户过滤的表名（小写，与 H2 {@code DATABASE_TO_LOWER=TRUE} 及 MySQL 8 默认命名对齐）。
      *
@@ -81,7 +84,7 @@ public class KnowledgeTenantLineHandler implements TenantLineHandler {
 
     @Override
     public String getTenantIdColumn() {
-        return "tenant_id";
+        return TENANT_ID_COLUMN;
     }
 
     @Override

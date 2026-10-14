@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.client.dto.TenantPlanLimitVO;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.TenantPlanLimitGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.QuotaPolicy;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TenantPlanLimit;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/platform/limits")
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 @Slf4j
 public class PlatformLimitController {
 
@@ -100,8 +101,8 @@ public class PlatformLimitController {
         tenantPlanLimitGateway.delete(tenantKey, usageMetric);
         Map<String, String> body = new LinkedHashMap<>();
         body.put("status", "deleted");
-        body.put("tenantKey", tenantKey);
-        body.put("metric", metric);
+        body.put(FIELD_TENANT_KEY, tenantKey);
+        body.put(FIELD_METRIC, metric);
         return ResponseEntity.ok(body);
     }
 }

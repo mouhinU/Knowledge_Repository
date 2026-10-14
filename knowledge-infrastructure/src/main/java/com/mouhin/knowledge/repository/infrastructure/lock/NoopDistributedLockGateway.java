@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.lock;
 
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.gateway.DistributedLockGateway;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "knowledge.redis.enabled", havingValue = "false")
+@ConditionalOnProperty(name = FeatureFlagKeys.REDIS_ENABLED, havingValue = "false")
 public class NoopDistributedLockGateway implements DistributedLockGateway {
 
     /** 进程内锁表：lockKey → ownerId */

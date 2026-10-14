@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.extractor;
 
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.ContentExtractor;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionCandidate;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractionResult;
@@ -33,10 +34,10 @@ public class DocxExtractionStrategy implements ContentExtractor {
     private static final int PARAGRAPHS_PER_SECTION = 30;
 
     /** 本策略命中的 MIME 类型。 */
-    private static final Set<String> SUPPORTED_MIME_TYPES =
-            Set.of(
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "application/msword");
+    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(MimeTypes.DOCX, MimeTypes.DOC);
+
+    /** 路由优先级。 */
+    private static final int PRIORITY = 20;
 
     @Override
     public String name() {
@@ -45,7 +46,7 @@ public class DocxExtractionStrategy implements ContentExtractor {
 
     @Override
     public int priority() {
-        return 20;
+        return PRIORITY;
     }
 
     @Override

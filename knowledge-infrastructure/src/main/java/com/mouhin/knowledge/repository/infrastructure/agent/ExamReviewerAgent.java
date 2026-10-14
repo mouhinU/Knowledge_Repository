@@ -249,7 +249,7 @@ public class ExamReviewerAgent implements BlackboardAgent {
         } catch (Exception e) {
             log.warn("[ExamReviewer] 评分解析异常: {}", e.getMessage());
         }
-        return 70.0;
+        return (double) DETECTOR_SCORE_CAP;
     }
 
     /**

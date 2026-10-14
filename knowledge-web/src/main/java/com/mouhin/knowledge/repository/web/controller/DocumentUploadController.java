@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.UploadO
 import com.mouhin.knowledge.repository.client.dto.ChunkUploadRequest;
 import com.mouhin.knowledge.repository.client.dto.DocumentUploadRequest;
 import com.mouhin.knowledge.repository.client.dto.DocumentVO;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.infrastructure.upload.UploadSessionManager;
 import java.nio.file.Path;
@@ -31,6 +32,9 @@ public class DocumentUploadController {
 
     /** 统一响应 map 的 error message 字段名（java:S1192：抽公共 key 防字面量漂移）。 */
     private static final String FIELD_ERROR_MESSAGE = "errorMessage";
+
+    /** 缺省所有者（分片上传完成时 ownerId 未传即以此兜底）。 */
+    private static final String ANONYMOUS_OWNER = "anonymous";
 
     private final UploadOnlyCmdExe uploadOnlyCmdExe;
     private final UploadFromFileCmdExe uploadFromFileCmdExe;
@@ -77,14 +81,14 @@ public class DocumentUploadController {
             consumes = {
                 MediaType.MULTIPART_FORM_DATA_VALUE,
                 MediaType.APPLICATION_PDF_VALUE,
-                "application/msword",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "application/vnd.ms-excel",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "application/vnd.ms-powerpoint",
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                MimeTypes.DOC,
+                MimeTypes.DOCX,
+                MimeTypes.XLS,
+                MimeTypes.XLSX,
+                MimeTypes.PPT,
+                MimeTypes.PPTX,
                 MediaType.TEXT_PLAIN_VALUE,
-                "text/csv",
+                MimeTypes.TEXT_CSV,
                 MediaType.TEXT_HTML_VALUE
             })
     public ResponseEntity<Map<String, Object>> upload(
@@ -92,7 +96,10 @@ public class DocumentUploadController {
 
         String ownerId = request.getOwnerId();
         String departmentId = request.getDepartmentId();
-        String visibility = request.getVisibility() != null ? request.getVisibility() : "INTERNAL";
+        String visibility =
+                request.getVisibility() != null
+                        ? request.getVisibility()
+                        : DocumentVisibilityEnum.INTERNAL.name();
 
         log.info(
                 "Uploading document: {}, owner={}, dept={}",
@@ -194,10 +201,12 @@ public class DocumentUploadController {
 
             Path assembledFile = uploadSessionManager.assembleChunks(uploadId);
 
-            String ownerId = request.getOwnerId() != null ? request.getOwnerId() : "anonymous";
+            String ownerId = request.getOwnerId() != null ? request.getOwnerId() : ANONYMOUS_OWNER;
             String departmentId = request.getDepartmentId();
             String visibility =
-                    request.getVisibility() != null ? request.getVisibility() : "INTERNAL";
+                    request.getVisibility() != null
+                            ? request.getVisibility()
+                            : DocumentVisibilityEnum.INTERNAL.name();
 
             DocumentVisibilityEnum vis;
             try {
@@ -255,18 +264,15 @@ public class DocumentUploadController {
     }
 
     private boolean isSupportedFileType(String contentType) {
-        return contentType.equals("application/pdf")
-                || contentType.equals("application/msword")
-                || contentType.equals(
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                || contentType.equals("application/vnd.ms-excel")
-                || contentType.equals(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                || contentType.equals("application/vnd.ms-powerpoint")
-                || contentType.equals(
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation")
-                || contentType.equals("text/plain")
-                || contentType.equals("text/csv")
-                || contentType.equals("text/html");
+        return contentType.equals(MimeTypes.PDF)
+                || contentType.equals(MimeTypes.DOC)
+                || contentType.equals(MimeTypes.DOCX)
+                || contentType.equals(MimeTypes.XLS)
+                || contentType.equals(MimeTypes.XLSX)
+                || contentType.equals(MimeTypes.PPT)
+                || contentType.equals(MimeTypes.PPTX)
+                || contentType.equals(MimeTypes.TEXT_PLAIN)
+                || contentType.equals(MimeTypes.TEXT_CSV)
+                || contentType.equals(MimeTypes.TEXT_HTML);
     }
 }

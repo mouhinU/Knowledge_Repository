@@ -99,7 +99,9 @@ public final class DocumentConverter {
             doObj.setRespectParagraph(config.isRespectParagraphBoundary());
             doObj.setRespectPage(config.isRespectPageBoundary());
             doObj.setChunkingStrategy(
-                    config.getStrategy() != null ? config.getStrategy().name() : "FIXED_SIZE");
+                    config.getStrategy() != null
+                            ? config.getStrategy().name()
+                            : ChunkingStrategyEnum.FIXED_SIZE.name());
         }
 
         return doObj;

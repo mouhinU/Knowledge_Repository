@@ -5,6 +5,7 @@ import com.mouhin.knowledge.repository.application.service.ProvisioningOutcome;
 import com.mouhin.knowledge.repository.application.service.ProvisioningStateMachine;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionCmd;
 import com.mouhin.knowledge.repository.client.dto.TenantProvisionVO;
+import com.mouhin.knowledge.repository.domain.constant.AuditOutcomes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformAuditLog;
 import com.mouhin.knowledge.repository.domain.gateway.TenantGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.Tenant;
@@ -65,7 +66,7 @@ public class TenantProvisionCmdExe {
                                             operator,
                                             ACTION,
                                             tenantKey,
-                                            "REJECTED",
+                                            AuditOutcomes.REJECTED,
                                             "tenant not found");
                                     return new IllegalArgumentException(
                                             "Tenant not found: " + tenantKey);
@@ -81,7 +82,7 @@ public class TenantProvisionCmdExe {
                 operator,
                 ACTION,
                 tenantKey,
-                outcome.isSuccess() ? "SUCCESS" : "FAILED",
+                outcome.isSuccess() ? AuditOutcomes.SUCCESS : AuditOutcomes.FAILED,
                 "finalStatus=" + outcome.finalStatus() + " steps=" + outcome.steps().size());
         log.info(
                 "Provisioning finished for tenant '{}': status={} requestId={}",

@@ -30,6 +30,9 @@ public class ListPublishedHistoryQryExe {
     /** 剔除已考卷时向网关多取若干条做过滤后截断，避免过滤后不足 limit 造成前端"看起来只有几份"。 */
     private static final int OVERFETCH_FACTOR = 4;
 
+    /** limit 非正数时的兜底返回条数。 */
+    private static final int DEFAULT_HISTORY_LIMIT = 20;
+
     private final ExamHistoryGateway examHistoryGateway;
     private final ExamSessionGateway examSessionGateway;
     private final StudentGateway studentGateway;
@@ -56,7 +59,7 @@ public class ListPublishedHistoryQryExe {
      * @return 可用试卷 DTO 列表（按创建时间倒序）
      */
     public List<ExamHistoryDTO> execute(int limit, String studentToken) {
-        int safeLimit = limit > 0 ? limit : 20;
+        int safeLimit = limit > 0 ? limit : DEFAULT_HISTORY_LIMIT;
         Student student = resolveStudentOrNull(studentToken);
         if (student == null) {
             return examHistoryGateway.listPublished(safeLimit).stream()

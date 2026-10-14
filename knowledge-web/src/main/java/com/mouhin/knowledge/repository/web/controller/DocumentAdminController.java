@@ -7,6 +7,7 @@ import com.mouhin.knowledge.repository.application.executor.docingestion.Reindex
 import com.mouhin.knowledge.repository.client.api.DocumentIngestionServiceI;
 import com.mouhin.knowledge.repository.client.api.DocumentServiceI;
 import com.mouhin.knowledge.repository.client.dto.*;
+import com.mouhin.knowledge.repository.domain.model.valueobject.AgentExecutionStatus;
 import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentStatusEnum;
 import com.mouhin.knowledge.repository.domain.service.ExtractionStrategyStackParser;
 import java.util.List;
@@ -31,7 +32,9 @@ public class DocumentAdminController {
     private static final String FIELD_DOCUMENT_KEY = "documentKey";
 
     private static final String FIELD_STATUS = "status";
-    private static final String STATUS_STARTED = "STARTED";
+
+    /** 异步任务已入队状态。 */
+    private static final String STATUS_ENQUEUED = "ENQUEUED";
 
     private final DocumentServiceI documentService;
     private final DocumentIngestionServiceI ingestionService;
@@ -148,7 +151,7 @@ public class DocumentAdminController {
                         FIELD_DOCUMENT_KEY,
                         documentKey,
                         FIELD_STATUS,
-                        STATUS_STARTED,
+                        AgentExecutionStatus.STARTED.name(),
                         "message",
                         "Reindexing started. Connect to SSE for progress."));
     }
@@ -175,7 +178,7 @@ public class DocumentAdminController {
                         FIELD_DOCUMENT_KEY,
                         documentKey,
                         FIELD_STATUS,
-                        STATUS_STARTED,
+                        AgentExecutionStatus.STARTED.name(),
                         "message",
                         "Reindexing started. Connect to SSE for progress."));
     }
@@ -245,7 +248,7 @@ public class DocumentAdminController {
                         FIELD_DOCUMENT_KEY,
                         documentKey,
                         FIELD_STATUS,
-                        STATUS_STARTED,
+                        AgentExecutionStatus.STARTED.name(),
                         "message",
                         "Indexing started. Connect to SSE for progress."));
     }
@@ -268,7 +271,7 @@ public class DocumentAdminController {
                         FIELD_DOCUMENT_KEY,
                         documentKey,
                         FIELD_STATUS,
-                        STATUS_STARTED,
+                        AgentExecutionStatus.STARTED.name(),
                         "message",
                         "Indexing started. Connect to SSE for progress."));
     }

@@ -19,6 +19,9 @@ public class WrongAnswerPageQryExe {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
+    /** 题型缺失时的统计兜底分组键。 */
+    private static final String TYPE_UNKNOWN = "UNKNOWN";
+
     /** 平均得分率显示保留 4 位小数的放大倍数。 */
     private static final double RATE_SCALE_4DP = 10000.0;
 
@@ -75,7 +78,7 @@ public class WrongAnswerPageQryExe {
         double rateSum = 0;
         int rateCount = 0;
         for (WrongAnswerVO item : all) {
-            String type = item.getQuestionType() != null ? item.getQuestionType() : "UNKNOWN";
+            String type = item.getQuestionType() != null ? item.getQuestionType() : TYPE_UNKNOWN;
             typeCounts.merge(type, 1L, Long::sum);
             int maxScore = item.getMaxScore() != null ? item.getMaxScore() : 0;
             int effScore = item.getEffectiveScore() != null ? item.getEffectiveScore() : 0;

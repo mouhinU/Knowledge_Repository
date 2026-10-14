@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,15 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ERROR_CODE = "PLATFORM_UNAUTHORIZED";
+
+    /** 错误响应 map 的 error 字段名。 */
+    private static final String FIELD_ERROR = "error";
+
+    /** 错误响应 map 的 errorCode 字段名。 */
+    private static final String FIELD_ERROR_CODE = "errorCode";
+
+    /** 错误响应 map 的 code 字段名。 */
+    private static final String FIELD_CODE = "code";
 
     private final PlatformJwtService platformJwtService;
 
@@ -111,15 +121,15 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
         log.debug("平台端鉴权失败：缺少或无效平台令牌");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         objectMapper.writeValue(
                 response.getOutputStream(),
                 Map.of(
-                        "error",
+                        FIELD_ERROR,
                         "未认证或平台令牌无效",
-                        "errorCode",
+                        FIELD_ERROR_CODE,
                         ERROR_CODE,
-                        "code",
+                        FIELD_CODE,
                         HttpServletResponse.SC_UNAUTHORIZED));
     }
 }

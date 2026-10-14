@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,12 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
 
     /** SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。 */
     private static final String ACCESS_TOKEN_PARAM = "access_token";
+
+    /** 错误响应 map 的 error 字段名。 */
+    private static final String FIELD_ERROR = "error";
+
+    /** 错误响应 map 的 code 字段名。 */
+    private static final String FIELD_CODE = "code";
 
     /**
      * 运维探针类 actuator 端点，允许匿名可达（与业务令牌体系解耦）。
@@ -157,9 +164,9 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         log.debug("管理端鉴权失败：缺少或无效令牌");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         objectMapper.writeValue(
                 response.getOutputStream(),
-                Map.of("error", "未认证或登录已过期", "code", HttpServletResponse.SC_UNAUTHORIZED));
+                Map.of(FIELD_ERROR, "未认证或登录已过期", FIELD_CODE, HttpServletResponse.SC_UNAUTHORIZED));
     }
 }

@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.Difficulties;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -105,9 +106,9 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
         }
 
         String difficultyDesc =
-                switch (targetDifficulty != null ? targetDifficulty : "MEDIUM") {
-                    case "EASY" -> "简单（记忆 30% + 理解 40% + 应用 20% + 分析 10%）";
-                    case "HARD" -> "困难（应用 25% + 分析 30% + 评价 25% + 创造 20%）";
+                switch (targetDifficulty != null ? targetDifficulty : Difficulties.DEFAULT) {
+                    case Difficulties.EASY -> "简单（记忆 30% + 理解 40% + 应用 20% + 分析 10%）";
+                    case Difficulties.HARD -> "困难（应用 25% + 分析 30% + 评价 25% + 创造 20%）";
                     default -> "中等（理解 25% + 应用 35% + 分析 25% + 评价 15%）";
                 };
 

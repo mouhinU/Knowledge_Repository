@@ -10,6 +10,21 @@ package com.mouhin.knowledge.repository.domain.model.valueobject;
  */
 public final class AgentConfidence {
 
+    /** 最低置信度阈值（默认） */
+    private static final double DEFAULT_THRESHOLD = 0.3;
+
+    /** 高置信度快捷构造分数 */
+    private static final double HIGH_SCORE = 0.9;
+
+    /** 中等置信度快捷构造分数 */
+    private static final double MEDIUM_SCORE = 0.5;
+
+    /** 低置信度快捷构造分数 */
+    private static final double LOW_SCORE = 0.2;
+
+    /** 未知/未评估置信度分数 */
+    private static final double UNKNOWN_SCORE = 0.0;
+
     /** 置信度分数（0.0 ~ 1.0） */
     private final double score;
 
@@ -20,7 +35,7 @@ public final class AgentConfidence {
     private final boolean acceptable;
 
     public AgentConfidence(double score, String reason) {
-        this(score, reason, 0.3);
+        this(score, reason, DEFAULT_THRESHOLD);
     }
 
     public AgentConfidence(double score, String reason, double threshold) {
@@ -35,22 +50,22 @@ public final class AgentConfidence {
 
     /** 高置信度快捷构造（score >= 0.7） */
     public static AgentConfidence high(String reason) {
-        return new AgentConfidence(0.9, reason);
+        return new AgentConfidence(HIGH_SCORE, reason);
     }
 
     /** 中等置信度快捷构造（0.4 <= score < 0.7） */
     public static AgentConfidence medium(String reason) {
-        return new AgentConfidence(0.5, reason);
+        return new AgentConfidence(MEDIUM_SCORE, reason);
     }
 
     /** 低置信度快捷构造（score < 0.4） */
     public static AgentConfidence low(String reason) {
-        return new AgentConfidence(0.2, reason);
+        return new AgentConfidence(LOW_SCORE, reason);
     }
 
     /** 未知/未评估 */
     public static AgentConfidence unknown() {
-        return new AgentConfidence(0.0, "未评估");
+        return new AgentConfidence(UNKNOWN_SCORE, "未评估");
     }
 
     public double getScore() {

@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.infrastructure.milvus;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.VectorStoreGateway;
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
+import com.mouhin.knowledge.repository.domain.model.valueobject.DocumentVisibilityEnum;
 import com.mouhin.knowledge.repository.domain.model.valueobject.SearchResult;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import com.mouhin.knowledge.repository.infrastructure.tenant.TenantIdResolver;
@@ -37,6 +38,24 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
 
     /** 每批向量化处理的分块数量 */
     private static final int EMBEDDING_BATCH_SIZE = 20;
+
+    // ── Milvus metadata 字段名 ──────────────────────────────
+    private static final String FIELD_TENANT_ID = "tenant_id";
+    private static final String FIELD_DOCUMENT_KEY = "document_key";
+    private static final String FIELD_DOCUMENT_NAME = "document_name";
+    private static final String FIELD_FILE_TYPE = "file_type";
+    private static final String FIELD_TAGS = "tags";
+    private static final String FIELD_CHUNK_INDEX = "chunk_index";
+    private static final String FIELD_START_PAGE = "start_page";
+    private static final String FIELD_END_PAGE = "end_page";
+    private static final String FIELD_DEPARTMENT_ID = "department_id";
+    private static final String FIELD_VISIBILITY = "visibility";
+    private static final String FIELD_ALLOWED_ROLES = "allowed_roles";
+    private static final String FIELD_OWNER_ID = "owner_id";
+    private static final String FIELD_CATEGORY = "category";
+
+    /** 默认分类。 */
+    private static final String DEFAULT_CATEGORY = "其他";
 
     private final EmbeddingStoreProvider storeProvider;
     private final EmbeddingModel embeddingModel;
@@ -95,33 +114,37 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
             long tenantId = tenantIdResolver.resolve(effectiveTenantKey(chunk));
             Metadata metadata =
                     new Metadata()
-                            .put("tenant_id", tenantId)
-                            .put("document_key", chunk.getDocumentKey())
+                            .put(FIELD_TENANT_ID, tenantId)
+                            .put(FIELD_DOCUMENT_KEY, chunk.getDocumentKey())
                             .put(
-                                    "document_name",
+                                    FIELD_DOCUMENT_NAME,
                                     chunk.getDocumentName() != null ? chunk.getDocumentName() : "")
                             .put(
-                                    "file_type",
+                                    FIELD_FILE_TYPE,
                                     chunk.getFileType() != null ? chunk.getFileType() : "")
-                            .put("tags", chunk.getTags() != null ? chunk.getTags() : "")
-                            .put("chunk_index", String.valueOf(chunk.getChunkIndex()))
-                            .put("start_page", String.valueOf(chunk.getStartPage()))
-                            .put("end_page", String.valueOf(chunk.getEndPage()))
+                            .put(FIELD_TAGS, chunk.getTags() != null ? chunk.getTags() : "")
+                            .put(FIELD_CHUNK_INDEX, String.valueOf(chunk.getChunkIndex()))
+                            .put(FIELD_START_PAGE, String.valueOf(chunk.getStartPage()))
+                            .put(FIELD_END_PAGE, String.valueOf(chunk.getEndPage()))
                             .put(
-                                    "department_id",
+                                    FIELD_DEPARTMENT_ID,
                                     chunk.getDepartmentId() != null ? chunk.getDepartmentId() : "")
                             .put(
-                                    "visibility",
+                                    FIELD_VISIBILITY,
                                     chunk.getVisibility() != null
                                             ? chunk.getVisibility()
-                                            : "INTERNAL")
+                                            : DocumentVisibilityEnum.INTERNAL.name())
                             .put(
-                                    "allowed_roles",
+                                    FIELD_ALLOWED_ROLES,
                                     chunk.getAllowedRoles() != null ? chunk.getAllowedRoles() : "")
-                            .put("owner_id", chunk.getOwnerId() != null ? chunk.getOwnerId() : "")
                             .put(
-                                    "category",
-                                    chunk.getCategory() != null ? chunk.getCategory() : "其他");
+                                    FIELD_OWNER_ID,
+                                    chunk.getOwnerId() != null ? chunk.getOwnerId() : "")
+                            .put(
+                                    FIELD_CATEGORY,
+                                    chunk.getCategory() != null
+                                            ? chunk.getCategory()
+                                            : DEFAULT_CATEGORY);
 
             TextSegment segment = TextSegment.from(chunk.getContent(), metadata);
             segments.add(segment);
@@ -184,12 +207,12 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
             searchResults.add(
                     new SearchResult(
                             segment.text(),
-                            metadata.getString("document_key"),
-                            metadata.getString("document_name"),
-                            parseIntOrNull(metadata.getString("start_page")),
-                            parseIntOrNull(metadata.getString("chunk_index")),
+                            metadata.getString(FIELD_DOCUMENT_KEY),
+                            metadata.getString(FIELD_DOCUMENT_NAME),
+                            parseIntOrNull(metadata.getString(FIELD_START_PAGE)),
+                            parseIntOrNull(metadata.getString(FIELD_CHUNK_INDEX)),
                             match.score(),
-                            metadata.getString("category")));
+                            metadata.getString(FIELD_CATEGORY)));
         }
 
         log.debug("Search for '{}' returned {} results", query, searchResults.size());
@@ -224,11 +247,11 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
      * @return 至少含 {@code IsEqualTo("tenant_id", currentTenantId)} 的 {@link Filter}
      */
     private Filter buildFilter(long currentTenantId, String category) {
-        Filter tenantFilter = new IsEqualTo("tenant_id", currentTenantId);
+        Filter tenantFilter = new IsEqualTo(FIELD_TENANT_ID, currentTenantId);
         if (category == null || category.isBlank()) {
             return tenantFilter;
         }
-        return Filter.and(tenantFilter, new IsEqualTo("category", category));
+        return Filter.and(tenantFilter, new IsEqualTo(FIELD_CATEGORY, category));
     }
 
     /**
@@ -238,7 +261,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
      */
     @Override
     public void deleteByDocumentKey(String documentKey) {
-        Filter filter = new IsEqualTo("document_key", documentKey);
+        Filter filter = new IsEqualTo(FIELD_DOCUMENT_KEY, documentKey);
         storeProvider.store().removeAll(filter);
         log.info("Deleted vectors for document {}", documentKey);
     }
@@ -253,7 +276,7 @@ public class MilvusVectorStoreService implements VectorStoreGateway {
      */
     @Override
     public void deleteByTenantId(long tenantId) {
-        Filter filter = new IsEqualTo("tenant_id", tenantId);
+        Filter filter = new IsEqualTo(FIELD_TENANT_ID, tenantId);
         storeProvider.store().removeAll(filter);
         log.info("Deleted all vectors for tenant {}", tenantId);
     }

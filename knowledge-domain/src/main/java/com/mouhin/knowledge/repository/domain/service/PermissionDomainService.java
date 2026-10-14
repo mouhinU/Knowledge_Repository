@@ -43,13 +43,15 @@ public class PermissionDomainService {
         List<String> conditions = new java.util.ArrayList<>();
 
         // 条件1: 公开文档
-        conditions.add("visibility == \"PUBLIC\"");
+        conditions.add("visibility == \"" + DocumentVisibilityEnum.PUBLIC.name() + "\"");
 
         // 条件2: 内部文档 + 同部门
         if (permission.getDepartmentId() != null && !permission.getDepartmentId().isBlank()) {
             conditions.add(
                     String.format(
-                            "(visibility == \"INTERNAL\" and department_id == \"%s\")",
+                            "(visibility == \""
+                                    + DocumentVisibilityEnum.INTERNAL.name()
+                                    + "\" and department_id == \"%s\")",
                             escapeMilvusValue(permission.getDepartmentId())));
         }
 
@@ -63,7 +65,9 @@ public class PermissionDomainService {
                 if (!trimmedRole.isEmpty()) {
                     conditions.add(
                             String.format(
-                                    "(visibility == \"RESTRICTED\" and allowed_roles like \"%%%s%%\")",
+                                    "(visibility == \""
+                                            + DocumentVisibilityEnum.RESTRICTED.name()
+                                            + "\" and allowed_roles like \"%%%s%%\")",
                                     escapeMilvusValue(trimmedRole)));
                 }
             }
@@ -72,7 +76,9 @@ public class PermissionDomainService {
         // 条件4: 私有文档 + 自己是所有者
         conditions.add(
                 String.format(
-                        "(visibility == \"PRIVATE\" and owner_id == \"%s\")",
+                        "(visibility == \""
+                                + DocumentVisibilityEnum.PRIVATE.name()
+                                + "\" and owner_id == \"%s\")",
                         escapeMilvusValue(permission.getUserId())));
 
         String expression =

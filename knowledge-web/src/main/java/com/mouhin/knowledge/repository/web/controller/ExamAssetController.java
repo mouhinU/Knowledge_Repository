@@ -36,6 +36,9 @@ public class ExamAssetController {
     /** 只接受 32 位十六进制字符（UUID.randomUUID().toString().replace("-","")） */
     private static final Pattern ASSET_KEY_PATTERN = Pattern.compile("^[a-f0-9]{32}$");
 
+    /** 配图强缓存有效期（天）。 */
+    private static final long ASSET_CACHE_MAX_AGE_DAYS = 365L;
+
     private final DocumentImageSupport documentImageSupport;
 
     public ExamAssetController(DocumentImageSupport documentImageSupport) {
@@ -60,7 +63,9 @@ public class ExamAssetController {
         MediaType mt = resolveMediaType(image.get().getMimeType());
         return ResponseEntity.ok()
                 .contentType(mt)
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic())
+                .cacheControl(
+                        CacheControl.maxAge(Duration.ofDays(ASSET_CACHE_MAX_AGE_DAYS))
+                                .cachePublic())
                 .header(HttpHeaders.ETAG, "\"" + image.get().getSha256() + "\"")
                 .body(new ByteArrayResource(bytes.get()));
     }

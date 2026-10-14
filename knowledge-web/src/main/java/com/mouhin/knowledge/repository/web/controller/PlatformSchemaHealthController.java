@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.web.controller;
 
 import com.mouhin.knowledge.repository.application.service.TenantSchemaRunner;
 import com.mouhin.knowledge.repository.application.service.TenantSchemaRunner.SchemaCheckResult;
+import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import com.mouhin.knowledge.repository.web.security.PlatformTokenAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,9 +33,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/platform/schema-health")
-@ConditionalOnProperty(name = "knowledge.platform.enabled", havingValue = "true")
+@ConditionalOnProperty(name = FeatureFlagKeys.PLATFORM_ENABLED, havingValue = "true")
 @Slf4j
 public class PlatformSchemaHealthController {
+
+    /** 无法解析平台操作者身份时的兜底名称。 */
+    private static final String OPERATOR_UNKNOWN = "platform-unknown";
 
     private final TenantSchemaRunner schemaRunner;
 
@@ -76,8 +80,8 @@ public class PlatformSchemaHealthController {
     private String resolveOperator(HttpServletRequest request) {
         Object payload = request.getAttribute(PlatformTokenAuthFilter.PRINCIPAL_ATTRIBUTE);
         if (payload instanceof PlatformTokenPayload p) {
-            return p.operatorName() != null ? p.operatorName() : "platform-unknown";
+            return p.operatorName() != null ? p.operatorName() : OPERATOR_UNKNOWN;
         }
-        return "platform-unknown";
+        return OPERATOR_UNKNOWN;
     }
 }

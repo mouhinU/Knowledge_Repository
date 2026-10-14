@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.controller;
 
+import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.service.IndexProgressCallback;
 import java.io.IOException;
 import java.util.Map;
@@ -22,6 +23,9 @@ public class IndexProgressStore {
 
     /** SSE 超时：5 分钟 */
     private static final long SSE_TIMEOUT = 300_000L;
+
+    /** 索引进度事件名（本 store 独有，与 BlackboardProgressEvent 不共享）。 */
+    private static final String EVENT_PROGRESS = "PROGRESS";
 
     /** 每个文档的 SSE 发射器 */
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -57,7 +61,7 @@ public class IndexProgressStore {
                         documentKey,
                         Map.of(
                                 "type",
-                                "PROGRESS",
+                                EVENT_PROGRESS,
                                 "completedChunks",
                                 completedChunks,
                                 "totalChunks",
@@ -68,7 +72,7 @@ public class IndexProgressStore {
 
             @Override
             public void onComplete() {
-                pushEvent(documentKey, Map.of("type", "COMPLETED"));
+                pushEvent(documentKey, Map.of("type", BlackboardProgressEvent.TYPE_COMPLETED));
                 cleanup(documentKey);
             }
 
@@ -78,7 +82,7 @@ public class IndexProgressStore {
                         documentKey,
                         Map.of(
                                 "type",
-                                "ERROR",
+                                BlackboardProgressEvent.TYPE_ERROR,
                                 "message",
                                 errorMessage != null ? errorMessage : "Unknown error"));
                 cleanup(documentKey);
