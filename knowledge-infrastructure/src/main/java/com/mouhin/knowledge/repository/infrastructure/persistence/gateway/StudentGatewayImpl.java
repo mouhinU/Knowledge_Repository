@@ -30,14 +30,14 @@ public class StudentGatewayImpl implements StudentGateway {
     @Override
     public void save(Student student) {
         java.util.Objects.requireNonNull(student, "Student must not be null on save");
-        StudentDO doObj = StudentConverter.toDO(student);
+        StudentDO doObj = StudentConverter.INSTANCE.toDO(student);
         studentMapper.insert(doObj);
         student.setId(doObj.getId());
     }
 
     @Override
     public void update(Student student) {
-        StudentDO doObj = StudentConverter.toDO(student);
+        StudentDO doObj = StudentConverter.INSTANCE.toDO(student);
         studentMapper.updateById(doObj);
     }
 
@@ -54,7 +54,7 @@ public class StudentGatewayImpl implements StudentGateway {
     @Override
     public Optional<Student> findById(Long id) {
         StudentDO doObj = studentMapper.selectById(id);
-        return Optional.ofNullable(StudentConverter.toDomain(doObj));
+        return Optional.ofNullable(StudentConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -62,7 +62,7 @@ public class StudentGatewayImpl implements StudentGateway {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StudentDO::getUsername, username);
         StudentDO doObj = studentMapper.selectOne(wrapper);
-        return Optional.ofNullable(StudentConverter.toDomain(doObj));
+        return Optional.ofNullable(StudentConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -70,21 +70,25 @@ public class StudentGatewayImpl implements StudentGateway {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StudentDO::getSessionToken, token);
         StudentDO doObj = studentMapper.selectOne(wrapper);
-        return Optional.ofNullable(StudentConverter.toDomain(doObj));
+        return Optional.ofNullable(StudentConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
     public List<Student> listAll() {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(StudentDO::getCreateTime);
-        return studentMapper.selectList(wrapper).stream().map(StudentConverter::toDomain).toList();
+        return studentMapper.selectList(wrapper).stream()
+                .map(StudentConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override
     public List<Student> listByDepartment(String departmentId) {
         LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StudentDO::getDepartmentId, departmentId).orderByDesc(StudentDO::getCreateTime);
-        return studentMapper.selectList(wrapper).stream().map(StudentConverter::toDomain).toList();
+        return studentMapper.selectList(wrapper).stream()
+                .map(StudentConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override

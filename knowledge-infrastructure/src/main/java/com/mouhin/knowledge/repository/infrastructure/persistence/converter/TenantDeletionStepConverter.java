@@ -2,58 +2,27 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.TenantDeletionStep;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.TenantDeletionStepDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
  * {@link TenantDeletionStep} ⇄ {@link TenantDeletionStepDO} 转换（P3-T5）。
  *
- * <p>infrastructure 边界静态转换，null-safe，字段一一映射；镜像 {@code TenantProvisionStepConverter}。
+ * <p>字段名完全一致，交由 MapStruct 编译期生成映射实现（{@code TenantDeletionStepConverterImpl}），相对原手写逐字段 set/get
+ * 零行为漂移：{@code null} 入参返回 {@code null}，完整映射名称匹配的字段交集（含两侧同名 {@code tenantId}）； 镜像 {@code
+ * TenantProvisionStepConverter}。采用 {@link Mappers} 静态 {@link #INSTANCE} 访问。
  *
  * @author mouhinU
  * @date 2026-10-09
  */
-public final class TenantDeletionStepConverter {
+@Mapper
+public interface TenantDeletionStepConverter {
 
-    private TenantDeletionStepConverter() {}
+    TenantDeletionStepConverter INSTANCE = Mappers.getMapper(TenantDeletionStepConverter.class);
 
     /** DO → domain entity；{@code null} 输入返回 {@code null}。 */
-    public static TenantDeletionStep toDomain(TenantDeletionStepDO source) {
-        if (source == null) {
-            return null;
-        }
-        TenantDeletionStep target = new TenantDeletionStep();
-        target.setStepId(source.getStepId());
-        target.setTenantId(source.getTenantId());
-        target.setDeletionRequestId(source.getDeletionRequestId());
-        target.setStepName(source.getStepName());
-        target.setAttemptNo(source.getAttemptNo());
-        target.setStatus(source.getStatus());
-        target.setRowsAffected(source.getRowsAffected());
-        target.setErrorDetail(source.getErrorDetail());
-        target.setStartedAt(source.getStartedAt());
-        target.setFinishedAt(source.getFinishedAt());
-        target.setCreateTime(source.getCreateTime());
-        target.setUpdateTime(source.getUpdateTime());
-        return target;
-    }
+    TenantDeletionStep toDomain(TenantDeletionStepDO source);
 
     /** domain entity → DO；{@code null} 输入返回 {@code null}。 */
-    public static TenantDeletionStepDO toDO(TenantDeletionStep source) {
-        if (source == null) {
-            return null;
-        }
-        TenantDeletionStepDO target = new TenantDeletionStepDO();
-        target.setStepId(source.getStepId());
-        target.setTenantId(source.getTenantId());
-        target.setDeletionRequestId(source.getDeletionRequestId());
-        target.setStepName(source.getStepName());
-        target.setAttemptNo(source.getAttemptNo());
-        target.setStatus(source.getStatus());
-        target.setRowsAffected(source.getRowsAffected());
-        target.setErrorDetail(source.getErrorDetail());
-        target.setStartedAt(source.getStartedAt());
-        target.setFinishedAt(source.getFinishedAt());
-        target.setCreateTime(source.getCreateTime());
-        target.setUpdateTime(source.getUpdateTime());
-        return target;
-    }
+    TenantDeletionStepDO toDO(TenantDeletionStep source);
 }

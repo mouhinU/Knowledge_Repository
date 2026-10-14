@@ -32,6 +32,7 @@
 | 生产数据库       | MySQL                            | 8.0                                                                                                                  |
 | 数据库迁移       | Flyway                           | 由 Spring Boot BOM 统一管理                                                                                               |
 | 样板代码        | Lombok                           | 1.18.36                                                                                                              |
+| 层边界映射       | MapStruct                        | 1.6.3（红线 #6 转换器优先技术；app / infra 层引入 `org.mapstruct:mapstruct` 为 compile（`Mappers.getMapper` 与生成的 `XxxConverterImpl` 在运行/测试期需可用）；`lombok-mapstruct-binding` 0.2.0 桥接，注解处理器顺序 lombok→binding→mapstruct-processor，见根 pom `annotationProcessorPaths`） |
 | LLM 韧性护栏    | Resilience4j                     | 2.2.0（per-role 熔断/重试/滑窗统计）                                                                                           |
 | 对象存储        | MinIO Java SDK                   | 8.5.17（P5-T1 双驱动：本地磁盘 / MinIO 配置切换，仅 infra 层引入）                                                                      |
 | 指标可观测       | Micrometer + Prometheus registry | 由 Spring Boot BOM 统一管理（`micrometer-core` in infra；`micrometer-registry-prometheus` in web，暴露 `/actuator/prometheus`） |
@@ -90,3 +91,14 @@ knowledge-web             适配层：Controller / 拦截器 / 静态资源 / Fl
 2. 引入 COLA 组件（`cola-component-*`）依赖须经确认，且**不改动 Spring Boot / Java 版本**
    （见 [architecture-decisions.md](architecture-decisions.md) §组件复用约定）。
 3. 依赖坐标统一在根 `pom.xml` 的 `<properties>` / `dependencyManagement` 管理，子模块不写死版本。
+4. **MapStruct 引入登记（红线 #11 一次性豁免）**：2026-10-14 经架构口头确认落地，影响面仅
+    - **代码面**：根 pom（版本 properties / `dependencyManagement` / `annotationProcessorPaths`）+ app / infra `pom.xml`（新增 `mapstruct`
+      compile 依赖）+ app/infra converter 包（`Converter` 由 `final class` → `@Mapper interface + INSTANCE`）+ 调用点（GatewayImpl / Executor 内静态调用改
+      `INSTANCE.` / `INSTANCE::`）。**web / client / domain 零改动**。
+    - **运行时影响**：**编译期代码生成** + 运行期轻依赖（`org.mapstruct:mapstruct` API jar：`@Mapper` 注解 + `Mappers.getMapper` 工厂 +
+      生成的 `XxxConverterImpl` 类）；注解处理器 `mapstruct-processor` 只在 `annotationProcessorPaths` 里，不进产物。
+      `Mappers.getMapper` 首次调用一次性 `Class.forName(..Impl)`，之后走单例，与原静态工具行为等价。
+    - **回退计划**：删除根 pom 三条 properties + `dependencyManagement` 中 mapstruct 声明 + 编译器插件 `annotationProcessorPaths` + app/infra 两条
+      mapstruct 依赖；将 converter 还原为 `final class`（Git 历史），调用点写回 `XxxConverter.toDomain(..)`；**不涉及数据库/迁移/配置**。
+    - **测试覆盖**：全 reactor 1199 用例基线保持不变（domain 160 / app 348 / infra 594 / web 97）；转换语义经 GatewayImpl 单测 + Executor 单测 + web
+      集成测试端到端覆盖，另有 `WrongAnswerConverterImagesTest` 直接断言转换器行为。`spotless:check` + `checkstyle:check` 零违规。

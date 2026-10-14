@@ -40,7 +40,7 @@ public class TenantProvisionStepGatewayImpl implements TenantProvisionStepGatewa
                         .orderByDesc(TenantProvisionStepDO::getStepId)
                         .last("LIMIT 1");
         return Optional.ofNullable(mapper.selectOne(wrapper))
-                .map(TenantProvisionStepConverter::toDomain);
+                .map(TenantProvisionStepConverter.INSTANCE::toDomain);
     }
 
     @Override
@@ -64,13 +64,13 @@ public class TenantProvisionStepGatewayImpl implements TenantProvisionStepGatewa
                         .eq(TenantProvisionStepDO::getProvisionRequestId, provisionRequestId)
                         .orderByAsc(TenantProvisionStepDO::getStepId);
         return mapper.selectList(wrapper).stream()
-                .map(TenantProvisionStepConverter::toDomain)
+                .map(TenantProvisionStepConverter.INSTANCE::toDomain)
                 .toList();
     }
 
     @Override
     public void insert(TenantProvisionStep step) {
-        TenantProvisionStepDO record = TenantProvisionStepConverter.toDO(step);
+        TenantProvisionStepDO record = TenantProvisionStepConverter.INSTANCE.toDO(step);
         LocalDateTime now = LocalDateTime.now();
         record.setCreateTime(now);
         record.setUpdateTime(now);
@@ -82,7 +82,7 @@ public class TenantProvisionStepGatewayImpl implements TenantProvisionStepGatewa
 
     @Override
     public void update(TenantProvisionStep step) {
-        TenantProvisionStepDO record = TenantProvisionStepConverter.toDO(step);
+        TenantProvisionStepDO record = TenantProvisionStepConverter.INSTANCE.toDO(step);
         record.setUpdateTime(LocalDateTime.now());
         mapper.updateById(record);
         step.setUpdateTime(record.getUpdateTime());

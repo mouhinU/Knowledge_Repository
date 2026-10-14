@@ -2,60 +2,27 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.WritingHistory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.WritingHistoryDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
- * AI 写作历史 DO ↔ 领域对象转换器
+ * AI 写作历史 DO ↔ 领域对象转换器。
+ *
+ * <p>字段名完全一致，交由 MapStruct 编译期生成映射实现（{@code WritingHistoryConverterImpl}），相对原手写逐字段 set/get
+ * 零行为漂移：{@code null} 入参返回 {@code null}，完整映射名称匹配的字段交集。领域实体不含 {@code tenantId}（由 infrastructure
+ * 层租户拦截器注入），该 DO 独有字段被自动跳过，与原手写实现一致。采用 {@link Mappers} 静态 {@link #INSTANCE} 访问，保持无状态纯映射。
  *
  * @author mouhinU
  * @date 2026-09-13
  */
-public final class WritingHistoryConverter {
+@Mapper
+public interface WritingHistoryConverter {
 
-    private WritingHistoryConverter() {}
+    WritingHistoryConverter INSTANCE = Mappers.getMapper(WritingHistoryConverter.class);
 
-    public static WritingHistory toDomain(WritingHistoryDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
-        WritingHistory domain = new WritingHistory();
-        domain.setId(doObj.getId());
-        domain.setSessionId(doObj.getSessionId());
-        domain.setQuestion(doObj.getQuestion());
-        domain.setFinalArticle(doObj.getFinalArticle());
-        domain.setDraftArticle(doObj.getDraftArticle());
-        domain.setQualityScore(doObj.getQualityScore());
-        domain.setRetrievedChunks(doObj.getRetrievedChunks());
-        domain.setKeyFindings(doObj.getKeyFindings());
-        domain.setReviewFeedback(doObj.getReviewFeedback());
-        domain.setUserId(doObj.getUserId());
-        domain.setDepartmentId(doObj.getDepartmentId());
-        domain.setStatus(doObj.getStatus());
-        domain.setErrorMessage(doObj.getErrorMessage());
-        domain.setCreateTime(doObj.getCreateTime());
-        domain.setUpdateTime(doObj.getUpdateTime());
-        return domain;
-    }
+    /** DO → 领域实体；入参为 {@code null} 时返回 {@code null}。 */
+    WritingHistory toDomain(WritingHistoryDO doObj);
 
-    public static WritingHistoryDO toDO(WritingHistory domain) {
-        if (domain == null) {
-            return null;
-        }
-        WritingHistoryDO doObj = new WritingHistoryDO();
-        doObj.setId(domain.getId());
-        doObj.setSessionId(domain.getSessionId());
-        doObj.setQuestion(domain.getQuestion());
-        doObj.setFinalArticle(domain.getFinalArticle());
-        doObj.setDraftArticle(domain.getDraftArticle());
-        doObj.setQualityScore(domain.getQualityScore());
-        doObj.setRetrievedChunks(domain.getRetrievedChunks());
-        doObj.setKeyFindings(domain.getKeyFindings());
-        doObj.setReviewFeedback(domain.getReviewFeedback());
-        doObj.setUserId(domain.getUserId());
-        doObj.setDepartmentId(domain.getDepartmentId());
-        doObj.setStatus(domain.getStatus());
-        doObj.setErrorMessage(domain.getErrorMessage());
-        doObj.setCreateTime(domain.getCreateTime());
-        doObj.setUpdateTime(domain.getUpdateTime());
-        return doObj;
-    }
+    /** 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。 */
+    WritingHistoryDO toDO(WritingHistory domain);
 }

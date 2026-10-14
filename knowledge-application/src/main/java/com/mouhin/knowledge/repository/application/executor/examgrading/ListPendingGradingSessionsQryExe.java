@@ -26,7 +26,7 @@ public class ListPendingGradingSessionsQryExe {
         return examSessionGateway
                 .listByStatus(ExamSessionStatuses.SUBMITTED, limit, offset)
                 .stream()
-                .map(ExamTakingConverter::toSessionDTO)
+                .map(ExamTakingConverter.INSTANCE::toSessionDTO)
                 .toList();
     }
 }

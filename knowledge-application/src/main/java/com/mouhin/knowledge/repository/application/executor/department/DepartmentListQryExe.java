@@ -22,6 +22,8 @@ public class DepartmentListQryExe {
     }
 
     public List<DepartmentVO> execute() {
-        return departmentGateway.listAll().stream().map(DepartmentConverter::toVO).toList();
+        return departmentGateway.listAll().stream()
+                .map(DepartmentConverter.INSTANCE::toVO)
+                .toList();
     }
 }

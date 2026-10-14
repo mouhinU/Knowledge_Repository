@@ -27,6 +27,12 @@
             <artifactId>knowledge-domain</artifactId>
         </dependency>
 
+        <!-- MapStruct（Entity → VO 层边界转换代码生成，红线 #6；版本随父 pom；compile scope：Mappers.getMapper 与生成的 XxxConverterImpl 在运行/测试期需可用，传递依赖 web 集成测试同样需要） -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

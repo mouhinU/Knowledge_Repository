@@ -47,6 +47,10 @@
         <h2.version>2.2.224</h2.version>
         <!-- Utilities -->
         <lombok.version>1.18.36</lombok.version>
+        <!-- MapStruct（实体转换：层边界 DO↔Entity / Entity↔VO 优先用 MapStruct 生成，红线 #6） -->
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <!-- Lombok 与 MapStruct 注解处理器共存桥接（确保 MapStruct 读到 Lombok 生成的 getter/setter） -->
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <!-- Resilience4j（Phase R2：LLM 调用熔断 / 重试 / 指标） -->
         <resilience4j.version>2.2.0</resilience4j.version>
         <!-- MinIO SDK（P5-T1：对象存储双驱动，本地磁盘 / MinIO 配置切换） -->
@@ -154,6 +158,13 @@
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
             </dependency>
+
+            <!-- MapStruct（实体转换代码生成，红线 #6；版本随 mapstruct.version） -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -182,6 +193,26 @@
                     <source>21</source>
                     <target>21</target>
                     <parameters>true</parameters>
+                    <!-- 注解处理器显式声明并定序：lombok → lombok-mapstruct-binding → mapstruct-processor。
+                         一旦声明 annotationProcessorPaths，classpath 上的 processor 不再自动发现，
+                         lombok 必须在此列出，否则 MapStruct 读不到 lombok 生成的 getter/setter（红线 #6 转换依赖此序）。 -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <!-- Checkstyle plugin -->

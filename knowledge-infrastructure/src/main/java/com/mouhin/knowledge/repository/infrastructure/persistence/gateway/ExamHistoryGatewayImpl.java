@@ -46,21 +46,21 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
     @Override
     public void save(ExamHistory history) {
         java.util.Objects.requireNonNull(history, "ExamHistory must not be null on save");
-        ExamHistoryDO doObj = ExamHistoryConverter.toDO(history);
+        ExamHistoryDO doObj = ExamHistoryConverter.INSTANCE.toDO(history);
         examHistoryMapper.insert(doObj);
         history.setId(doObj.getId());
     }
 
     @Override
     public void update(ExamHistory history) {
-        ExamHistoryDO doObj = ExamHistoryConverter.toDO(history);
+        ExamHistoryDO doObj = ExamHistoryConverter.INSTANCE.toDO(history);
         examHistoryMapper.updateById(doObj);
     }
 
     @Override
     public Optional<ExamHistory> findById(Long id) {
         ExamHistoryDO doObj = examHistoryMapper.selectById(id);
-        return Optional.ofNullable(ExamHistoryConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamHistoryConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -68,7 +68,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamHistoryDO::getSessionId, sessionId);
         ExamHistoryDO doObj = examHistoryMapper.selectOne(wrapper);
-        return Optional.ofNullable(ExamHistoryConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamHistoryConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -76,7 +76,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         LambdaQueryWrapper<ExamHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime).last(SQL_LIMIT_PREFIX + limit);
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -87,7 +87,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
                 .orderByDesc(ExamHistoryDO::getCreateTime)
                 .last(SQL_LIMIT_PREFIX + (limit > 0 ? limit : DEFAULT_LIMIT));
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -103,7 +103,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
                 .orderByDesc(ExamHistoryDO::getCreateTime)
                 .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -125,7 +125,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
                 .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -152,7 +152,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
                 .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -179,7 +179,7 @@ public class ExamHistoryGatewayImpl implements ExamHistoryGateway {
         wrapper.orderByDesc(ExamHistoryDO::getCreateTime)
                 .last(SQL_LIMIT_PREFIX + safeLimit + " OFFSET " + safeOffset);
         return examHistoryMapper.selectList(wrapper).stream()
-                .map(ExamHistoryConverter::toDomain)
+                .map(ExamHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 

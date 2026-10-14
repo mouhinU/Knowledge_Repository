@@ -35,7 +35,7 @@ public class ListReviewPendingQryExe {
     /** P0-T3 作用域版：controller 传入 {@code AdminPrincipalSupport.toPermission(request)}。 */
     public List<ExamHistoryDTO> execute(int limit, int offset, Permission permission) {
         return examHistoryGateway.listReviewPendingScoped(limit, offset, permission).stream()
-                .map(ExamGenerationConverter::toHistoryDTO)
+                .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                 .toList();
     }
 

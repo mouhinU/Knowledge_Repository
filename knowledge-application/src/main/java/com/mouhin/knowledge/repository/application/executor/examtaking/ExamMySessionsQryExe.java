@@ -27,7 +27,7 @@ public class ExamMySessionsQryExe {
     public List<ExamSessionDTO> execute(String studentToken) {
         Student student = support.resolveStudent(studentToken);
         return examSessionGateway.listByStudentId(student.getId()).stream()
-                .map(ExamTakingConverter::toSessionDTO)
+                .map(ExamTakingConverter.INSTANCE::toSessionDTO)
                 .toList();
     }
 }

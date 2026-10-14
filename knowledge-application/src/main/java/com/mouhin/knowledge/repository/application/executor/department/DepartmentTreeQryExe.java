@@ -34,7 +34,7 @@ public class DepartmentTreeQryExe {
         Map<Long, Long> parentMap = new LinkedHashMap<>();
 
         for (Department dept : allDepts) {
-            DepartmentTreeNodeVO node = DepartmentConverter.toTreeNode(dept);
+            DepartmentTreeNodeVO node = DepartmentConverter.INSTANCE.toTreeNode(dept);
             nodeMap.put(dept.getId(), node);
             parentMap.put(dept.getId(), dept.getParentId());
         }

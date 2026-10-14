@@ -2,80 +2,27 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamHistory;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamHistoryDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
- * AI 出卷历史 DO ↔ 领域对象转换器
+ * AI 出卷历史 DO ↔ 领域对象转换器。
+ *
+ * <p>字段名完全一致，交由 MapStruct 编译期生成映射实现（{@code ExamHistoryConverterImpl}），相对原手写逐字段 set/get 零行为漂移：{@code
+ * null} 入参返回 {@code null}，完整映射名称匹配的字段交集。领域实体不含 {@code tenantId}（由 infrastructure 层租户拦截器注入），该 DO
+ * 独有字段被自动跳过，与原手写实现一致。采用 {@link Mappers} 静态 {@link #INSTANCE} 访问，保持无状态纯映射。
  *
  * @author mouhinU
  * @date 2026-09-14
  */
-public final class ExamHistoryConverter {
+@Mapper
+public interface ExamHistoryConverter {
 
-    private ExamHistoryConverter() {}
+    ExamHistoryConverter INSTANCE = Mappers.getMapper(ExamHistoryConverter.class);
 
-    public static ExamHistory toDomain(ExamHistoryDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
-        ExamHistory domain = new ExamHistory();
-        domain.setId(doObj.getId());
-        domain.setSessionId(doObj.getSessionId());
-        domain.setTopic(doObj.getTopic());
-        domain.setDifficulty(doObj.getDifficulty());
-        domain.setDurationMinutes(doObj.getDurationMinutes());
-        domain.setQuestionConfig(doObj.getQuestionConfig());
-        domain.setExamPlan(doObj.getExamPlan());
-        domain.setExamPaper(doObj.getExamPaper());
-        domain.setAnswerKey(doObj.getAnswerKey());
-        domain.setQualityScore(doObj.getQualityScore());
-        domain.setScoreDetail(doObj.getScoreDetail());
-        domain.setRetrievedChunks(doObj.getRetrievedChunks());
-        domain.setKeyFindings(doObj.getKeyFindings());
-        domain.setReviewFeedback(doObj.getReviewFeedback());
-        domain.setDifficultyAssessment(doObj.getDifficultyAssessment());
-        domain.setDeduplicationReport(doObj.getDeduplicationReport());
-        domain.setUserId(doObj.getUserId());
-        domain.setDepartmentId(doObj.getDepartmentId());
-        domain.setCategory(doObj.getCategory());
-        domain.setStatus(doObj.getStatus());
-        domain.setErrorMessage(doObj.getErrorMessage());
-        domain.setReviewedBy(doObj.getReviewedBy());
-        domain.setReviewedTime(doObj.getReviewedTime());
-        domain.setCreateTime(doObj.getCreateTime());
-        domain.setUpdateTime(doObj.getUpdateTime());
-        return domain;
-    }
+    /** DO → 领域实体；入参为 {@code null} 时返回 {@code null}。 */
+    ExamHistory toDomain(ExamHistoryDO doObj);
 
-    public static ExamHistoryDO toDO(ExamHistory domain) {
-        if (domain == null) {
-            return null;
-        }
-        ExamHistoryDO doObj = new ExamHistoryDO();
-        doObj.setId(domain.getId());
-        doObj.setSessionId(domain.getSessionId());
-        doObj.setTopic(domain.getTopic());
-        doObj.setDifficulty(domain.getDifficulty());
-        doObj.setDurationMinutes(domain.getDurationMinutes());
-        doObj.setQuestionConfig(domain.getQuestionConfig());
-        doObj.setExamPlan(domain.getExamPlan());
-        doObj.setExamPaper(domain.getExamPaper());
-        doObj.setAnswerKey(domain.getAnswerKey());
-        doObj.setQualityScore(domain.getQualityScore());
-        doObj.setScoreDetail(domain.getScoreDetail());
-        doObj.setRetrievedChunks(domain.getRetrievedChunks());
-        doObj.setKeyFindings(domain.getKeyFindings());
-        doObj.setReviewFeedback(domain.getReviewFeedback());
-        doObj.setDifficultyAssessment(domain.getDifficultyAssessment());
-        doObj.setDeduplicationReport(domain.getDeduplicationReport());
-        doObj.setUserId(domain.getUserId());
-        doObj.setDepartmentId(domain.getDepartmentId());
-        doObj.setCategory(domain.getCategory());
-        doObj.setStatus(domain.getStatus());
-        doObj.setErrorMessage(domain.getErrorMessage());
-        doObj.setReviewedBy(domain.getReviewedBy());
-        doObj.setReviewedTime(domain.getReviewedTime());
-        doObj.setCreateTime(domain.getCreateTime());
-        doObj.setUpdateTime(domain.getUpdateTime());
-        return doObj;
-    }
+    /** 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。 */
+    ExamHistoryDO toDO(ExamHistory domain);
 }

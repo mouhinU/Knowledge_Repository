@@ -27,7 +27,7 @@ public class ExamGetAnswersQryExe {
     public List<ExamAnswerDTO> execute(String sessionKey, String studentToken) {
         ExamSession session = support.resolveSession(sessionKey, studentToken);
         return examAnswerGateway.listBySessionId(session.getId()).stream()
-                .map(ExamTakingConverter::toAnswerDTO)
+                .map(ExamTakingConverter.INSTANCE::toAnswerDTO)
                 .toList();
     }
 }

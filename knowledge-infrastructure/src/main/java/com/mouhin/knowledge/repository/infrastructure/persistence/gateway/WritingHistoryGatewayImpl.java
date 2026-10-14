@@ -28,14 +28,14 @@ public class WritingHistoryGatewayImpl implements WritingHistoryGateway {
     @Override
     public void save(WritingHistory history) {
         java.util.Objects.requireNonNull(history, "WritingHistory must not be null on save");
-        WritingHistoryDO doObj = WritingHistoryConverter.toDO(history);
+        WritingHistoryDO doObj = WritingHistoryConverter.INSTANCE.toDO(history);
         writingHistoryMapper.insert(doObj);
         history.setId(doObj.getId());
     }
 
     @Override
     public void update(WritingHistory history) {
-        WritingHistoryDO doObj = WritingHistoryConverter.toDO(history);
+        WritingHistoryDO doObj = WritingHistoryConverter.INSTANCE.toDO(history);
         writingHistoryMapper.updateById(doObj);
     }
 
@@ -44,7 +44,7 @@ public class WritingHistoryGatewayImpl implements WritingHistoryGateway {
         LambdaQueryWrapper<WritingHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WritingHistoryDO::getSessionId, sessionId);
         WritingHistoryDO doObj = writingHistoryMapper.selectOne(wrapper);
-        return Optional.ofNullable(WritingHistoryConverter.toDomain(doObj));
+        return Optional.ofNullable(WritingHistoryConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class WritingHistoryGatewayImpl implements WritingHistoryGateway {
         LambdaQueryWrapper<WritingHistoryDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(WritingHistoryDO::getCreateTime).last("LIMIT " + limit);
         return writingHistoryMapper.selectList(wrapper).stream()
-                .map(WritingHistoryConverter::toDomain)
+                .map(WritingHistoryConverter.INSTANCE::toDomain)
                 .toList();
     }
 }

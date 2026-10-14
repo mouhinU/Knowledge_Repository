@@ -92,6 +92,6 @@ public class TenantCreateCmdExe {
                 tenantKey,
                 tenant.getTenantId(),
                 tenant.getProvisionRequestId());
-        return TenantVoConverter.toVO(tenant);
+        return TenantVoConverter.INSTANCE.toVO(tenant);
     }
 }

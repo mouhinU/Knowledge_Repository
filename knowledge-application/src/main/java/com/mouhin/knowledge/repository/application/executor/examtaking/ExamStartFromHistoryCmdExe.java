@@ -101,6 +101,6 @@ public class ExamStartFromHistoryCmdExe {
                 student.getId(),
                 historySessionId,
                 session.getSessionKey());
-        return ExamTakingConverter.toSessionDTO(session);
+        return ExamTakingConverter.INSTANCE.toSessionDTO(session);
     }
 }

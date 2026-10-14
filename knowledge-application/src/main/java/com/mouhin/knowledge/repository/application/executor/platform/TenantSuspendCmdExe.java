@@ -88,6 +88,6 @@ public class TenantSuspendCmdExe {
                 AuditOutcomes.SUCCESS,
                 "ACTIVE→SUSPENDED reason=" + cmd.getReason());
         log.info("Platform tenant suspended: {}", tenantKey);
-        return TenantVoConverter.toVO(tenant);
+        return TenantVoConverter.INSTANCE.toVO(tenant);
     }
 }

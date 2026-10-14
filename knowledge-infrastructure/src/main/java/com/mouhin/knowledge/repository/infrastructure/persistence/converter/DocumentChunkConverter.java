@@ -2,66 +2,31 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentChunk;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentChunkDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
 
 /**
- * 文档分块 DO ↔ 领域对象转换器
+ * 文档分块 DO ↔ 领域对象转换器（infrastructure 层，COLA 红线 #6 层边界）。
+ *
+ * <p>MapStruct 编译期生成映射。唯一异名字段显式声明：DO {@code createTime} ↔ 领域 {@code createdTime}。其余同名字段自动映射；领域侧多出的
+ * {@code documentName}/{@code fileType}/{@code tags}/{@code tenantKey} 与 DO 侧的 {@code
+ * tenantId}（由租户拦截器在 SQL 层注入，领域模型不承载） 均无同名目标属性，依名匹配自然跳过，语义与原手写「字段一一直映、不做业务归一」的无副作用纯映射一致。{@code null}
+ * 入参由 MapStruct 默认返回 {@code null}。
  *
  * @author mouhinU
  * @date 2026-09-02
  */
-public final class DocumentChunkConverter {
+@Mapper
+public interface DocumentChunkConverter {
 
-    private DocumentChunkConverter() {}
+    DocumentChunkConverter INSTANCE = Mappers.getMapper(DocumentChunkConverter.class);
 
-    public static DocumentChunk toDomain(DocumentChunkDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
+    /** DO → 领域实体；{@code createTime} 重命名落到领域 {@code createdTime}。 */
+    @Mapping(target = "createdTime", source = "createTime")
+    DocumentChunk toDomain(DocumentChunkDO doObj);
 
-        DocumentChunk domain = new DocumentChunk();
-        domain.setId(doObj.getId());
-        domain.setChunkKey(doObj.getChunkKey());
-        domain.setDocumentId(doObj.getDocumentId());
-        domain.setDocumentKey(doObj.getDocumentKey());
-        domain.setChunkIndex(doObj.getChunkIndex());
-        domain.setStartPage(doObj.getStartPage());
-        domain.setEndPage(doObj.getEndPage());
-        domain.setContent(doObj.getContent());
-        domain.setTokenCount(doObj.getTokenCount());
-        domain.setVectorId(doObj.getVectorId());
-        domain.setDepartmentId(doObj.getDepartmentId());
-        domain.setVisibility(doObj.getVisibility());
-        domain.setAllowedRoles(doObj.getAllowedRoles());
-        domain.setOwnerId(doObj.getOwnerId());
-        domain.setCategory(doObj.getCategory());
-        domain.setCreatedTime(doObj.getCreateTime());
-
-        return domain;
-    }
-
-    public static DocumentChunkDO toDO(DocumentChunk domain) {
-        if (domain == null) {
-            return null;
-        }
-
-        DocumentChunkDO doObj = new DocumentChunkDO();
-        doObj.setId(domain.getId());
-        doObj.setChunkKey(domain.getChunkKey());
-        doObj.setDocumentId(domain.getDocumentId());
-        doObj.setDocumentKey(domain.getDocumentKey());
-        doObj.setChunkIndex(domain.getChunkIndex());
-        doObj.setStartPage(domain.getStartPage());
-        doObj.setEndPage(domain.getEndPage());
-        doObj.setContent(domain.getContent());
-        doObj.setTokenCount(domain.getTokenCount());
-        doObj.setVectorId(domain.getVectorId());
-        doObj.setDepartmentId(domain.getDepartmentId());
-        doObj.setVisibility(domain.getVisibility());
-        doObj.setAllowedRoles(domain.getAllowedRoles());
-        doObj.setOwnerId(domain.getOwnerId());
-        doObj.setCategory(domain.getCategory());
-        doObj.setCreateTime(domain.getCreatedTime());
-
-        return doObj;
-    }
+    /** 领域实体 → DO；领域 {@code createdTime} 落到 DO {@code createTime}。 */
+    @Mapping(target = "createTime", source = "createdTime")
+    DocumentChunkDO toDO(DocumentChunk domain);
 }

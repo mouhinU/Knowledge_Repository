@@ -188,7 +188,7 @@ public class ConfirmTenantDeletionCmdExe {
                 "Tenant deletion confirmed (ARCHIVED→DELETING): {} deletionRequestId={}",
                 tenantKey,
                 deletionRequestId);
-        return TenantVoConverter.toVO(tenant);
+        return TenantVoConverter.INSTANCE.toVO(tenant);
     }
 
     /** 计算保留期截止点：{@code archivedAt + retentionDays}；未打归档戳返回 {@code null}。 */

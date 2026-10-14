@@ -9,6 +9,11 @@ import com.mouhin.knowledge.repository.domain.model.aggregate.Document;
  * <p>映射与原 {@code DocumentAdminController.buildDocumentResponse} 一致： fileSize/totalPages
  * null→0，status/visibility 取枚举 name，tags/createdTime null→""。
  *
+ * <p>例外登记（红线 #6「优先用 MapStruct」的例外）：VO 十字段中 {@code fileSize}/{@code totalPages}/{@code
+ * visibility}/{@code tags}/{@code createdTime} 需 null 缺省、{@code status}/{@code visibility} 需枚举
+ * {@code .name()}（{@code createdTime} 还需 {@code toString}），MapStruct {@code defaultValue} 无法落原语
+ * {@code 0} 或调用方法，全靠 {@code expression} 会失去自动映射收益。故保留手写。
+ *
  * @author mouhinU
  * @date 2026-09-17
  */

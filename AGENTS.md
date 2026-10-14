@@ -21,7 +21,9 @@
 4. **日志：优先使用 Lombok `@Slf4j`**（自动生成字段 `log`）+ 占位符 `{}`；在不使用 Lombok 或需自定义 logger 名称的特殊场景允许使用
    `LoggerFactory`，但需在 PR 描述中说明理由。**严禁**在日志或响应中回显口令、令牌等敏感信息。
 5. **SQL 参数一律 `#{}`**，禁止把请求入参直接拼进 SQL；动态列名 / 排序须白名单校验后再拼，禁止裸 `${}`。
-6. **DO 不越过 infrastructure**；转换只在层边界：adapter `VO⇄DTO`，app `DTO⇄Entity`，infra `Entity⇄DO`。
+6. **DO 不越过 infrastructure**；转换只在层边界：adapter `VO⇄DTO`，app `DTO⇄Entity`，infra `Entity⇄DO`；层边界转换器**优先使用
+   MapStruct**（`@Mapper interface + Mappers.getMapper` 静态 `INSTANCE` 访问，默认 component model），保留 `final class` 手写形态的场景须在
+   Javadoc 登记「例外登记（红线 #6）」并说明理由（详见 [docs/architecture-decisions.md](docs/architecture-decisions.md) §6）。
 7. **domain 层保持纯净**，不依赖 app / adapter / infrastructure；Gateway 接口在 domain、`GatewayImpl` 在 infrastructure。
 8. **app 层 Service 只做分发**，用例编排落单一 `CmdExe`/`QryExe`；写库事务在 Executor。含 LLM / 外部 IO
    的长耗时用例不得置于数据库事务（transaction）内；建议将可能 >200ms 的外部调用异步化或在事务外处理，并在设计文档中说明处理方式。

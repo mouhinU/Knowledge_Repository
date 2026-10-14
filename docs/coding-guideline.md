@@ -80,7 +80,7 @@
 | 领域事件（Domain Event）         | `Event`（过去式）        | `DocumentCreatedEvent`                       |
 | 转换器（Converter）             | `Converter`         | `DocumentConverter`                          |
 
-> 对象**所在分层**与**跨层传递禁令**见 [architecture-decisions.md](architecture-decisions.md) §2。
+> 对象**所在分层**与**跨层传递禁令**见 [architecture-decisions.md](architecture-decisions.md) §2。转换器命名不因子类型（手写 `final class` 或 MapStruct `@Mapper interface`）改变，仍以 `Converter` 结尾；详见 [architecture-decisions.md](architecture-decisions.md) §6 的 MapStruct 优先规则。
 
 ---
 

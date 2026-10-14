@@ -48,7 +48,7 @@ public class ListAnswersWithGradingQryExe {
         return answers.stream()
                 .map(
                         answer -> {
-                            ExamAnswerDTO dto = ExamTakingConverter.toAnswerDTO(answer);
+                            ExamAnswerDTO dto = ExamTakingConverter.INSTANCE.toAnswerDTO(answer);
                             ExamQuestion question = lookup(questionMap, answer);
                             if (question != null) {
                                 if ((dto.getCorrectAnswer() == null

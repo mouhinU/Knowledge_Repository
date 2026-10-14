@@ -41,7 +41,7 @@ public class TenantDeletionStepGatewayImpl implements TenantDeletionStepGateway 
                         .orderByDesc(TenantDeletionStepDO::getStepId)
                         .last("LIMIT 1");
         return Optional.ofNullable(mapper.selectOne(wrapper))
-                .map(TenantDeletionStepConverter::toDomain);
+                .map(TenantDeletionStepConverter.INSTANCE::toDomain);
     }
 
     @Override
@@ -65,13 +65,13 @@ public class TenantDeletionStepGatewayImpl implements TenantDeletionStepGateway 
                         .eq(TenantDeletionStepDO::getDeletionRequestId, deletionRequestId)
                         .orderByAsc(TenantDeletionStepDO::getStepId);
         return mapper.selectList(wrapper).stream()
-                .map(TenantDeletionStepConverter::toDomain)
+                .map(TenantDeletionStepConverter.INSTANCE::toDomain)
                 .toList();
     }
 
     @Override
     public void insert(TenantDeletionStep step) {
-        TenantDeletionStepDO record = TenantDeletionStepConverter.toDO(step);
+        TenantDeletionStepDO record = TenantDeletionStepConverter.INSTANCE.toDO(step);
         LocalDateTime now = LocalDateTime.now();
         record.setCreateTime(now);
         record.setUpdateTime(now);
@@ -83,7 +83,7 @@ public class TenantDeletionStepGatewayImpl implements TenantDeletionStepGateway 
 
     @Override
     public void update(TenantDeletionStep step) {
-        TenantDeletionStepDO record = TenantDeletionStepConverter.toDO(step);
+        TenantDeletionStepDO record = TenantDeletionStepConverter.INSTANCE.toDO(step);
         record.setUpdateTime(LocalDateTime.now());
         mapper.updateById(record);
         step.setUpdateTime(record.getUpdateTime());

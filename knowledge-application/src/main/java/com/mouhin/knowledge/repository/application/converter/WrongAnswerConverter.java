@@ -15,6 +15,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  * 回退、analysis / scoringCriteria 字段顺序）。自「出卷即切分」纯结构化收尾起，答案 / 解析 / 评分标准 统一取自结构化题目行 {@link
  * ExamQuestion}，不再解析 {@code answer_key} 自由文本。
  *
+ * <p>例外登记（红线 #6「优先用 MapStruct」的例外）：{@code toVO} 是多源装配（{@code ExamAnswer} + {@code ExamSession} +
+ * 已解析考生名 + {@code ExamQuestion}），含 {@code correctAnswer} 跨源回退、{@code analysis}/{@code
+ * scoringCriteria} 条件取值与 {@code imagesJson} JSON 解析，非单一 bean→bean 映射，MapStruct 无法生成、只能全 {@code
+ * expression}/{@code default}。{@code toOptionVO} 虽为 1:1，但不足以撑起独立 mapper。故整体保留手写。
+ *
  * @author mouhinU
  * @date 2026-09-17
  */

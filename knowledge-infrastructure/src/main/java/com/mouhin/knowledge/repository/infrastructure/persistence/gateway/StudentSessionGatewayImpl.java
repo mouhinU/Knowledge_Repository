@@ -33,7 +33,7 @@ public class StudentSessionGatewayImpl implements StudentSessionGateway {
     @Override
     public void save(StudentSession session) {
         Objects.requireNonNull(session, "StudentSession must not be null on save");
-        StudentSessionDO doObj = StudentSessionConverter.toDO(session);
+        StudentSessionDO doObj = StudentSessionConverter.INSTANCE.toDO(session);
         studentSessionMapper.insert(doObj);
         session.setId(doObj.getId());
     }
@@ -46,7 +46,7 @@ public class StudentSessionGatewayImpl implements StudentSessionGateway {
         LambdaQueryWrapper<StudentSessionDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StudentSessionDO::getSessionToken, token);
         StudentSessionDO doObj = studentSessionMapper.selectOne(wrapper);
-        return Optional.ofNullable(StudentSessionConverter.toDomain(doObj));
+        return Optional.ofNullable(StudentSessionConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class StudentSessionGatewayImpl implements StudentSessionGateway {
                 .isNull(StudentSessionDO::getRevokedAt)
                 .gt(StudentSessionDO::getExpiresAt, LocalDateTime.now());
         StudentSessionDO doObj = studentSessionMapper.selectOne(wrapper);
-        return Optional.ofNullable(StudentSessionConverter.toDomain(doObj));
+        return Optional.ofNullable(StudentSessionConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override

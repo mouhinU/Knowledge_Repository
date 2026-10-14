@@ -83,6 +83,6 @@ public class ExamStartWithPaperCmdExe {
         }
 
         log.info("考生开始考试（即时试卷）[student={}, session={}]", student.getId(), session.getSessionKey());
-        return ExamTakingConverter.toSessionDTO(session);
+        return ExamTakingConverter.INSTANCE.toSessionDTO(session);
     }
 }

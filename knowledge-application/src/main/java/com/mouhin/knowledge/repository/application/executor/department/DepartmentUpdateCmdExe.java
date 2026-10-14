@@ -41,6 +41,6 @@ public class DepartmentUpdateCmdExe {
             dept.setParentId(cmd.getParentId());
         }
         departmentGateway.update(dept);
-        return DepartmentConverter.toVO(dept);
+        return DepartmentConverter.INSTANCE.toVO(dept);
     }
 }

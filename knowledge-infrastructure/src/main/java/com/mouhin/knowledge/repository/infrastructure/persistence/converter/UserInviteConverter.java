@@ -2,54 +2,27 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.UserInvite;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.UserInviteDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
  * {@link UserInvite} ⇄ {@link UserInviteDO} 转换器（P3-T3）。
  *
- * <p>无副作用纯映射，两侧字段命名一致，null 输入返回 null。
+ * <p>两侧字段命名一致，交由 MapStruct 编译期生成映射实现（{@code UserInviteConverterImpl}），相对原手写逐字段 set/get 零行为漂移：{@code
+ * null} 输入返回 {@code null}，完整映射名称匹配的字段交集（含两侧同名 {@code tenantId}）。采用 {@link Mappers} 静态 {@link
+ * #INSTANCE} 访问，保持无副作用纯映射。
  *
  * @author mouhinU
  * @date 2026-10-08
  */
-public final class UserInviteConverter {
+@Mapper
+public interface UserInviteConverter {
 
-    private UserInviteConverter() {}
+    UserInviteConverter INSTANCE = Mappers.getMapper(UserInviteConverter.class);
 
     /** DO → Entity。 */
-    public static UserInvite toDomain(UserInviteDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
-        UserInvite entity = new UserInvite();
-        entity.setInviteId(doObj.getInviteId());
-        entity.setTenantId(doObj.getTenantId());
-        entity.setUserId(doObj.getUserId());
-        entity.setInviteCodeHash(doObj.getInviteCodeHash());
-        entity.setStatus(doObj.getStatus());
-        entity.setExpiresAt(doObj.getExpiresAt());
-        entity.setUsedAt(doObj.getUsedAt());
-        entity.setRevokedAt(doObj.getRevokedAt());
-        entity.setCreateTime(doObj.getCreateTime());
-        entity.setUpdateTime(doObj.getUpdateTime());
-        return entity;
-    }
+    UserInvite toDomain(UserInviteDO doObj);
 
     /** Entity → DO。 */
-    public static UserInviteDO toDO(UserInvite entity) {
-        if (entity == null) {
-            return null;
-        }
-        UserInviteDO doObj = new UserInviteDO();
-        doObj.setInviteId(entity.getInviteId());
-        doObj.setTenantId(entity.getTenantId());
-        doObj.setUserId(entity.getUserId());
-        doObj.setInviteCodeHash(entity.getInviteCodeHash());
-        doObj.setStatus(entity.getStatus());
-        doObj.setExpiresAt(entity.getExpiresAt());
-        doObj.setUsedAt(entity.getUsedAt());
-        doObj.setRevokedAt(entity.getRevokedAt());
-        doObj.setCreateTime(entity.getCreateTime());
-        doObj.setUpdateTime(entity.getUpdateTime());
-        return doObj;
-    }
+    UserInviteDO toDO(UserInvite entity);
 }

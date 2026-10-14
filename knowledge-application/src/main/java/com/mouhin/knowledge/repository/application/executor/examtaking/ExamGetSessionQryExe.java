@@ -43,6 +43,6 @@ public class ExamGetSessionQryExe {
             support.updateSession(session);
         }
 
-        return ExamTakingConverter.toSessionDTO(session);
+        return ExamTakingConverter.INSTANCE.toSessionDTO(session);
     }
 }

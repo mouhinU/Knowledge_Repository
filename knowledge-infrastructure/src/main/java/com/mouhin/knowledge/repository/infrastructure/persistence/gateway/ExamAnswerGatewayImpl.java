@@ -30,14 +30,14 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
     @Override
     public void save(ExamAnswer answer) {
         java.util.Objects.requireNonNull(answer, "ExamAnswer must not be null on save");
-        ExamAnswerDO doObj = ExamAnswerConverter.toDO(answer);
+        ExamAnswerDO doObj = ExamAnswerConverter.INSTANCE.toDO(answer);
         examAnswerMapper.insert(doObj);
         answer.setId(doObj.getId());
     }
 
     @Override
     public void update(ExamAnswer answer) {
-        ExamAnswerDO doObj = ExamAnswerConverter.toDO(answer);
+        ExamAnswerDO doObj = ExamAnswerConverter.INSTANCE.toDO(answer);
         examAnswerMapper.updateById(doObj);
     }
 
@@ -66,13 +66,13 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
     @Override
     public Optional<ExamAnswer> findById(Long id) {
         ExamAnswerDO doObj = examAnswerMapper.selectById(id);
-        return Optional.ofNullable(ExamAnswerConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamAnswerConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
     public void saveAll(List<ExamAnswer> answers) {
         for (ExamAnswer answer : answers) {
-            ExamAnswerDO doObj = ExamAnswerConverter.toDO(answer);
+            ExamAnswerDO doObj = ExamAnswerConverter.INSTANCE.toDO(answer);
             examAnswerMapper.insert(doObj);
             answer.setId(doObj.getId());
         }
@@ -84,7 +84,7 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
         wrapper.eq(ExamAnswerDO::getSessionId, sessionId)
                 .orderByAsc(ExamAnswerDO::getQuestionIndex);
         return examAnswerMapper.selectList(wrapper).stream()
-                .map(ExamAnswerConverter::toDomain)
+                .map(ExamAnswerConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -95,7 +95,7 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
                 .isNull(ExamAnswerDO::getReviewScore)
                 .orderByAsc(ExamAnswerDO::getQuestionIndex);
         return examAnswerMapper.selectList(wrapper).stream()
-                .map(ExamAnswerConverter::toDomain)
+                .map(ExamAnswerConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -123,7 +123,7 @@ public class ExamAnswerGatewayImpl implements ExamAnswerGateway {
                 .orderByAsc(ExamAnswerDO::getSessionId)
                 .orderByAsc(ExamAnswerDO::getQuestionIndex);
         return examAnswerMapper.selectList(wrapper).stream()
-                .map(ExamAnswerConverter::toDomain)
+                .map(ExamAnswerConverter.INSTANCE::toDomain)
                 .toList();
     }
 }

@@ -40,7 +40,7 @@ public class TenantDeleteApprovalGatewayImpl implements TenantDeleteApprovalGate
                         .eq(TenantDeleteApprovalDO::getTokenHash, tokenHash)
                         .last("LIMIT 1");
         return Optional.ofNullable(mapper.selectOne(wrapper))
-                .map(TenantDeleteApprovalConverter::toDomain);
+                .map(TenantDeleteApprovalConverter.INSTANCE::toDomain);
     }
 
     @Override
@@ -54,13 +54,13 @@ public class TenantDeleteApprovalGatewayImpl implements TenantDeleteApprovalGate
                         .eq(TenantDeleteApprovalDO::getStatus, TenantDeleteApproval.STATUS_PENDING)
                         .orderByDesc(TenantDeleteApprovalDO::getApprovalId);
         return mapper.selectList(wrapper).stream()
-                .map(TenantDeleteApprovalConverter::toDomain)
+                .map(TenantDeleteApprovalConverter.INSTANCE::toDomain)
                 .toList();
     }
 
     @Override
     public void insert(TenantDeleteApproval approval) {
-        TenantDeleteApprovalDO record = TenantDeleteApprovalConverter.toDO(approval);
+        TenantDeleteApprovalDO record = TenantDeleteApprovalConverter.INSTANCE.toDO(approval);
         LocalDateTime now = LocalDateTime.now();
         record.setCreateTime(now);
         record.setUpdateTime(now);
@@ -72,7 +72,7 @@ public class TenantDeleteApprovalGatewayImpl implements TenantDeleteApprovalGate
 
     @Override
     public void update(TenantDeleteApproval approval) {
-        TenantDeleteApprovalDO record = TenantDeleteApprovalConverter.toDO(approval);
+        TenantDeleteApprovalDO record = TenantDeleteApprovalConverter.INSTANCE.toDO(approval);
         record.setUpdateTime(LocalDateTime.now());
         mapper.updateById(record);
         approval.setUpdateTime(record.getUpdateTime());

@@ -24,6 +24,6 @@ public class TenantListQryExe {
     }
 
     public List<TenantVO> execute() {
-        return tenantGateway.listAll().stream().map(TenantVoConverter::toVO).toList();
+        return tenantGateway.listAll().stream().map(TenantVoConverter.INSTANCE::toVO).toList();
     }
 }

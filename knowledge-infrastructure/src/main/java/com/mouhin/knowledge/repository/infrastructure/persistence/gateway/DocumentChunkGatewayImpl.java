@@ -30,7 +30,7 @@ public class DocumentChunkGatewayImpl implements DocumentChunkGateway {
     public void saveBatch(List<DocumentChunk> chunks) {
         for (DocumentChunk chunk : chunks) {
             chunk.setCreatedTime(LocalDateTime.now());
-            DocumentChunkDO doObj = DocumentChunkConverter.toDO(chunk);
+            DocumentChunkDO doObj = DocumentChunkConverter.INSTANCE.toDO(chunk);
             chunkMapper.insert(doObj);
             chunk.setId(doObj.getId());
         }
@@ -42,7 +42,7 @@ public class DocumentChunkGatewayImpl implements DocumentChunkGateway {
         wrapper.eq(DocumentChunkDO::getDocumentId, documentId);
         wrapper.orderByAsc(DocumentChunkDO::getChunkIndex);
         return chunkMapper.selectList(wrapper).stream()
-                .map(DocumentChunkConverter::toDomain)
+                .map(DocumentChunkConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -51,7 +51,7 @@ public class DocumentChunkGatewayImpl implements DocumentChunkGateway {
         LambdaQueryWrapper<DocumentChunkDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentChunkDO::getChunkKey, chunkKey);
         DocumentChunkDO doObj = chunkMapper.selectOne(wrapper);
-        return Optional.ofNullable(DocumentChunkConverter.toDomain(doObj));
+        return Optional.ofNullable(DocumentChunkConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override

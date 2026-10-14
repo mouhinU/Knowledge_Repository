@@ -26,7 +26,7 @@ public class ListHistoryQryExe {
 
     public List<WritingHistoryDTO> execute(int limit) {
         return writingHistoryGateway.listRecent(limit > 0 ? limit : DEFAULT_HISTORY_LIMIT).stream()
-                .map(ArticleConverter::toHistoryDTO)
+                .map(ArticleConverter.INSTANCE::toHistoryDTO)
                 .toList();
     }
 }

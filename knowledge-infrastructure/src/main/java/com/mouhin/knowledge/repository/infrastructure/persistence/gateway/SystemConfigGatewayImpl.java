@@ -69,7 +69,7 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
         wrapper.eq(SystemConfigDO::getTenantId, tenantId)
                 .eq(SystemConfigDO::getConfigKey, configKey);
         SystemConfigDO doObj = systemConfigMapper.selectOne(wrapper);
-        return Optional.ofNullable(SystemConfigConverter.toDomain(doObj));
+        return Optional.ofNullable(SystemConfigConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -80,7 +80,7 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
                 .orderByAsc(SystemConfigDO::getCategory)
                 .orderByAsc(SystemConfigDO::getConfigKey);
         return systemConfigMapper.selectList(wrapper).stream()
-                .map(SystemConfigConverter::toDomain)
+                .map(SystemConfigConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -92,7 +92,7 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
                 .eq(SystemConfigDO::getCategory, category)
                 .orderByAsc(SystemConfigDO::getConfigKey);
         return systemConfigMapper.selectList(wrapper).stream()
-                .map(SystemConfigConverter::toDomain)
+                .map(SystemConfigConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -103,7 +103,7 @@ public class SystemConfigGatewayImpl implements SystemConfigGateway {
                     "SystemConfig with a non-blank configKey is required");
         }
         long tenantId = currentTenantId();
-        SystemConfigDO doObj = SystemConfigConverter.toDO(config);
+        SystemConfigDO doObj = SystemConfigConverter.INSTANCE.toDO(config);
         if (doObj == null) {
             throw new IllegalStateException(
                     "SystemConfigConverter returned null for " + config.getConfigKey());

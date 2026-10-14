@@ -42,6 +42,7 @@ public class LlmProfileGatewayImpl implements LlmProfileGateway {
                 mapper.selectOne(
                         new LambdaQueryWrapper<LlmProfileDO>()
                                 .eq(LlmProfileDO::getTenantId, tenantId));
+
         if (doObj == null) {
             return Optional.empty();
         }

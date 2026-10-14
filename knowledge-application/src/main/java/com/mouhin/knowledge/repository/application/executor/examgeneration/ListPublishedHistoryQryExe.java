@@ -63,7 +63,7 @@ public class ListPublishedHistoryQryExe {
         Student student = resolveStudentOrNull(studentToken);
         if (student == null) {
             return examHistoryGateway.listPublished(safeLimit).stream()
-                    .map(ExamGenerationConverter::toHistoryDTO)
+                    .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                     .toList();
         }
         Set<Long> takenHistoryIds =
@@ -74,7 +74,7 @@ public class ListPublishedHistoryQryExe {
                 examHistoryGateway.listPublished(safeLimit * OVERFETCH_FACTOR).stream()
                         .filter(h -> h.getId() == null || !takenHistoryIds.contains(h.getId()))
                         .limit(safeLimit)
-                        .map(ExamGenerationConverter::toHistoryDTO)
+                        .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                         .toList();
         return filtered;
     }

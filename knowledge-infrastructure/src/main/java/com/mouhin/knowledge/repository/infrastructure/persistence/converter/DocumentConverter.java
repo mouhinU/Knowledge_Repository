@@ -10,6 +10,14 @@ import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.Doc
 /**
  * 文档 DO ↔ 领域对象转换器
  *
+ * <p>例外登记（红线 #6「优先用 MapStruct」的例外）：本转换器不做 MapStruct 迁移。原因——{@code Document} 聚合根与 {@code DocumentDO}
+ * 非字段 一一直映：(1) {@code status}/{@code visibility}/{@code chunkingStrategy} 涉及枚举 ⇄ 字符串且带缺省（如 {@code
+ * FIXED_SIZE}）；(2) 领域侧的 {@code ChunkingConfig} 值对象由 DO 的 5 个扁平列（{@code chunkMaxSize}/{@code
+ * chunkOverlap}/{@code respectParagraph}/{@code respectPage}/{@code chunkingStrategy}）在 {@code
+ * chunkMaxSize != null} 条件下组装，且每列各有独立 null 缺省；(3) 领域侧多出的 {@code title}/{@code author}/{@code
+ * summary} 等无对应 DO 列。若强行套用 MapStruct，将退化为几乎全 {@code default} 方法 + 大量 {@code
+ * ignore}，既无代码精简收益又引入拆箱/装配漂移风险。故按「尽量使用」原则保留手写，纯 1:1 与轻派生字段仍优先 MapStruct（见同包其余 {@code @Mapper}）。
+ *
  * @author mouhinU
  * @date 2026-09-02
  */

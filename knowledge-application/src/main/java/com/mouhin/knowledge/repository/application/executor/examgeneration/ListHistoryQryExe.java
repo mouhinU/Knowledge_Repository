@@ -26,7 +26,7 @@ public class ListHistoryQryExe {
 
     public List<ExamHistoryDTO> execute(int limit) {
         return examHistoryGateway.listRecent(limit > 0 ? limit : DEFAULT_HISTORY_LIMIT).stream()
-                .map(ExamGenerationConverter::toHistoryDTO)
+                .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                 .toList();
     }
 }

@@ -2,72 +2,28 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.ExamAnswer;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.ExamAnswerDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
- * 答题记录 DO ↔ 领域对象转换器
+ * 答题记录 DO ↔ 领域对象转换器。
+ *
+ * <p>字段名完全一致（含两侧同为 {@code Boolean} 的 {@code correct}），交由 MapStruct 编译期生成映射实现 （{@code
+ * ExamAnswerConverterImpl}），相对原手写逐字段 set/get 零行为漂移：{@code null} 入参返回 {@code null}，
+ * 完整映射名称匹配的字段交集。领域实体不含 {@code tenantId}（由 infrastructure 层租户拦截器注入），该 DO 独有字段被自动跳过， 与原手写实现一致。采用
+ * {@link Mappers} 静态 {@link #INSTANCE} 访问，保持无状态纯映射。
  *
  * @author mouhinU
  * @date 2026-09-15
  */
-public final class ExamAnswerConverter {
+@Mapper
+public interface ExamAnswerConverter {
 
-    private ExamAnswerConverter() {}
+    ExamAnswerConverter INSTANCE = Mappers.getMapper(ExamAnswerConverter.class);
 
-    public static ExamAnswer toDomain(ExamAnswerDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
-        ExamAnswer domain = new ExamAnswer();
-        domain.setId(doObj.getId());
-        domain.setSessionId(doObj.getSessionId());
-        domain.setQuestionIndex(doObj.getQuestionIndex());
-        domain.setQuestionNumber(doObj.getQuestionNumber());
-        domain.setQuestionType(doObj.getQuestionType());
-        domain.setQuestionContent(doObj.getQuestionContent());
-        domain.setOptionsJson(doObj.getOptionsJson());
-        domain.setMaxScore(doObj.getMaxScore());
-        domain.setCorrectAnswer(doObj.getCorrectAnswer());
-        domain.setStudentAnswer(doObj.getStudentAnswer());
-        domain.setCorrect(doObj.getCorrect());
-        domain.setAiScore(doObj.getAiScore());
-        domain.setAiFeedback(doObj.getAiFeedback());
-        domain.setAiInput(doObj.getAiInput());
-        domain.setAiRawOutput(doObj.getAiRawOutput());
-        domain.setReviewScore(doObj.getReviewScore());
-        domain.setReviewFeedback(doObj.getReviewFeedback());
-        domain.setReviewedBy(doObj.getReviewedBy());
-        domain.setReviewTime(doObj.getReviewTime());
-        domain.setCreateTime(doObj.getCreateTime());
-        domain.setUpdateTime(doObj.getUpdateTime());
-        return domain;
-    }
+    /** DO → 领域实体；入参为 {@code null} 时返回 {@code null}。 */
+    ExamAnswer toDomain(ExamAnswerDO doObj);
 
-    public static ExamAnswerDO toDO(ExamAnswer domain) {
-        if (domain == null) {
-            return null;
-        }
-        ExamAnswerDO doObj = new ExamAnswerDO();
-        doObj.setId(domain.getId());
-        doObj.setSessionId(domain.getSessionId());
-        doObj.setQuestionIndex(domain.getQuestionIndex());
-        doObj.setQuestionNumber(domain.getQuestionNumber());
-        doObj.setQuestionType(domain.getQuestionType());
-        doObj.setQuestionContent(domain.getQuestionContent());
-        doObj.setOptionsJson(domain.getOptionsJson());
-        doObj.setMaxScore(domain.getMaxScore());
-        doObj.setCorrectAnswer(domain.getCorrectAnswer());
-        doObj.setStudentAnswer(domain.getStudentAnswer());
-        doObj.setCorrect(domain.getCorrect());
-        doObj.setAiScore(domain.getAiScore());
-        doObj.setAiFeedback(domain.getAiFeedback());
-        doObj.setAiInput(domain.getAiInput());
-        doObj.setAiRawOutput(domain.getAiRawOutput());
-        doObj.setReviewScore(domain.getReviewScore());
-        doObj.setReviewFeedback(domain.getReviewFeedback());
-        doObj.setReviewedBy(domain.getReviewedBy());
-        doObj.setReviewTime(domain.getReviewTime());
-        doObj.setCreateTime(domain.getCreateTime());
-        doObj.setUpdateTime(domain.getUpdateTime());
-        return doObj;
-    }
+    /** 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。 */
+    ExamAnswerDO toDO(ExamAnswer domain);
 }

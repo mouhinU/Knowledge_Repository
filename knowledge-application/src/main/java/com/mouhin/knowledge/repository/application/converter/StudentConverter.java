@@ -9,6 +9,11 @@ import com.mouhin.knowledge.repository.domain.model.entity.Student;
  * <p>映射与原 {@code StudentAuthController.me} 一致：displayName null→username， studentNo null→""。不输出密码 /
  * 令牌字段。
  *
+ * <p>例外登记（红线 #6「优先用 MapStruct」的例外）：VO 四字段全部涉及重命名（{@code id}→{@code studentId}）或跨字段回退 / null
+ * 缺省（{@code displayName} 空则取 {@code username}、{@code studentNo} null→{@code ""}），MapStruct
+ * 无同名自动映射可用、只能退化为逐字段 {@code expression}，反不如手写直观且零漂移。故保留手写；纯 1:1 与轻派生字段已优先 MapStruct（见同包
+ * {@code @Mapper}）。
+ *
  * @author mouhinU
  * @date 2026-09-17
  */

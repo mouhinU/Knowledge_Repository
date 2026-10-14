@@ -32,7 +32,7 @@ public class TenantGetQryExe {
         String normalized = TenantKey.normalize(tenantKey);
         return tenantGateway
                 .findByTenantKey(normalized)
-                .map(TenantVoConverter::toVO)
+                .map(TenantVoConverter.INSTANCE::toVO)
                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + normalized));
     }
 }

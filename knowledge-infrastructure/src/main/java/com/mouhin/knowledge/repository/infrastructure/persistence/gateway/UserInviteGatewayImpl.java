@@ -38,7 +38,7 @@ public class UserInviteGatewayImpl implements UserInviteGateway {
         LambdaQueryWrapper<UserInviteDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserInviteDO::getInviteCodeHash, inviteCodeHash);
         return Optional.ofNullable(
-                UserInviteConverter.toDomain(userInviteMapper.selectOne(wrapper)));
+                UserInviteConverter.INSTANCE.toDomain(userInviteMapper.selectOne(wrapper)));
     }
 
     @Override
@@ -52,14 +52,14 @@ public class UserInviteGatewayImpl implements UserInviteGateway {
                 .eq(UserInviteDO::getStatus, UserInvite.STATUS_PENDING)
                 .orderByDesc(UserInviteDO::getCreateTime);
         return userInviteMapper.selectList(wrapper).stream()
-                .map(UserInviteConverter::toDomain)
+                .map(UserInviteConverter.INSTANCE::toDomain)
                 .toList();
     }
 
     @Override
     public void insert(UserInvite invite) {
         Objects.requireNonNull(invite, "UserInvite must not be null on insert");
-        UserInviteDO doObj = UserInviteConverter.toDO(invite);
+        UserInviteDO doObj = UserInviteConverter.INSTANCE.toDO(invite);
         LocalDateTime now = LocalDateTime.now();
         doObj.setCreateTime(now);
         doObj.setUpdateTime(now);
@@ -75,7 +75,7 @@ public class UserInviteGatewayImpl implements UserInviteGateway {
         if (invite.getInviteId() == null) {
             throw new IllegalStateException("UserInvite.inviteId required on update");
         }
-        UserInviteDO doObj = UserInviteConverter.toDO(invite);
+        UserInviteDO doObj = UserInviteConverter.INSTANCE.toDO(invite);
         doObj.setUpdateTime(LocalDateTime.now());
         userInviteMapper.updateById(doObj);
         invite.setUpdateTime(doObj.getUpdateTime());

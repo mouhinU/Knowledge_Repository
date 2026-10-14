@@ -51,7 +51,7 @@ adapter ─▶ app ─▶ client        （client 为对外契约，最稳定）
 | infrastructure | DO     | Data Object，与数据库表一一对应，MyBatis-Plus 注解                                             |
 
 - **DO 不得越过 infrastructure 出现在 app / adapter**；app 层出入参为 DTO，内部编排用 domain Entity。
-- 转换只在层边界发生：`VO ⇄ DTO`（adapter/app）、`DTO ⇄ Entity`（app）、`Entity ⇄ DO`（infrastructure，经 Converter）。
+- 转换只在层边界发生：`VO ⇄ DTO`（adapter/app）、`DTO ⇄ Entity`（app）、`Entity ⇄ DO`（infrastructure，经 Converter；**优先 MapStruct**，例外见 §6）。
 - 各对象的**命名后缀**规则见 [coding-guideline.md](coding-guideline.md) §1.6。
 
 ---
@@ -111,7 +111,14 @@ public class DocumentServiceImpl implements DocumentServiceI {
 ## 6. 基础设施层规范
 
 - Gateway 实现类以 `GatewayImpl` 结尾，`@Repository` / `@Component` 注解，只负责技术实现（Mapper + Converter + 外部调用）。
-- Converter 为 `final` 工具类，提供 `toDomain()`、`toDO()` 静态方法。
+- Converter **优先使用 [MapStruct](tech-stack.md)**（红线 #6）：纯 1:1 或轻派生（含 rename / null→常量 default / 单一 derived getter）
+  采用 `@Mapper interface + Mappers.getMapper` 静态 `INSTANCE` 访问（默认 component model，非 Spring bean），
+  契合既有「无副作用纯映射、便于脱离容器单测」约定，且不给 GatewayImpl / Executor 增字段注入负担；调用点写法 `XxxConverter.INSTANCE.toDomain(..)`
+  / `XxxConverter.INSTANCE::toDO`。**例外登记**（允许保留 `public final class` 手写 + 私有构造 + 静态 `toDomain/toDO`）：多源装配、
+  嵌套值对象条件组装、枚举 `.name()` + 多 null 缺省、`LocalDateTime` 格式化等非 bean→bean 自动映射可覆盖的场景，须在类 Javadoc 内
+  登记「例外登记（红线 #6）」并说明理由（现网示例：infra `DocumentConverter`、app `StudentConverter` / `UserConverter` /
+  `DocumentConverter` / `WrongAnswerConverter` / `TenantProvisionVoConverter`）。`ExtractionResultCodec` 等非 DO↔Entity 编解码器不在
+  本规则射程内。
 - 不得包含业务规则，只负责技术实现。
 - 分页查询使用 `selectCount`（无 ORDER BY）+ `selectList`（LAST LIMIT OFFSET），H2
   方言约束见 [data-and-migration-guideline.md](data-and-migration-guideline.md)。

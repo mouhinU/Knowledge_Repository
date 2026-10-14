@@ -34,7 +34,7 @@ public class DocumentImageGatewayImpl implements DocumentImageGateway {
             image.setCreateTime(now);
         }
         image.setUpdateTime(now);
-        DocumentImageDO doObj = DocumentImageConverter.toDO(image);
+        DocumentImageDO doObj = DocumentImageConverter.INSTANCE.toDO(image);
         imageMapper.insert(doObj);
         image.setId(doObj.getId());
     }
@@ -43,7 +43,8 @@ public class DocumentImageGatewayImpl implements DocumentImageGateway {
     public Optional<DocumentImage> findByAssetKey(String assetKey) {
         LambdaQueryWrapper<DocumentImageDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentImageDO::getAssetKey, assetKey);
-        return Optional.ofNullable(DocumentImageConverter.toDomain(imageMapper.selectOne(wrapper)));
+        return Optional.ofNullable(
+                DocumentImageConverter.INSTANCE.toDomain(imageMapper.selectOne(wrapper)));
     }
 
     @Override
@@ -52,7 +53,7 @@ public class DocumentImageGatewayImpl implements DocumentImageGateway {
         wrapper.eq(DocumentImageDO::getDocumentId, documentId);
         wrapper.orderByAsc(DocumentImageDO::getPageNo).orderByAsc(DocumentImageDO::getSeqOnPage);
         return imageMapper.selectList(wrapper).stream()
-                .map(DocumentImageConverter::toDomain)
+                .map(DocumentImageConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -63,7 +64,7 @@ public class DocumentImageGatewayImpl implements DocumentImageGateway {
                 .map(
                         row ->
                                 new DocumentImageHit(
-                                        DocumentImageConverter.toDomain(row),
+                                        DocumentImageConverter.INSTANCE.toDomain(row),
                                         row.getSourceDocumentName()))
                 .toList();
     }

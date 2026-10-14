@@ -32,14 +32,14 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     @Override
     public void save(ExamSession session) {
         java.util.Objects.requireNonNull(session, "ExamSession must not be null on save");
-        ExamSessionDO doObj = ExamSessionConverter.toDO(session);
+        ExamSessionDO doObj = ExamSessionConverter.INSTANCE.toDO(session);
         examSessionMapper.insert(doObj);
         session.setId(doObj.getId());
     }
 
     @Override
     public void update(ExamSession session) {
-        ExamSessionDO doObj = ExamSessionConverter.toDO(session);
+        ExamSessionDO doObj = ExamSessionConverter.INSTANCE.toDO(session);
         examSessionMapper.updateById(doObj);
     }
 
@@ -138,7 +138,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
     @Override
     public Optional<ExamSession> findById(Long id) {
         ExamSessionDO doObj = examSessionMapper.selectById(id);
-        return Optional.ofNullable(ExamSessionConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamSessionConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -146,7 +146,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ExamSessionDO::getSessionKey, sessionKey);
         ExamSessionDO doObj = examSessionMapper.selectOne(wrapper);
-        return Optional.ofNullable(ExamSessionConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamSessionConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -155,7 +155,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         wrapper.eq(ExamSessionDO::getStudentId, studentId)
                 .orderByDesc(ExamSessionDO::getCreateTime);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -166,7 +166,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
                 .orderByDesc(ExamSessionDO::getCreateTime)
                 .last("LIMIT " + limit + " OFFSET " + offset);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -184,7 +184,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
                 .orderByAsc(ExamSessionDO::getSubmitTime)
                 .last("LIMIT " + limit);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -195,7 +195,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
                 .orderByAsc(ExamSessionDO::getGradeTime)
                 .last("LIMIT " + limit + " OFFSET " + offset);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -216,7 +216,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
                 .in(ExamSessionDO::getStatus, statuses)
                 .orderByDesc(ExamSessionDO::getCreateTime);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -269,7 +269,7 @@ public class ExamSessionGatewayImpl implements ExamSessionGateway {
         LambdaQueryWrapper<ExamSessionDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(ExamSessionDO::getStatus, statuses).orderByDesc(ExamSessionDO::getCreateTime);
         return examSessionMapper.selectList(wrapper).stream()
-                .map(ExamSessionConverter::toDomain)
+                .map(ExamSessionConverter.INSTANCE::toDomain)
                 .toList();
     }
 }

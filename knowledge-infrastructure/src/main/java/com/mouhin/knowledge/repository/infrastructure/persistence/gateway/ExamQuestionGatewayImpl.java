@@ -33,7 +33,7 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
         wrapper.eq(ExamQuestionDO::getSessionKey, sessionKey)
                 .orderByAsc(ExamQuestionDO::getQuestionNumber);
         return examQuestionMapper.selectList(wrapper).stream()
-                .map(ExamQuestionConverter::toDomain)
+                .map(ExamQuestionConverter.INSTANCE::toDomain)
                 .toList();
     }
 
@@ -45,7 +45,7 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
                 .eq(ExamQuestionDO::getQuestionNumber, questionNumber)
                 .last("LIMIT 1");
         ExamQuestionDO doObj = examQuestionMapper.selectOne(wrapper);
-        return Optional.ofNullable(ExamQuestionConverter.toDomain(doObj));
+        return Optional.ofNullable(ExamQuestionConverter.INSTANCE.toDomain(doObj));
     }
 
     @Override
@@ -54,7 +54,7 @@ public class ExamQuestionGatewayImpl implements ExamQuestionGateway {
             return;
         }
         for (ExamQuestion question : questions) {
-            ExamQuestionDO doObj = ExamQuestionConverter.toDO(question);
+            ExamQuestionDO doObj = ExamQuestionConverter.INSTANCE.toDO(question);
             examQuestionMapper.insert(doObj);
             question.setId(doObj.getId());
         }

@@ -49,7 +49,8 @@ public class TenantGatewayImpl implements TenantGateway {
         if (tenantId == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(TenantConverter.toDomain(tenantMapper.selectById(tenantId)));
+        return Optional.ofNullable(
+                TenantConverter.INSTANCE.toDomain(tenantMapper.selectById(tenantId)));
     }
 
     @Override
@@ -60,12 +61,15 @@ public class TenantGatewayImpl implements TenantGateway {
         }
         LambdaQueryWrapper<TenantDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TenantDO::getTenantKey, normalized).last("LIMIT 1");
-        return Optional.ofNullable(TenantConverter.toDomain(tenantMapper.selectOne(wrapper)));
+        return Optional.ofNullable(
+                TenantConverter.INSTANCE.toDomain(tenantMapper.selectOne(wrapper)));
     }
 
     @Override
     public List<Tenant> listAll() {
-        return tenantMapper.selectList(null).stream().map(TenantConverter::toDomain).toList();
+        return tenantMapper.selectList(null).stream()
+                .map(TenantConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override
@@ -78,7 +82,9 @@ public class TenantGatewayImpl implements TenantGateway {
         if (limit > 0) {
             wrapper.last("LIMIT " + limit);
         }
-        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+        return tenantMapper.selectList(wrapper).stream()
+                .map(TenantConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override
@@ -94,7 +100,9 @@ public class TenantGatewayImpl implements TenantGateway {
         if (limit > 0) {
             wrapper.last("LIMIT " + limit);
         }
-        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+        return tenantMapper.selectList(wrapper).stream()
+                .map(TenantConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override
@@ -105,13 +113,15 @@ public class TenantGatewayImpl implements TenantGateway {
                 .gt(TenantDO::getTenantId, lastId)
                 .orderByAsc(TenantDO::getTenantId)
                 .last("LIMIT " + safeBatchSize);
-        return tenantMapper.selectList(wrapper).stream().map(TenantConverter::toDomain).toList();
+        return tenantMapper.selectList(wrapper).stream()
+                .map(TenantConverter.INSTANCE::toDomain)
+                .toList();
     }
 
     @Override
     public void save(Tenant tenant) {
         java.util.Objects.requireNonNull(tenant, "Tenant must not be null on save");
-        TenantDO doObj = TenantConverter.toDO(tenant);
+        TenantDO doObj = TenantConverter.INSTANCE.toDO(tenant);
         LocalDateTime now = LocalDateTime.now();
         doObj.setCreateTime(now);
         doObj.setUpdateTime(now);
@@ -124,7 +134,7 @@ public class TenantGatewayImpl implements TenantGateway {
     @Override
     public void update(Tenant tenant) {
         java.util.Objects.requireNonNull(tenant, "Tenant must not be null on update");
-        TenantDO doObj = TenantConverter.toDO(tenant);
+        TenantDO doObj = TenantConverter.INSTANCE.toDO(tenant);
         doObj.setUpdateTime(LocalDateTime.now());
         tenantMapper.updateById(doObj);
         tenant.setUpdateTime(doObj.getUpdateTime());

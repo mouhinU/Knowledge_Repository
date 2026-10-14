@@ -91,6 +91,6 @@ public class ArchiveTenantCmdExe {
                 AuditOutcomes.SUCCESS,
                 fromStatus + "→ARCHIVED reason=" + cmd.getReason());
         log.info("Platform tenant archived: {}", tenantKey);
-        return TenantVoConverter.toVO(tenant);
+        return TenantVoConverter.INSTANCE.toVO(tenant);
     }
 }

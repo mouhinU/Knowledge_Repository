@@ -23,7 +23,7 @@ public class GetHistoryBySessionIdQryExe {
     public ExamHistoryDTO execute(String sessionId) {
         return examHistoryGateway
                 .findBySessionId(sessionId)
-                .map(ExamGenerationConverter::toHistoryDTO)
+                .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                 .orElse(null);
     }
 }

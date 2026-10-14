@@ -55,6 +55,9 @@ AI 生成代码时，逐条自检：
 9. SQL 是否使用 `#{}` 参数绑定？（[data-and-migration-guideline.md](data-and-migration-guideline.md) §2）
 10. 领域模型是否放在 `domain` 层？DO 与领域对象是否分离、DO 未越过 infrastructure
     层？（[architecture-decisions.md](architecture-decisions.md) §2）
+    - 层边界转换器是否**优先使用 MapStruct** `@Mapper interface + INSTANCE`（红线 #6）？手写 `final class` 是否在 Javadoc 登记「例外登记（红线
+      #6）」并说明理由（多源装配 / 嵌套值对象条件组装 / 枚举 `.name()` + 多 null 缺省 / `LocalDateTime` 格式化等）？（详见 [architecture-decisions.md](architecture-decisions.md)
+      §6）
 11. Gateway 接口是否定义在领域层、`GatewayImpl` 是否实现在基础设施层？（COLA 术语，等价原 Repository）（§3/§5/§6）
 12. app 层是否只做分发（Service → Executor），用例编排是否在单一 Executor；写库事务是否在 Executor，长耗时 LLM / 外部 IO
     是否未套大事务？（§4）

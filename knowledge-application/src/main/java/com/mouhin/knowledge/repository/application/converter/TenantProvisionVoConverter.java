@@ -13,6 +13,11 @@ import java.util.List;
  *
  * <p>app 层出参边界转换（domain/app 内部记录 → client VO），遵循 COLA 红线 #6。
  *
+ * <p>例外登记（红线 #6「优先用 MapStruct」的例外）：{@code toVO} 双源入参（{@code tenantKey} + {@code
+ * ProvisioningOutcome}），需嵌套 {@code List<StepOutcome>→List<StepVO>} 逐项映射、{@code InviteInfo} 条件转
+ * {@code InviteVO}、{@code expiresAt} 以 {@code ISO_LOCAL} 格式化为字符串，非单一 bean→bean 自动映射；强行拆分多 mapper
+ * 反增耦合。故保留手写。
+ *
  * @author mouhinU
  * @date 2026-10-08
  */

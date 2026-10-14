@@ -2,58 +2,27 @@ package com.mouhin.knowledge.repository.infrastructure.persistence.converter;
 
 import com.mouhin.knowledge.repository.domain.model.entity.DocumentImage;
 import com.mouhin.knowledge.repository.infrastructure.persistence.dataobject.DocumentImageDO;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 
 /**
- * 文档图片 DO ↔ 领域对象转换器
+ * 文档图片 DO ↔ 领域对象转换器。
+ *
+ * <p>字段名完全一致，交由 MapStruct 编译期生成映射实现（{@code DocumentImageConverterImpl}），相对原手写逐字段 set/get
+ * 零行为漂移：{@code null} 入参返回 {@code null}，完整映射名称匹配的字段交集。领域实体不含 {@code tenantId}（由 infrastructure
+ * 层租户拦截器注入），该 DO 独有字段被自动跳过，与原手写实现一致。采用 {@link Mappers} 静态 {@link #INSTANCE} 访问，保持无状态纯映射。
  *
  * @author mouhinU
  * @date 2026-09-20
  */
-public final class DocumentImageConverter {
+@Mapper
+public interface DocumentImageConverter {
 
-    private DocumentImageConverter() {}
+    DocumentImageConverter INSTANCE = Mappers.getMapper(DocumentImageConverter.class);
 
-    public static DocumentImage toDomain(DocumentImageDO doObj) {
-        if (doObj == null) {
-            return null;
-        }
-        DocumentImage domain = new DocumentImage();
-        domain.setId(doObj.getId());
-        domain.setAssetKey(doObj.getAssetKey());
-        domain.setDocumentId(doObj.getDocumentId());
-        domain.setDocumentKey(doObj.getDocumentKey());
-        domain.setStoragePath(doObj.getStoragePath());
-        domain.setSha256(doObj.getSha256());
-        domain.setMimeType(doObj.getMimeType());
-        domain.setPageNo(doObj.getPageNo());
-        domain.setSeqOnPage(doObj.getSeqOnPage());
-        domain.setWidth(doObj.getWidth());
-        domain.setHeight(doObj.getHeight());
-        domain.setByteSize(doObj.getByteSize());
-        domain.setCreateTime(doObj.getCreateTime());
-        domain.setUpdateTime(doObj.getUpdateTime());
-        return domain;
-    }
+    /** DO → 领域实体；入参为 {@code null} 时返回 {@code null}。 */
+    DocumentImage toDomain(DocumentImageDO doObj);
 
-    public static DocumentImageDO toDO(DocumentImage domain) {
-        if (domain == null) {
-            return null;
-        }
-        DocumentImageDO doObj = new DocumentImageDO();
-        doObj.setId(domain.getId());
-        doObj.setAssetKey(domain.getAssetKey());
-        doObj.setDocumentId(domain.getDocumentId());
-        doObj.setDocumentKey(domain.getDocumentKey());
-        doObj.setStoragePath(domain.getStoragePath());
-        doObj.setSha256(domain.getSha256());
-        doObj.setMimeType(domain.getMimeType());
-        doObj.setPageNo(domain.getPageNo());
-        doObj.setSeqOnPage(domain.getSeqOnPage());
-        doObj.setWidth(domain.getWidth());
-        doObj.setHeight(domain.getHeight());
-        doObj.setByteSize(domain.getByteSize());
-        doObj.setCreateTime(domain.getCreateTime());
-        doObj.setUpdateTime(domain.getUpdateTime());
-        return doObj;
-    }
+    /** 领域实体 → DO；入参为 {@code null} 时返回 {@code null}。 */
+    DocumentImageDO toDO(DocumentImage domain);
 }

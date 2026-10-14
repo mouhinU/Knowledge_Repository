@@ -40,7 +40,7 @@ public class PageHistoryQryExe {
         int offset = safePage * safeSize;
         List<ExamHistoryDTO> records =
                 examHistoryGateway.listPageScoped(safeSize, offset, permission).stream()
-                        .map(ExamGenerationConverter::toHistoryDTO)
+                        .map(ExamGenerationConverter.INSTANCE::toHistoryDTO)
                         .toList();
         long total = examHistoryGateway.countAllScoped(permission);
         Map<String, Object> result = new LinkedHashMap<>();

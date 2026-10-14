@@ -35,6 +35,6 @@ public class DepartmentCreateCmdExe {
         departmentGateway.save(dept);
 
         log.info("Department created: {} ({})", cmd.getDepartmentName(), dept.getDepartmentKey());
-        return DepartmentConverter.toVO(dept);
+        return DepartmentConverter.INSTANCE.toVO(dept);
     }
 }

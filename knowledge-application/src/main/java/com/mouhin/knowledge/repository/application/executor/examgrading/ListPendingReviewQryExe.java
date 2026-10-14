@@ -23,7 +23,7 @@ public class ListPendingReviewQryExe {
 
     public List<ExamSessionDTO> execute(int limit, int offset) {
         return examSessionGateway.listPendingReview(limit, offset).stream()
-                .map(ExamTakingConverter::toSessionDTO)
+                .map(ExamTakingConverter.INSTANCE::toSessionDTO)
                 .toList();
     }
 }
