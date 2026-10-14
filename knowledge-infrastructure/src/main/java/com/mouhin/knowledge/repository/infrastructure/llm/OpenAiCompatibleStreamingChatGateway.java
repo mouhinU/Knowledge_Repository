@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
+import com.mouhin.knowledge.repository.domain.constant.HttpHeaderNames;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
+import com.mouhin.knowledge.repository.domain.constant.OpenAiProtocol;
 import com.mouhin.knowledge.repository.domain.service.StreamingChatGateway;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -116,9 +120,11 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
                 HttpRequest.newBuilder()
                         .uri(URI.create(chatCompletionsUrl))
                         .timeout(requestTimeout)
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "text/event-stream")
-                        .header("Authorization", "Bearer " + apiKey)
+                        .header(HttpHeaderNames.CONTENT_TYPE, MimeTypes.APPLICATION_JSON)
+                        .header(HttpHeaderNames.ACCEPT, MimeTypes.TEXT_EVENT_STREAM)
+                        .header(
+                                HttpHeaderNames.AUTHORIZATION,
+                                HttpAuthSchemes.BEARER_PREFIX + apiKey)
                         .POST(
                                 HttpRequest.BodyPublishers.ofString(
                                         requestBody, StandardCharsets.UTF_8))
@@ -224,19 +230,19 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
 
     private String buildRequestBody(String systemPrompt, String userPrompt) {
         ObjectNode root = OBJECT_MAPPER.createObjectNode();
-        root.put("model", modelName);
-        root.put("temperature", temperature);
-        root.put("max_tokens", maxTokens);
-        root.put("stream", true);
-        ArrayNode messages = root.putArray("messages");
+        root.put(OpenAiProtocol.KEY_MODEL, modelName);
+        root.put(OpenAiProtocol.KEY_TEMPERATURE, temperature);
+        root.put(OpenAiProtocol.KEY_MAX_TOKENS, maxTokens);
+        root.put(OpenAiProtocol.KEY_STREAM, true);
+        ArrayNode messages = root.putArray(OpenAiProtocol.KEY_MESSAGES);
         if (systemPrompt != null && !systemPrompt.isBlank()) {
             ObjectNode sys = messages.addObject();
-            sys.put("role", "system");
-            sys.put("content", systemPrompt);
+            sys.put(OpenAiProtocol.KEY_ROLE, OpenAiProtocol.VALUE_ROLE_SYSTEM);
+            sys.put(OpenAiProtocol.KEY_CONTENT, systemPrompt);
         }
         ObjectNode user = messages.addObject();
-        user.put("role", "user");
-        user.put("content", userPrompt == null ? "" : userPrompt);
+        user.put(OpenAiProtocol.KEY_ROLE, OpenAiProtocol.VALUE_ROLE_USER);
+        user.put(OpenAiProtocol.KEY_CONTENT, userPrompt == null ? "" : userPrompt);
         try {
             return OBJECT_MAPPER.writeValueAsString(root);
         } catch (Exception e) {

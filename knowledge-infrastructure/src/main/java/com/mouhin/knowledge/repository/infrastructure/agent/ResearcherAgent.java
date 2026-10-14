@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -22,6 +23,9 @@ import org.springframework.stereotype.Component;
 @Component("researcherAgent")
 @Slf4j
 public class ResearcherAgent implements BlackboardAgent {
+
+    /** 物料摘要中单片段文本的最大预览长度，超出截断并追加省略号。 */
+    private static final int CONTEXT_TRUNCATE_LEN = 200;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -134,10 +138,14 @@ public class ResearcherAgent implements BlackboardAgent {
                 sb.append("，相关度：").append(String.format("%.2f", chunk.getScore()));
             }
             sb.append("\n");
-            // 截取前 200 字符作为预览
+            // 截取前 CONTEXT_TRUNCATE_LEN 字符作为预览
             String text = chunk.getText();
             if (text != null) {
-                sb.append(text.length() > 200 ? text.substring(0, 200) + "..." : text);
+                sb.append(
+                        text.length() > CONTEXT_TRUNCATE_LEN
+                                ? text.substring(0, CONTEXT_TRUNCATE_LEN)
+                                        + TruncationMarkers.ELLIPSIS
+                                : text);
             }
             sb.append("\n\n");
         }

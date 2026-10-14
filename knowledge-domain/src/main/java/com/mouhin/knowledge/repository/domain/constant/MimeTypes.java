@@ -49,6 +49,12 @@ public final class MimeTypes {
     /** Markdown */
     public static final String TEXT_MARKDOWN = "text/markdown";
 
+    /** JSON（LLM OpenAI 兼容协议 body 的 Content-Type） */
+    public static final String APPLICATION_JSON = "application/json";
+
+    /** SSE 事件流（流式对话 Accept 头） */
+    public static final String TEXT_EVENT_STREAM = "text/event-stream";
+
     /** 未知/二进制流 */
     public static final String OCTET_STREAM = "application/octet-stream";
 

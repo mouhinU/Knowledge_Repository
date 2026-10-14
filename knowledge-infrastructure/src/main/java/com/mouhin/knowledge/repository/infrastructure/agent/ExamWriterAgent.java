@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.Difficulties;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -27,6 +28,9 @@ public class ExamWriterAgent implements BlackboardAgent {
 
     /** 有效试卷的最小字符长度阈值：低于此值视为模型未真正产出内容（截断/思考耗尽）。 */
     private static final int MIN_VALID_EXAM_LENGTH = 200;
+
+    /** 物料预览中知识发现的摘要最大长度，超出截断并追加省略号。 */
+    private static final int CONTEXT_TRUNCATE_LEN = 500;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -78,8 +82,8 @@ public class ExamWriterAgent implements BlackboardAgent {
         blackboard.advanceTo(BlackboardPhase.WRITING);
 
         String materials =
-                findings != null && findings.length() > 500
-                        ? findings.substring(0, 500) + "..."
+                findings != null && findings.length() > CONTEXT_TRUNCATE_LEN
+                        ? findings.substring(0, CONTEXT_TRUNCATE_LEN) + TruncationMarkers.ELLIPSIS
                         : findings;
         emitProgress(
                 progressCallback,

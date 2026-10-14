@@ -1,5 +1,7 @@
 package com.mouhin.knowledge.repository.application.executor.docingestion;
 
+import com.mouhin.knowledge.repository.domain.constant.FileExtensions;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageGateway;
@@ -282,15 +284,15 @@ public class DocumentImageSupport {
 
     private String extFromMime(String mime) {
         if (mime == null) {
-            return ".png";
+            return FileExtensions.PNG;
         }
         return switch (mime.toLowerCase(java.util.Locale.ROOT)) {
-            case "image/jpeg", "image/jpg" -> ".jpg";
-            case "image/gif" -> ".gif";
-            case "image/bmp" -> ".bmp";
-            case "image/webp" -> ".webp";
-            case "image/tiff" -> ".tiff";
-            default -> ".png";
+            case MimeTypes.IMAGE_JPEG, MimeTypes.IMAGE_JPG -> FileExtensions.JPG;
+            case MimeTypes.IMAGE_GIF -> FileExtensions.GIF;
+            case MimeTypes.IMAGE_BMP -> FileExtensions.BMP;
+            case MimeTypes.IMAGE_WEBP -> FileExtensions.WEBP;
+            case MimeTypes.IMAGE_TIFF -> FileExtensions.TIFF;
+            default -> FileExtensions.PNG;
         };
     }
 }

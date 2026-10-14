@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,6 +25,9 @@ import java.util.regex.Pattern;
  * @date 2026-09-20
  */
 public final class ExamMetaQuestionDetector {
+
+    /** 命中行摘要最大长度（超出后截断并追加省略号，用于 issue 展示）。 */
+    private static final int LINE_SNIPPET_MAX_LEN = 48;
 
     /** 命中时的标准化提示语（供审核反馈与契约 issue 复用）。 */
     public static final String ADVISORY =
@@ -93,7 +97,11 @@ public final class ExamMetaQuestionDetector {
                 continue;
             }
             if (isMetaRecall(line)) {
-                String snippet = line.length() > 48 ? line.substring(0, 48) + "…" : line;
+                String snippet =
+                        line.length() > LINE_SNIPPET_MAX_LEN
+                                ? line.substring(0, LINE_SNIPPET_MAX_LEN)
+                                        + TruncationMarkers.WIDE_ELLIPSIS
+                                : line;
                 if (seen.add(snippet)) {
                     hits.add(snippet);
                 }

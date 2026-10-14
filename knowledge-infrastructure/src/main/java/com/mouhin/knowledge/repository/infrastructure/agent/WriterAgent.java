@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -20,6 +21,9 @@ import org.springframework.stereotype.Component;
 @Component("writerAgent")
 @Slf4j
 public class WriterAgent implements BlackboardAgent {
+
+    /** 物料预览中研究发现的摘要最大长度，超出截断并追加省略号。 */
+    private static final int CONTEXT_TRUNCATE_LEN = 500;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -51,8 +55,9 @@ public class WriterAgent implements BlackboardAgent {
         String materials =
                 (findings != null && !findings.isBlank())
                         ? "研究员的关键发现：\n\n"
-                                + (findings.length() > 500
-                                        ? findings.substring(0, 500) + "..."
+                                + (findings.length() > CONTEXT_TRUNCATE_LEN
+                                        ? findings.substring(0, CONTEXT_TRUNCATE_LEN)
+                                                + TruncationMarkers.ELLIPSIS
                                         : findings)
                         : "（无研究发现）";
         emitProgress(

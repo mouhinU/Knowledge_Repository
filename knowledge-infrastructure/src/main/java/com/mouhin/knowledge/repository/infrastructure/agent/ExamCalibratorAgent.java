@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.Difficulties;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -23,6 +24,9 @@ import org.springframework.stereotype.Component;
 @Component("examCalibratorAgent")
 @Slf4j
 public class ExamCalibratorAgent implements BlackboardAgent {
+
+    /** 物料预览中试卷内容的最大长度，超出截断并追加省略号。 */
+    private static final int CONTEXT_TRUNCATE_LEN = 400;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -64,8 +68,8 @@ public class ExamCalibratorAgent implements BlackboardAgent {
         blackboard.advanceTo(BlackboardPhase.CALIBRATING);
 
         String materials =
-                examPaper != null && examPaper.length() > 400
-                        ? examPaper.substring(0, 400) + "..."
+                examPaper != null && examPaper.length() > CONTEXT_TRUNCATE_LEN
+                        ? examPaper.substring(0, CONTEXT_TRUNCATE_LEN) + TruncationMarkers.ELLIPSIS
                         : examPaper;
         emitProgress(
                 progressCallback,

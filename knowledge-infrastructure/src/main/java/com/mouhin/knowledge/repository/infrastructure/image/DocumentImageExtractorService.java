@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.infrastructure.image;
 
+import com.mouhin.knowledge.repository.domain.constant.FileExtensions;
 import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentImageExtractorGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExtractedImage;
@@ -375,11 +376,13 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
         if (fileExt != null) {
             String byExt =
                     switch (fileExt.toLowerCase(Locale.ROOT)) {
-                        case "png" -> MimeTypes.IMAGE_PNG;
-                        case "jpg", "jpeg" -> MimeTypes.IMAGE_JPEG;
-                        case "gif" -> MimeTypes.IMAGE_GIF;
-                        case "bmp" -> MimeTypes.IMAGE_BMP;
-                        case "tif", "tiff" -> MimeTypes.IMAGE_TIFF;
+                        case FileExtensions.PNG_TOKEN -> MimeTypes.IMAGE_PNG;
+                        case FileExtensions.JPG_TOKEN, FileExtensions.JPEG_TOKEN ->
+                                MimeTypes.IMAGE_JPEG;
+                        case FileExtensions.GIF_TOKEN -> MimeTypes.IMAGE_GIF;
+                        case FileExtensions.BMP_TOKEN -> MimeTypes.IMAGE_BMP;
+                        case FileExtensions.TIF_TOKEN, FileExtensions.TIFF_TOKEN ->
+                                MimeTypes.IMAGE_TIFF;
                         default -> null;
                     };
             if (byExt != null) {

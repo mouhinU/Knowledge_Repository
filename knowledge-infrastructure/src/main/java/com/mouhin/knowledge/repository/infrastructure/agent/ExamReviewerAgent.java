@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -28,6 +29,12 @@ public class ExamReviewerAgent implements BlackboardAgent {
 
     /** 出处/位置类记忆题命中时的质量分上限（须严格低于外层流水线的通过阈值 80，以驱动打回重写）。 */
     private static final int DETECTOR_SCORE_CAP = 70;
+
+    /** 物料预览中试卷内容的最大长度，超出截断并追加省略号。 */
+    private static final int EXAM_PAPER_TRUNCATE_LEN = 300;
+
+    /** 物料预览中标准答案的最大长度，超出截断并追加省略号。 */
+    private static final int ANSWER_KEY_TRUNCATE_LEN = 200;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -191,12 +198,20 @@ public class ExamReviewerAgent implements BlackboardAgent {
         StringBuilder sb = new StringBuilder();
         if (examPaper != null) {
             sb.append("【试卷预览】\n");
-            sb.append(examPaper.length() > 300 ? examPaper.substring(0, 300) + "..." : examPaper);
+            sb.append(
+                    examPaper.length() > EXAM_PAPER_TRUNCATE_LEN
+                            ? examPaper.substring(0, EXAM_PAPER_TRUNCATE_LEN)
+                                    + TruncationMarkers.ELLIPSIS
+                            : examPaper);
             sb.append("\n\n");
         }
         if (answerKey != null) {
             sb.append("【答案预览】\n");
-            sb.append(answerKey.length() > 200 ? answerKey.substring(0, 200) + "..." : answerKey);
+            sb.append(
+                    answerKey.length() > ANSWER_KEY_TRUNCATE_LEN
+                            ? answerKey.substring(0, ANSWER_KEY_TRUNCATE_LEN)
+                                    + TruncationMarkers.ELLIPSIS
+                            : answerKey);
         }
         return sb.toString();
     }

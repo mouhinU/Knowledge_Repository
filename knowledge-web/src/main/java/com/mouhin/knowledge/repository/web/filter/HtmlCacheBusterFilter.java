@@ -1,5 +1,6 @@
 package com.mouhin.knowledge.repository.web.filter;
 
+import com.mouhin.knowledge.repository.domain.constant.FileExtensions;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
@@ -127,7 +129,7 @@ public class HtmlCacheBusterFilter extends OncePerRequestFilter {
         if (ctx != null && !ctx.isEmpty() && uri.startsWith(ctx)) {
             uri = uri.substring(ctx.length());
         }
-        if (uri.endsWith(".html")) {
+        if (uri.endsWith(FileExtensions.HTML)) {
             return true;
         }
         return uri.equals("/admin") || uri.equals("/admin/");
@@ -135,9 +137,9 @@ public class HtmlCacheBusterFilter extends OncePerRequestFilter {
 
     /** 覆写 HTML 响应头。 */
     private void applyNoStoreHeaders(HttpServletResponse response) {
-        response.setHeader("Cache-Control", HTML_CACHE_CONTROL);
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0L);
+        response.setHeader(HttpHeaders.CACHE_CONTROL, HTML_CACHE_CONTROL);
+        response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+        response.setDateHeader(HttpHeaders.EXPIRES, 0L);
     }
 
     /**

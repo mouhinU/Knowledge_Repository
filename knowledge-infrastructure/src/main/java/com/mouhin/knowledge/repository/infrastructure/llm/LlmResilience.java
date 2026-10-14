@@ -34,6 +34,27 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LlmResilience {
 
+    /** 每角色调用耗时/成败计时指标名。 */
+    private static final String METRIC_LLM_CALL = "knowledge.llm.call";
+
+    /** 计时指标标签：角色。 */
+    private static final String TAG_ROLE = "role";
+
+    /** 计时指标标签：是否成功。 */
+    private static final String TAG_SUCCESS = "success";
+
+    /** 角色：非流式对话。 */
+    private static final String ROLE_CHAT = "chat";
+
+    /** 角色：流式对话。 */
+    private static final String ROLE_CHAT_STREAM = "chat-stream";
+
+    /** 角色：向量化。 */
+    private static final String ROLE_EMBEDDING = "embedding";
+
+    /** 角色：视觉。 */
+    private static final String ROLE_VISION = "vision";
+
     /** 角色 → 熔断器。 */
     private final Map<String, CircuitBreaker> circuitBreakers = new LinkedHashMap<>();
 
@@ -50,10 +71,10 @@ public class LlmResilience {
                 CircuitBreakerRegistry.of(
                         toCircuitBreakerConfig(props.getChat().getCircuitBreaker()));
         this.retryRegistry = RetryRegistry.of(toRetryConfig(props.getChat().getRetry()));
-        register("chat", props.getChat());
-        register("chat-stream", props.getChatStream());
-        register("embedding", props.getEmbedding());
-        register("vision", props.getVision());
+        register(ROLE_CHAT, props.getChat());
+        register(ROLE_CHAT_STREAM, props.getChatStream());
+        register(ROLE_EMBEDDING, props.getEmbedding());
+        register(ROLE_VISION, props.getVision());
         bindMetrics();
         log.info("LLM resilience initialized for roles={}", circuitBreakers.keySet());
     }
@@ -84,7 +105,17 @@ public class LlmResilience {
         }
     }
 
+    /**
+     * 为指定角色注册独立的熔断器，并按配置决定是否注册重试器。
+     *
+     * <p>每个角色在专属 Registry 下以 {@code role} 为实例名创建 {@link CircuitBreaker}，保证角色间故障隔离； 仅当 {@code
+     * maxAttempts > 1} 时才注册 {@link Retry}（不重试的角色在 {@link #run} 装饰时自动跳过）。
+     *
+     * @param role 角色标识（chat / chat-stream / embedding / vision），同时作为熔断/重试实例名
+     * @param cfg 该角色的韧性配置（熔断阈值、重试次数与间隔等）
+     */
     private void register(String role, LlmResilienceProperties.Role cfg) {
+
         CircuitBreaker cb =
                 circuitBreakerRegistry.circuitBreaker(
                         role, toCircuitBreakerConfig(cfg.getCircuitBreaker()));
@@ -103,7 +134,7 @@ public class LlmResilience {
 
     private void recordCall(String role, long startNanos, boolean success) {
         meterRegistry
-                .timer("knowledge.llm.call", "role", role, "success", String.valueOf(success))
+                .timer(METRIC_LLM_CALL, TAG_ROLE, role, TAG_SUCCESS, String.valueOf(success))
                 .record(Duration.ofNanos(System.nanoTime() - startNanos));
     }
 

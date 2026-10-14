@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.web.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
@@ -50,7 +51,6 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
     /** 本过滤器唯一拦截的路径前缀。 */
     public static final String PLATFORM_PREFIX = "/api/platform/";
 
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ERROR_CODE = "PLATFORM_UNAUTHORIZED";
 
     /** 错误响应 map 的 error 字段名。 */
@@ -110,8 +110,8 @@ public class PlatformTokenAuthFilter extends OncePerRequestFilter {
             return header.trim();
         }
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization != null && authorization.startsWith(BEARER_PREFIX)) {
-            String value = authorization.substring(BEARER_PREFIX.length()).trim();
+        if (authorization != null && authorization.startsWith(HttpAuthSchemes.BEARER_PREFIX)) {
+            String value = authorization.substring(HttpAuthSchemes.BEARER_PREFIX.length()).trim();
             return value.isEmpty() ? null : value;
         }
         return null;

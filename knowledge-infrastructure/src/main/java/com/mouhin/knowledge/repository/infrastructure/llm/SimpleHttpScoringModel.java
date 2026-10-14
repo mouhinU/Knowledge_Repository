@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
+import com.mouhin.knowledge.repository.domain.constant.HttpHeaderNames;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
+import com.mouhin.knowledge.repository.domain.constant.OpenAiProtocol;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
 import java.io.IOException;
@@ -96,8 +100,10 @@ public class SimpleHttpScoringModel implements ScoringModel {
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl + "/v1/rerank"))
-                        .header("Content-Type", "application/json")
-                        .header("Authorization", "Bearer " + apiKey)
+                        .header(HttpHeaderNames.CONTENT_TYPE, MimeTypes.APPLICATION_JSON)
+                        .header(
+                                HttpHeaderNames.AUTHORIZATION,
+                                HttpAuthSchemes.BEARER_PREFIX + apiKey)
                         .timeout(requestTimeout)
                         .POST(HttpRequest.BodyPublishers.ofString(json))
                         .build();
@@ -126,7 +132,7 @@ public class SimpleHttpScoringModel implements ScoringModel {
     private String buildRequestJson(String query, List<String> documents) {
         try {
             ObjectNode root = objectMapper.createObjectNode();
-            root.put("model", modelName);
+            root.put(OpenAiProtocol.KEY_MODEL, modelName);
             root.put("query", query);
             root.put("top_n", documents.size());
             ArrayNode docsArray = root.putArray("documents");

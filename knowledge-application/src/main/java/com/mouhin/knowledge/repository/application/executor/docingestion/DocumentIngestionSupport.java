@@ -3,6 +3,8 @@ package com.mouhin.knowledge.repository.application.executor.docingestion;
 import com.mouhin.knowledge.repository.client.dto.ChunkDetail;
 import com.mouhin.knowledge.repository.client.dto.CustomChunkInput;
 import com.mouhin.knowledge.repository.client.dto.PageDetail;
+import com.mouhin.knowledge.repository.domain.constant.FileExtensions;
+import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.event.DocumentProcessedEvent;
 import com.mouhin.knowledge.repository.domain.gateway.DocumentChunkGateway;
@@ -280,22 +282,20 @@ public class DocumentIngestionSupport {
     public String detectFileType(Path file) {
         try {
             String name = file.getFileName().toString();
-            if (name.endsWith(".pdf")) return "application/pdf";
-            if (name.endsWith(".docx"))
-                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            if (name.endsWith(".doc")) return "application/msword";
-            if (name.endsWith(".xlsx"))
-                return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            if (name.endsWith(".xls")) return "application/vnd.ms-excel";
-            if (name.endsWith(".pptx"))
-                return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-            if (name.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
-            if (name.endsWith(".txt")) return "text/plain";
-            if (name.endsWith(".csv")) return "text/csv";
-            if (name.endsWith(".html") || name.endsWith(".htm")) return "text/html";
-            return "application/octet-stream";
+            if (name.endsWith(FileExtensions.PDF)) return MimeTypes.PDF;
+            if (name.endsWith(FileExtensions.DOCX)) return MimeTypes.DOCX;
+            if (name.endsWith(FileExtensions.DOC)) return MimeTypes.DOC;
+            if (name.endsWith(FileExtensions.XLSX)) return MimeTypes.XLSX;
+            if (name.endsWith(FileExtensions.XLS)) return MimeTypes.XLS;
+            if (name.endsWith(FileExtensions.PPTX)) return MimeTypes.PPTX;
+            if (name.endsWith(FileExtensions.PPT)) return MimeTypes.PPT;
+            if (name.endsWith(FileExtensions.TXT)) return MimeTypes.TEXT_PLAIN;
+            if (name.endsWith(FileExtensions.CSV)) return MimeTypes.TEXT_CSV;
+            if (name.endsWith(FileExtensions.HTML) || name.endsWith(FileExtensions.HTM))
+                return MimeTypes.TEXT_HTML;
+            return MimeTypes.OCTET_STREAM;
         } catch (Exception e) {
-            return "application/octet-stream";
+            return MimeTypes.OCTET_STREAM;
         }
     }
 

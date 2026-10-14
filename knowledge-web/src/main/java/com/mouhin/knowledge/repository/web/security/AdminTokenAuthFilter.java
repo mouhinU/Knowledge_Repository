@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.web.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.client.api.AdminAuthServiceI;
 import com.mouhin.knowledge.repository.client.dto.AdminPrincipalDTO;
+import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
 import com.mouhin.knowledge.repository.web.filter.TenantResolverFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,7 +45,11 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
     /** 登录后可从令牌身份还原的请求属性键，供下游（如审计）读取，避免重复解析。 */
     public static final String PRINCIPAL_ATTRIBUTE = "knowledge.admin.principal";
 
-    private static final String BEARER_PREFIX = "Bearer ";
+    /** 管理端 API 保护路径前缀。 */
+    private static final String PROTECTED_PREFIX_API = "/api/";
+
+    /** Actuator 运维端点保护路径前缀。 */
+    private static final String PROTECTED_PREFIX_ACTUATOR = "/actuator/";
 
     /** SSE 进度流令牌查询参数（EventSource 不能自定义请求头）。 */
     private static final String ACCESS_TOKEN_PARAM = "access_token";
@@ -125,7 +130,8 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
         if (path == null) {
             return false;
         }
-        boolean protectedArea = path.startsWith("/api/") || path.startsWith("/actuator/");
+        boolean protectedArea =
+                path.startsWith(PROTECTED_PREFIX_API) || path.startsWith(PROTECTED_PREFIX_ACTUATOR);
         if (!protectedArea) {
             return false;
         }
@@ -148,8 +154,8 @@ public class AdminTokenAuthFilter extends OncePerRequestFilter {
             return header.trim();
         }
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization != null && authorization.startsWith(BEARER_PREFIX)) {
-            String value = authorization.substring(BEARER_PREFIX.length()).trim();
+        if (authorization != null && authorization.startsWith(HttpAuthSchemes.BEARER_PREFIX)) {
+            String value = authorization.substring(HttpAuthSchemes.BEARER_PREFIX.length()).trim();
             return value.isEmpty() ? null : value;
         }
         // SSE（EventSource）无法自定义请求头，进度流端点改由 access_token 查询参数携带令牌。

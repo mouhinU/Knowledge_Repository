@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.Difficulties;
 import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.gateway.ExamDistributionGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
@@ -83,7 +84,7 @@ public class ExamDistributionAgent implements ExamDistributionGateway {
         if (s == null) {
             return "";
         }
-        return s.length() > max ? s.substring(0, max) + "..." : s;
+        return s.length() > max ? s.substring(0, max) + TruncationMarkers.ELLIPSIS : s;
     }
 
     // ==================== 方案修正（保留向后兼容，新流程不再使用） ====================

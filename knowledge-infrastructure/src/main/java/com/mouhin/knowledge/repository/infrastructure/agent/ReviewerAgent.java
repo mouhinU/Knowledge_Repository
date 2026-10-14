@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -21,6 +22,9 @@ import org.springframework.stereotype.Component;
 @Component("reviewerAgent")
 @Slf4j
 public class ReviewerAgent implements BlackboardAgent {
+
+    /** 审核物料中草稿预览的最大长度，超出截断并追加省略号。 */
+    private static final int CONTEXT_TRUNCATE_LEN = 500;
 
     private static final String SYSTEM_PROMPT =
             """
@@ -56,7 +60,10 @@ public class ReviewerAgent implements BlackboardAgent {
         String materials =
                 (draft != null && !draft.isBlank())
                         ? "写手的文章草稿：\n\n"
-                                + (draft.length() > 500 ? draft.substring(0, 500) + "..." : draft)
+                                + (draft.length() > CONTEXT_TRUNCATE_LEN
+                                        ? draft.substring(0, CONTEXT_TRUNCATE_LEN)
+                                                + TruncationMarkers.ELLIPSIS
+                                        : draft)
                         : "（无草稿）";
         emitProgress(
                 progressCallback,

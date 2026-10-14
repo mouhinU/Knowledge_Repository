@@ -1,6 +1,7 @@
 package com.mouhin.knowledge.repository.domain.service;
 
 import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.entity.ExamQuestion;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
@@ -29,6 +30,9 @@ import java.util.Set;
  * @date 2026-09-18
  */
 public final class ExamContractValidator {
+
+    /** 题干摘要最大长度（超出后截断并追加省略号，用于 issue 提示）。 */
+    private static final int STEM_BRIEF_MAX_LEN = 40;
 
     private ExamContractValidator() {}
 
@@ -128,7 +132,11 @@ public final class ExamContractValidator {
         // 内容确定性复核：出处/位置类记忆题——考查教材编排位置而非内容，强制人工改写后方可发布
         if (ExamMetaQuestionDetector.isMetaRecall(q.getStem())) {
             String stem = q.getStem();
-            String brief = stem.length() > 40 ? stem.substring(0, 40) + "…" : stem;
+            String brief =
+                    stem.length() > STEM_BRIEF_MAX_LEN
+                            ? stem.substring(0, STEM_BRIEF_MAX_LEN)
+                                    + TruncationMarkers.WIDE_ELLIPSIS
+                            : stem;
             issues.add(tag + " " + ExamMetaQuestionDetector.ADVISORY + "：" + brief);
         }
         String answer = q.getCorrectAnswer();

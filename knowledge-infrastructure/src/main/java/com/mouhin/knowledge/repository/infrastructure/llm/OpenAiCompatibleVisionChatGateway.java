@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
+import com.mouhin.knowledge.repository.domain.constant.HttpHeaderNames;
 import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
+import com.mouhin.knowledge.repository.domain.constant.OpenAiProtocol;
 import com.mouhin.knowledge.repository.domain.gateway.VisionChatGateway;
 import com.mouhin.knowledge.repository.domain.model.valueobject.VisionChatRequest;
 import java.io.IOException;
@@ -111,9 +114,9 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
                 HttpRequest.newBuilder()
                         .uri(URI.create(chatCompletionsUrl))
                         .timeout(requestTimeout)
-                        .header("Content-Type", "application/json");
+                        .header(HttpHeaderNames.CONTENT_TYPE, MimeTypes.APPLICATION_JSON);
         if (apiKey != null && !apiKey.isBlank()) {
-            builder.header("Authorization", "Bearer " + apiKey);
+            builder.header(HttpHeaderNames.AUTHORIZATION, HttpAuthSchemes.BEARER_PREFIX + apiKey);
         }
         HttpRequest httpRequest =
                 builder.POST(
@@ -146,21 +149,21 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
 
     private String buildRequestBody(VisionChatRequest request) {
         ObjectNode root = OBJECT_MAPPER.createObjectNode();
-        root.put("model", modelName);
-        root.put("temperature", temperature);
-        root.put("max_tokens", maxTokens);
-        ArrayNode messages = root.putArray("messages");
+        root.put(OpenAiProtocol.KEY_MODEL, modelName);
+        root.put(OpenAiProtocol.KEY_TEMPERATURE, temperature);
+        root.put(OpenAiProtocol.KEY_MAX_TOKENS, maxTokens);
+        ArrayNode messages = root.putArray(OpenAiProtocol.KEY_MESSAGES);
         ObjectNode user = messages.addObject();
-        user.put("role", "user");
-        ArrayNode content = user.putArray("content");
+        user.put(OpenAiProtocol.KEY_ROLE, OpenAiProtocol.VALUE_ROLE_USER);
+        ArrayNode content = user.putArray(OpenAiProtocol.KEY_CONTENT);
         ObjectNode textPart = content.addObject();
-        textPart.put("type", "text");
+        textPart.put(OpenAiProtocol.KEY_TYPE, OpenAiProtocol.VALUE_TYPE_TEXT);
         textPart.put("text", request.prompt() == null ? "" : request.prompt());
         for (VisionChatRequest.ImagePayload image : request.images()) {
             ObjectNode imagePart = content.addObject();
-            imagePart.put("type", "image_url");
-            ObjectNode imageUrl = imagePart.putObject("image_url");
-            imageUrl.put("url", toDataUrl(image));
+            imagePart.put(OpenAiProtocol.KEY_TYPE, OpenAiProtocol.VALUE_TYPE_IMAGE_URL);
+            ObjectNode imageUrl = imagePart.putObject(OpenAiProtocol.KEY_IMAGE_URL);
+            imageUrl.put(OpenAiProtocol.KEY_URL, toDataUrl(image));
         }
         try {
             return OBJECT_MAPPER.writeValueAsString(root);

@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.infrastructure.agent;
 
 import com.mouhin.knowledge.repository.domain.constant.AgentNames;
 import com.mouhin.knowledge.repository.domain.constant.Difficulties;
+import com.mouhin.knowledge.repository.domain.constant.TruncationMarkers;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardPhase;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardProgressEvent;
 import com.mouhin.knowledge.repository.domain.model.valueobject.BlackboardState;
@@ -70,7 +71,7 @@ public class DifficultyCalibratorAgent implements BlackboardAgent {
 
     private static String truncate(String text, int max) {
         if (text == null) return "";
-        return text.length() <= max ? text : text.substring(0, max) + "...";
+        return text.length() <= max ? text : text.substring(0, max) + TruncationMarkers.ELLIPSIS;
     }
 
     private static void emitProgress(
