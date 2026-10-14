@@ -369,7 +369,7 @@ public class DocumentImageExtractorService implements DocumentImageExtractorGate
     private String resolveMime(byte[] bytes, String contentType, String fileExt) {
         if (contentType != null) {
             String lower = contentType.toLowerCase(Locale.ROOT);
-            if (lower.startsWith("image/")) {
+            if (lower.startsWith(MimeTypes.IMAGE_PREFIX)) {
                 return lower;
             }
         }

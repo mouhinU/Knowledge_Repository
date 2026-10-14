@@ -60,6 +60,9 @@ public final class MimeTypes {
 
     // ── 图片 ──────────────────────────────────────────────
 
+    /** {@code image/*} 通用前缀（用于 {@code startsWith("image/")} 类型粗判） */
+    public static final String IMAGE_PREFIX = "image/";
+
     /** PNG */
     public static final String IMAGE_PNG = "image/png";
 

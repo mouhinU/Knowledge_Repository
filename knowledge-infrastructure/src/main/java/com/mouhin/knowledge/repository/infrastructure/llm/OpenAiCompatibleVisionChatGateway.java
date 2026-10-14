@@ -158,7 +158,7 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
         ArrayNode content = user.putArray(OpenAiProtocol.KEY_CONTENT);
         ObjectNode textPart = content.addObject();
         textPart.put(OpenAiProtocol.KEY_TYPE, OpenAiProtocol.VALUE_TYPE_TEXT);
-        textPart.put("text", request.prompt() == null ? "" : request.prompt());
+        textPart.put(OpenAiProtocol.KEY_TEXT, request.prompt() == null ? "" : request.prompt());
         for (VisionChatRequest.ImagePayload image : request.images()) {
             ObjectNode imagePart = content.addObject();
             imagePart.put(OpenAiProtocol.KEY_TYPE, OpenAiProtocol.VALUE_TYPE_IMAGE_URL);
@@ -175,16 +175,21 @@ public class OpenAiCompatibleVisionChatGateway implements VisionChatGateway {
     private String extractContent(String body) {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(body);
-            if (root.hasNonNull("error")) {
+            if (root.hasNonNull(OpenAiProtocol.KEY_ERROR)) {
                 String msg =
-                        root.path("error").path("message").asText(root.path("error").toString());
+                        root.path(OpenAiProtocol.KEY_ERROR)
+                                .path(OpenAiProtocol.KEY_ERROR_MESSAGE)
+                                .asText(root.path(OpenAiProtocol.KEY_ERROR).toString());
                 throw new RuntimeException("视觉模型返回错误: " + msg);
             }
-            JsonNode choices = root.path("choices");
+            JsonNode choices = root.path(OpenAiProtocol.KEY_CHOICES);
             if (!choices.isArray() || choices.isEmpty()) {
                 return "";
             }
-            return choices.get(0).path("message").path("content").asText("");
+            return choices.get(0)
+                    .path(OpenAiProtocol.KEY_MESSAGE)
+                    .path(OpenAiProtocol.KEY_CONTENT)
+                    .asText("");
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {

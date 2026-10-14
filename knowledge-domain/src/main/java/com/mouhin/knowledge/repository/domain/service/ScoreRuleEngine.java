@@ -1,6 +1,8 @@
 package com.mouhin.knowledge.repository.domain.service;
 
+import com.mouhin.knowledge.repository.domain.constant.QuestionTypeAliases;
 import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
+import com.mouhin.knowledge.repository.domain.constant.SchoolLevelAliases;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
 import java.util.*;
@@ -99,12 +101,12 @@ public final class ScoreRuleEngine {
     }
 
     static {
-        TYPE_WEIGHTS.put("单选题", 2);
-        TYPE_WEIGHTS.put("多选题", 3);
-        TYPE_WEIGHTS.put("判断题", 2);
-        TYPE_WEIGHTS.put("填空题", 3);
-        TYPE_WEIGHTS.put("简答题", 6);
-        TYPE_WEIGHTS.put("论述题", 10);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.SINGLE_CHOICE_ZH, 2);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.MULTI_CHOICE_ZH, 3);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.TRUE_FALSE_ZH, 2);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.FILL_BLANK_ZH, 3);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.SHORT_ANSWER_ZH, 6);
+        TYPE_WEIGHTS.put(QuestionTypeAliases.ESSAY_ZH, 10);
     }
 
     private ScoreRuleEngine() {}
@@ -112,9 +114,9 @@ public final class ScoreRuleEngine {
     /** 学段中文名 */
     public static String levelLabel(SchoolLevel level) {
         return switch (level) {
-            case PRIMARY -> "小学";
-            case JUNIOR -> "初中";
-            case SENIOR -> "高中";
+            case PRIMARY -> SchoolLevelAliases.PRIMARY_ZH;
+            case JUNIOR -> SchoolLevelAliases.JUNIOR_ZH;
+            case SENIOR -> SchoolLevelAliases.SENIOR_ZH;
             default -> "未识别";
         };
     }
@@ -143,9 +145,11 @@ public final class ScoreRuleEngine {
         }
         String c = code.trim().toUpperCase();
         return switch (c) {
-            case LEVEL_PRIMARY, "小学" -> SchoolLevel.PRIMARY;
-            case LEVEL_JUNIOR, "初中", LEVEL_JUNIOR_HIGH -> SchoolLevel.JUNIOR;
-            case LEVEL_SENIOR, "高中", LEVEL_SENIOR_HIGH -> SchoolLevel.SENIOR;
+            case LEVEL_PRIMARY, SchoolLevelAliases.PRIMARY_ZH -> SchoolLevel.PRIMARY;
+            case LEVEL_JUNIOR, SchoolLevelAliases.JUNIOR_ZH, LEVEL_JUNIOR_HIGH ->
+                    SchoolLevel.JUNIOR;
+            case LEVEL_SENIOR, SchoolLevelAliases.SENIOR_ZH, LEVEL_SENIOR_HIGH ->
+                    SchoolLevel.SENIOR;
             default -> SchoolLevel.UNKNOWN;
         };
     }
@@ -501,12 +505,12 @@ public final class ScoreRuleEngine {
             return "综合题";
         }
         return switch (key.toUpperCase()) {
-            case QuestionTypes.SINGLE_CHOICE -> "单选题";
-            case QuestionTypes.MULTI_CHOICE -> "多选题";
-            case QuestionTypes.TRUE_FALSE -> "判断题";
-            case QuestionTypes.FILL_BLANK -> "填空题";
-            case QuestionTypes.SHORT_ANSWER -> "简答题";
-            case QuestionTypes.ESSAY -> "论述题";
+            case QuestionTypes.SINGLE_CHOICE -> QuestionTypeAliases.SINGLE_CHOICE_ZH;
+            case QuestionTypes.MULTI_CHOICE -> QuestionTypeAliases.MULTI_CHOICE_ZH;
+            case QuestionTypes.TRUE_FALSE -> QuestionTypeAliases.TRUE_FALSE_ZH;
+            case QuestionTypes.FILL_BLANK -> QuestionTypeAliases.FILL_BLANK_ZH;
+            case QuestionTypes.SHORT_ANSWER -> QuestionTypeAliases.SHORT_ANSWER_ZH;
+            case QuestionTypes.ESSAY -> QuestionTypeAliases.ESSAY_ZH;
             default -> key;
         };
     }
@@ -518,12 +522,12 @@ public final class ScoreRuleEngine {
         }
         String t = typeOrKey.trim();
         return switch (t) {
-            case "单选题" -> QuestionTypes.SINGLE_CHOICE;
-            case "多选题" -> QuestionTypes.MULTI_CHOICE;
-            case "判断题" -> QuestionTypes.TRUE_FALSE;
-            case "填空题" -> QuestionTypes.FILL_BLANK;
-            case "简答题" -> QuestionTypes.SHORT_ANSWER;
-            case "论述题" -> QuestionTypes.ESSAY;
+            case QuestionTypeAliases.SINGLE_CHOICE_ZH -> QuestionTypes.SINGLE_CHOICE;
+            case QuestionTypeAliases.MULTI_CHOICE_ZH -> QuestionTypes.MULTI_CHOICE;
+            case QuestionTypeAliases.TRUE_FALSE_ZH -> QuestionTypes.TRUE_FALSE;
+            case QuestionTypeAliases.FILL_BLANK_ZH -> QuestionTypes.FILL_BLANK;
+            case QuestionTypeAliases.SHORT_ANSWER_ZH -> QuestionTypes.SHORT_ANSWER;
+            case QuestionTypeAliases.ESSAY_ZH -> QuestionTypes.ESSAY;
             default -> t.toUpperCase();
         };
     }

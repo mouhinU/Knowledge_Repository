@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.CohereProtocol;
 import com.mouhin.knowledge.repository.domain.constant.HttpAuthSchemes;
 import com.mouhin.knowledge.repository.domain.constant.HttpHeaderNames;
 import com.mouhin.knowledge.repository.domain.constant.MimeTypes;
-import com.mouhin.knowledge.repository.domain.constant.OpenAiProtocol;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
 import java.io.IOException;
@@ -132,10 +132,10 @@ public class SimpleHttpScoringModel implements ScoringModel {
     private String buildRequestJson(String query, List<String> documents) {
         try {
             ObjectNode root = objectMapper.createObjectNode();
-            root.put(OpenAiProtocol.KEY_MODEL, modelName);
-            root.put("query", query);
-            root.put("top_n", documents.size());
-            ArrayNode docsArray = root.putArray("documents");
+            root.put(CohereProtocol.KEY_MODEL, modelName);
+            root.put(CohereProtocol.KEY_QUERY, query);
+            root.put(CohereProtocol.KEY_TOP_N, documents.size());
+            ArrayNode docsArray = root.putArray(CohereProtocol.KEY_DOCUMENTS);
             for (String doc : documents) {
                 docsArray.add(doc);
             }
@@ -149,7 +149,7 @@ public class SimpleHttpScoringModel implements ScoringModel {
     private List<Double> parseResponse(String responseBody, int expectedCount) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode resultsNode = root.get("results");
+            JsonNode resultsNode = root.get(CohereProtocol.KEY_RESULTS);
             if (resultsNode == null || !resultsNode.isArray()) {
                 log.warn("Reranker response missing 'results' array: {}", responseBody);
                 return fillWithDefault(expectedCount, 0.5);
@@ -160,14 +160,20 @@ public class SimpleHttpScoringModel implements ScoringModel {
             resultsNode.forEach(results::add);
             results.sort(
                     (a, b) -> {
-                        int idxA = a.has("index") ? a.get("index").asInt() : 0;
-                        int idxB = b.has("index") ? b.get("index").asInt() : 0;
+                        int idxA =
+                                a.has(CohereProtocol.KEY_INDEX)
+                                        ? a.get(CohereProtocol.KEY_INDEX).asInt()
+                                        : 0;
+                        int idxB =
+                                b.has(CohereProtocol.KEY_INDEX)
+                                        ? b.get(CohereProtocol.KEY_INDEX).asInt()
+                                        : 0;
                         return Integer.compare(idxA, idxB);
                     });
 
             List<Double> scores = new ArrayList<>(expectedCount);
             for (JsonNode result : results) {
-                JsonNode scoreNode = result.get("relevance_score");
+                JsonNode scoreNode = result.get(CohereProtocol.KEY_RELEVANCE_SCORE);
                 if (scoreNode != null && scoreNode.isNumber()) {
                     scores.add(scoreNode.asDouble());
                 } else {

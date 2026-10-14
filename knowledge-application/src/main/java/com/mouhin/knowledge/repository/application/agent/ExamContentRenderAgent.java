@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.application.util.ExamPaperParser;
 import com.mouhin.knowledge.repository.application.util.ParserUtils;
+import com.mouhin.knowledge.repository.domain.constant.ExamJsonKeys;
 import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -77,12 +78,12 @@ public class ExamContentRenderAgent {
             index++;
             Map<String, Object> q = new LinkedHashMap<>();
             q.put("index", toInt(raw.get("index"), index));
-            String type = asString(raw.get("type"));
-            q.put("type", type);
+            String type = asString(raw.get(ExamJsonKeys.KEY_TYPE));
+            q.put(ExamJsonKeys.KEY_TYPE, type);
             q.put("maxScore", toInt(raw.get("maxScore"), DEFAULT_MAX_SCORE));
 
-            String content = cleanContent(asString(raw.get("content")));
-            List<Map<String, Object>> options = normalizeOptions(raw.get("options"));
+            String content = cleanContent(asString(raw.get(ExamJsonKeys.KEY_CONTENT)));
+            List<Map<String, Object>> options = normalizeOptions(raw.get(ExamJsonKeys.KEY_OPTIONS));
 
             // 选择题选项缺失 → 尝试从正文尾部抽取内联选项修复
             if (isChoice(type) && options.size() < MIN_CHOICE_OPTIONS) {
@@ -94,9 +95,9 @@ public class ExamContentRenderAgent {
                 }
             }
 
-            q.put("content", content);
+            q.put(ExamJsonKeys.KEY_CONTENT, content);
             if (isChoice(type)) {
-                q.put("options", options);
+                q.put(ExamJsonKeys.KEY_OPTIONS, options);
             }
             // 透传其它已有字段（如 answer 提示等），不覆盖已处理项
             raw.forEach(q::putIfAbsent);

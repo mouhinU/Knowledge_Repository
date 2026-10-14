@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mouhin.knowledge.repository.domain.constant.JwtClaims;
 import com.mouhin.knowledge.repository.domain.context.TenantContext;
 import com.mouhin.knowledge.repository.domain.gateway.AdminJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.AdminTokenPayload;
@@ -52,17 +53,19 @@ import org.springframework.stereotype.Component;
 public class AdminJwtGatewayImpl implements AdminJwtService {
 
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+    private static final String HEADER_JSON =
+            "{\""
+                    + JwtClaims.HEADER_ALG
+                    + "\":\""
+                    + JwtClaims.ALG_HS256
+                    + "\",\""
+                    + JwtClaims.HEADER_TYP
+                    + "\":\""
+                    + JwtClaims.TYP_JWT
+                    + "\"}";
     private static final byte[] HEADER_BYTES = HEADER_JSON.getBytes(StandardCharsets.UTF_8);
     private static final Base64.Encoder B64_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder B64_DECODER = Base64.getUrlDecoder();
-    private static final String CLAIM_SUB = "sub";
-    private static final String CLAIM_USERNAME = "username";
-    private static final String CLAIM_ADMIN = "admin";
-    private static final String CLAIM_ROLES = "roles";
-    private static final String CLAIM_TENANT_KEY = "tenantKey";
-    private static final String CLAIM_IAT = "iat";
-    private static final String CLAIM_EXP = "exp";
     private static final int TOKEN_SEGMENT_COUNT = 3;
     private static final long SECONDS_PER_HOUR = 3600L;
 
@@ -96,10 +99,10 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationSeconds);
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put(CLAIM_SUB, userKey);
-        payload.put(CLAIM_USERNAME, username);
-        payload.put(CLAIM_ADMIN, admin);
-        ArrayNode rolesNode = payload.putArray(CLAIM_ROLES);
+        payload.put(JwtClaims.SUB, userKey);
+        payload.put(JwtClaims.USERNAME, username);
+        payload.put(JwtClaims.ADMIN, admin);
+        ArrayNode rolesNode = payload.putArray(JwtClaims.ROLES);
         if (roles != null) {
             for (String r : roles) {
                 if (r != null && !r.isBlank()) {
@@ -108,12 +111,12 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             }
         }
         payload.put(
-                CLAIM_TENANT_KEY,
+                JwtClaims.TENANT_KEY,
                 tenantKey == null || tenantKey.isBlank()
                         ? TenantContext.DEFAULT_TENANT_KEY
                         : tenantKey);
-        payload.put(CLAIM_IAT, now.getEpochSecond());
-        payload.put(CLAIM_EXP, exp.getEpochSecond());
+        payload.put(JwtClaims.IAT, now.getEpochSecond());
+        payload.put(JwtClaims.EXP, exp.getEpochSecond());
 
         String encodedHeader = B64_ENCODER.encodeToString(HEADER_BYTES);
         String encodedPayload;
@@ -147,18 +150,18 @@ public class AdminJwtGatewayImpl implements AdminJwtService {
             }
             byte[] payloadBytes = B64_DECODER.decode(segments[1]);
             ObjectNode payload = (ObjectNode) objectMapper.readTree(payloadBytes);
-            long exp = payload.path(CLAIM_EXP).asLong(0L);
+            long exp = payload.path(JwtClaims.EXP).asLong(0L);
             if (exp <= Instant.now().getEpochSecond()) {
                 return Optional.empty();
             }
-            String userKey = payload.path(CLAIM_SUB).asText(null);
+            String userKey = payload.path(JwtClaims.SUB).asText(null);
             if (userKey == null || userKey.isBlank()) {
                 return Optional.empty();
             }
-            String username = payload.path(CLAIM_USERNAME).asText(null);
-            boolean admin = payload.path(CLAIM_ADMIN).asBoolean(false);
-            List<String> roles = readRoles(payload.path(CLAIM_ROLES));
-            String tenantKey = payload.path(CLAIM_TENANT_KEY).asText(null);
+            String username = payload.path(JwtClaims.USERNAME).asText(null);
+            boolean admin = payload.path(JwtClaims.ADMIN).asBoolean(false);
+            List<String> roles = readRoles(payload.path(JwtClaims.ROLES));
+            String tenantKey = payload.path(JwtClaims.TENANT_KEY).asText(null);
             if (tenantKey == null || tenantKey.isBlank()) {
                 tenantKey = TenantContext.DEFAULT_TENANT_KEY;
             }

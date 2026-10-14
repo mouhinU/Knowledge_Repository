@@ -45,6 +45,9 @@ public final class OpenAiProtocol {
     /** 图片对象内 {@code url} 字段。 */
     public static final String KEY_URL = "url";
 
+    /** 多模态文本项 {@code text} 字段（与 {@link #VALUE_TYPE_TEXT} 同值不同语义：一个是键，一个是取值）。 */
+    public static final String KEY_TEXT = "text";
+
     // ── 已知取值 ──────────────────────────────────────────
 
     /** {@code role} 取值：系统提示。 */
@@ -61,4 +64,30 @@ public final class OpenAiProtocol {
 
     /** {@code type} 取值：图片段。 */
     public static final String VALUE_TYPE_IMAGE_URL = "image_url";
+
+    // ── 响应体字段（OpenAI compatible /v1/chat/completions）───
+
+    /** 响应顶层 {@code choices} 数组字段。 */
+    public static final String KEY_CHOICES = "choices";
+
+    /** {@code choices[]} 元素内 {@code message} 字段（非流式）。 */
+    public static final String KEY_MESSAGE = "message";
+
+    /** {@code choices[]} 元素内 {@code delta} 字段（流式增量）。 */
+    public static final String KEY_DELTA = "delta";
+
+    /** {@code choices[]} 元素内 {@code finish_reason} 字段。 */
+    public static final String KEY_FINISH_REASON = "finish_reason";
+
+    /** 响应顶层 {@code error} 对象字段。 */
+    public static final String KEY_ERROR = "error";
+
+    /** {@code error} 内 {@code message} 字段。 */
+    public static final String KEY_ERROR_MESSAGE = "message";
+
+    /** {@code delta}/{@code message} 内 {@code reasoning_content} 字段（思考型模型扩展）。 */
+    public static final String KEY_REASONING_CONTENT = "reasoning_content";
+
+    /** {@code delta}/{@code message} 内 {@code reasoning} 字段（部分模型别名）。 */
+    public static final String KEY_REASONING = "reasoning";
 }

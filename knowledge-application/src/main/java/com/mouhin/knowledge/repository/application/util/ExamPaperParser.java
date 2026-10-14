@@ -2,6 +2,7 @@ package com.mouhin.knowledge.repository.application.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouhin.knowledge.repository.domain.constant.ExamJsonKeys;
 import com.mouhin.knowledge.repository.domain.constant.QuestionTypes;
 import com.mouhin.knowledge.repository.domain.model.valueobject.ExamPlan;
 import com.mouhin.knowledge.repository.domain.model.valueobject.TypePlan;
@@ -452,16 +453,16 @@ public final class ExamPaperParser {
             }
 
             Map<String, Object> q = new LinkedHashMap<>();
-            q.put("type", kernel);
+            q.put(ExamJsonKeys.KEY_TYPE, kernel);
             q.put("sectionLabel", label);
             q.put("number", printedNumber);
             q.put("maxScore", finalScore);
             String content = cleanContent(contentBuilder.toString());
-            q.put("content", content);
+            q.put(ExamJsonKeys.KEY_CONTENT, content);
             q.put("blankCount", ExamBlankCounter.count(content));
             if (QuestionTypes.SINGLE_CHOICE.equals(kernel)
                     || QuestionTypes.MULTI_CHOICE.equals(kernel)) {
-                q.put("options", parseOptions(rawOptionsBuilder.toString()));
+                q.put(ExamJsonKeys.KEY_OPTIONS, parseOptions(rawOptionsBuilder.toString()));
             }
             result.add(q);
         }
@@ -553,7 +554,7 @@ public final class ExamPaperParser {
         q.put("index", index);
         q.put("number", printedNumber != null ? printedNumber : index);
         String kernel = type != null ? type : resolveKernel(label != null ? label : "", null);
-        q.put("type", kernel);
+        q.put(ExamJsonKeys.KEY_TYPE, kernel);
         if (label != null) {
             q.put("sectionLabel", label);
         }
@@ -563,11 +564,11 @@ public final class ExamPaperParser {
         }
         q.put("maxScore", stem > 0 ? stem : defaultScore);
         String content = cleanContent(contentBuilder.toString());
-        q.put("content", content);
+        q.put(ExamJsonKeys.KEY_CONTENT, content);
         q.put("blankCount", ExamBlankCounter.count(content));
         if (QuestionTypes.SINGLE_CHOICE.equals(kernel)
                 || QuestionTypes.MULTI_CHOICE.equals(kernel)) {
-            q.put("options", parseOptions(rawOptionsBuilder.toString()));
+            q.put(ExamJsonKeys.KEY_OPTIONS, parseOptions(rawOptionsBuilder.toString()));
         }
         return q;
     }

@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.infrastructure.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
+import com.mouhin.knowledge.repository.domain.constant.JwtClaims;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformJwtService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import java.nio.charset.StandardCharsets;
@@ -48,15 +49,19 @@ import org.springframework.stereotype.Component;
 public class PlatformJwtGatewayImpl implements PlatformJwtService {
 
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+    private static final String HEADER_JSON =
+            "{\""
+                    + JwtClaims.HEADER_ALG
+                    + "\":\""
+                    + JwtClaims.ALG_HS256
+                    + "\",\""
+                    + JwtClaims.HEADER_TYP
+                    + "\":\""
+                    + JwtClaims.TYP_JWT
+                    + "\"}";
     private static final byte[] HEADER_BYTES = HEADER_JSON.getBytes(StandardCharsets.UTF_8);
     private static final Base64.Encoder B64_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder B64_DECODER = Base64.getUrlDecoder();
-    private static final String CLAIM_SUB = "sub";
-    private static final String CLAIM_USERNAME = "username";
-    private static final String CLAIM_SCOPE = "scope";
-    private static final String CLAIM_IAT = "iat";
-    private static final String CLAIM_EXP = "exp";
     private static final String SCOPE_PLATFORM = "platform";
     private static final int TOKEN_SEGMENT_COUNT = 3;
     private static final long SECONDS_PER_HOUR = 3600L;
@@ -80,11 +85,11 @@ public class PlatformJwtGatewayImpl implements PlatformJwtService {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationSeconds);
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put(CLAIM_SUB, operatorId);
-        payload.put(CLAIM_USERNAME, operatorName);
-        payload.put(CLAIM_SCOPE, SCOPE_PLATFORM);
-        payload.put(CLAIM_IAT, now.getEpochSecond());
-        payload.put(CLAIM_EXP, exp.getEpochSecond());
+        payload.put(JwtClaims.SUB, operatorId);
+        payload.put(JwtClaims.USERNAME, operatorName);
+        payload.put(JwtClaims.SCOPE, SCOPE_PLATFORM);
+        payload.put(JwtClaims.IAT, now.getEpochSecond());
+        payload.put(JwtClaims.EXP, exp.getEpochSecond());
 
         String encodedHeader = B64_ENCODER.encodeToString(HEADER_BYTES);
         String encodedPayload;
@@ -117,18 +122,18 @@ public class PlatformJwtGatewayImpl implements PlatformJwtService {
             }
             byte[] payloadBytes = B64_DECODER.decode(segments[1]);
             ObjectNode payload = (ObjectNode) objectMapper.readTree(payloadBytes);
-            if (!SCOPE_PLATFORM.equals(payload.path(CLAIM_SCOPE).asText(null))) {
+            if (!SCOPE_PLATFORM.equals(payload.path(JwtClaims.SCOPE).asText(null))) {
                 return Optional.empty();
             }
-            long exp = payload.path(CLAIM_EXP).asLong(0L);
+            long exp = payload.path(JwtClaims.EXP).asLong(0L);
             if (exp <= Instant.now().getEpochSecond()) {
                 return Optional.empty();
             }
-            String operatorId = payload.path(CLAIM_SUB).asText(null);
+            String operatorId = payload.path(JwtClaims.SUB).asText(null);
             if (operatorId == null || operatorId.isBlank()) {
                 return Optional.empty();
             }
-            String operatorName = payload.path(CLAIM_USERNAME).asText(null);
+            String operatorName = payload.path(JwtClaims.USERNAME).asText(null);
             return Optional.of(
                     new PlatformTokenPayload(operatorId, operatorName, Instant.ofEpochSecond(exp)));
         } catch (Exception e) {

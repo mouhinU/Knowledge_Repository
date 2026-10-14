@@ -192,26 +192,28 @@ public class OpenAiCompatibleStreamingChatGateway implements StreamingChatGatewa
             String[] finishReason) {
         try {
             JsonNode root = OBJECT_MAPPER.readTree(payload);
-            if (root.hasNonNull("error")) {
+            if (root.hasNonNull(OpenAiProtocol.KEY_ERROR)) {
                 String msg =
-                        root.path("error").path("message").asText(root.path("error").toString());
+                        root.path(OpenAiProtocol.KEY_ERROR)
+                                .path(OpenAiProtocol.KEY_ERROR_MESSAGE)
+                                .asText(root.path(OpenAiProtocol.KEY_ERROR).toString());
                 throw new RuntimeException("模型返回错误: " + msg);
             }
-            JsonNode choices = root.path("choices");
+            JsonNode choices = root.path(OpenAiProtocol.KEY_CHOICES);
             if (!choices.isArray() || choices.isEmpty()) {
                 return;
             }
             JsonNode first = choices.get(0);
-            JsonNode finish = first.path("finish_reason");
+            JsonNode finish = first.path(OpenAiProtocol.KEY_FINISH_REASON);
             if (finish.isTextual() && !finish.asText().isEmpty()) {
                 finishReason[0] = finish.asText();
             }
-            JsonNode delta = first.path("delta");
-            String content = delta.path("content").asText("");
+            JsonNode delta = first.path(OpenAiProtocol.KEY_DELTA);
+            String content = delta.path(OpenAiProtocol.KEY_CONTENT).asText("");
             String reasoning =
                     firstNonEmpty(
-                            delta.path("reasoning_content").asText(""),
-                            delta.path("reasoning").asText(""));
+                            delta.path(OpenAiProtocol.KEY_REASONING_CONTENT).asText(""),
+                            delta.path(OpenAiProtocol.KEY_REASONING).asText(""));
             if (!reasoning.isEmpty() && handler != null) {
                 handler.onDelta(KIND_THINKING, reasoning);
             }

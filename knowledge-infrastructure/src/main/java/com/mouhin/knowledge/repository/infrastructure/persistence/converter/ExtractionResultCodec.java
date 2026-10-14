@@ -21,6 +21,33 @@ public final class ExtractionResultCodec {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** JSON 字段名：总页数。 */
+    private static final String KEY_TOTAL_PAGES = "totalPages";
+
+    /** JSON 字段名：是否疑似扫描件。 */
+    private static final String KEY_LIKELY_SCANNED = "likelyScanned";
+
+    /** JSON 字段名：内容校验和。 */
+    private static final String KEY_CHECKSUM = "checksum";
+
+    /** JSON 字段名：检测到的格式。 */
+    private static final String KEY_DETECTED_FORMAT = "detectedFormat";
+
+    /** JSON 字段名：是否加密。 */
+    private static final String KEY_ENCRYPTED = "encrypted";
+
+    /** JSON 字段名：标题。 */
+    private static final String KEY_TITLE = "title";
+
+    /** JSON 字段名：作者。 */
+    private static final String KEY_AUTHOR = "author";
+
+    /** JSON 字段名：逐页文本数组。 */
+    private static final String KEY_PAGE_TEXTS = "pageTexts";
+
+    /** JSON 字段名：告警信息数组。 */
+    private static final String KEY_WARNINGS = "warnings";
+
     private ExtractionResultCodec() {}
 
     /**
@@ -31,15 +58,15 @@ public final class ExtractionResultCodec {
      */
     public static String encode(ExtractionResult result) {
         ObjectNode node = MAPPER.createObjectNode();
-        node.put("totalPages", result.totalPages());
-        node.put("likelyScanned", result.likelyScanned());
-        node.put("checksum", result.checksum());
-        node.put("detectedFormat", result.detectedFormat());
-        node.put("encrypted", result.encrypted());
-        node.put("title", result.title());
-        node.put("author", result.author());
-        writeStrings(node.putArray("pageTexts"), result.pageTexts());
-        writeStrings(node.putArray("warnings"), result.warnings());
+        node.put(KEY_TOTAL_PAGES, result.totalPages());
+        node.put(KEY_LIKELY_SCANNED, result.likelyScanned());
+        node.put(KEY_CHECKSUM, result.checksum());
+        node.put(KEY_DETECTED_FORMAT, result.detectedFormat());
+        node.put(KEY_ENCRYPTED, result.encrypted());
+        node.put(KEY_TITLE, result.title());
+        node.put(KEY_AUTHOR, result.author());
+        writeStrings(node.putArray(KEY_PAGE_TEXTS), result.pageTexts());
+        writeStrings(node.putArray(KEY_WARNINGS), result.warnings());
         try {
             return MAPPER.writeValueAsString(node);
         } catch (Exception e) {
@@ -57,15 +84,15 @@ public final class ExtractionResultCodec {
         try {
             JsonNode node = MAPPER.readTree(json);
             return new ExtractionResult(
-                    readStrings(node.path("pageTexts")),
-                    node.path("totalPages").asInt(0),
-                    node.path("likelyScanned").asBoolean(false),
-                    text(node, "checksum"),
-                    text(node, "detectedFormat"),
-                    readStrings(node.path("warnings")),
-                    node.path("encrypted").asBoolean(false),
-                    text(node, "title"),
-                    text(node, "author"));
+                    readStrings(node.path(KEY_PAGE_TEXTS)),
+                    node.path(KEY_TOTAL_PAGES).asInt(0),
+                    node.path(KEY_LIKELY_SCANNED).asBoolean(false),
+                    text(node, KEY_CHECKSUM),
+                    text(node, KEY_DETECTED_FORMAT),
+                    readStrings(node.path(KEY_WARNINGS)),
+                    node.path(KEY_ENCRYPTED).asBoolean(false),
+                    text(node, KEY_TITLE),
+                    text(node, KEY_AUTHOR));
         } catch (Exception e) {
             throw new IllegalStateException("解码 ExtractionResult 失败: " + e.getMessage(), e);
         }

@@ -3,6 +3,7 @@ package com.mouhin.knowledge.repository.infrastructure.security.oidc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouhin.knowledge.repository.domain.constant.FeatureFlagKeys;
+import com.mouhin.knowledge.repository.domain.constant.JwtClaims;
 import com.mouhin.knowledge.repository.domain.gateway.PlatformIdpTokenService;
 import com.mouhin.knowledge.repository.domain.model.valueobject.PlatformTokenPayload;
 import java.math.BigInteger;
@@ -44,21 +45,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
 
-    private static final String ALG_RS256 = "RS256";
     private static final String SIGN_ALGORITHM = "SHA256withRSA";
     private static final String KEY_ALGORITHM = "RSA";
     private static final int TOKEN_SEGMENT_COUNT = 3;
-
-    private static final String CLAIM_ALG = "alg";
-    private static final String CLAIM_KID = "kid";
-    private static final String CLAIM_ISS = "iss";
-    private static final String CLAIM_AUD = "aud";
-    private static final String CLAIM_EXP = "exp";
-    private static final String CLAIM_NBF = "nbf";
-    private static final String CLAIM_SUB = "sub";
-    private static final String CLAIM_PREFERRED_USERNAME = "preferred_username";
-    private static final String CLAIM_EMAIL = "email";
-    private static final String CLAIM_NAME = "name";
 
     private final String issuer;
     private final String audience;
@@ -109,10 +98,11 @@ public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
         }
         try {
             JsonNode header = readJson(segments[0]);
-            if (!ALG_RS256.equalsIgnoreCase(header.path(CLAIM_ALG).asText(""))) {
+            if (!JwtClaims.ALG_RS256.equalsIgnoreCase(
+                    header.path(JwtClaims.HEADER_ALG).asText(""))) {
                 return Optional.empty();
             }
-            String kid = header.path(CLAIM_KID).asText(null);
+            String kid = header.path(JwtClaims.HEADER_KID).asText(null);
             Optional<RsaJwk> jwk = jwkSetProvider.findKey(kid);
             if (jwk.isEmpty()) {
                 log.debug("No matching JWKS key for kid '{}', reject IdP token", kid);
@@ -133,33 +123,33 @@ public class PlatformIdpTokenGatewayImpl implements PlatformIdpTokenService {
 
     /** 校验签发者 / 受众 / 时效 / 主体；全部通过返回归一载荷，否则 empty。 */
     private Optional<PlatformTokenPayload> validateClaims(JsonNode payload) {
-        String iss = payload.path(CLAIM_ISS).asText(null);
+        String iss = payload.path(JwtClaims.ISS).asText(null);
         if (!issuer.equals(iss)) {
             return Optional.empty();
         }
-        if (!audienceMatches(payload.path(CLAIM_AUD))) {
+        if (!audienceMatches(payload.path(JwtClaims.AUD))) {
             return Optional.empty();
         }
         long now = Instant.now().getEpochSecond();
-        long exp = payload.path(CLAIM_EXP).asLong(0L);
+        long exp = payload.path(JwtClaims.EXP).asLong(0L);
         if (exp <= 0L || exp + clockSkewSeconds < now) {
             return Optional.empty();
         }
-        if (payload.hasNonNull(CLAIM_NBF)) {
-            long nbf = payload.path(CLAIM_NBF).asLong(0L);
+        if (payload.hasNonNull(JwtClaims.NBF)) {
+            long nbf = payload.path(JwtClaims.NBF).asLong(0L);
             if (nbf - clockSkewSeconds > now) {
                 return Optional.empty();
             }
         }
-        String operatorId = payload.path(CLAIM_SUB).asText(null);
+        String operatorId = payload.path(JwtClaims.SUB).asText(null);
         if (isBlank(operatorId)) {
             return Optional.empty();
         }
         String operatorName =
                 firstNonBlank(
-                        payload.path(CLAIM_PREFERRED_USERNAME).asText(null),
-                        payload.path(CLAIM_EMAIL).asText(null),
-                        payload.path(CLAIM_NAME).asText(null),
+                        payload.path(JwtClaims.PREFERRED_USERNAME).asText(null),
+                        payload.path(JwtClaims.EMAIL).asText(null),
+                        payload.path(JwtClaims.NAME).asText(null),
                         operatorId);
         return Optional.of(
                 new PlatformTokenPayload(operatorId, operatorName, Instant.ofEpochSecond(exp)));
